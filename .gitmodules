@@ -1,0 +1,3 @@
+[submodule "chainless_mpc"]
+	path = chainless_mpc
+	url = git@github.com:wulianapp/chainless_mpc.git
