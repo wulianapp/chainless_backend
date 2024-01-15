@@ -6,28 +6,24 @@ extern crate common;
 extern crate lazy_static;
 
 mod verification_code;
-use std::env;
+
 use actix_cors::Cors;
-use actix_web::{error, http, Error, HttpRequest, middleware, get,
-                post, web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    get, http, middleware, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
+};
 
 use log::info;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
-use std::fmt::Debug;
-use std::str::FromStr;
-use std::sync::Mutex;
-use std::sync::{mpsc, Arc, RwLock};
-use actix_web_httpauth::middleware::HttpAuthentication;
+
 use common::data_structures::account_manager::UserInfo;
 use common::error_code::AccountManagerError;
 use common::token_auth;
-use verification_code::{email, phone};
+
 use crate::verification_code::{ContactType, VerificationCode};
 use models::account_manager;
-use models::account_manager::UserFilter;
+use models::account_manager::{get_current_user_num, UserFilter};
 
-#[derive(Serialize,Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct BackendRespond<T: Serialize> {
     status_code: u16,
     msg: String,
@@ -35,24 +31,23 @@ struct BackendRespond<T: Serialize> {
     data: T,
 }
 
-
-fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse{
-    if let Some(data) = info{
-        HttpResponse::Ok().json( BackendRespond {
+fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
+    if let Some(data) = info {
+        HttpResponse::Ok().json(BackendRespond {
             msg: "successfully ".to_string(),
             status_code: 0u16,
             data,
         })
-    }else {
-        HttpResponse::Ok().json( BackendRespond {
+    } else {
+        HttpResponse::Ok().json(BackendRespond {
             msg: "successfully ".to_string(),
             status_code: 0u16,
-            data:"".to_string(),
+            data: "".to_string(),
         })
     }
 }
 
-fn generate_error_respond(error: AccountManagerError) -> HttpResponse{
+fn generate_error_respond(error: AccountManagerError) -> HttpResponse {
     return HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error as u16,
@@ -86,7 +81,11 @@ struct GetCodeRequest {
 
 #[post("/accountManager/getCode")]
 async fn get_code(request_data: web::Json<GetCodeRequest>) -> impl Responder {
-    let GetCodeRequest { device_id, user_contact, kind } = request_data.clone();
+    let GetCodeRequest {
+        device_id: _,
+        user_contact,
+        kind: _,
+    } = request_data.clone();
 
     let contract_type = verification_code::validate(&user_contact);
     if contract_type == ContactType::Other {
@@ -100,7 +99,7 @@ async fn get_code(request_data: web::Json<GetCodeRequest>) -> impl Responder {
     //todo: prohibit too frequently
 
     let code = VerificationCode::new(user_contact);
-    info!("get code {:?}",code);
+    info!("get code {:?}", code);
     if contract_type == ContactType::PhoneNumber {
         //phone::send_sms(&code).unwrap()
     } else {
@@ -112,7 +111,6 @@ async fn get_code(request_data: web::Json<GetCodeRequest>) -> impl Responder {
 
     generate_ok_respond(None::<String>)
 }
-
 
 /**
  * @api {post} /accountManager/verifyCode check verificationCode
@@ -142,18 +140,22 @@ struct VerifyCodeRequest {
 
 #[post("/accountManager/verifyCode")]
 async fn verify_code(request_data: web::Json<crate::VerifyCodeRequest>) -> impl Responder {
-    let VerifyCodeRequest { device_id, user_contact, kind, verification_code: code } = request_data.clone();
+    let VerifyCodeRequest {
+        device_id: _,
+        user_contact,
+        kind: _,
+        verification_code: code,
+    } = request_data.clone();
 
     //if user contact is invalided,it cann't store,and will return UserVerificationCodeNotFound in this func
     let check_res = VerificationCode::check_user_code(&user_contact, &code);
-    info!("{} {} {:?}",line!(),file!(),check_res);
+    info!("{} {} {:?}", line!(), file!(), check_res);
     if let Err(error) = check_res {
         generate_error_respond(error)
     } else {
         generate_ok_respond(None::<String>)
     }
 }
-
 
 /**
  * @api {post} /accountManager/register register account
@@ -182,13 +184,13 @@ struct RegisterRequest {
     verification_code: String,
     invitation_code: Option<String>,
     password: String,
-    wallet_sign_strategy: String,//"<threshold>/<total>"
+    wallet_sign_strategy: String, //"<threshold>/<total>"
 }
 
 #[post("/accountManager/register")]
 async fn register(request_data: web::Json<crate::RegisterRequest>) -> impl Responder {
     let crate::RegisterRequest {
-        device_id,
+        device_id: _,
         user_contact,
         verification_code: code,
         invitation_code,
@@ -197,7 +199,8 @@ async fn register(request_data: web::Json<crate::RegisterRequest>) -> impl Respo
     } = request_data.clone();
 
     let check_res = VerificationCode::check_user_code(&user_contact, &code);
-    info!("{} {} {:?}",line!(),file!(),check_res);
+    println!("{} {} {:?}", line!(), file!(), check_res);
+    info!("{} {} {:?}", line!(), file!(), check_res);
     if let Err(error) = check_res {
         return HttpResponse::Ok().json(BackendRespond {
             msg: error.to_string(),
@@ -207,9 +210,8 @@ async fn register(request_data: web::Json<crate::RegisterRequest>) -> impl Respo
     };
 
     //check userinfo form db
-    let user_at_stored = account_manager::get_by_user(
-        UserFilter::ByPhoneOrEmail(&user_contact)
-    );
+    let user_at_stored = account_manager::get_by_user(UserFilter::ByPhoneOrEmail(&user_contact));
+    println!("____{:?}", user_at_stored);
     if user_at_stored.is_some() {
         let error = AccountManagerError::PhoneOrEmailAlreadyRegister;
         return generate_error_respond(error);
@@ -220,12 +222,13 @@ async fn register(request_data: web::Json<crate::RegisterRequest>) -> impl Respo
     user_info.email = user_contact;
     user_info.pwd_hash = password; //todo: hash it again before store
     user_info.multi_sign_strategy = wallet_sign_strategy;
-    user_info.invite_code = invitation_code.unwrap_or_default();
+    //invite_code is filled with user_id by default
+    let default_invite_code = (get_current_user_num() + 1).to_string();
+    user_info.invite_code = invitation_code.unwrap_or(default_invite_code);
     account_manager::single_insert(user_info).unwrap();
 
     generate_ok_respond(None::<String>)
 }
-
 
 /**
  * @api {post} /accountManager/login user login
@@ -255,13 +258,11 @@ pub struct LoginRequest {
 #[post("/accountManager/login")]
 async fn login(request_data: web::Json<crate::LoginRequest>) -> impl Responder {
     let crate::LoginRequest {
-        device_id,
+        device_id: _,
         user_contact,
         password,
     } = request_data.clone();
-    let user_at_stored = account_manager::get_by_user(
-        UserFilter::ByPhoneOrEmail(&user_contact)
-    );
+    let user_at_stored = account_manager::get_by_user(UserFilter::ByPhoneOrEmail(&user_contact));
 
     //check password or  verification_code
     if user_at_stored.is_none() {
@@ -278,7 +279,6 @@ async fn login(request_data: web::Json<crate::LoginRequest>) -> impl Responder {
 
     generate_ok_respond(Some(token))
 }
-
 
 /**
  * @api {post} /accountManager/resetPassword  reset usr password
@@ -310,12 +310,13 @@ pub struct ResetPassword {
 }
 
 #[post("/accountManager/resetPassword")]
-async fn reset_password(req:HttpRequest,request_data: web::Json<ResetPassword>) -> impl Responder {
+async fn reset_password(
+    req: HttpRequest,
+    request_data: web::Json<ResetPassword>,
+) -> impl Responder {
     info!("start reset_password");
-    let user_id = match token_auth::validate_credentials(&req){
-        Ok(date) => {
-            date
-        }
+    let user_id = match token_auth::validate_credentials(&req) {
+        Ok(date) => date,
         Err(error) => {
             return HttpResponse::Unauthorized().json(error);
         }
@@ -323,7 +324,7 @@ async fn reset_password(req:HttpRequest,request_data: web::Json<ResetPassword>) 
     let ResetPassword {
         user_contact,
         verification_code,
-        new_password
+        new_password,
     } = request_data.clone();
 
     //check verification_code
@@ -333,10 +334,9 @@ async fn reset_password(req:HttpRequest,request_data: web::Json<ResetPassword>) 
     }
 
     //modify user's password  at db
-    account_manager::update_password(&new_password,UserFilter::ById(&user_id));
+    account_manager::update_password(&new_password, UserFilter::ById(user_id));
     generate_ok_respond(None::<String>)
 }
-
 
 #[get("/hello/{user}")]
 async fn hello_world(user: web::Path<String>) -> impl Responder {
@@ -367,7 +367,7 @@ async fn main() -> std::io::Result<()> {
                     .allowed_methods(vec!["GET", "POST", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
-                    .max_age(3600)
+                    .max_age(3600),
             )
             .service(hello_world)
             .service(echo)
@@ -376,24 +376,20 @@ async fn main() -> std::io::Result<()> {
             .service(register)
             .service(login)
             .service(reset_password)
-
     })
-        .bind(service.as_str())?
-        .run()
-        .await
+    .bind(service.as_str())?
+    .run()
+    .await
 }
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    use actix_web::{body, body::MessageBody as _, rt::pin, test, web, App};
     use actix_web::body::MessageBody;
-    use actix_web::dev::{Service, ServiceFactory, ServiceRequest, ServiceResponse};
+    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
-    use actix_web::web::Header;
-    use futures::future;
+    use actix_web::{body::MessageBody as _, test, App};
 
     async fn init() -> App<
         impl ServiceFactory<
@@ -403,9 +399,9 @@ mod tests {
             Error = Error,
             InitError = (),
         >,
-    >{
+    > {
         env::set_var("SERVICE_MODE", "test");
-        models::general::table_all_clear();
+        //models::general::table_all_clear();
         App::new()
             .service(hello_world)
             .service(echo)
@@ -417,37 +413,43 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_hello(){
+    async fn test_hello() {
         let app = init().await;
         let service = test::init_service(app).await;
         let req = test::TestRequest::get().uri("/hello/test").to_request();
-        let body = test::call_service(&service, req).await.into_body().try_into_bytes().unwrap();
+        let body = test::call_service(&service, req)
+            .await
+            .into_body()
+            .try_into_bytes()
+            .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("{}",body_str);
+        println!("{}", body_str);
     }
 
-
     #[actix_web::test]
-    async fn test_all_basal_account_manager_ok(){
+    async fn test_all_braced_account_manager_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
 
         //get code
-        let payload = r#"{ "deviceId": "1", "userContact": "test1@gmail.com","kind": "1" }"#;
+        let payload = r#"{ "deviceId": "1", "userContact": "test2@gmail.com","kind": "1" }"#;
         let req = test::TestRequest::post()
             .uri("/accountManager/getCode")
             .insert_header(header::ContentType::json())
             //.insert_header((header::AUTHORIZATION, format!("bearer {}", token_res)))
             .set_payload(payload.to_string())
             .to_request();
-        let body = test::call_and_read_body(&service, req).await.try_into_bytes().unwrap();
+        let body = test::call_and_read_body(&service, req)
+            .await
+            .try_into_bytes()
+            .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("body_str {}",body_str);
+        println!("body_str {}", body_str);
 
         //register
         let payload = r#"
         { "deviceId": "1",
-        "userContact": "test1@gmail.com",
+        "userContact": "test2@gmail.com",
         "verificationCode": "000000",
          "password": "123456789",
         "walletSignStrategy": "2-3"
@@ -459,14 +461,17 @@ mod tests {
             //.insert_header((header::AUTHORIZATION, format!("bearer {}", token_res)))
             .set_payload(payload.to_string())
             .to_request();
-        let body = test::call_and_read_body(&service, req).await.try_into_bytes().unwrap();
+        let body = test::call_and_read_body(&service, req)
+            .await
+            .try_into_bytes()
+            .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("body_str {}",body_str);
+        println!("body_str {}", body_str);
 
         //login
         let payload = r#"
         { "deviceId": "1",
-        "userContact": "test1@gmail.com",
+        "userContact": "test2@gmail.com",
          "password": "123456789"
         }
         "#;
@@ -475,16 +480,19 @@ mod tests {
             .insert_header(header::ContentType::json())
             .set_payload(payload.to_string())
             .to_request();
-        let body = test::call_and_read_body(&service, req).await.try_into_bytes().unwrap();
+        let body = test::call_and_read_body(&service, req)
+            .await
+            .try_into_bytes()
+            .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         let user: BackendRespond<String> = serde_json::from_str(&body_str).unwrap();
         let auth_token = user.data;
-        println!("body_str {}",auth_token);
+        println!("body_str {}", auth_token);
 
         //reset password
         let payload = r#"
         { "verificationCode": "000000",
-        "userContact": "test1@gmail.com",
+        "userContact": "test2@gmail.com",
          "newPassword": "123456789"
         }
         "#;
@@ -494,9 +502,12 @@ mod tests {
             .insert_header((header::AUTHORIZATION, format!("Bearer {}", auth_token)))
             .set_payload(payload.to_string())
             .to_request();
-        let body = test::call_and_read_body(&service, req).await.try_into_bytes().unwrap();
+        let body = test::call_and_read_body(&service, req)
+            .await
+            .try_into_bytes()
+            .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         let user: BackendRespond<String> = serde_json::from_str(&body_str).unwrap();
-        println!("body_str {}",user.data);
+        println!("body_str {}", user.data);
     }
 }

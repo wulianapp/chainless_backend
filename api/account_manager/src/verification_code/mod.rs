@@ -1,18 +1,16 @@
-pub mod phone;
 pub mod email;
-
+pub mod phone;
 
 use std::collections::HashMap;
-use std::ops::Deref;
-use std::time::{Duration, Instant};
-use std::sync::Mutex;
-use lazy_static::lazy_static;
+
 use common::error_code::AccountManagerError;
 use common::utils::math::gen_random_verify_code;
-use crate::verification_code;
-use regex::Regex;
-use common::env::ServiceMode;
+use lazy_static::lazy_static;
+use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
+use common::env::ServiceMode;
+use regex::Regex;
 
 const LIFETIME_SECONDS: u16 = 600; // 10 minutes
 
@@ -37,7 +35,7 @@ pub fn validate(input: &str) -> ContactType {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct VerificationCode {
     //email address or phone number
     owner: String,
@@ -46,15 +44,15 @@ pub struct VerificationCode {
 }
 
 impl VerificationCode {
-    pub fn new(user:String) -> Self {
-        let code = if common::env::CONF.service_mode == ServiceMode::Test{
+    pub fn new(user: String) -> Self {
+        let code = if common::env::CONF.service_mode == ServiceMode::Test {
             "000000".to_string()
-        }else {
+        } else {
             gen_random_verify_code().to_string()
         };
         let expiration_time = Instant::now() + Duration::from_secs(LIFETIME_SECONDS as u64);
         VerificationCode {
-            owner:user,
+            owner: user,
             code,
             expiration_time,
         }
@@ -70,25 +68,21 @@ impl VerificationCode {
         Ok(())
     }
 
-    pub fn check_user_code(user:&str,code:&str) -> Result<(),AccountManagerError> {
+    pub fn check_user_code(user: &str, code: &str) -> Result<(), AccountManagerError> {
         let code_storage = &CODE_STORAGE.lock().unwrap();
-        if let Some(data) = code_storage.get(user){
+        if let Some(data) = code_storage.get(user) {
             if data.code != code {
                 Err(AccountManagerError::UserVerificationCodeIncorrect)
-            }else if data.code == code && data.is_expired() {
+            } else if data.code == code && data.is_expired() {
                 Err(AccountManagerError::UserVerificationCodeExpired)
-            }else {
+            } else {
                 Ok(())
             }
-        }else {
+        } else {
             Err(AccountManagerError::UserVerificationCodeNotFound)
         }
     }
 }
-
-
-
-
 
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<String, VerificationCode>> = Mutex::new(HashMap::new());

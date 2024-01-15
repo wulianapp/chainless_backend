@@ -1,20 +1,16 @@
-use std::str::FromStr;
 use near_crypto::{InMemorySigner, KeyType, Signature};
-use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
+use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_jsonrpc_primitives::types::transactions::TransactionInfo;
-use near_primitives::borsh::BorshDeserialize;
-use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
-use near_primitives::types::BlockReference;
-use near_primitives::views::SignedTransactionView;
-use hex;
-use serde_json::json;
-use common::data_structures::wallet::{CoinTransfer, CoinType, TransferStatus};
-use common::utils::time::get_unix_time;
 
-pub async fn gen_transaction(signer:&InMemorySigner,contract_addr:&str) -> Transaction{
+use near_primitives::borsh::BorshDeserialize;
+use near_primitives::transaction::Transaction;
+use near_primitives::types::BlockReference;
+
+use hex;
+
+pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Transaction {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
@@ -23,7 +19,8 @@ pub async fn gen_transaction(signer:&InMemorySigner,contract_addr:&str) -> Trans
                 public_key: signer.public_key.clone(),
             },
         })
-        .await.unwrap();
+        .await
+        .unwrap();
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
@@ -41,27 +38,30 @@ pub async fn gen_transaction(signer:&InMemorySigner,contract_addr:&str) -> Trans
 }
 
 //user-api shouldn't use this directly
-pub async fn broadcast_tx_commit_from_raw(tx_str: &str,sig_str:&str){
-    let mut tx_hex = hex::decode(tx_str).unwrap();
+pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) {
+    let tx_hex = hex::decode(tx_str).unwrap();
     let sign_hex = hex::decode(sig_str).unwrap();
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
-    println!("{:?}",transaction);
-    let signature = Signature::from_parts(KeyType::ED25519,&sign_hex).unwrap();
-    let rest = broadcast_tx_commit(transaction,signature).await;
-    println!("broadcast_tx_commit_from_raw {:?}",rest);
+    println!("{:?}", transaction);
+    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
+    let rest = broadcast_tx_commit(transaction, signature).await;
+    println!("broadcast_tx_commit_from_raw {:?}", rest);
 }
 
-pub async fn broadcast_tx_commit(transaction: Transaction,sig_data:Signature) -> RpcBroadcastTxCommitResponse {
-    let tx = SignedTransaction::new(sig_data,transaction);
+pub async fn broadcast_tx_commit(
+    transaction: Transaction,
+    sig_data: Signature,
+) -> RpcBroadcastTxCommitResponse {
+    let tx = SignedTransaction::new(sig_data, transaction);
     let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
         signed_transaction: tx,
     };
     crate::CHAIN_CLIENT.call(request).await.unwrap()
 }
 
-pub async fn call<M>( request: M) -> MethodCallResult<M::Response, M::Error>
-    where
-        M: methods::RpcMethod,
+pub async fn call<M>(request: M) -> MethodCallResult<M::Response, M::Error>
+where
+    M: methods::RpcMethod,
 {
     crate::CHAIN_CLIENT.call(request).await
 }
@@ -77,8 +77,8 @@ pub async fn broadcast_tx_async(){
 
 #[cfg(test)]
 mod tests {
-    use crate::{add, test1};
     use super::*;
+    use crate::add;
 
     #[test]
     fn it_works() {
@@ -87,10 +87,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_broadcast_tx_commit_from_raw(){
+    async fn test_broadcast_tx_commit_from_raw() {
         //generate form example.js,current is already Expired;
         let raw_sign = "11bfe4d0b7705f6c57282a9030b22505ce2641547e9f246561d75a284f5a6e0a10e596fa7e702b6f897ad19c859ee880d4d1e80e521d91c53cc8827b67558a0e";
         let raw_tx = "1d00000074696d657374616d705f313730343139303135343938332e6e6f64653000b07a2c1e6d6a5f42827bace780a4cd9b03d37b5cff85f2fdcd08821ecbc3db9181a2a6585a010000050000006e6f6465308fed8725a8d7494013680e18ee53e86c76598ff2734ca1739735e1b16fc9a829010000000301000000000000000000000000000000";
-        let res = broadcast_tx_commit_from_raw(raw_tx,raw_sign).await;
+        let _res = broadcast_tx_commit_from_raw(raw_tx, raw_sign).await;
     }
 }

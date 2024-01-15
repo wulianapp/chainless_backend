@@ -1,10 +1,9 @@
 use serde::Deserialize;
-use serde_json::json;
-use reqwest::Client;
-use reqwest;
-use anyhow::{Context, Result};
+
+use anyhow::Result;
 use common::utils::math::gen_random_verify_code;
-use crate::verification_code;
+use reqwest;
+
 use crate::verification_code::VerificationCode;
 
 // 结构体用于反序列化 Twilio API 响应
@@ -15,18 +14,18 @@ struct TwilioResponse {
     // 在这里添加其他需要解析的字段
 }
 
-enum EmailError{
-    IllegalAccount
+enum EmailError {
+    IllegalAccount,
 }
 
-pub async fn send_sms(code: &VerificationCode) -> Result<()> {
+pub async fn send_sms(_code: &VerificationCode) -> Result<()> {
     // 替换为您的 Twilio 账户 SID 和认证令牌
     let account_sid = "YOUR_ACCOUNT_SID";
     let auth_token = "YOUR_AUTH_TOKEN";
 
     // Twilio 的手机号码和您的手机号码
-    let from_number = "+1234567890";  // Twilio 的手机号码
-    let to_number = "+9876543210";    // 接收验证码的手机号码
+    let from_number = "+1234567890"; // Twilio 的手机号码
+    let to_number = "+9876543210"; // 接收验证码的手机号码
 
     // 生成随机验证码，这里示范生成一个随机的 6 位数字验证码
     let verification_code = gen_random_verify_code();
@@ -47,7 +46,9 @@ pub async fn send_sms(code: &VerificationCode) -> Result<()> {
             ("To", to_number),
             ("Body", &message_body),
         ])
-        .send().await.unwrap();
+        .send()
+        .await
+        .unwrap();
 
     // 检查 Twilio API 的响应
     if response.status().is_success() {

@@ -1,68 +1,75 @@
-CREATE TABLE IF NOT EXISTS users
+
+create table if not exists users
 (
-    id SERIAL  primary key,
-    phone_number text COLLATE pg_catalog."default" NOT NULL,
-    email text COLLATE pg_catalog."default" NOT NULL,
-    pwd_hash text COLLATE pg_catalog."default" NOT NULL,
-                          state smallint NOT NULL,
-    multi_sign_strategy text NOT NULL,
-                          verified boolean NOT NULL,
-                          invite_code text COLLATE pg_catalog."default" NOT NULL,
-    direct_invited_number integer NOT NULL,
-                          ancestors text[] NOT NULL,
-                          points integer NOT NULL,
-                          grade smallint NOT NULL,
-    fans_num integer NOT NULL,
-                          --CONSTRAINT users_pkey PRIMARY KEY (id),
-    CONSTRAINT users_invite_code_key UNIQUE (invite_code),
-    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    id serial  primary key,
+    phone_number text collate pg_catalog."default" not null,
+    email text collate pg_catalog."default" not null,
+    pwd_hash text collate pg_catalog."default" not null,
+    state smallint not null,
+    multi_sign_strategy text not null,
+    verified boolean not null,
+    invite_code text collate pg_catalog."default" not null,
+    direct_invited_number integer not null,
+    ancestors text[] not null,
+    points integer not null,
+    grade smallint not null,
+    fans_num integer not null,
+    constraint users_invite_code_key unique (invite_code),
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
 );
---TABLESPACE pg_default;
---COMMENT ON TABLE users IS '用户';
-COMMENT ON COLUMN users.id IS '用户 ID';
-COMMENT ON COLUMN users.phone_number IS '手机号';
-COMMENT ON COLUMN users.email IS '邮箱';
-COMMENT ON COLUMN users.pwd_hash IS '密码 hash';
-COMMENT ON COLUMN users.created_at IS '创建时间';
-COMMENT ON COLUMN users.state IS '状态，0=正常，1=已冻结，2=继承后产生的子账户';
-COMMENT ON COLUMN users.multi_sign_strategy IS '转账时多签要求';
-COMMENT ON COLUMN users.verified IS 'true=已实名';
-COMMENT ON COLUMN users.invite_code IS '邀请码';
-COMMENT ON COLUMN users.direct_invited_number IS '已（直推）邀请人数';
-COMMENT ON COLUMN users.ancestors IS '所有的上级用户 ID（从直接上级开始）';
-COMMENT ON COLUMN users.points IS '积分';
-COMMENT ON COLUMN users.grade IS '等级';
-COMMENT ON COLUMN users.fans_num IS '粉丝数';
+--tablespace pg_default;
+--comment on table users is '用户';
+comment on column users.id is '用户 id';
+comment on column users.phone_number is '手机号';
+comment on column users.email is '邮箱';
+comment on column users.pwd_hash is '密码 hash';
+comment on column users.created_at is '创建时间';
+comment on column users.state is '状态，0=正常，1=已冻结，2=继承后产生的子账户';
+comment on column users.multi_sign_strategy is '转账时多签要求';
+comment on column users.verified is 'true=已实名';
+comment on column users.invite_code is '邀请码';
+comment on column users.direct_invited_number is '已（直推）邀请人数';
+comment on column users.ancestors is '所有的上级用户 id（从直接上级开始）';
+comment on column users.points is '积分';
+comment on column users.grade is '等级';
+comment on column users.fans_num is '粉丝数';
 
--- Index: ix_users_email
-CREATE INDEX IF NOT EXISTS ix_users_email
-    ON users USING btree
-    (email COLLATE pg_catalog."default" ASC NULLS LAST)
-    TABLESPACE pg_default;
--- Index: ix_users_phone
-CREATE INDEX IF NOT EXISTS ix_users_phone
-    ON users USING btree
-    (phone_number COLLATE pg_catalog."default" ASC NULLS LAST)
-    TABLESPACE pg_default;
+-- index: ix_users_email
+create index if not exists ix_users_email
+    on users using btree
+    (email collate pg_catalog."default" asc nulls last)
+    tablespace pg_default;
+-- index: ix_users_phone
+create index if not exists ix_users_phone
+    on users using btree
+    (phone_number collate pg_catalog."default" asc nulls last)
+    tablespace pg_default;
 
 
+create table coin_transaction(
+     tx_id text  primary key,
+     sender integer,
+     receiver integer,
+     coin_type text,
+     amount text,
+     status  text,
+     raw_data  text,
+     signatures text[],
+     updated_at  timestamp with time zone default current_timestamp,
+     created_at  timestamp with time zone default current_timestamp
+);
+create index coin_transaction_tx_id on coin_transaction (tx_id);
+create index coin_transaction_user on coin_transaction (sender,receiver);
 
 -- tokens table
-CREATE TABLE IF NOT EXISTS accounts
+create table wallet
 (
-    id SERIAL  primary key,
-    uid bigint NOT NULL,
-    token_id integer NOT NULL,
-    unlocked numeric(40,0) NOT NULL,
-    locked numeric(40,0) NOT NULL,
-    CONSTRAINT accounts_uid_token_id_key UNIQUE (uid, token_id),
-    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    created_at  TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    user_id integer primary key,
+    account_id text,
+    sub_pubkeys text[],
+    sign_strategies text[],
+    participate_device_ids text[],
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
 );
-
-COMMENT ON TABLE accounts IS '资金账户';
-COMMENT ON COLUMN accounts.uid IS '用户 ID';
-COMMENT ON COLUMN accounts.token_id IS '币种 ID';
-COMMENT ON COLUMN accounts.unlocked IS '已解锁余额';
-COMMENT ON COLUMN accounts.locked IS '已锁定余额';

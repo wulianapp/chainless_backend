@@ -29,3 +29,6 @@ lazy_static = "1.4.0"
 regex = "1.5"
 actix-web-httpauth = "0.6"
 jsonwebtoken = "7.2.0"
+
+[dev-dependencies]
+actix-http = "3.5.1"

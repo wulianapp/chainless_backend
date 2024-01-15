@@ -1,8 +1,8 @@
-pub mod env;
-pub mod utils;
-pub mod error_code;
 pub mod data_structures;
+pub mod env;
+pub mod error_code;
 pub mod token_auth;
+pub mod utils;
 
 #[macro_use]
 extern crate lazy_static;

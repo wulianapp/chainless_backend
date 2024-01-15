@@ -2,30 +2,32 @@
 //#![deny(missing_docs)]
 //#![deny(warnings)]
 
-pub mod newbie_reward;
+pub mod account_manager;
 pub mod airdrop;
 pub mod general;
-pub mod account_manager;
+pub mod newbie_reward;
+
+pub mod coin_transfer;
 pub mod wallet;
 
 #[macro_use]
 extern crate log;
 #[macro_use]
 extern crate lazy_static;
-extern crate rustc_serialize;
 extern crate chrono;
-extern crate postgres;
 extern crate jsonrpc_client_core;
 extern crate jsonrpc_client_http;
+extern crate postgres;
+extern crate rustc_serialize;
 
 use postgres::{Client, NoTls, Row};
-use std::any::Any;
-use std::fmt::Debug;
+
 use anyhow::anyhow;
-use std::sync::Mutex;
 use chrono::Local;
 use serde::Deserialize;
 use serde::Serialize;
+use std::fmt::Debug;
+use std::sync::Mutex;
 
 static TRY_TIMES: u8 = 5;
 
@@ -82,7 +84,7 @@ pub fn query(raw_sql: &str) -> anyhow::Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
     let mut client = crate::CLIENTDB.lock().unwrap();
     loop {
-        println!("raw_sql {}",raw_sql);
+        println!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
             Ok(data) => {
                 return Ok(data);
@@ -107,7 +109,7 @@ pub fn execute(raw_sql: &str) -> anyhow::Result<u64> {
     let mut try_times = TRY_TIMES;
     let mut client = crate::CLIENTDB.lock().unwrap();
     loop {
-        println!("raw_sql {}",raw_sql);
+        println!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
             Ok(data) => {
                 return Ok(data);
@@ -118,7 +120,7 @@ pub fn execute(raw_sql: &str) -> anyhow::Result<u64> {
                 } else {
                     error!("error {:?}", error);
                     println!("error {:?}", error);
-                    *client =  crate::gen_new_client();
+                    *client = crate::gen_new_client();
                     try_times -= 1;
                     continue;
                 }
@@ -158,6 +160,15 @@ fn assembly_insert_values(lines: Vec<Vec<String>>) -> String {
         index += 1;
     }
     lines_str
+}
+
+pub fn vec_str2array_text(vec: Vec<String>) -> String {
+    let array_elements: Vec<String> = vec
+        .into_iter()
+        .map(|s| format!("'{}'", s.replace("'", "''")))
+        .collect();
+
+    format!("ARRAY[{}]::text[]", array_elements.join(","))
 }
 
 #[cfg(test)]

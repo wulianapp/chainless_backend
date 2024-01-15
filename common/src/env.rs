@@ -1,17 +1,15 @@
 use std::{env, fmt};
-use std::ffi::OsString;
-use std::str::FromStr;
-use std::fmt::{Debug, Display};
-use crate::error_code::AccountManagerError;
 
-#[derive(Debug,PartialEq)]
+use std::fmt::Debug;
+use std::str::FromStr;
+
+#[derive(Debug, PartialEq)]
 pub enum ServiceMode {
     Product,
     Dev,
     Local,
-    Test  //for testcase
+    Test, //for testcase
 }
-
 
 impl std::str::FromStr for ServiceMode {
     type Err = String;
@@ -81,7 +79,8 @@ impl Default for EnvConf {
             airdrop_api_port: 8067,
             general_api_port: 8068,
             wallet_api_port: 8069,
-            prostgres_server: "host=localhost user=postgres port=5432 password=postgres".to_string(),
+            prostgres_server: "host=localhost user=postgres port=5432 password=postgres"
+                .to_string(),
             chain_rpc: "".to_string(),
             stmp_account: "".to_string(),
             stmp_sender: "".to_string(),
@@ -169,7 +168,6 @@ lazy_static! {
 mod tests {
     #[test]
     fn test_get_env() {
-        println!("envs {:?}",*super::CONF);
+        println!("envs {:?}", *super::CONF);
     }
-
 }

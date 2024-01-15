@@ -9,6 +9,10 @@ pub fn get_unix_time() -> u64 {
     Local::now().timestamp_millis() as u64
 }
 
+pub fn get_unix_time_nanos() -> u64 {
+    Local::now().timestamp_nanos_opt().unwrap() as u64
+}
+
 pub fn time2unix(time_str: String) -> u64 {
     let dt = Utc
         .datetime_from_str(time_str.as_str(), "%Y-%m-%d %H:%M:%S.%f")

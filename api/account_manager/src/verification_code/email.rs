@@ -1,19 +1,17 @@
-use std::collections::HashMap;
-use std::ops::Deref;
+use common::utils::math::gen_random_verify_code;
 use lettre::message::header::ContentType;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
-use common::utils::math::gen_random_verify_code;
-use rand::Rng;
+
 use anyhow::Result;
-use crate::verification_code;
+
 use crate::verification_code::VerificationCode;
 
-enum EmailError{
-    IllegalAccount
+enum EmailError {
+    IllegalAccount,
 }
 
-fn is_valid() -> Result<(),EmailError>{
+fn is_valid() -> Result<(), EmailError> {
     unimplemented!()
 }
 
@@ -58,7 +56,6 @@ mod tests {
     fn test_send_email() {
         let code = VerificationCode::new("eddy1guo@gmail.com".to_string());
         let res = send_email(&code);
-        println!("res {:?}",res);
+        println!("res {:?}", res);
     }
-
 }

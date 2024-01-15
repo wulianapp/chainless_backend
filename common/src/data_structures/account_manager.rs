@@ -1,6 +1,6 @@
 use serde_derive::Serialize;
 
-#[derive(Serialize, Debug,Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct UserInfo {
     pub phone_number: String,
     pub email: String,
@@ -11,11 +11,12 @@ pub struct UserInfo {
     pub invite_code: String,
     pub direct_invited_number: u32,
     pub ancestors: Vec<String>,
+    //pub device_ids: Vec<String>,
     pub points: u32,
     pub grade: u8,
     pub fans_num: u32,
 }
-impl Default for UserInfo{
+impl Default for UserInfo {
     //default of string type is " ",not "";
     fn default() -> Self {
         UserInfo {
