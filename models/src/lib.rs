@@ -9,6 +9,7 @@ pub mod newbie_reward;
 
 pub mod coin_transfer;
 pub mod wallet;
+pub mod secret_store;
 
 #[macro_use]
 extern crate log;

@@ -102,6 +102,39 @@ impl FromStr for CoinTxStatus {
         }
     }
 }
+
+
+
+
+#[derive(Deserialize, Debug, PartialEq, Serialize, Clone)]
+pub enum SecretKeyType {
+    Master,
+    Servant,
+}
+
+impl fmt::Display for SecretKeyType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            SecretKeyType::Master => "Master",
+            SecretKeyType::Servant => "Servant",
+        };
+        write!(f, "{}", description)
+    }
+}
+
+impl FromStr for SecretKeyType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Master" => Ok(SecretKeyType::Master),
+            "Servant" => Ok(SecretKeyType::Servant),
+            _ => Err("Don't support this".to_string()),
+        }
+    }
+}
+
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTransaction {
     pub tx_id: String,
@@ -121,4 +154,14 @@ pub struct Wallet {
     pub sub_pubkeys: Vec<String>,
     pub sign_strategies: Vec<String>,
     pub participate_device_ids: Vec<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Wallet2 {
+    pub account_id: String,
+    pub master_device_id: String,
+    pub master_pubkey: String,
+    pub servant_device_ids: Vec<String>,
+    pub servant_pubkeys: Vec<String>,
+    pub sign_strategies: String,
 }

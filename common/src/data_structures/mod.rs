@@ -3,3 +3,4 @@ pub mod airdrop;
 pub mod general;
 pub mod newbie_reward;
 pub mod wallet;
+pub mod secret_store;

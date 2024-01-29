@@ -1,11 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "api/account_manager",
-    "api/airdrop",
-    "api/general",
-    "api/newbie_reward",
-    "api/wallet",
+    "api",
     "common",
     "scanner",
     "models",

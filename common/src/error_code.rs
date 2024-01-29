@@ -10,6 +10,7 @@ error message is correspond with error code
 */
 
 use std::fmt;
+use near_primitives::types::AccountId;
 use thiserror::Error;
 
 #[derive(Debug)]
@@ -18,41 +19,53 @@ pub enum ApiCommonError {
     RequestParamInvalid = 1001,
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum AccountManagerError {
-    Unknown = 2000,
-    UserVerificationCodeNotFound = 2001,
-    UserVerificationCodeExpired = 2002,
-    UserVerificationCodeIncorrect = 2003,
-    PhoneOrEmailIncorrect = 2004,
-    PhoneOrEmailAlreadyRegister = 2005,
-    PhoneOrEmailNotRegister = 2006,
-    PasswordIncorrect = 2007,
+    #[error("internal error: {0}")]
+    InternalError(String),
+    #[error("Invalid parameters: {0}")]
+    InvalidParameters(String),
+    #[error("cann't find user's code in memory map")]
+    UserVerificationCodeNotFound,
+    #[error("user's code is expired")]
+    UserVerificationCodeExpired,
+    #[error("user's code is different with storage")]
+    UserVerificationCodeIncorrect,
+    #[error("user's phone number or email address is invalided")]
+    PhoneOrEmailIncorrect,
+    #[error("user's phone number or email already used for register")]
+    PhoneOrEmailAlreadyRegister,
+    #[error("user's phone number or email not register")]
+    PhoneOrEmailNotRegister,
+    #[error("user's password is incorrect")]
+    PasswordIncorrect,
+    #[error("Authorization error: {0}")]
+    Authorization(String),
+    #[error("Captcha request too frequently")]
+    CaptchaRequestTooFrequently,
+    #[error("Account is locking")]
+    AccountLocked,
+    #[error("Invite code not exist")]
+    InviteCodeNotExist,
 }
 
-impl fmt::Display for AccountManagerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let description = match self {
-            AccountManagerError::UserVerificationCodeNotFound => {
-                "cann't find user's code in memory map"
-            }
-            AccountManagerError::UserVerificationCodeExpired => "user's code is expired",
-            AccountManagerError::UserVerificationCodeIncorrect => {
-                "user's code is different with storage"
-            }
-            AccountManagerError::PhoneOrEmailIncorrect => {
-                "user's phone number or email address is invalided"
-            }
-            AccountManagerError::PhoneOrEmailAlreadyRegister => {
-                "user's phone number or email already used for register"
-            }
-            AccountManagerError::PhoneOrEmailNotRegister => {
-                "user's phone number or email not register"
-            }
-            AccountManagerError::PasswordIncorrect => "user's password is incorrect",
-            AccountManagerError::Unknown => "unknown error",
-        };
-        write!(f, "{}", description)
+impl ChainLessError for AccountManagerError {
+    fn code(&self) -> u16 {
+        match self {
+            Self::InternalError(_string) => 2000,
+            Self::InvalidParameters(_string) => 2001,
+            Self::UserVerificationCodeNotFound => 2002,
+            Self::UserVerificationCodeExpired => 2003,
+            Self::UserVerificationCodeIncorrect => 2004,
+            Self::PhoneOrEmailIncorrect => 2005,
+            Self::PhoneOrEmailAlreadyRegister => 2006,
+            Self::PhoneOrEmailNotRegister => 2008,
+            Self::PasswordIncorrect => 2009,
+            Self::Authorization(_string) => 2010,
+            Self::CaptchaRequestTooFrequently => 2011,
+            Self::AccountLocked => 2012,
+            Self::InviteCodeNotExist => 2013,
+        }
     }
 }
 
@@ -75,14 +88,20 @@ pub enum WalletError {
     #[error("Authorization error: {0}")]
     Authorization(String),
 }
-impl WalletError {
-    pub fn code(&self) -> u16 {
+impl ChainLessError for WalletError {
+    fn code(&self) -> u16 {
         match self {
-            WalletError::Unknown(_String) => 3000,
-            WalletError::TxFromNotBeUser => 3001,
-            WalletError::ReceiverNotFound => 3002,
-            WalletError::SenderNotFound => 3003,
-            WalletError::Authorization(_String) => 3004,
+            Self::Unknown(_String) => 3000,
+            Self::TxFromNotBeUser => 3001,
+            Self::ReceiverNotFound => 3002,
+            Self::SenderNotFound => 3003,
+            Self::Authorization(_String) => 3004,
         }
     }
 }
+
+pub trait ChainLessError {
+    fn code(&self) -> u16;
+}
+
+
