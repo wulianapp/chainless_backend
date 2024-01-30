@@ -106,7 +106,7 @@ pub struct VerifyCodeRequest {
     captcha: String,
 }
 
-#[post("/accountManager/verifyCaptcha")]
+#[post("/accountManager/verifyCaptcha1")]
 async fn verify_captcha(
     request_data: web::Json<VerifyCodeRequest>,
 ) -> impl Responder {

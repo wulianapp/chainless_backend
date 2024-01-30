@@ -3,7 +3,8 @@ use actix_web::web;
 use log::{info};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError;
+use common::error_code::AccountManagerError::*;
+use common::error_code::ApiCommonError::*;
 use common::http::ApiRes;
 use models::{account_manager, secret_store};
 use models::account_manager::{get_user, get_current_user_num, UserFilter, get_next_uid};
@@ -18,14 +19,13 @@ fn register(device_id:String,
             contact_type: ContactType,
             encrypted_prikey:String,
             pubkey:String
-) -> ApiRes<String, AccountManagerError> {
+) -> ApiRes<String> {
 
-    Captcha::check_user_code(&contact, &captcha,Kind::register)?;
+    Captcha::check_user_code(&contact, &captcha,Kind::register).map_err(|e| e.into())?;
 
     //check userinfo form db
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact));
-    if user_at_stored.is_some() {
-        Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
+    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact)){
+        Err(PhoneOrEmailAlreadyRegister.into())?;
     }
 
 
@@ -49,7 +49,7 @@ fn register(device_id:String,
 
     if let Some(code) = predecessor_invite_code{
          let predecessor = get_user(UserFilter::ByInviteCode(&code)).ok_or(
-            AccountManagerError::InviteCodeNotExist
+            InviteCodeNotExist.into()
         )?;
         user_info.predecessor = Some(predecessor.id);
     }
@@ -65,7 +65,7 @@ fn register(device_id:String,
     //todo: sql trans
     secret_store::single_insert(&secret)
         .map_err(|x|
-            AccountManagerError::InvalidParameters("".to_string())
+            RequestParamInvalid("".to_string()).into()
         )?;
     models::general::transaction_commit();
     info!("user {:?} register successfully", user_info);
@@ -76,7 +76,7 @@ pub mod by_email{
     use crate::account_manager::{captcha, RegisterByEmailRequest};
     use super::*;
 
-    pub fn req(request_data: RegisterByEmailRequest) -> ApiRes<String, AccountManagerError> {
+    pub fn req(request_data: RegisterByEmailRequest) -> ApiRes<String> {
         let RegisterByEmailRequest {
             device_id,
             email,
@@ -86,7 +86,7 @@ pub mod by_email{
             encrypted_prikey,
             pubkey,
         } = request_data;
-        captcha::validate_email(&email)?;
+        //captcha::validate_email(&email)?;
         super::register(device_id, email, captcha, predecessor_invite_code, password, ContactType::Email,encrypted_prikey,pubkey)
     }
 }
@@ -95,7 +95,7 @@ pub mod by_phone{
     use crate::account_manager::{captcha, RegisterByPhoneRequest};
     use super::*;
 
-    pub fn req(request_data: RegisterByPhoneRequest) -> ApiRes<String, AccountManagerError> {
+    pub fn req(request_data: RegisterByPhoneRequest) -> ApiRes<String> {
         let RegisterByPhoneRequest {
             device_id,
             phone_number,
@@ -105,7 +105,7 @@ pub mod by_phone{
             encrypted_prikey,
             pubkey,
         } = request_data;
-        captcha::validate_phone(&phone_number)?;
+        //captcha::validate_phone(&phone_number)?;
         super::register(device_id,phone_number,captcha,predecessor_invite_code,password,ContactType::PhoneNumber,encrypted_prikey,pubkey)
     }
 }

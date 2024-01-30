@@ -4,7 +4,7 @@ pub mod phone;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use common::error_code::AccountManagerError;
+use common::error_code::{AccountManagerError, ApiCommonError, ApiError};
 use common::utils::math::gen_random_verify_code;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -13,7 +13,8 @@ use std::time::{Duration, Instant};
 use common::env::ServiceMode;
 use regex::Regex;
 use common::data_structures::wallet::CoinTxStatus;
-use common::error_code::AccountManagerError::InvalidParameters;
+use common::error_code::AccountManagerError::*;
+use common::error_code::ApiCommonError::*;
 use common::http::ApiRes;
 use common::utils::time::{MINUTE10, now_millis};
 
@@ -34,12 +35,12 @@ pub enum Kind {
 }
 
 impl FromStr for Kind {
-    type Err = AccountManagerError;
+    type Err = ApiError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "register" => Ok(Self::register),
             "resetPassword" => Ok(Self::reset_password),
-            _ => Err(InvalidParameters(s.to_string())),
+            _ => Err(RequestParamInvalid(s.to_string()).into()),
         }
     }
 }
@@ -54,7 +55,7 @@ pub fn validate(input: &str) -> Result<ContactType,AccountManagerError> {
     } else if email_re.is_match(input) {
         Ok(ContactType::Email)
     } else {
-        Err(AccountManagerError::PhoneOrEmailIncorrect)
+        Err(PhoneOrEmailIncorrect)
     }
 }
 
@@ -65,7 +66,7 @@ pub fn validate_email(input: &str) -> Result<(),AccountManagerError> {
     let email_re =  Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
 
     if !email_re.is_match(input) {
-        Err(AccountManagerError::PhoneOrEmailIncorrect)
+        Err(PhoneOrEmailIncorrect)
     }else {
         Ok(())
     }
@@ -76,7 +77,7 @@ pub fn validate_phone(input: &str) -> Result<(),AccountManagerError> {
     let phone_re = Regex::new(r"^\+\d{1,3}\s\d{10,15}$").unwrap();
 
     if !phone_re.is_match(input) {
-        Err(AccountManagerError::PhoneOrEmailIncorrect)
+        Err(PhoneOrEmailIncorrect)
     }else {
         Ok(())
     }
@@ -121,27 +122,27 @@ impl Captcha {
         self.expiration_time <= now_millis()
     }
 
-    pub fn store(&self) -> Result<(),AccountManagerError> {
+    pub fn store(&self) -> Result<(),ApiError> {
         let code_storage = &mut CODE_STORAGE
             .lock()
             .map_err(|e|
-                AccountManagerError::InternalError(e.to_string())
+                Internal(e.to_string()).into()
             )?;
         code_storage.insert((self.owner.to_string(),self.kind.clone()), self.clone());
         Ok(())
     }
 
-    pub fn check_user_code(user: &str, code: &str,kind: Kind) -> Result<(), AccountManagerError> {
+    pub fn check_user_code(user: &str, code: &str,kind: Kind) -> Result<(), ApiError> {
         if let Some(data) = get_captcha(user.to_string(),kind) {
             if data.code != code {
-                Err(AccountManagerError::UserVerificationCodeIncorrect)
+                Err(UserVerificationCodeIncorrect.into())
             } else if data.code == code && data.is_expired() {
-                Err(AccountManagerError::UserVerificationCodeExpired)
+                Err(UserVerificationCodeExpired.into())
             } else {
                 Ok(())
             }
         } else {
-            Err(AccountManagerError::UserVerificationCodeNotFound)
+            Err(UserVerificationCodeNotFound.into())
         }
     }
 }

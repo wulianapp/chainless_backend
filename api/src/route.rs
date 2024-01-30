@@ -42,7 +42,7 @@ use common::http::gen_extra_respond;
 async fn main() -> std::io::Result<()> {
     env_logger::init();
     let global_conf = &common::env::CONF;
-    let service = format!("0.0.0.0:{}", global_conf.wallet_api_port);
+    let service = format!("0.0.0.0:{}", global_conf.account_manage_api_port);
 
     HttpServer::new(move || {
         //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);

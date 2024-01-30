@@ -16,6 +16,7 @@ chrono = "0.4"
 jsonwebtoken = "7.2.0"
 actix-web = "4.4.1"
 near-primitives = "0.17.0"
+anyhow = "1.0.53"
 
 
 

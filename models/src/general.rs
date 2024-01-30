@@ -2,7 +2,7 @@ pub fn transaction_begin() {
     let _res = crate::CLIENTDB
         .lock()
         .unwrap()
-        .simple_query("BEGIN")
+        .simple_query("begin")
         .unwrap();
 }
 
@@ -14,10 +14,6 @@ pub fn transaction_commit() {
         .unwrap();
 }
 
-//client.execute(
-//         "DROP TABLE users",
-//         &[],
-//     )?;
 pub fn table_clear(table_name: &str) {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::CLIENTDB

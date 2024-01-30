@@ -6,10 +6,12 @@ use models::account_manager;
 use models::account_manager::UserFilter;
 use crate::account_manager::{ResetPasswordRequest, captcha};
 use crate::account_manager::captcha::{Captcha, Kind};
+use common::error_code::AccountManagerError::*;
+use common::error_code::ApiCommonError::*;
 
 pub async fn req(
     request_data: web::Json<ResetPasswordRequest>,
-) -> ApiRes<String, AccountManagerError> {
+) -> ApiRes<String> {
     debug!("start reset_password");
     let ResetPasswordRequest {
         device_id:String,
@@ -23,7 +25,7 @@ pub async fn req(
     Captcha::check_user_code(&contact, &captcha,Kind::reset_password)?;
 
     let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))
-        .ok_or(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
+        .ok_or(PhoneOrEmailAlreadyRegister.into())?;
 
     //modify user's password  at db
     account_manager::update_password(&new_password, UserFilter::ById(user_at_stored.id));

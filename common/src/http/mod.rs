@@ -2,13 +2,13 @@ use std::fmt::Display;
 use actix_web::{HttpResponse, Responder};
 use near_primitives::types::AccountId;
 use serde::{Deserialize, Serialize};
+//use anyhow::Result;
 
-use crate::error_code::{ChainLessError, WalletError};
+use crate::error_code::{ApiError, ChainLessError, WalletError};
 
 pub mod token_auth;
 
-pub type ApiRes<D,E>  = Result<Option<D>, E>;
-pub type ChainLessRep<D>  = Result<Option<D>, Box<dyn ChainLessError>>;
+pub type ApiRes<D,E = ApiError>  = Result<Option<D>, E>;
 
 #[derive(Deserialize, Serialize)]
 pub struct BackendRespond<T: Serialize> {

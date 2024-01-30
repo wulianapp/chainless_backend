@@ -3,6 +3,8 @@ use std::sync::Mutex;
 use actix_web::{Responder, web};
 use serde::Serialize;
 use common::error_code::AccountManagerError;
+use common::error_code::AccountManagerError::{AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister};
+use common::error_code::ApiError::AccountManager;
 use common::http::{ApiRes, token_auth};
 use common::utils::time::{DAY1, MINUTE30, now_millis};
 use models::account_manager;
@@ -50,18 +52,18 @@ fn is_locked(user_id: u32) -> bool {
     }
 }
 
-pub async fn req(request_data: LoginRequest) -> ApiRes<String, AccountManagerError> {
+pub async fn req(request_data: LoginRequest) -> ApiRes<String> {
     let LoginRequest { device_id, contact, password, } = request_data;
     let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))
-        .ok_or(AccountManagerError::PhoneOrEmailNotRegister)?;
+        .ok_or(PhoneOrEmailNotRegister.into())?;
 
     if is_locked(user_at_stored.id) {
-        Err(AccountManagerError::AccountLocked)?;
+        Err(AccountLocked.into())?;
     }
 
     if password != user_at_stored.user_info.pwd_hash {
         record_once_retry(user_at_stored.id);
-        Err(AccountManagerError::PasswordIncorrect)?;
+        Err(PasswordIncorrect.into())?;
     }
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, device_id);

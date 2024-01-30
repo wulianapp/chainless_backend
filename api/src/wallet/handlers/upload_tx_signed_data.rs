@@ -1,7 +1,7 @@
 use actix_web::{HttpRequest, web};
 use serde::Serialize;
 use common::data_structures::wallet::CoinTxStatus;
-use common::error_code::{AccountManagerError, WalletError};
+use common::error_code::{ApiCommonError::*, WalletError::*};
 use common::http::{ApiRes, token_auth};
 use models::coin_transfer::CoinTxFilter;
 use models::wallet::{get_wallet, WalletFilter};
@@ -10,11 +10,11 @@ use crate::wallet::uploadTxSignatureRequest;
 pub async fn req(
     req: HttpRequest,
     request_data: web::Json<uploadTxSignatureRequest>,
-) -> ApiRes<String, WalletError> {
+) -> ApiRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
     let user_id =
-        token_auth::validate_credentials(&req).map_err(|e| WalletError::Authorization(e))?;
+        token_auth::validate_credentials(&req).map_err(|e| Authorization(e).into())?;
 
     //todo: check must be main device
     let uploadTxSignatureRequest {

@@ -11,7 +11,7 @@ use models::account_manager::UserFilter;
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::ContactIsUsedRequest;
 
-pub fn req(request_data: ContactIsUsedRequest) -> ApiRes<bool, AccountManagerError> {
+pub fn req(request_data: ContactIsUsedRequest) -> ApiRes<bool> {
     let ContactIsUsedRequest {
         contact,
     } = request_data;
