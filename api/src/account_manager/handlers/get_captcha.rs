@@ -3,23 +3,23 @@ use std::time::{Duration, Instant};
 use actix_web::{HttpResponse, Responder, web};
 use log::{debug, info, trace};
 use serde::Serialize;
-use common::error_code::{AccountManagerError, ChainLessError, WalletError};
+use common::error_code::{AccountManagerError, ErrorCode, WalletError};
 use common::error_code::AccountManagerError::CaptchaRequestTooFrequently;
-use common::error_code::ApiError::{AccountManager, Common};
-use common::http::ApiRes;
+use common::error_code::BackendError::{AccountManager};
+use common::http::BackendRes;
 use common::utils::time::{MINUTE1, MINUTE10, now_millis};
 use crate::account_manager::{GetCaptchaRequest, captcha};
 use crate::account_manager::captcha::{ContactType, Kind, Captcha};
 
-pub async fn req(request_data: GetCaptchaRequest) -> ApiRes<String> {
+pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
     let GetCaptchaRequest { device_id, contact,kind} = request_data;
     let kind = Kind::from_str(&kind)?;
     //todo: only master device can reset password
     
-    let contract_type = captcha::validate(&contact).map_err(|e| e.into())?;
-    if let Some(data) = captcha::get_captcha(contact.clone(),kind.clone()) {
+    let contract_type = captcha::validate(&contact)?;
+    if let Some(data) = captcha::get_captcha(contact.clone(),kind.clone())? {
         if now_millis() <= data.created_at + MINUTE1{
-            Err(CaptchaRequestTooFrequently.into())?;
+            Err(CaptchaRequestTooFrequently)?;
         }
     }
 

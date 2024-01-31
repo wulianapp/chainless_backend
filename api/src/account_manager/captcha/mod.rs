@@ -4,7 +4,7 @@ pub mod phone;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use common::error_code::{AccountManagerError, ApiCommonError, ApiError};
+use common::error_code::{AccountManagerError, BackendError};
 use common::utils::math::gen_random_verify_code;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
@@ -14,8 +14,9 @@ use common::env::ServiceMode;
 use regex::Regex;
 use common::data_structures::wallet::CoinTxStatus;
 use common::error_code::AccountManagerError::*;
-use common::error_code::ApiCommonError::*;
-use common::http::ApiRes;
+use common::error_code::BackendError::*;
+use common::error_code::BackendError::InternalError;
+use common::http::BackendRes;
 use common::utils::time::{MINUTE10, now_millis};
 
 lazy_static! {
@@ -35,12 +36,12 @@ pub enum Kind {
 }
 
 impl FromStr for Kind {
-    type Err = ApiError;
+    type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "register" => Ok(Self::register),
             "resetPassword" => Ok(Self::reset_password),
-            _ => Err(RequestParamInvalid(s.to_string()).into()),
+            _ => Err(RequestParamInvalid(s.to_string())),
         }
     }
 }
@@ -83,9 +84,11 @@ pub fn validate_phone(input: &str) -> Result<(),AccountManagerError> {
     }
 }
 
-pub fn get_captcha(user: String,kind:Kind) -> Option<Captcha> {
-    let code_storage = &CODE_STORAGE.lock().unwrap();
-    code_storage.get(&(user,kind)).as_ref().map(|&x| x.to_owned())
+pub fn get_captcha(user: String,kind:Kind) -> Result<Option<Captcha>,BackendError> {
+    let code_storage = &CODE_STORAGE.lock()
+        .map_err(|e| InternalError(e.to_string()))?;
+    let value = code_storage.get(&(user,kind)).as_ref().map(|&x| x.to_owned());
+    Ok(value)
 }
 
 #[derive(Debug, Clone)]
@@ -122,27 +125,27 @@ impl Captcha {
         self.expiration_time <= now_millis()
     }
 
-    pub fn store(&self) -> Result<(),ApiError> {
+    pub fn store(&self) -> Result<(), BackendError> {
         let code_storage = &mut CODE_STORAGE
             .lock()
             .map_err(|e|
-                Internal(e.to_string()).into()
+                InternalError(e.to_string())
             )?;
         code_storage.insert((self.owner.to_string(),self.kind.clone()), self.clone());
         Ok(())
     }
 
-    pub fn check_user_code(user: &str, code: &str,kind: Kind) -> Result<(), ApiError> {
-        if let Some(data) = get_captcha(user.to_string(),kind) {
+    pub fn check_user_code(user: &str, code: &str,kind: Kind) -> Result<(), BackendError> {
+        if let Some(data) = get_captcha(user.to_string(),kind)? {
             if data.code != code {
-                Err(UserVerificationCodeIncorrect.into())
+                Err(UserVerificationCodeIncorrect)?
             } else if data.code == code && data.is_expired() {
-                Err(UserVerificationCodeExpired.into())
+                Err(UserVerificationCodeExpired)?
             } else {
                 Ok(())
             }
         } else {
-            Err(UserVerificationCodeNotFound.into())
+            Err(UserVerificationCodeNotFound)?
         }
     }
 }

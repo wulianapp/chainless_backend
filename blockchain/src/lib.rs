@@ -5,6 +5,7 @@ pub mod coin;
 mod general;
 mod hello;
 mod newbie_reward;
+mod multi_sig;
 
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};

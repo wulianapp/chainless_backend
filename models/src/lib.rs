@@ -29,6 +29,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt::Debug;
 use std::sync::Mutex;
+use common::error_code::{BackendError};
+use common::error_code::BackendError::{DBError, InternalError};
 
 static TRY_TIMES: u8 = 5;
 
@@ -54,50 +56,40 @@ impl TimeScope {
 lazy_static! {
     static ref CLIENTDB: Mutex<postgres::Client> = Mutex::new(connect_db().unwrap());
 }
-
-///restart postgres client
-pub fn gen_new_client() -> Client {
-    let now = Local::now();
-    println!("restart postgresql {:?}", now);
-    connect_db().unwrap()
-}
-
-fn connect_db() -> Option<postgres::Client> {
+fn connect_db() -> Result<Client,BackendError> {
     let global_conf = &common::env::CONF;
+    eprintln!("{}: start postgresql", common::utils::time::current_date());
     let url = format!(
         "host=localhost user=postgres port=5432 password=postgres dbname=backend_{}",
         global_conf.service_mode.to_string()
     );
-
-    match Client::connect(&url, NoTls) {
-        Ok(client) => {
-            eprintln!("connect postgresql successfully");
-            Some(client)
-        }
-        Err(error) => {
-            eprintln!("connect postgresql failed,{:?}", error);
-            None
-        }
-    }
+    let cli = Client::connect(&url, NoTls).map_err(|error| {
+        eprintln!("connect postgresql failed,{:?}", error);
+        DBError(error.to_string())
+    })?;
+    Ok(cli)
 }
 
-pub fn query(raw_sql: &str) -> anyhow::Result<Vec<Row>> {
+pub fn query(raw_sql: &str) -> Result<Vec<Row>,BackendError> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock().unwrap();
+    let mut client = crate::CLIENTDB.lock()
+        .map_err(|e|
+            InternalError(e.to_string())
+        )?;
     loop {
-        println!("raw_sql {}", raw_sql);
+        debug!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
             Ok(data) => {
                 return Ok(data);
             }
             Err(error) => {
                 if try_times == 0 {
-                    //Err(anyhow!("Missing attribute: {}", missing));
-                    return Err(anyhow!("retry query failed"));
+                    let error_info = format!("erro:{:?}, query still failed after retry",error);
+                    error!("{}",error_info);
+                    Err(DBError(error_info))?;
                 } else {
                     error!("error {:?}", error);
-                    println!("error {:?}", error);
-                    *client = crate::gen_new_client();
+                    *client = connect_db()?;
                     try_times -= 1;
                     continue;
                 }
@@ -106,22 +98,26 @@ pub fn query(raw_sql: &str) -> anyhow::Result<Vec<Row>> {
     }
 }
 
-pub fn execute(raw_sql: &str) -> anyhow::Result<u64> {
+pub fn execute(raw_sql: &str) -> Result<u64,BackendError> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock().unwrap();
+    let mut client = crate::CLIENTDB.lock()
+        .map_err(|e|
+            InternalError(e.to_string())
+        )?;
     loop {
-        println!("raw_sql {}", raw_sql);
+        debug!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
             Ok(data) => {
                 return Ok(data);
             }
             Err(error) => {
                 if try_times == 0 {
-                    return Err(anyhow!("retry execute failed"));
+                    let error_info = format!("erro:{:?}, query still failed after retry",error);
+                    error!("{}",error_info);
+                    Err(DBError(error_info))?;
                 } else {
                     error!("error {:?}", error);
-                    println!("error {:?}", error);
-                    *client = crate::gen_new_client();
+                    *client = connect_db()?;
                     try_times -= 1;
                     continue;
                 }

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::vec_str2array_text;
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
+use common::error_code::BackendError;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
@@ -39,14 +40,6 @@ impl CoinTxFilter {
                 format!("receiver='{}'", receiver_uid)
             }
             CoinTxFilter::ByUserPending(uid) => {
-                /***
-                let status_str = status
-                    .into_iter()
-                    .map(|x| format!("'{}'",x.to_string()))
-                    .collect::<Vec<String>>()
-                    .join(",");
-
-                 */
                 format!(
                     "sender='{}' and status in ('ReceiverApproved','ReceiverRejected') or \
                 receiver='{}' and status in ('Created')",
@@ -61,7 +54,7 @@ impl CoinTxFilter {
     }
 }
 
-pub fn get_transactions(filter: CoinTxFilter) -> Vec<CoinTxView> {
+pub fn get_transactions(filter: CoinTxFilter) -> Result<Vec<CoinTxView>,BackendError> {
     let sql = format!(
         "select tx_id,\
          coin_type,\
@@ -76,7 +69,7 @@ pub fn get_transactions(filter: CoinTxFilter) -> Vec<CoinTxView> {
          from coin_transaction where {}",
         filter.to_string()
     );
-    let execute_res = crate::query(sql.as_str()).unwrap();
+    let execute_res = crate::query(sql.as_str())?;
     info!("get_snapshot: raw sql {}", sql);
     if execute_res.len() > 1 {
         //todo:throw error
@@ -98,13 +91,15 @@ pub fn get_transactions(filter: CoinTxFilter) -> Vec<CoinTxView> {
         updated_at: row.get(8),
         created_at: row.get(9),
     };
-    execute_res
-        .iter()
-        .map(|x| gen_view(x))
-        .collect::<Vec<CoinTxView>>()
+    Ok(
+        execute_res
+            .iter()
+            .map(|x| gen_view(x))
+            .collect::<Vec<CoinTxView>>()
+    )
 }
 
-pub fn single_insert(data: &CoinTransaction) -> Result<(), String> {
+pub fn single_insert(data: &CoinTransaction) -> Result<(), BackendError> {
     let CoinTransaction {
         tx_id,
         coin_type,
@@ -137,32 +132,34 @@ pub fn single_insert(data: &CoinTransaction) -> Result<(), String> {
     );
     println!("row sql {} rows", sql);
 
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success insert {} rows", execute_res);
 
     Ok(())
 }
 
-pub fn update_status(new_status: CoinTxStatus, filter: CoinTxFilter) {
+pub fn update_status(new_status: CoinTxStatus, filter: CoinTxFilter) -> Result<(),BackendError>{
     let sql = format!(
         "UPDATE coin_transaction SET status='{}' where {}",
         new_status.to_string(),
         filter.to_string()
     );
     info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success update orders {} rows", execute_res);
+    Ok(())
 }
 
-pub fn update_signature(signatures: Vec<String>, filter: CoinTxFilter) {
+pub fn update_signature(signatures: Vec<String>, filter: CoinTxFilter) -> Result<(),BackendError>{
     let sql = format!(
         "UPDATE coin_transaction SET signatures={} where {}",
         vec_str2array_text(signatures),
         filter.to_string()
     );
     info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success update orders {} rows", execute_res);
+    Ok(())
 }
 
 #[cfg(test)]

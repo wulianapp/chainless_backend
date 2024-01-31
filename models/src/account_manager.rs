@@ -6,6 +6,7 @@ use postgres::Row;
 use common::data_structures::account_manager::UserInfo;
 use common::utils::time::current_date;
 use serde::Serialize;
+use common::error_code::BackendError;
 use crate::vec_str2array_text;
 
 #[derive(Serialize, Debug, Default)]
@@ -53,25 +54,25 @@ impl UserFilter<'_> {
     }
 }
 
-pub fn get_current_user_num() -> u64 {
-    let execute_res = crate::query("select count(1) from users").unwrap();
+pub fn get_current_user_num() -> Result<u64,BackendError> {
+    let execute_res = crate::query("select count(1) from users")?;
     let user_info_raw = execute_res.first().unwrap();
     let user_num = user_info_raw.get::<usize, i64>(0) as u64;
-    user_num
+    Ok(user_num)
 }
 
-pub fn get_next_uid() -> u32 {
-    let execute_res = crate::query("select last_value from users_id_seq order by last_value desc limit 1").unwrap();
+pub fn get_next_uid() -> Result<u32,BackendError> {
+    let execute_res = crate::query("select last_value from users_id_seq order by last_value desc limit 1")?;
     if let Some(row) = execute_res.first() {
         let current_user_id = row.get::<usize, i64>(0) as u32;
-        current_user_id + 1
+        Ok(current_user_id + 1)
     }else {
-        1
+        Ok(1)
     }
 }
 
 //取当前和一天之前的快照
-pub fn get_user(filter: UserFilter) -> Option<UserInfoView> {
+pub fn get_user(filter: UserFilter) -> Result<Option<UserInfoView>,BackendError>{
     let sql = format!(
         "select id,phone_number,email,\
          pwd_hash,predecessor,status,verified,invite_code,account_ids,\
@@ -79,10 +80,10 @@ pub fn get_user(filter: UserFilter) -> Option<UserInfoView> {
          from users where {}",
         filter.to_string()
     );
-    let execute_res = crate::query(sql.as_str()).unwrap();
+    let execute_res = crate::query(sql.as_str())?;
     debug!("get_snapshot: raw sql {}", sql);
     if execute_res.is_empty() {
-        return None;
+        return Ok(None);
     }
 
     //fixme:
@@ -104,10 +105,10 @@ pub fn get_user(filter: UserFilter) -> Option<UserInfoView> {
             created_at: row.get(10),
         }
     };
-    Some(gen_snapshot(user_info_raw))
+    Ok(Some(gen_snapshot(user_info_raw)))
 }
 
-pub fn single_insert(data: &UserInfo) -> Result<(), String> {
+pub fn single_insert(data: &UserInfo) -> Result<(), BackendError> {
     let UserInfo {
         phone_number,
         email,
@@ -128,20 +129,21 @@ pub fn single_insert(data: &UserInfo) -> Result<(), String> {
                       phone_number,email,pwd_hash,predecessor_str,verified,status,invite_code,account_ids_str
     );
     debug!("row sql {} rows", sql);
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     debug!("success insert {} rows", execute_res);
     Ok(())
 }
 
-pub fn update_password(new_password: &str, filter: UserFilter) {
+pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(),BackendError>{
     let sql = format!(
         "UPDATE users SET pwd_hash='{}' where {}",
         new_password,
         filter.to_string()
     );
     info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success update orders {} rows", execute_res);
+    Ok(())
 }
 
 #[cfg(test)]

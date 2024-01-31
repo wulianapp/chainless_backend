@@ -1,82 +1,38 @@
-/***
-success 0
-account_manage api 1000
-wallet api  2000
-general api 3000
-airdrop api 4000
-newbie api 5000
-
-error message is correspond with error code
-*/
-
 use std::fmt;
 use near_primitives::types::AccountId;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum ApiError{
-    #[error("{0}")]
-    Common(ApiCommonError),
-    #[error("{0}")]
-    AccountManager(AccountManagerError),
-    #[error("{0}")]
-    Wallet(WalletError)
-}
-
-impl ChainLessError for ApiError {
-    fn code(&self) -> u16 {
-        match self {
-            ApiError::Common(err) => {err.code()}
-            ApiError::AccountManager(err) => {err.code()}
-            ApiError::Wallet(err) => {err.code()}
-        }
-    }
-}
-
-#[derive(Error, Debug)]
-pub enum ApiCommonError {
+pub enum BackendError {
     #[error("internal error: {0}")]
-    Internal(String),
+    InternalError(String),
     #[error("Request param is invalid: {0}")]
     RequestParamInvalid(String),
     #[error("Db error: {0}")]
-    DB(String),
-    #[error("Db error: {0}")]
-    Chain(String),
+    DBError(String),
+    #[error("chain error: {0}")]
+    ChainError(String),
     #[error("Authorization error: {0}")]
     Authorization(String),
+    #[error("{0}")]
+    AccountManager(#[from] AccountManagerError),
+    #[error("{0}")]
+    Wallet(#[from] WalletError)
 }
 
-impl ChainLessError for ApiCommonError {
+impl ErrorCode for BackendError {
     fn code(&self) -> u16 {
         match self {
-            Self::Internal(_) => 1,
-            Self::RequestParamInvalid(_) => 2,
-            Self::DB(_) => 3,
-            Self::Chain(_) => 4,
-            Self::Authorization(_) => 5,
+            BackendError::InternalError(_) => {1}
+            BackendError::RequestParamInvalid(_) => {2}
+            BackendError::DBError(_) => {3}
+            BackendError::ChainError(_) => {4}
+            BackendError::Authorization(_) => {5}
+            BackendError::AccountManager(err) => {err.code()}
+            BackendError::Wallet(err) => {err.code()}
         }
     }
 }
-
-impl Into<ApiError> for ApiCommonError{
-    fn into(self) -> ApiError {
-        crate::error_code::ApiError::Common(self)
-    }
-}
-
-impl Into<ApiError> for WalletError{
-    fn into(self) -> ApiError {
-        crate::error_code::ApiError::Wallet(self)
-    }
-}
-
-impl Into<ApiError> for AccountManagerError{
-    fn into(self) -> ApiError {
-        crate::error_code::ApiError::AccountManager(self)
-    }
-}
-
 
 #[derive(Error, Debug)]
 pub enum AccountManagerError {
@@ -102,7 +58,7 @@ pub enum AccountManagerError {
     InviteCodeNotExist,
 }
 
-impl ChainLessError for AccountManagerError {
+impl ErrorCode for AccountManagerError {
     fn code(&self) -> u16 {
         match self {
             Self::UserVerificationCodeNotFound => 2002,
@@ -134,7 +90,7 @@ pub enum WalletError {
     #[error("sender is nonexistent  in database")]
     SenderNotFound,
 }
-impl ChainLessError for WalletError {
+impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
         match self {
             Self::TxFromNotBeUser => 3001,
@@ -144,7 +100,6 @@ impl ChainLessError for WalletError {
     }
 }
 
-pub trait ChainLessError {
+pub trait ErrorCode {
     fn code(&self) -> u16;
 }
-

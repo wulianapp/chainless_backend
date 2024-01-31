@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::vec_str2array_text;
 use common::data_structures::wallet::Wallet;
+use common::error_code::{BackendError};
+use common::http::BackendRes;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct WalletView {
@@ -30,7 +32,7 @@ impl WalletFilter {
     }
 }
 
-pub fn get_wallet(filter: WalletFilter) -> Vec<WalletView> {
+pub fn get_wallet(filter: WalletFilter) -> Result<Vec<WalletView>,BackendError> {
     let sql = format!(
         "select user_id,\
          account_id,\
@@ -42,7 +44,7 @@ pub fn get_wallet(filter: WalletFilter) -> Vec<WalletView> {
          from wallet where {}",
         filter.to_string()
     );
-    let execute_res = crate::query(sql.as_str()).unwrap();
+    let execute_res = crate::query(sql.as_str())?;
     info!("get_snapshot: raw sql {}", sql);
     if execute_res.len() > 1 {
         //todo:throw error
@@ -59,13 +61,13 @@ pub fn get_wallet(filter: WalletFilter) -> Vec<WalletView> {
         updated_at: row.get(5),
         created_at: row.get(6),
     };
-    execute_res
+    Ok(execute_res
         .iter()
         .map(|x| gen_view(x))
-        .collect::<Vec<WalletView>>()
+        .collect::<Vec<WalletView>>())
 }
 
-pub fn single_insert(data: &Wallet) -> Result<(), String> {
+pub fn single_insert(data: &Wallet) -> Result<(), BackendError> {
     let Wallet {
         user_id,
         account_id,
@@ -90,7 +92,7 @@ pub fn single_insert(data: &Wallet) -> Result<(), String> {
     );
     println!("row sql {} rows", sql);
 
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success insert {} rows", execute_res);
 
     Ok(())
@@ -101,7 +103,7 @@ pub fn update(
     sign_strategies: Vec<String>,
     participate_device_ids: Vec<String>,
     filter: WalletFilter,
-) {
+) -> Result<(),BackendError>{
     let sql = format!(
         "update wallet set (sub_pubkeys,sign_strategies,participate_device_ids)=\
          ({},{},{}) where {}",
@@ -111,8 +113,9 @@ pub fn update(
         filter.to_string()
     );
     info!("start update wallet {} ", sql);
-    let execute_res = crate::execute(sql.as_str()).unwrap();
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success update trade {} rows", execute_res);
+    Ok(())
 }
 
 #[cfg(test)]

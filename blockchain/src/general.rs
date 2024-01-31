@@ -1,4 +1,5 @@
-use near_crypto::{InMemorySigner, KeyType, Signature};
+use std::str::FromStr;
+use near_crypto::{InMemorySigner, KeyType, PublicKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
 use near_jsonrpc_client::{methods, MethodCallResult};
@@ -6,10 +7,11 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
-use near_primitives::types::BlockReference;
+use near_primitives::types::{AccountId, BlockReference};
 
 use hex;
 
+//todo: contract_addr type change into AccountId
 pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Transaction {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
@@ -37,6 +39,44 @@ pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Tr
     }
 }
 
+pub fn account_id_from_hex_str(id: &str) -> AccountId{
+    let id_bytes = hex::decode(id).unwrap();
+    AccountId::try_from_slice(&id_bytes).unwrap()
+}
+
+pub fn pubkey_from_hex_str(key: &str) -> PublicKey{
+    let key_bytes = hex::decode(key).unwrap();
+    PublicKey::try_from_slice(&key_bytes).unwrap()
+}
+
+
+pub async fn safe_gen_transaction(caller_account_id:&str, caller_pubkey:&str,contract_addr: &str) -> Transaction {
+    let access_key_query_response = crate::CHAIN_CLIENT
+        .call(methods::query::RpcQueryRequest {
+            block_reference: BlockReference::latest(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id: AccountId::from_str(caller_account_id).unwrap(),
+                public_key: PublicKey::from_str(caller_pubkey).unwrap(),
+            },
+        })
+        .await
+        .unwrap();
+
+    let current_nonce = match access_key_query_response.kind {
+        QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+        _ => Err("failed to extract current nonce").unwrap(),
+    };
+
+    Transaction {
+        signer_id: AccountId::from_str(caller_account_id).unwrap(),
+        public_key: PublicKey::from_str(caller_pubkey).unwrap(),
+        nonce: current_nonce + 1,
+        receiver_id: contract_addr.parse().unwrap(),
+        block_hash: access_key_query_response.block_hash,
+        actions: vec![],
+    }
+}
+
 //user-api shouldn't use this directly
 pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) {
     let tx_hex = hex::decode(tx_str).unwrap();
@@ -44,6 +84,16 @@ pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) {
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
     println!("{:?}", transaction);
     let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
+    let rest = broadcast_tx_commit(transaction, signature).await;
+    println!("broadcast_tx_commit_from_raw {:?}", rest);
+}
+
+pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
+    let tx_hex = hex::decode(tx_str).unwrap();
+    let sign_hex = hex::decode(sig_str).unwrap();
+    let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
+    println!("{:?}", transaction);
+    let signature = Signature::try_from_slice(&sign_hex).unwrap();
     let rest = broadcast_tx_commit(transaction, signature).await;
     println!("broadcast_tx_commit_from_raw {:?}", rest);
 }

@@ -11,7 +11,7 @@ use log::info;
 use serde::{Deserialize, Serialize};
 
 use common::data_structures::account_manager::UserInfo;
-use common::error_code::{AccountManagerError, ChainLessError};
+use common::error_code::{AccountManagerError, ErrorCode};
 use common::http::token_auth;
 
 //use captcha::{ContactType, VerificationCode};

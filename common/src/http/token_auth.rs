@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::utils::time::{DAY15, now_millis, YEAR100};
 use actix_web::http::header;
+use crate::error_code::BackendError;
+use crate::error_code::BackendError::{Authorization};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -45,26 +47,26 @@ fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     .map(|data| data.claims)
 }
 
-pub fn validate_credentials(req: &HttpRequest) -> Result<u32, String> {
+pub fn validate_credentials(req: &HttpRequest) -> Result<u32, BackendError> {
     let auth_header = req
         .headers()
         .get(header::AUTHORIZATION)
-        .ok_or("No Authorization header".to_string())?;
+        .ok_or(Authorization("No Authorization header".to_string()))?;
 
     let auth_str = auth_header
         .to_str()
-        .map_err(|_err| "Token is invalid".to_string())?;
+        .map_err(|_err| Authorization("Token is invalid".to_string()))?;
     if auth_str.starts_with("Bearer ") {
         let token = &auth_str["Bearer ".len()..];
         let claim_dat =
-            validate_jwt(token).map_err(|_err| "Invalid token signature".to_string())?;
+            validate_jwt(token).map_err(|_err| Authorization("Invalid token signature".to_string()))?;
         if now_millis() > claim_dat.exp {
-            Err("Token has expired.".to_string())
+            Err(Authorization("Token has expired.".to_string()))?
         } else {
             Ok(claim_dat.user_id)
         }
     } else {
-        Err("Token is invalid or malformed".to_string())
+        Err(Authorization("Token is invalid or malformed".to_string()))?
     }
 }
 

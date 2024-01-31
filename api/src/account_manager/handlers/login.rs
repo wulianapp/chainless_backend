@@ -4,8 +4,8 @@ use actix_web::{Responder, web};
 use serde::Serialize;
 use common::error_code::AccountManagerError;
 use common::error_code::AccountManagerError::{AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister};
-use common::error_code::ApiError::AccountManager;
-use common::http::{ApiRes, token_auth};
+use common::error_code::BackendError::AccountManager;
+use common::http::{BackendRes, token_auth};
 use common::utils::time::{DAY1, MINUTE30, now_millis};
 use models::account_manager;
 use models::account_manager::UserFilter;
@@ -52,18 +52,18 @@ fn is_locked(user_id: u32) -> bool {
     }
 }
 
-pub async fn req(request_data: LoginRequest) -> ApiRes<String> {
+pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     let LoginRequest { device_id, contact, password, } = request_data;
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))
-        .ok_or(PhoneOrEmailNotRegister.into())?;
+    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?
+        .ok_or(PhoneOrEmailNotRegister)?;
 
     if is_locked(user_at_stored.id) {
-        Err(AccountLocked.into())?;
+        Err(AccountLocked)?;
     }
 
     if password != user_at_stored.user_info.pwd_hash {
         record_once_retry(user_at_stored.id);
-        Err(PasswordIncorrect.into())?;
+        Err(PasswordIncorrect)?;
     }
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, device_id);

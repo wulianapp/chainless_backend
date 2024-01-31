@@ -17,6 +17,7 @@ serde_json = "1.0.108"
 serde = "1.0.193"
 common = {path = "../common"}
 log = "0.4.20"
+ed25519-dalek = "1.0.1"
 
 
 

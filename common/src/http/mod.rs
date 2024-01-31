@@ -4,11 +4,11 @@ use near_primitives::types::AccountId;
 use serde::{Deserialize, Serialize};
 //use anyhow::Result;
 
-use crate::error_code::{ApiError, ChainLessError, WalletError};
+use crate::error_code::{BackendError, ErrorCode, WalletError};
 
 pub mod token_auth;
 
-pub type ApiRes<D,E = ApiError>  = Result<Option<D>, E>;
+pub type BackendRes<D,E = BackendError>  = Result<Option<D>, E>;
 
 #[derive(Deserialize, Serialize)]
 pub struct BackendRespond<T: Serialize> {
@@ -34,7 +34,7 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
     }
 }
 
-pub fn generate_error_respond<E: ChainLessError + Display>(error: E) -> HttpResponse {
+pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse {
     return HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error.code(),
@@ -42,7 +42,7 @@ pub fn generate_error_respond<E: ChainLessError + Display>(error: E) -> HttpResp
     });
 }
 
-pub fn gen_extra_respond<D: Serialize,E: ChainLessError + Display>(inner_res: ApiRes<D,E>) -> impl Responder {
+pub fn gen_extra_respond<D: Serialize,E: ErrorCode + Display>(inner_res: BackendRes<D,E>) -> impl Responder {
     match inner_res {
         Ok(data) => generate_ok_respond(data),
         Err(error) => {

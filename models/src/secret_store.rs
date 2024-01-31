@@ -7,6 +7,7 @@ use common::data_structures::secret_store::SecretStore;
 
 use crate::vec_str2array_text;
 use common::data_structures::wallet::Wallet;
+use common::error_code::{BackendError};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SecretView {
@@ -31,7 +32,7 @@ impl SecretFilter {
     }
 }
 
-pub fn get_secret(filter: SecretFilter) -> Vec<SecretView> {
+pub fn get_secret(filter: SecretFilter) -> Result<Vec<SecretView>,BackendError> {
     let sql = format!(
         "select account_id,\
          user_id,\
@@ -42,8 +43,8 @@ pub fn get_secret(filter: SecretFilter) -> Vec<SecretView> {
          from secret_store where {}",
         filter.to_string()
     );
-    let execute_res = crate::query(sql.as_str()).unwrap();
-    debug!("get_snapshot: raw sql {}", sql);
+    let execute_res = crate::query(sql.as_str())?;
+    debug!("get_secret: raw sql {}", sql);
     let gen_view = |row: &Row| SecretView {
         secret_store: SecretStore {
             account_id: row.get(0),
@@ -54,13 +55,15 @@ pub fn get_secret(filter: SecretFilter) -> Vec<SecretView> {
         updated_at: row.get(4),
         created_at: row.get(5),
     };
-    execute_res
-        .iter()
-        .map(|x| gen_view(x))
-        .collect::<Vec<SecretView>>()
+    Ok(
+        execute_res
+            .iter()
+            .map(|x| gen_view(x))
+            .collect::<Vec<SecretView>>()
+    )
 }
 
-pub fn single_insert(data: &SecretStore) -> Result<(), String> {
+pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
     let SecretStore {
         account_id,
         user_id,
@@ -84,7 +87,7 @@ pub fn single_insert(data: &SecretStore) -> Result<(), String> {
     );
     println!("row sql {} rows", sql);
 
-    let execute_res = crate::execute(sql.as_str()).map_err(|x| x.to_string())?;
+    let execute_res = crate::execute(sql.as_str())?;
     info!("success insert {} rows", execute_res);
 
     Ok(())

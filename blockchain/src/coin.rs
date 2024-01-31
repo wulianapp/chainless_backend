@@ -1,13 +1,24 @@
+use std::str::FromStr;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
-use near_primitives::types::AccountId;
+use near_primitives::types::{AccountId, BlockReference, Finality, FunctionArgs};
 
 use hex;
+use lazy_static::lazy_static;
+use near_jsonrpc_client::methods;
+use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
+use near_primitives::views::QueryRequest;
 
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+
+lazy_static! {
+    static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
+    static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NRC20TransferArgs {
@@ -62,12 +73,35 @@ pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std
     })
 }
 
+async fn get_balance(account: &AccountId) -> u128 {
+    let request = methods::query::RpcQueryRequest {
+        block_reference: BlockReference::Finality(Finality::Final),
+        request: QueryRequest::CallFunction {
+            account_id: (*crate::coin::DW20_CID).clone(),
+            method_name: "ft_balance_of".to_string(),
+            args: FunctionArgs::from(json!({
+                "account_id":account.to_string()
+            }).to_string().into_bytes()),
+        },
+    };
+    let rep = crate::general::call(request).await.unwrap();
+
+    if let QueryResponseKind::CallResult(result) = rep.kind {
+        let amount_str: String = String::from_utf8(result.result).unwrap().split("\"").collect();
+        u128::from_str(&amount_str).unwrap()
+    } else {
+        unreachable!()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::BorshSerialize;
     use near_primitives::types::AccountId;
     use std::str::FromStr;
+    use serde_json::json;
+    use crate::general::gen_transaction;
 
     use super::*;
 
