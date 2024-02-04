@@ -17,15 +17,15 @@ pub struct SecretView {
 }
 
 #[derive(Clone, Debug)]
-pub enum SecretFilter {
-    ByAccountId(u32),
+pub enum SecretFilter<'a> {
+    ByAccountId(&'a str),
 }
 
-impl SecretFilter {
+impl SecretFilter<'_> {
     pub fn to_string(&self) -> String {
         let filter_str = match self {
             Self::ByAccountId(id) => {
-                format!("account_id={} ", id)
+                format!("account_id='{}' ", id)
             }
         };
         filter_str
@@ -79,7 +79,7 @@ pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
          user_id,\
          master_encrypted_prikey,\
          servant_encrypted_prikeys \
-         ) values ('{}',{},{},{});",
+         ) values ('{}',{},'{}',{});",
         account_id,
         user_id,
         master_encrypted_prikey,
@@ -90,5 +90,18 @@ pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
     let execute_res = crate::execute(sql.as_str())?;
     info!("success insert {} rows", execute_res);
 
+    Ok(())
+}
+
+pub fn update_servant(new_servants: Vec<String>, filter: SecretFilter) -> Result<(),BackendError>{
+    let new_servant_str = super::vec_str2array_text(new_servants);
+    let sql = format!(
+        "update secret_store set servant_encrypted_prikeys={} where {}",
+        new_servant_str,
+        filter.to_string()
+    );
+    debug!("start update orders {} ", sql);
+    let execute_res = crate::execute(sql.as_str())?;
+    debug!("success update orders {} rows", execute_res);
     Ok(())
 }

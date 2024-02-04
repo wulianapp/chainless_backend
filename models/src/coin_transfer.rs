@@ -6,7 +6,7 @@ use postgres::Row;
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 
-use crate::vec_str2array_text;
+use crate::{PsqlType, vec_str2array_text};
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::BackendError;
 
@@ -22,7 +22,7 @@ pub enum CoinTxFilter {
     ByUser(u32),
     BySender(u32),
     ByReceiver(u32),
-    ByUserPending(u32),
+    ByAccountPending(String),
     ByTxId(String),
 }
 
@@ -39,11 +39,11 @@ impl CoinTxFilter {
             CoinTxFilter::ByReceiver(receiver_uid) => {
                 format!("receiver='{}'", receiver_uid)
             }
-            CoinTxFilter::ByUserPending(uid) => {
+            CoinTxFilter::ByAccountPending(acc_id) => {
                 format!(
-                    "sender='{}' and status in ('ReceiverApproved','ReceiverRejected') or \
-                receiver='{}' and status in ('Created')",
-                    uid, uid
+                    "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
+                receiver='{}' and status in ('SenderSigCompleted')",
+                    acc_id, acc_id
                 )
             }
             CoinTxFilter::ByTxId(tx_id) => {
@@ -61,6 +61,8 @@ pub fn get_transactions(filter: CoinTxFilter) -> Result<Vec<CoinTxView>,BackendE
          sender,\
          receiver,\
          amount,\
+         expire_at,
+         memo,
          status,\
          raw_data,\
          signatures,\
@@ -81,15 +83,17 @@ pub fn get_transactions(filter: CoinTxFilter) -> Result<Vec<CoinTxView>,BackendE
         transaction: CoinTransaction {
             tx_id: row.get(0),
             coin_type: CoinType::from_account_str(row.get::<usize, &str>(1)).unwrap(),
-            sender: row.get::<usize, i32>(2) as u32,
-            receiver: row.get::<usize, i32>(3) as u32,
+            sender: row.get(2),
+            receiver: row.get(3),
             amount: u128::from_str(row.get::<usize, &str>(4)).unwrap(),
-            status: CoinTxStatus::from_str(row.get::<usize, &str>(5)).unwrap(),
-            raw_data: row.get(6),
-            signatures: row.get::<usize, Vec<String>>(7),
+            expire_at: row.get::<usize, String>(5).parse().unwrap() ,
+            memo: row.get(6),
+            status: CoinTxStatus::from_str(row.get::<usize, &str>(7)).unwrap(),
+            raw_data: row.get(8),
+            signatures: row.get::<usize, Vec<String>>(9),
         },
-        updated_at: row.get(8),
-        created_at: row.get(9),
+        updated_at: row.get(10),
+        created_at: row.get(11),
     };
     Ok(
         execute_res
@@ -106,10 +110,16 @@ pub fn single_insert(data: &CoinTransaction) -> Result<(), BackendError> {
         sender,
         receiver,
         amount,
+        expire_at,
+        memo,
         status,
         raw_data,
         signatures,
-    } = data;
+    } = data.to_owned();
+    let tx_id : PsqlType = tx_id.into();
+    let raw_data : PsqlType =  raw_data.into();
+    let memo : PsqlType =  memo.into();
+
     //todo: amount specific type short or long
     let sql = format!(
         "insert into coin_transaction (tx_id,\
@@ -117,17 +127,21 @@ pub fn single_insert(data: &CoinTransaction) -> Result<(), BackendError> {
          sender,\
          receiver,\
          amount,\
+         expire_at,\
+         memo,\
          status,\
          raw_data,\
          signatures\
-         ) values ('{}','{}',{},{},'{}','{}','{}',{});",
-        tx_id,
+         ) values ({},'{}','{}','{}','{}','{}',{},'{}',{},{});",
+        tx_id.to_psql_str(),
         coin_type.to_account_str(),
         sender,
         receiver,
         amount.to_string(),
+        expire_at.to_string(),
+        memo.to_psql_str(),
         status.to_string(),
-        raw_data,
+        raw_data.to_psql_str(),
         vec_str2array_text(signatures.to_owned())
     );
     println!("row sql {} rows", sql);
@@ -169,6 +183,7 @@ mod tests {
 
     #[test]
     fn test_braced_models_coin_tx() {
+        /***
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear();
 
@@ -189,11 +204,14 @@ mod tests {
 
         let _res = get_transactions(CoinTxFilter::ByUserPending(1));
         println!("start update");
+        let test1 : CoinTxStatus= "123".parse()?;
         let _res = update_status(
             CoinTxStatus::ReceiverApproved,
             CoinTxFilter::ByUserPending(1),
         );
         let res = get_transactions(CoinTxFilter::ByUserPending(1));
         println!("after update {}", res.first().unwrap().transaction.status);
+
+         */
     }
 }

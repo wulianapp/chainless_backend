@@ -28,16 +28,17 @@ pub struct MultiSig {}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct MultiSigRank {
-    min: u128,
-    max_eq: u128,
-    sig_num: u8,
+    pub min: u128,
+    pub max_eq: u128,
+    pub sig_num: u8,
 }
 
 impl Default for MultiSigRank{
     fn default() -> Self {
         MultiSigRank {
             min: 0,
-            max_eq: u128::MAX,
+            //fixme: number out of range when u128::MAX
+            max_eq: u64::MAX as u128,
             sig_num: 0,
         }
     }
@@ -45,9 +46,9 @@ impl Default for MultiSigRank{
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyData {
-    multi_sig_ranks: Vec<MultiSigRank>,
-    main_device_pubkey: String,
-    servant_device_pubkey: Vec<String>,
+    pub multi_sig_ranks: Vec<MultiSigRank>,
+    pub main_device_pubkey: String,
+    pub servant_device_pubkey: Vec<String>,
 }
 
 impl ContractClient<MultiSig> {
@@ -68,7 +69,8 @@ impl ContractClient<MultiSig> {
         }
     }
 
-    async fn get_strategy(&self,user_account_id: &AccountId) -> Option<StrategyData> {
+    pub async fn get_strategy(&self,account_id: &str) -> Option<StrategyData> {
+        let user_account_id = AccountId::from_str(account_id).unwrap();
         let request = methods::query::RpcQueryRequest {
             block_reference: BlockReference::Finality(Finality::Final),
             request: QueryRequest::CallFunction {
@@ -90,11 +92,20 @@ impl ContractClient<MultiSig> {
         }
     }
 
-    async fn set_strategy(&self,user_account_id: &AccountId,
+    pub async fn init_strategy(&self,
+                               account_id: &str,
+                               main_device_pubkey: String,
+    ) -> Result<String, String> {
+        self.set_strategy(account_id,main_device_pubkey,vec![],vec![MultiSigRank::default()]).await
+    }
+
+    pub async fn set_strategy(&self,account_id: &str,
                           main_device_pubkey: String,
                           servant_pubkey: Vec<String>,
                           rank_arr: Vec<MultiSigRank>
     ) -> Result<String, String> {
+        let user_account_id = AccountId::from_str(account_id).unwrap();
+
         let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
             method_name: "set_strategy".to_string(),
             args: json!({
@@ -187,7 +198,7 @@ impl ContractClient<MultiSig> {
 
 
 
-    async fn gen_send_money_raw_tx(
+    pub async fn gen_send_money_raw_tx(
         &self,
         sender_account_id:&str,
         sender_pubkey:&str,
@@ -236,7 +247,7 @@ impl ContractClient<MultiSig> {
         Ok((txid,raw_str))
     }
 
-    fn gen_send_money_info(
+    pub fn gen_send_money_info(
         &self,
         sender_id:&str,
         receiver_id:&str,
@@ -350,7 +361,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_multi_sig_send_money() {
+    async fn test_multi_sig_strategy() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
         let secret_key: SecretKey = pri_key.parse().unwrap();
         let secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
@@ -373,46 +384,14 @@ mod tests {
         println!("{:?}",servant_pubkey);
 
         let ranks = dummy_ranks();
+        let ranks = vec![MultiSigRank::default()];
+        //let ranks = vec![];
 
-        //let strategy_str = client.get_strategy(&sender_id).await;
-        //println!("strategy_str2 {:#?}", strategy_str);
+        let strategy_str = client.get_strategy(&sender_id).await;
+        println!("strategy_str2 {:#?}", strategy_str);
 
-        //let set_strategy_res = client.set_strategy(&sender_id,sender_id.to_string(),servant_pubkey,ranks).await.unwrap();
-        //println!("call set strategy txid {}",set_strategy_res);
-        //send_money 1 dw20, 1 servant is enough
-
-
-        let transfer_amount = 2;
-        let coin_tx_info = CoinTx {
-            from: sender_id,
-            to: receiver_id,
-            coin_id: AccountId::from_str("dw20.node0").unwrap(),
-            amount: transfer_amount,
-            expire_at: now_millis() + DAY1,
-            memo:None
-        };
-        let coin_tx_json = serde_json::to_string(&coin_tx_info).unwrap();
-        println!("coin_tx_json {}",coin_tx_json);
-        let coin_tx_hex_str = hex::encode(coin_tx_json.as_bytes());
-        println!("coin_tx_str {}",coin_tx_hex_str);
-
-
-        let sigs: Vec<SignInfo> = servant_keys().as_slice()[..1].iter().map(|x|
-            {
-                let prikey: SecretKey = x.parse().unwrap();
-                let prikey_byte = prikey.unwrap_as_ed25519().0;
-                let data = coin_tx_json.as_bytes();
-                let signature = sign_data_by_near_wallet(prikey_byte,data);
-
-                SignInfo {
-                    pubkey: get_pubkey(x),
-                    //signature: ed25519_sign_data(prikey_byte, &coin_tx_json.as_bytes()),
-                    signature,
-                }
-            }
-        ).collect();
-        let send_money_txid = client.send_money(signer, sigs, coin_tx_info).await.unwrap();
-        println!("send_money_txid {}", send_money_txid);
+        let set_strategy_res = client.set_strategy(&sender_id,sender_id.to_string(),servant_pubkey,ranks).await.unwrap();
+        println!("call set strategy txid {}",set_strategy_res);
     }
 
     #[tokio::test]

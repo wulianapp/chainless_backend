@@ -77,6 +77,7 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>,BackendError> {
             InternalError(e.to_string())
         )?;
     loop {
+        println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
             Ok(data) => {
@@ -105,6 +106,7 @@ pub fn execute(raw_sql: &str) -> Result<u64,BackendError> {
             InternalError(e.to_string())
         )?;
     loop {
+        println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
             Ok(data) => {
@@ -166,6 +168,66 @@ pub fn vec_str2array_text(vec: Vec<String>) -> String {
         .collect();
 
     format!("ARRAY[{}]::text[]", array_elements.join(","))
+}
+
+pub enum PsqlType{
+    VecStr(Vec<String>),
+    VecU64(Vec<u64>),
+    OptionStr(Option<String>),
+    OptionU64(Option<u64>),
+}
+
+impl PsqlType {
+    pub fn to_psql_str(&self) -> String{
+        match self {
+            PsqlType::VecStr(data) => {
+                let array_elements: Vec<String> = data
+                    .into_iter()
+                    .map(|s| format!("'{}'", s.replace("'", "''")))
+                    .collect();
+
+                format!("ARRAY[{}]::text[]", array_elements.join(","))
+            },
+            PsqlType::VecU64(data) => {
+                let array_elements: Vec<String> = data
+                    .into_iter()
+                    .map(|s| format!("{}", s))
+                    .collect();
+
+                format!("ARRAY[{}]::int4[]", array_elements.join(","))
+            },
+            PsqlType::OptionStr(data) => {
+                data.to_owned().map(|x| format!("'{}'",x)).unwrap_or("NULL".to_string())
+            },
+            PsqlType::OptionU64(data) => {
+                data.map(|x| format!("{}",x)).unwrap_or("NULL".to_string())
+            },
+        }
+    }
+}
+
+impl From<Vec<String>> for PsqlType {
+    fn from(value: Vec<String>) -> Self {
+        PsqlType::VecStr(value)
+    }
+}
+
+impl From<Vec<u64>> for PsqlType {
+    fn from(value: Vec<u64>) -> Self {
+        PsqlType::VecU64(value)
+    }
+}
+
+impl From<Option<String>> for PsqlType {
+    fn from(value: Option<String>) -> Self {
+        PsqlType::OptionStr(value)
+    }
+}
+
+impl From<Option<u64>> for PsqlType {
+    fn from(value: Option<u64>) -> Self {
+        PsqlType::OptionU64(value)
+    }
 }
 
 #[cfg(test)]

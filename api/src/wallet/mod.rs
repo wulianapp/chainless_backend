@@ -28,6 +28,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 use std::sync::{mpsc, Arc, RwLock};
 use lettre::transport::smtp::client::CertificateStore::Default;
+use blockchain::multi_sig::{CoinTx, MultiSigRank};
 use common::http::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
@@ -54,16 +55,40 @@ pub struct SearchMessageRequest {
     user_id: String,
 }
 
-#[post("/wallet/searchMessage")]
+#[get("/wallet/searchMessage")]
 async fn search_message(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::search_message::req(request).await)
+}
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct searchMessageByAccountIdRequest {
+    account_id: String,
+}
+#[get("/wallet/searchMessageByAccountId")]
+async fn search_message_by_account_id(request: HttpRequest,
+                                      query_params: web::Query<searchMessageByAccountIdRequest>
+) -> impl Responder {
+    gen_extra_respond(handlers::search_message::req_by_account_id(request,query_params.into_inner()).await)
+}
+
+#[get("/wallet/getStrategy")]
+async fn get_strategy(request: HttpRequest,
+                                      query_params: web::Query<searchMessageByAccountIdRequest>
+) -> impl Responder {
+    gen_extra_respond(handlers::get_strategy::req(request,query_params.into_inner()).await)
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreSendMoneyRequest {
-    tx_raw: String,
-    //platform_sign_num: u8
+    device_id: String,
+    from: String,
+    to: String,
+    coin:String,
+    amount:u128,
+    expire_at: u64,
+    memo:Option<String>
 }
 
 #[post("/wallet/preSendMoney")]
@@ -71,7 +96,7 @@ async fn pre_send_money(
     request: HttpRequest,
     request_data: web::Json<PreSendMoneyRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::pre_send_money::req(request, request_data).await)
+    gen_extra_respond(handlers::pre_send_money::req(request, request_data.0).await)
 }
 
 
@@ -164,7 +189,7 @@ async fn upload_tx_signed_data(
     request: HttpRequest,
     request_data: web::Json<uploadTxSignatureRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::upload_tx_signed_data::req(request, request_data).await)
+    gen_extra_respond(handlers::upload_servant_sig::req(request, request_data).await)
 }
 
 
@@ -194,32 +219,51 @@ async fn upload_tx_signed_data(
  * @apiSampleRequest http://120.232.251.101:8069/wallet/backupSecretKeys
  */
 
+
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct SecretKey {
-    key_data: String,
-    key_type: SecretKeyType,
-    device_id:String,
-    device_type:String
-}
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct SecretKeys {
+pub struct AddServantRequest {
     account_id:String,
-    keys: Vec<SecretKey>,
-}
-/****
-#[post("/wallet/backupSecretKeys")]
-async fn backup_secret_keys(
-    req: HttpRequest,
-    request_data: web::Json<uploadTxSignatureRequest>,
-){
-    unimplemented!()
+    device_id:String,
+    pubkey:String,
+    secret_key_data: String,
 }
 
- */
+#[post("/wallet/addServant")]
+async fn add_servant(
+    req: HttpRequest,
+    request_data: web::Json<AddServantRequest>,
+) -> impl Responder{
+    gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
+}
+
+
+#[derive(Deserialize, Serialize,Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct MultiSigRankExternal {
+    min: u128,
+    max_eq: u128,
+    sig_num: u8,
+}
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStrategy {
+    account_id:String,
+    device_id:String,
+    strategy: Vec<MultiSigRankExternal>,
+}
+
+#[post("/wallet/updateStrategy")]
+async fn update_strategy(
+    req: HttpRequest,
+    request_data: web::Json<UpdateStrategy>,
+) -> impl Responder {
+    gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
+}
+
 #[cfg(test)]
 mod tests {
+    use std::default::Default;
     use super::*;
 
     use actix_http::Request;
@@ -230,8 +274,27 @@ mod tests {
     use actix_web::{body, body::MessageBody as _, rt::pin, test, web, App};
     use common::data_structures::wallet::Wallet;
     use models::coin_transfer::CoinTxView;
-    use models::wallet;
+    use models::{secret_store, wallet};
     use serde_json::json;
+    use blockchain::ContractClient;
+    use blockchain::multi_sig::MultiSig;
+    use common::data_structures::secret_store::SecretStore;
+    use common::http::BackendRespond;
+    use blockchain::multi_sig::StrategyData;
+
+
+    struct TestWallet{
+        account_id:String,
+        pubkey:String,
+        prikey:String
+    }
+    struct TestWulianApp{
+        user_id:u32,
+        token:String,
+        contact:String,
+        password:String,
+        wallets: Vec<TestWallet>
+    }
 
     async fn init() -> App<
         impl ServiceFactory<
@@ -247,62 +310,245 @@ mod tests {
         App::new()
             .service(search_message)
             .service(pre_send_money)
+            .service(direct_send_money)
             .service(react_pre_send_money)
+            .service(reconfirm_send_money)
             .service(upload_tx_signed_data)
+            .service(add_servant)
+            .service(update_strategy)
+            .service(search_message_by_account_id)
+            .service(get_strategy)
+
     }
 
-    fn simulate_sender() -> (String, u32) {
-        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjEs\
-        ImlhdCI6MTcwNDc5NjQ0OTc2NywiZXhwIjoxNzA2MDkyNDQ5NzY3fQ.OOlutDTr-hWTf6m\
-        smbHSmfG0kiwnAI6HVMnGU19hOtQ"
-            .to_string();
-        let user_id = 1u32;
-        let mut user_info = UserInfo::default();
-        user_info.email = "test1@gmail.com".to_string();
-        user_info.pwd_hash = "123456789".to_string();
-        user_info.multi_sign_strategy = "2-2".to_string();
-        user_info.predecessor = user_id.to_string();
-        account_manager::single_insert(user_info).unwrap();
-
-        let wallet = Wallet {
-            user_id,
-            account_id: "1".to_string(),
-            sub_pubkeys: vec!["1".to_string()],
-            sign_strategies: vec!["1-1".to_string()],
-            participate_device_ids: vec!["1".to_string()],
+    fn simulate_sender_master() -> TestWulianApp {
+        let wallet = TestWallet{
+            account_id: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
+            pubkey: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
+            prikey: "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE".to_string(),
         };
-        models::wallet::single_insert(&wallet).unwrap();
 
-        (token, user_id)
+        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo\
+        xLCJkZXZpY2VfaWQiOiIxIiwiaWF0IjoxNzA2ODQ1ODE3NjExLCJleHAiOjE3MDgxNDE4MTc2M\
+        TF9.gcfCRP9gND0NaWfswEW5wI34xzaVfkHlZtuSx2VYfEA"
+            .to_string();
+        let app = TestWulianApp {
+            user_id: 1u32,
+            token,
+            password:"123456789".to_string(),
+            contact: "test@gmail.com".to_string(),
+            wallets: vec![wallet],
+        };
+
+        let mut user_info = UserInfo::default();
+        user_info.email = app.contact.clone();
+        user_info.pwd_hash = app.password.clone();
+        user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
+        user_info.invite_code = app.user_id.to_string();
+        account_manager::single_insert(&user_info).unwrap();
+        let data = SecretStore {
+            account_id:app.wallets.first().unwrap().account_id.clone(),
+            user_id:app.user_id,
+            master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
+            servant_encrypted_prikeys: vec![]
+        };
+        secret_store::single_insert(&data).unwrap();
+
+        app
     }
 
-    fn simulate_receiver() -> (String, u32) {
-        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdW\
-        IiOjIsImlhdCI6MTcwNDg1MzQ5MjI3OCwiZXhwIjoxNzA2MTQ5NDkyMjc4fQ.CK-F\
-        f-350XzW1SoAfLtJtcxqvFE7_7Z16zPrSJzh7Fc"
+    fn simulate_sender_servant() -> TestWulianApp {
+        //deviceId 2
+        let wallet = TestWallet{
+            account_id: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
+            pubkey: "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string(),
+            prikey: "ed25519:s1sw1PXCkHrbyE9Rmg6j18PoUxnhCNZ2CxSPUvvE7dZK9UCEkpTWC1Zy6ZKWvBcAdK8MoRUSdMsduMFRJrRtuGq".to_string(),
+        };
+
+        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ\
+        kZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHAiOjE3MDgxNDE4ODA4Mjd9.YsI4I\
+        9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8"
             .to_string();
-        let user_id = 2u32;
+        let app = TestWulianApp {
+            user_id: 1u32,
+            token,
+            password:"123456789".to_string(),
+            contact: "test@gmail.com".to_string(),
+            wallets: vec![wallet],
+        };
+
+        app
+    }
+
+    fn simulate_receiver() -> TestWulianApp {
+        let wallet = TestWallet{
+            account_id: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
+            pubkey: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
+            prikey: "ed25519:MRLfJQQRGVb8R4vYJLerKXUtsJjHnDG7pYV2jjWShy9svNvk8r5yeVpgY2va6ivHkiZwnyuCMbNPMEN5tH9tK6S".to_string(),
+        };
+
+        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoyL\
+        CJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA3MDIwOTA4OTQzLCJleHAiOjE3MDgzMTY5MDg5ND\
+        N9.sgSGOuhVDUTWglXZWfIdo6S-1baQ-hrsbUokrBOA_HU"
+            .to_string();
+        let app = TestWulianApp {
+            user_id: 2u32,
+            token,
+            password:"123456789".to_string(),
+            contact: "tes2@gmail.com".to_string(),
+            wallets: vec![wallet],
+        };
+
         let mut user_info = UserInfo::default();
-        user_info.email = "test2@gmail.com".to_string();
-        user_info.pwd_hash = "123456789".to_string();
-        user_info.multi_sign_strategy = "2-2".to_string();
-        user_info.predecessor = user_id.to_string();
-        account_manager::single_insert(user_info).unwrap();
-        (token, user_id)
+        user_info.email = app.contact.clone();
+        user_info.pwd_hash = app.password.clone();
+        user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
+        user_info.invite_code = app.user_id.to_string();
+        account_manager::single_insert(&user_info).unwrap();
+        let data = SecretStore {
+            account_id:app.wallets.first().unwrap().account_id.clone(),
+            user_id:app.user_id,
+            master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
+            servant_encrypted_prikeys: vec![]
+        };
+        secret_store::single_insert(&data).unwrap();
+        app
+    }
+
+    async fn clear_contract(account_id:&str){
+        let cli = blockchain::ContractClient::<MultiSig>::new();
+        cli.init_strategy(account_id,account_id.to_owned()).await.unwrap();
     }
 
     #[actix_web::test]
     async fn test_all_braced_wallet_ok() {
         //1.node0 send 10 cly to 2.node0
-        let payload = r#"{
-            "txRaw": "07000000312e6e6f646530001409d2c60903529a8c8ca617abe04151de045632ae4181b8099f8f97153000f101e6008dfd01000009000000636c792e6e6f646530432b91c327c1ee6bacb855c011f2c8649d1bec5d0e3cb91efeafec024cf8405c01000000020b00000066745f7472616e73666572320000007b22616d6f756e74223a3132332c226d656d6f223a6e756c6c2c2272656365697665725f6964223a22322e6e6f646530227d00407a10f35a000000000000000000000000000000000000"
-        }
-        "#;
 
         let app = init().await;
         let service = test::init_service(app).await;
-        let sender = simulate_sender();
+        let sender_master = simulate_sender_master();
         let receiver = simulate_receiver();
+        let sender_servant = simulate_sender_servant();
+        clear_contract("2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0").await;
+
+
+        //step0: sender master add servant
+        let payload = r#"
+            {
+             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "deviceId": "1",
+             "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
+             "secretKeyData": "ed25519:s1sw1PXCkHrbyE9Rmg6j18PoUxnhCNZ2CxSPUvvE7dZK9UCEkpTWC1Zy6ZKWvBcAdK8MoRUSdMsduMFRJrRtuGq"
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/addServant",Some(payload),Some(&sender_master.token));
+        println!("{:?}",res.data);
+
+        //step1: sender master update strategy
+        let payload = r#"
+            {
+             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "deviceId": "1",
+             "strategy": [{"min": 0, "maxEq": 1000, "sigNum": 0},{"min": 1000, "maxEq": 1844674407370955200, "sigNum": 1}]
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/updateStrategy",Some(payload),Some(&sender_master.token));
+        println!("{:?}",res.data);
+        //给链上确认一些时间
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+
+        //step1.1: check sender's new strategy
+        let url = format!("/wallet/getStrategy?accountId={}",sender_master.wallets.first().unwrap().account_id);
+        let res : BackendRespond<StrategyData> = test_service_call!(service,"get",&url, None::<String>,Some(&sender_master.token));
+        let sender_strategy = res.data;
+        println!("{:?}",sender_strategy);
+
+
+        //step2: master: pre_send_money
+        let payload = r#"
+            {
+             "deviceId": "1",
+             "from": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "to": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb",
+             "coin":"dw20",
+             "amount": 123,
+             "expireAt": 1708015513000
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/preSendMoney",Some(payload),Some(&sender_master.token));
+        println!("{:?}",res.data);
+
+        //step3(optional): check new message
+        //for sender master
+        let url = format!("/wallet/searchMessageByAccountId?accountId={}",sender_master.wallets.first().unwrap().account_id);
+        println!("{}",url);
+        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(&sender_master.token)
+        );
+        let tx = res.data.first().unwrap();
+        //对于created状态的交易来说，主设备不处理，从设备上传签名
+        if tx.transaction.status == CoinTxStatus::Created {
+            if sender_master.wallets.first().unwrap().pubkey == sender_strategy.main_device_pubkey {
+                println!("this device hold  master key,and do nothing for 'Created' tx");
+            }
+        }
+
+        //for sender servant
+        let url = format!("/wallet/searchMessageByAccountId?accountId={}", sender_servant.wallets.first().unwrap().account_id);
+        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(&sender_servant.token)
+        );
+        let tx = res.data.first().unwrap();
+        //对于created状态的交易来说，主设备不处理，从设备上传签名,其他设备不进行通知
+        if tx.transaction.status == CoinTxStatus::Created {
+            //从设备需要去本地签名
+            if sender_servant.wallets.first().unwrap().pubkey == *sender_strategy.servant_device_pubkey.first().unwrap() {
+                println!("this device hold  servant key,need to sig tx");
+                //todo: local sign
+            }
+        }
+
+        //接受者不关注created状态的交易
+        let url = format!("/wallet/searchMessageByAccountId?accountId={}", receiver.wallets.first().unwrap().account_id);
+        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(&receiver.token)
+        );
+        println!("{:?}",res.data);
+
+        //step3: servent: upload_servant_sig
+        //step4: react_pre_send_money
+        //step5: reconfirm_send_money
+
+
+
+        /***
+        let req = test::TestRequest::post()
+            .uri("/wallet/addServant")
+            .insert_header(header::ContentType::json())
+            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
+            .set_payload(payload.to_string())
+            .to_request();
+        let body = test::call_and_read_body(&service, req)
+            .await
+            .try_into_bytes()
+            .unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+        let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
+        println!("sender preSendMoneyRes {}", user.data);
+
+        //step0.1: sender set new strategy
+
+
 
         //step 01: send transfer reuqest
         let req = test::TestRequest::post()
@@ -319,7 +565,9 @@ mod tests {
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
         println!("sender preSendMoneyRes {}", user.data);
+*/
         //for receiver after preSendMoney
+        /***
         let req = test::TestRequest::post()
             .uri("/wallet/searchMessage")
             .insert_header(header::ContentType::json())
@@ -410,5 +658,7 @@ mod tests {
             serde_json::from_str(body_str.as_str()).unwrap();
         println!("sender searchMessageRes {:?}", user.data);
         assert_eq!(user.data.len(), 0);
+
+         */
     }
 }

@@ -20,7 +20,7 @@ use common::http::BackendRes;
 use common::utils::time::{MINUTE10, now_millis};
 
 lazy_static! {
-    static ref CODE_STORAGE: Mutex<HashMap<(String,Kind), Captcha >> = Mutex::new(HashMap::new());
+    static ref CODE_STORAGE: Mutex<HashMap<(String,Usage), Captcha >> = Mutex::new(HashMap::new());
 }
 
 #[derive(PartialEq)]
@@ -30,12 +30,12 @@ pub enum ContactType {
 }
 
 #[derive(PartialEq,Clone,Debug,Eq,Hash)]
-pub enum Kind {
+pub enum Usage {
     register,
     reset_password,
 }
 
-impl FromStr for Kind {
+impl FromStr for Usage {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -84,10 +84,10 @@ pub fn validate_phone(input: &str) -> Result<(),AccountManagerError> {
     }
 }
 
-pub fn get_captcha(user: String,kind:Kind) -> Result<Option<Captcha>,BackendError> {
+pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>,BackendError> {
     let code_storage = &CODE_STORAGE.lock()
         .map_err(|e| InternalError(e.to_string()))?;
-    let value = code_storage.get(&(user,kind)).as_ref().map(|&x| x.to_owned());
+    let value = code_storage.get(&(user,kind.to_owned())).as_ref().map(|&x| x.to_owned());
     Ok(value)
 }
 
@@ -96,14 +96,14 @@ pub struct Captcha {
     //email address or phone number
     owner: String,
     device_id: String,
-    kind: Kind,
+    kind: Usage,
     code: String,
     pub created_at: u64,
     pub expiration_time: u64,
 }
 
 impl Captcha {
-    pub fn new(user: String,device_id:String,kind: Kind) -> Self {
+    pub fn new(user: String, device_id:String, kind: Usage) -> Self {
         let code = if common::env::CONF.service_mode != ServiceMode::Product
          && common::env::CONF.service_mode != ServiceMode::Dev {
             "000000".to_string()
@@ -135,8 +135,8 @@ impl Captcha {
         Ok(())
     }
 
-    pub fn check_user_code(user: &str, code: &str,kind: Kind) -> Result<(), BackendError> {
-        if let Some(data) = get_captcha(user.to_string(),kind)? {
+    pub fn check_user_code(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+        if let Some(data) = get_captcha(user.to_string(),&kind)? {
             if data.code != code {
                 Err(UserVerificationCodeIncorrect)?
             } else if data.code == code && data.is_expired() {

@@ -1,3 +1,5 @@
+#![feature(async_closure)]
+
 //! account manager http service
 pub mod captcha;
 pub mod handlers;
@@ -152,7 +154,7 @@ pub struct RegisterByEmailRequest {
 async fn register_by_email(
     request_data: web::Json<RegisterByEmailRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()))
+    gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()).await)
 }
 
 
@@ -194,7 +196,7 @@ pub struct RegisterByPhoneRequest {
 async fn register_by_phone(
     request_data: web::Json<RegisterByPhoneRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()))
+    gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()).await)
 }
 
 
@@ -273,6 +275,14 @@ mod tests {
         error, get, http, middleware, post, web, App, Error, HttpRequest, HttpResponse, HttpServer,
         Responder,test
     };
+    use std::env;
+    use std::io::Read;
+    use std::ops::Deref;
+    use std::process::Command;
+    use std::sync::{Arc, RwLock};
+    use actix_web::web::service;
+    use common::http::BackendRespond;
+    use tokio::runtime::Runtime;
 
     async fn init() -> App<
         impl ServiceFactory<
@@ -284,13 +294,14 @@ mod tests {
         >,
     > {
         env::set_var("SERVICE_MODE", "test");
-        //models::general::table_all_clear();
+        models::general::table_all_clear();
         App::new()
             .service(get_captcha)
             .service(verify_captcha)
             .service(register_by_email)
             .service(login)
             .service(reset_password)
+            .service(contact_is_used)
     }
 
     #[actix_web::test]
@@ -312,83 +323,52 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
 
-        //get code
-        let payload = r#"{ "deviceId": "1", "userContact": "test2@gmail.com","kind": "1" }"#;
-        let req = test::TestRequest::post()
-            .uri("/accountManager/getCaptcha")
-            .insert_header(header::ContentType::json())
-            //.insert_header((header::AUTHORIZATION, format!("bearer {}", token_res)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("body_str {}", body_str);
+        //getCaptcha
+        let payload = r#"{ "deviceId": "1", "contact": "test@gmail.com","kind": "register" }"#;
+        let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
+        println!("{:?}",res.data);
 
         //register
         let payload = r#"
-        { "deviceId": "1",
-        "userContact": "test2@gmail.com",
-        "verificationCode": "000000",
-         "password": "123456789",
-        "walletSignStrategy": "2-3"
-        }
-        "#;
-        let req = test::TestRequest::post()
-            .uri("/accountManager/register")
-            .insert_header(header::ContentType::json())
-            //.insert_header((header::AUTHORIZATION, format!("bearer {}", token_res)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("body_str {}", body_str);
+            { "deviceId": "1",
+            "email": "test@gmail.com",
+            "captcha": "000000",
+            "password": "123456789",
+            "encryptedPrikey": "encrypted_prikey_0x123",
+            "pubkey": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb"
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/registerByEmail",Some(payload),None::<String>);
+        println!("{:?}",res.data);
 
         //login
         let payload = r#"
-        { "deviceId": "1",
-        "userContact": "test2@gmail.com",
-         "password": "123456789"
-        }
-        "#;
-        let req = test::TestRequest::post()
-            .uri("/accountManager/login")
-            .insert_header(header::ContentType::json())
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<String> = serde_json::from_str(&body_str).unwrap();
-        let auth_token = user.data;
-        println!("body_str {}", auth_token);
+            { "deviceId": "1",
+            "contact": "test@gmail.com",
+             "password": "123456789"
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/login",Some(payload),None::<String>);
+        println!("{:?}",res.data);
+
+        //check contact if is used
+        let res: BackendRespond<bool> = test_service_call!(service,"get","/accountManager/contactIsUsed?contact=test@gmail.com",None::<String>,None::<String>);
+        println!("{:?}",res.data);
 
         //reset password
+        /***
+        let payload = r#"{ "deviceId": "1", "contact": "test2@gmail.com","kind": "resetPassword" }"#;
+        let res:BackendRespond<String> = service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
+        println!("{:?}",res.data);
         let payload = r#"
-        { "verificationCode": "000000",
-        "userContact": "test2@gmail.com",
-         "newPassword": "123456789"
+        { "deviceId": "111",
+         "captcha": "000000",
+          "contact": "test2@gmail.com",
+         "newPassword": "new123456789"
         }
         "#;
-        let req = test::TestRequest::post()
-            .uri("/accountManager/resetPassword")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", auth_token)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<String> = serde_json::from_str(&body_str).unwrap();
-        println!("body_str {}", user.data);
+        let res: BackendRespond<String> = service_call!(service,"post","/accountManager/resetPassword",Some(payload),None::<String>);
+        println!("{:?}",res.msg);
+
+         */
     }
+
 }

@@ -40,11 +40,14 @@ create index if not exists ix_users_phone
 
 
 create table coin_transaction(
-     tx_id text  primary key,
-     sender integer,
-     receiver integer,
+     tx_index serial  primary key,
+     tx_id text,
+     sender text,
+     receiver text,
      coin_type text,
      amount text,
+     expire_at text,
+     memo  text,
      status  text,
      raw_data  text,
      signatures text[],

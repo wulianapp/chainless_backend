@@ -58,7 +58,7 @@ pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std
     let transaction = Transaction::try_from_slice(&tx_hex)?;
     let (hash, _) = transaction.get_hash_and_size();
     let act = decode_action(&transaction.actions)?;
-
+    /***
     Ok(CoinTransaction {
         tx_id: hash.to_string(),
         //receiver_id is contract account of coin
@@ -68,9 +68,11 @@ pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std
         amount: act.amount,
         //fixme: deal with status
         status: CoinTxStatus::Created,
-        raw_data: tx_raw.to_string(),
+        raw_data: Some(tx_raw.to_string()),
         signatures: vec![],
     })
+     */
+    Err("tmp".to_string())?
 }
 
 async fn get_balance(account: &AccountId) -> u128 {

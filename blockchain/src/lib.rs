@@ -5,7 +5,7 @@ pub mod coin;
 mod general;
 mod hello;
 mod newbie_reward;
-mod multi_sig;
+pub mod multi_sig;
 
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};
@@ -25,7 +25,7 @@ pub fn add(left: usize, right: usize) -> usize {
 }
 
 #[derive(Clone)]
-struct ContractClient<T> {
+pub struct ContractClient<T> {
     pub deployed_at: AccountId,
     relayer: InMemorySigner,
     phantom: PhantomData<T>,

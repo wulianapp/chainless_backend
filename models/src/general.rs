@@ -30,8 +30,10 @@ pub fn table_clear(table_name: &str) -> Result<(),BackendError>{
 }
 
 pub fn table_all_clear() {
-    table_clear("accounts").unwrap();
+    //table_clear("accounts").unwrap();
     table_clear("users").unwrap();
     table_clear("coin_transaction").unwrap();
-    table_clear("wallet").unwrap()
+    //table_clear("wallet").unwrap();
+    table_clear("secret_store").unwrap()
+
 }

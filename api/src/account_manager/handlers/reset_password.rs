@@ -5,7 +5,7 @@ use common::http::{BackendRes, token_auth};
 use models::account_manager;
 use models::account_manager::UserFilter;
 use crate::account_manager::{ResetPasswordRequest, captcha};
-use crate::account_manager::captcha::{Captcha, Kind};
+use crate::account_manager::captcha::{Captcha, Usage};
 use common::error_code::AccountManagerError::*;
 use common::error_code::BackendError::*;
 
@@ -22,7 +22,7 @@ pub async fn req(
     //todo: check if is master device
 
     //check captcha
-    Captcha::check_user_code(&contact, &captcha,Kind::reset_password)?;
+    Captcha::check_user_code(&contact, &captcha, Usage::reset_password)?;
 
     let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?
         .ok_or(PhoneOrEmailAlreadyRegister)?;

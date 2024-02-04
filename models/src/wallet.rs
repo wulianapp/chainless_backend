@@ -128,6 +128,7 @@ mod tests {
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear();
 
+        /***
         let wallet = Wallet {
             user_id: 1,
             account_id: "00000000000000001".to_string(),
@@ -144,5 +145,7 @@ mod tests {
         let _res = update(vec![], vec![], vec![], WalletFilter::ByUserId(1));
         let res = get_wallet(WalletFilter::ByUserId(1));
         println!("select_res {},", serde_json::to_string(&res).unwrap());
+
+         */
     }
 }

@@ -62,10 +62,13 @@ pub fn get_current_user_num() -> Result<u64,BackendError> {
 }
 
 pub fn get_next_uid() -> Result<u32,BackendError> {
-    let execute_res = crate::query("select last_value from users_id_seq order by last_value desc limit 1")?;
-    if let Some(row) = execute_res.first() {
-        let current_user_id = row.get::<usize, i64>(0) as u32;
-        Ok(current_user_id + 1)
+    let execute_res = crate::query("select last_value,is_called from users_id_seq order by last_value desc limit 1")?;
+    let row = execute_res.first().unwrap();
+    let current_user_id = row.get::<usize, i64>(0) as u32;
+    let is_called = row.get::<usize, bool>(1);
+
+    if is_called{
+        Ok(current_user_id+1)
     }else {
         Ok(1)
     }
@@ -128,6 +131,7 @@ pub fn single_insert(data: &UserInfo) -> Result<(), BackendError> {
     predecessor,verified,status,invite_code,account_ids) values ('{}','{}','{}',{},{},{},{},{});",
                       phone_number,email,pwd_hash,predecessor_str,verified,status,invite_code,account_ids_str
     );
+    println!("{}",sql);
     debug!("row sql {} rows", sql);
     let execute_res = crate::execute(sql.as_str())?;
     debug!("success insert {} rows", execute_res);
@@ -148,16 +152,21 @@ pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(),Back
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+    use postgres::types::ToSql;
     use super::*;
     use common::utils::math;
     #[test]
-    fn test_account_manager_braced() {
+    fn test_models_account_manager_braced() {
+        env::set_var("SERVICE_MODE", "test");
+        crate::general::table_clear("users").unwrap();
         let invite_code = math::gen_random_verify_code();
         let mut user = UserInfo::default();
-        user.email = format!("example_{}@gmail.com", invite_code);
-        user.predecessor = format!("{}", invite_code);
+        user.email = format!("example{}@gmail.com", invite_code);
+        user.pwd_hash = "123".to_string();
+        user.invite_code = "1".to_string();
         println!("start insert");
-        single_insert(user.clone()).unwrap();
+        single_insert(&user).unwrap();
         println!("start query");
         let res = get_user(UserFilter::ByEmail(&user.email));
         println!("res {:?}", res.unwrap());

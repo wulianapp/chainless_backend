@@ -56,8 +56,8 @@ pub fn validate_credentials(req: &HttpRequest) -> Result<u32, BackendError> {
     let auth_str = auth_header
         .to_str()
         .map_err(|_err| Authorization("Token is invalid".to_string()))?;
-    if auth_str.starts_with("Bearer ") {
-        let token = &auth_str["Bearer ".len()..];
+    if auth_str.starts_with("bearer ") || auth_str.starts_with("Bearer "){
+        let token = &auth_str["bearer ".len()..];
         let claim_dat =
             validate_jwt(token).map_err(|_err| Authorization("Invalid token signature".to_string()))?;
         if now_millis() > claim_dat.exp {

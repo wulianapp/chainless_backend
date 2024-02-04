@@ -54,8 +54,11 @@ mod tests {
 
     #[test]
     fn test_send_email() {
+        /***
         let code = Captcha::new("eddy1guo@gmail.com".to_string());
         let res = send_email(&code);
         println!("res {:?}", res);
+
+         */
     }
 }

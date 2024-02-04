@@ -72,7 +72,7 @@ async fn main() -> std::io::Result<()> {
             .service(wallet::react_pre_send_money)
             .service(wallet::reconfirm_send_money)
             .service(wallet::upload_tx_signed_data)
-            //.service(wallet::backup_secret_keys)
+            .service(wallet::search_message_by_account_id)
 
 
     })

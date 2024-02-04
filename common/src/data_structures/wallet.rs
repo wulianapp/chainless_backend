@@ -27,7 +27,7 @@ pub trait AddressConvert: Sized {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug,Clone)]
 pub enum CoinType {
     CLY,
     DW20,
@@ -63,10 +63,12 @@ impl AddressConvert for AccountId {
 //#[serde(rename_all = "lowercase")]
 pub enum CoinTxStatus {
     Created,
+    SenderSigCompleted,
     ReceiverApproved,
     ReceiverRejected,
     SenderCanceled,
     SenderReconfirmed,
+    Expired,
     Broadcast,
     Confirmed,
 }
@@ -75,11 +77,13 @@ impl fmt::Display for CoinTxStatus {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             CoinTxStatus::Created => "Created",
+            CoinTxStatus::SenderSigCompleted => "SenderSigCompleted",
             CoinTxStatus::ReceiverApproved => "ReceiverApproved",
             CoinTxStatus::ReceiverRejected => "ReceiverRejected",
             CoinTxStatus::SenderCanceled => "SenderCanceled",
             CoinTxStatus::SenderReconfirmed => "SenderReconfirmed",
             CoinTxStatus::Broadcast => "Broadcast",
+            CoinTxStatus::Expired => "Expired",
             CoinTxStatus::Confirmed => "Confirmed",
         };
         write!(f, "{}", description)
@@ -92,10 +96,12 @@ impl FromStr for CoinTxStatus {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Created" => Ok(CoinTxStatus::Created),
+            "SenderSigCompleted" => Ok(CoinTxStatus::SenderSigCompleted),
             "ReceiverApproved" => Ok(CoinTxStatus::ReceiverApproved),
             "ReceiverRejected" => Ok(CoinTxStatus::ReceiverRejected),
             "SenderCanceled" => Ok(CoinTxStatus::SenderCanceled),
             "SenderReconfirmed" => Ok(CoinTxStatus::SenderReconfirmed),
+            "Expired" => Ok(CoinTxStatus::Expired),
             "Broadcast" => Ok(CoinTxStatus::Broadcast),
             "Confirmed" => Ok(CoinTxStatus::Confirmed),
             _ => Err("Don't support this service mode".to_string()),
@@ -135,15 +141,17 @@ impl FromStr for SecretKeyType {
 }
 
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug,Clone)]
 pub struct CoinTransaction {
-    pub tx_id: String,
+    pub tx_id: Option<String>,
     pub coin_type: CoinType,
-    pub sender: u32,   //uid
-    pub receiver: u32, //uid
+    pub sender: String,   //uid
+    pub receiver: String, //uid
     pub amount: u128,
+    pub expire_at: u64,
+    pub memo: Option<String>,
     pub status: CoinTxStatus,
-    pub raw_data: String,
+    pub raw_data: Option<String>,
     pub signatures: Vec<String>,
 }
 
