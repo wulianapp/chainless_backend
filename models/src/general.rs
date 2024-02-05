@@ -1,7 +1,7 @@
-use common::error_code::{BackendError};
+use common::error_code::BackendError;
 use common::error_code::BackendError::{DBError, InternalError};
 
-pub fn transaction_begin() -> Result<(),BackendError>{
+pub fn transaction_begin() -> Result<(), BackendError> {
     crate::CLIENTDB
         .lock()
         .map_err(|e| InternalError(e.to_string()))?
@@ -10,7 +10,7 @@ pub fn transaction_begin() -> Result<(),BackendError>{
     Ok(())
 }
 
-pub fn transaction_commit() -> Result<(),BackendError>{
+pub fn transaction_commit() -> Result<(), BackendError> {
     crate::CLIENTDB
         .lock()
         .map_err(|e| InternalError(e.to_string()))?
@@ -19,7 +19,7 @@ pub fn transaction_commit() -> Result<(),BackendError>{
     Ok(())
 }
 
-pub fn table_clear(table_name: &str) -> Result<(),BackendError>{
+pub fn table_clear(table_name: &str) -> Result<(), BackendError> {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::CLIENTDB
         .lock()
@@ -35,5 +35,4 @@ pub fn table_all_clear() {
     table_clear("coin_transaction").unwrap();
     //table_clear("wallet").unwrap();
     table_clear("secret_store").unwrap()
-
 }

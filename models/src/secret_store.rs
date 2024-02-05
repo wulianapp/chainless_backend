@@ -2,12 +2,12 @@ extern crate rustc_serialize;
 
 use postgres::Row;
 //#[derive(Serialize)]
-use serde::{Deserialize, Serialize};
 use common::data_structures::secret_store::SecretStore;
+use serde::{Deserialize, Serialize};
 
 use crate::vec_str2array_text;
-use common::data_structures::wallet::Wallet;
-use common::error_code::{BackendError};
+
+use common::error_code::BackendError;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SecretView {
@@ -32,7 +32,7 @@ impl SecretFilter<'_> {
     }
 }
 
-pub fn get_secret(filter: SecretFilter) -> Result<Vec<SecretView>,BackendError> {
+pub fn get_secret(filter: SecretFilter) -> Result<Vec<SecretView>, BackendError> {
     let sql = format!(
         "select account_id,\
          user_id,\
@@ -55,12 +55,10 @@ pub fn get_secret(filter: SecretFilter) -> Result<Vec<SecretView>,BackendError> 
         updated_at: row.get(4),
         created_at: row.get(5),
     };
-    Ok(
-        execute_res
-            .iter()
-            .map(|x| gen_view(x))
-            .collect::<Vec<SecretView>>()
-    )
+    Ok(execute_res
+        .iter()
+        .map(|x| gen_view(x))
+        .collect::<Vec<SecretView>>())
 }
 
 pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
@@ -80,10 +78,7 @@ pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
          master_encrypted_prikey,\
          servant_encrypted_prikeys \
          ) values ('{}',{},'{}',{});",
-        account_id,
-        user_id,
-        master_encrypted_prikey,
-        servant_keys_str
+        account_id, user_id, master_encrypted_prikey, servant_keys_str
     );
     println!("row sql {} rows", sql);
 
@@ -93,7 +88,7 @@ pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
     Ok(())
 }
 
-pub fn update_servant(new_servants: Vec<String>, filter: SecretFilter) -> Result<(),BackendError>{
+pub fn update_servant(new_servants: Vec<String>, filter: SecretFilter) -> Result<(), BackendError> {
     let new_servant_str = super::vec_str2array_text(new_servants);
     let sql = format!(
         "update secret_store set servant_encrypted_prikeys={} where {}",

@@ -13,7 +13,6 @@ pub const DAY15: u64 = 15 * DAY1;
 //convenient for test
 pub const YEAR100: u64 = 100 * 365 * DAY1;
 
-
 pub fn current_date() -> String {
     let dt: DateTime<Local> = Local::now();
     dt.format("%Y-%m-%d %H:%M:%S.%f").to_string()

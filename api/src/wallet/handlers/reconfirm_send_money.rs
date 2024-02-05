@@ -1,31 +1,44 @@
-use actix_web::{HttpRequest, web};
-use serde::Serialize;
+use actix_web::{web, HttpRequest};
+
 use common::data_structures::wallet::CoinTxStatus;
-use common::error_code::{BackendError::*, WalletError::*};
-use common::http::{BackendRes, token_auth};
-use models::coin_transfer::CoinTxFilter;
+
 use crate::wallet::ReconfirmSendMoneyRequest;
+use common::http::{token_auth, BackendRes};
+use models::coin_transfer::CoinTxFilter;
 
 pub async fn req(
     req: HttpRequest,
     request_data: web::Json<ReconfirmSendMoneyRequest>,
 ) -> BackendRes<String> {
     //todo:check user_id if valid
-    let user_id =
-        token_auth::validate_credentials(&req)?;
+    let _user_id = token_auth::validate_credentials(&req)?;
 
     //todo: check must be main device
     let ReconfirmSendMoneyRequest {
-        device_id,
-        tx_id,
-        is_confirmed,
+        device_id: _,
+        tx_index,
+        confirmed_sig,
     } = request_data.0;
 
-    let status = if is_confirmed {
-        CoinTxStatus::SenderReconfirmed
+    if let Some(sig) = confirmed_sig {
+        models::coin_transfer::update_status(
+            CoinTxStatus::SenderReconfirmed,
+            CoinTxFilter::ByTxIndex(tx_index),
+        )?;
+        //todo: broadcast
+        let coin_txs = models::coin_transfer::get_transactions(CoinTxFilter::ByTxIndex(tx_index))?;
+        let coin_tx = coin_txs.first().unwrap();
+        //broadcast
+        blockchain::general::broadcast_tx_commit_from_raw2(
+            coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
+            &sig,
+        )
+        .await;
     } else {
-        CoinTxStatus::SenderCanceled
-    };
-    models::coin_transfer::update_status(status, CoinTxFilter::ByTxId(tx_id))?;
+        models::coin_transfer::update_status(
+            CoinTxStatus::SenderCanceled,
+            CoinTxFilter::ByTxIndex(tx_index),
+        )?;
+    }
     Ok(None::<String>)
 }

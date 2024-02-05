@@ -1,10 +1,10 @@
-use actix_web::{HttpRequest, web};
-use serde::Serialize;
+use actix_web::{web, HttpRequest};
+
 use common::data_structures::wallet::CoinTxStatus;
-use common::error_code::{BackendError::*, WalletError::*};
-use common::http::{BackendRes, token_auth};
+
+use common::http::{token_auth, BackendRes};
 use models::coin_transfer::CoinTxFilter;
-use models::wallet::{get_wallet, WalletFilter};
+
 use crate::wallet::uploadTxSignatureRequest;
 
 pub async fn req(
@@ -13,32 +13,32 @@ pub async fn req(
 ) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
-    let user_id =
-        token_auth::validate_credentials(&req)?;
+    let _user_id = token_auth::validate_credentials(&req)?;
 
     //todo: check must be main device
     let uploadTxSignatureRequest {
-        device_id,
-        tx_id,
+        device_id: _,
+        tx_index,
         signature,
     } = request_data.0;
 
     //todo: validate signature
 
-    let tx = models::coin_transfer::get_transactions(CoinTxFilter::ByTxId(tx_id.clone()))?;
+    let tx = models::coin_transfer::get_transactions(CoinTxFilter::ByTxIndex(tx_index))?;
     let mut signatures = tx.first().unwrap().transaction.signatures.clone();
     signatures.push(signature);
-    models::coin_transfer::update_signature(signatures, CoinTxFilter::ByTxId(tx_id.clone()))?;
+    models::coin_transfer::update_signature(signatures, CoinTxFilter::ByTxIndex(tx_index))?;
     //todo: collect enough signatures
-    let wallet_info = get_wallet(WalletFilter::ByUserId(user_id))?;
-    let wallet_info = &wallet_info.first().unwrap().wallet;
+    //let wallet_info = get_wallet(WalletFilter::ByUserId(user_id))?;
+    //let wallet_info = &wallet_info.first().unwrap().wallet;
 
-    if wallet_info.sign_strategies.len() == 1
-        && *wallet_info.sign_strategies.first().unwrap() == "1-1".to_string()
-    //todo: check sign strategy if ok,broadcast this tx
-    {
-        //broadcast(signatures)
-        models::coin_transfer::update_status(CoinTxStatus::Broadcast, CoinTxFilter::ByTxId(tx_id))?;
+    //todo: checkout sig if is enough
+    //first error deal with in models
+    if tx.first().unwrap().transaction.signatures.len() == 0 {
+        models::coin_transfer::update_status(
+            CoinTxStatus::SenderSigCompleted,
+            CoinTxFilter::ByTxIndex(tx_index),
+        )?;
     }
     Ok(None::<String>)
 }

@@ -11,32 +11,8 @@ pub mod general;
 pub mod newbie_reward;
 pub mod wallet;
 
-
 use actix_cors::Cors;
-use actix_web::{
-    error, get, http, middleware, post, web, App, Error, HttpRequest, HttpResponse, HttpServer,
-    Responder,
-};
-use std::env;
-
-use actix_web_httpauth::middleware::HttpAuthentication;
-use blockchain::coin::decode_coin_transfer;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, SecretKeyType};
-use common::error_code::{AccountManagerError, WalletError};
-use log::info;
-use models::account_manager::UserFilter;
-use models::coin_transfer::CoinTxFilter;
-use models::wallet::{get_wallet, WalletFilter};
-use reqwest::Request;
-use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
-use std::fmt::Debug;
-use std::str::FromStr;
-use std::sync::Mutex;
-use std::sync::{mpsc, Arc, RwLock};
-use lettre::transport::smtp::client::CertificateStore::Default;
-use common::http::gen_extra_respond;
+use actix_web::{http, middleware, App, HttpServer};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -71,10 +47,7 @@ async fn main() -> std::io::Result<()> {
             .service(wallet::direct_send_money)
             .service(wallet::react_pre_send_money)
             .service(wallet::reconfirm_send_money)
-            .service(wallet::upload_tx_signed_data)
             .service(wallet::search_message_by_account_id)
-
-
     })
     .bind(service)?
     .run()

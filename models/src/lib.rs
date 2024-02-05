@@ -8,8 +8,8 @@ pub mod general;
 pub mod newbie_reward;
 
 pub mod coin_transfer;
-pub mod wallet;
 pub mod secret_store;
+pub mod wallet;
 
 #[macro_use]
 extern crate log;
@@ -23,14 +23,12 @@ extern crate rustc_serialize;
 
 use postgres::{Client, NoTls, Row};
 
-use anyhow::anyhow;
-use chrono::Local;
+use common::error_code::BackendError;
+use common::error_code::BackendError::{DBError, InternalError};
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt::Debug;
 use std::sync::Mutex;
-use common::error_code::{BackendError};
-use common::error_code::BackendError::{DBError, InternalError};
 
 static TRY_TIMES: u8 = 5;
 
@@ -56,7 +54,7 @@ impl TimeScope {
 lazy_static! {
     static ref CLIENTDB: Mutex<postgres::Client> = Mutex::new(connect_db().unwrap());
 }
-fn connect_db() -> Result<Client,BackendError> {
+fn connect_db() -> Result<Client, BackendError> {
     let global_conf = &common::env::CONF;
     eprintln!("{}: start postgresql", common::utils::time::current_date());
     let url = format!(
@@ -70,12 +68,11 @@ fn connect_db() -> Result<Client,BackendError> {
     Ok(cli)
 }
 
-pub fn query(raw_sql: &str) -> Result<Vec<Row>,BackendError> {
+pub fn query(raw_sql: &str) -> Result<Vec<Row>, BackendError> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock()
-        .map_err(|e|
-            InternalError(e.to_string())
-        )?;
+    let mut client = crate::CLIENTDB
+        .lock()
+        .map_err(|e| InternalError(e.to_string()))?;
     loop {
         println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
@@ -85,8 +82,8 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>,BackendError> {
             }
             Err(error) => {
                 if try_times == 0 {
-                    let error_info = format!("erro:{:?}, query still failed after retry",error);
-                    error!("{}",error_info);
+                    let error_info = format!("erro:{:?}, query still failed after retry", error);
+                    error!("{}", error_info);
                     Err(DBError(error_info))?;
                 } else {
                     error!("error {:?}", error);
@@ -99,12 +96,11 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>,BackendError> {
     }
 }
 
-pub fn execute(raw_sql: &str) -> Result<u64,BackendError> {
+pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock()
-        .map_err(|e|
-            InternalError(e.to_string())
-        )?;
+    let mut client = crate::CLIENTDB
+        .lock()
+        .map_err(|e| InternalError(e.to_string()))?;
     loop {
         println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
@@ -114,8 +110,8 @@ pub fn execute(raw_sql: &str) -> Result<u64,BackendError> {
             }
             Err(error) => {
                 if try_times == 0 {
-                    let error_info = format!("erro:{:?}, query still failed after retry",error);
-                    error!("{}",error_info);
+                    let error_info = format!("erro:{:?}, query still failed after retry", error);
+                    error!("{}", error_info);
                     Err(DBError(error_info))?;
                 } else {
                     error!("error {:?}", error);
@@ -170,7 +166,7 @@ pub fn vec_str2array_text(vec: Vec<String>) -> String {
     format!("ARRAY[{}]::text[]", array_elements.join(","))
 }
 
-pub enum PsqlType{
+pub enum PsqlType {
     VecStr(Vec<String>),
     VecU64(Vec<u64>),
     OptionStr(Option<String>),
@@ -178,7 +174,7 @@ pub enum PsqlType{
 }
 
 impl PsqlType {
-    pub fn to_psql_str(&self) -> String{
+    pub fn to_psql_str(&self) -> String {
         match self {
             PsqlType::VecStr(data) => {
                 let array_elements: Vec<String> = data
@@ -187,21 +183,20 @@ impl PsqlType {
                     .collect();
 
                 format!("ARRAY[{}]::text[]", array_elements.join(","))
-            },
+            }
             PsqlType::VecU64(data) => {
-                let array_elements: Vec<String> = data
-                    .into_iter()
-                    .map(|s| format!("{}", s))
-                    .collect();
+                let array_elements: Vec<String> =
+                    data.into_iter().map(|s| format!("{}", s)).collect();
 
                 format!("ARRAY[{}]::int4[]", array_elements.join(","))
-            },
-            PsqlType::OptionStr(data) => {
-                data.to_owned().map(|x| format!("'{}'",x)).unwrap_or("NULL".to_string())
-            },
+            }
+            PsqlType::OptionStr(data) => data
+                .to_owned()
+                .map(|x| format!("'{}'", x))
+                .unwrap_or("NULL".to_string()),
             PsqlType::OptionU64(data) => {
-                data.map(|x| format!("{}",x)).unwrap_or("NULL".to_string())
-            },
+                data.map(|x| format!("{}", x)).unwrap_or("NULL".to_string())
+            }
         }
     }
 }

@@ -1,17 +1,14 @@
-use actix_web::{HttpRequest, web};
-use serde::Serialize;
-use common::data_structures::wallet::CoinTxStatus;
-use common::error_code::{BackendError::*, WalletError::*};
-use common::http::{BackendRes, token_auth};
+use actix_web::{web, HttpRequest};
+
 use crate::wallet::DirectSendMoneyRequest;
+use common::http::{token_auth, BackendRes};
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: web::Json<DirectSendMoneyRequest>,
-) -> BackendRes<String>{
+    _request_data: web::Json<DirectSendMoneyRequest>,
+) -> BackendRes<String> {
     //todo: must be called by main device
-    let user_id =
-        token_auth::validate_credentials(&req)?;
+    let _user_id = token_auth::validate_credentials(&req)?;
 
     /***
     let mut coin_tx = blockchain::coin::decode_coin_transfer(&request_data.tx_raw).unwrap();

@@ -27,7 +27,7 @@ pub trait AddressConvert: Sized {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug,Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum CoinType {
     CLY,
     DW20,
@@ -109,9 +109,6 @@ impl FromStr for CoinTxStatus {
     }
 }
 
-
-
-
 #[derive(Deserialize, Debug, PartialEq, Serialize, Clone)]
 pub enum SecretKeyType {
     Master,
@@ -140,18 +137,18 @@ impl FromStr for SecretKeyType {
     }
 }
 
-
-#[derive(Deserialize, Serialize, Debug,Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CoinTransaction {
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
-    pub sender: String,   //uid
-    pub receiver: String, //uid
+    pub from: String, //uid
+    pub to: String,   //uid
     pub amount: u128,
     pub expire_at: u64,
     pub memo: Option<String>,
     pub status: CoinTxStatus,
-    pub raw_data: Option<String>,
+    pub coin_tx_raw: String,
+    pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
 }
 

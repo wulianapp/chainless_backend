@@ -1,41 +1,37 @@
-use std::fmt::Debug;
-use actix_web::web;
-use log::{info};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::*;
-use common::error_code::BackendError::*;
-use common::http::BackendRes;
-use models::{account_manager, secret_store};
-use models::account_manager::{get_user, get_current_user_num, UserFilter, get_next_uid};
-use crate::account_manager::captcha::{ContactType, Captcha, Usage};
+use log::info;
+
+use crate::account_manager::captcha::{Captcha, ContactType, Usage};
+use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
+use common::http::BackendRes;
+use models::account_manager::{get_next_uid, get_user, UserFilter};
+use models::{account_manager, secret_store};
 
-
-async fn register(device_id:String,
-            contact:String,
-            captcha:String,
-            predecessor_invite_code:Option<String>,
-            password:String,
-            contact_type: ContactType,
-            encrypted_prikey:String,
-            pubkey:String
+async fn register(
+    _device_id: String,
+    contact: String,
+    captcha: String,
+    predecessor_invite_code: Option<String>,
+    password: String,
+    contact_type: ContactType,
+    encrypted_prikey: String,
+    pubkey: String,
 ) -> BackendRes<String> {
-
     Captcha::check_user_code(&contact, &captcha, Usage::register)?;
 
     //check userinfo form db
-    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?{
+    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))? {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
-
 
     //todo: register multi_sig_contract account
 
     //store user info
     let this_user_id = get_next_uid()?;
-    println!("this_user_id _______{}",this_user_id);
+    println!("this_user_id _______{}", this_user_id);
     let mut user_info = UserInfo::default();
     user_info.pwd_hash = password; //todo: hash it again before store
     user_info.invite_code = this_user_id.to_string();
@@ -50,10 +46,8 @@ async fn register(device_id:String,
     //pubkey is equal to account id when register
     user_info.account_ids.push(pubkey.clone());
 
-    if let Some(code) = predecessor_invite_code{
-         let predecessor = get_user(UserFilter::ByInviteCode(&code))?.ok_or(
-            InviteCodeNotExist
-        )?;
+    if let Some(code) = predecessor_invite_code {
+        let predecessor = get_user(UserFilter::ByInviteCode(&code))?.ok_or(InviteCodeNotExist)?;
         user_info.predecessor = Some(predecessor.id);
     }
 
@@ -69,17 +63,19 @@ async fn register(device_id:String,
     secret_store::single_insert(&secret)?;
     let multi_cli = ContractClient::<MultiSig>::new();
 
-
     //multi_cli.set_strategy(&pubkey,pubkey.clone(),vec![],vec![MultiSigRank::default()]).await.unwrap();
-    multi_cli.init_strategy(&pubkey,pubkey.clone()).await.unwrap();
+    multi_cli
+        .init_strategy(&pubkey, pubkey.clone())
+        .await
+        .unwrap();
     models::general::transaction_commit()?;
     info!("user {:?} register successfully", user_info);
     Ok(None::<String>)
 }
 
-pub mod by_email{
-    use crate::account_manager::{captcha, RegisterByEmailRequest};
+pub mod by_email {
     use super::*;
+    use crate::account_manager::RegisterByEmailRequest;
 
     pub async fn req(request_data: RegisterByEmailRequest) -> BackendRes<String> {
         let RegisterByEmailRequest {
@@ -92,13 +88,23 @@ pub mod by_email{
             pubkey,
         } = request_data;
         //captcha::validate_email(&email)?;
-        super::register(device_id, email, captcha, predecessor_invite_code, password, ContactType::Email,encrypted_prikey,pubkey).await
+        super::register(
+            device_id,
+            email,
+            captcha,
+            predecessor_invite_code,
+            password,
+            ContactType::Email,
+            encrypted_prikey,
+            pubkey,
+        )
+        .await
     }
 }
 
-pub mod by_phone{
-    use crate::account_manager::{captcha, RegisterByPhoneRequest};
+pub mod by_phone {
     use super::*;
+    use crate::account_manager::RegisterByPhoneRequest;
 
     pub async fn req(request_data: RegisterByPhoneRequest) -> BackendRes<String> {
         let RegisterByPhoneRequest {
@@ -111,6 +117,16 @@ pub mod by_phone{
             pubkey,
         } = request_data;
         //captcha::validate_phone(&phone_number)?;
-        super::register(device_id,phone_number,captcha,predecessor_invite_code,password,ContactType::PhoneNumber,encrypted_prikey,pubkey).await
+        super::register(
+            device_id,
+            phone_number,
+            captcha,
+            predecessor_invite_code,
+            password,
+            ContactType::PhoneNumber,
+            encrypted_prikey,
+            pubkey,
+        )
+        .await
     }
 }

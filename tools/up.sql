@@ -49,7 +49,8 @@ create table coin_transaction(
      expire_at text,
      memo  text,
      status  text,
-     raw_data  text,
+     coin_tx_raw  text,
+     chain_tx_raw  text,
      signatures text[],
      updated_at  timestamp with time zone default current_timestamp,
      created_at  timestamp with time zone default current_timestamp

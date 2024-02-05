@@ -2,10 +2,10 @@
 
 mod airdrop;
 pub mod coin;
-mod general;
+pub mod general;
 mod hello;
-mod newbie_reward;
 pub mod multi_sig;
+mod newbie_reward;
 
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};

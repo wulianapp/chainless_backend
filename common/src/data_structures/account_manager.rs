@@ -17,10 +17,10 @@ pub struct UserInfo {
     pub email: String,
     pub pwd_hash: String,
     pub predecessor: Option<u32>,
-    pub status:u8,
+    pub status: u8,
     pub verified: bool,
     pub invite_code: String,
-    pub account_ids: Vec<String>
+    pub account_ids: Vec<String>,
 }
 impl Default for UserInfo {
     fn default() -> Self {
@@ -32,7 +32,7 @@ impl Default for UserInfo {
             status: 0,
             verified: false,
             invite_code: "".to_string(),
-            account_ids:vec![]
+            account_ids: vec![],
         }
     }
 }

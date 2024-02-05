@@ -2,10 +2,10 @@ use actix_web::HttpRequest;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::utils::time::{DAY15, now_millis, YEAR100};
-use actix_web::http::header;
 use crate::error_code::BackendError;
-use crate::error_code::BackendError::{Authorization};
+use crate::error_code::BackendError::Authorization;
+use crate::utils::time::{now_millis, DAY15};
+use actix_web::http::header;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -16,19 +16,24 @@ struct Claims {
 }
 
 impl Claims {
-    pub fn new(user_id: u32, device_id: String,iat: u64, exp: u64) -> Self {
-        Self { user_id,device_id,iat, exp }
+    pub fn new(user_id: u32, device_id: String, iat: u64, exp: u64) -> Self {
+        Self {
+            user_id,
+            device_id,
+            iat,
+            exp,
+        }
     }
 }
 
 // todo: Secret key for JWT,setup by env or config
 const SECRET_KEY: &[u8] = b"your_secret_key";
 
-pub fn create_jwt(user_id: u32,device_id: String) -> String {
+pub fn create_jwt(user_id: u32, device_id: String) -> String {
     let iat = now_millis();
     let exp = iat + DAY15;
 
-    let claims = Claims::new(user_id, device_id,iat, exp);
+    let claims = Claims::new(user_id, device_id, iat, exp);
 
     jsonwebtoken::encode(
         &Header::new(Algorithm::HS256),
@@ -56,10 +61,10 @@ pub fn validate_credentials(req: &HttpRequest) -> Result<u32, BackendError> {
     let auth_str = auth_header
         .to_str()
         .map_err(|_err| Authorization("Token is invalid".to_string()))?;
-    if auth_str.starts_with("bearer ") || auth_str.starts_with("Bearer "){
+    if auth_str.starts_with("bearer ") || auth_str.starts_with("Bearer ") {
         let token = &auth_str["bearer ".len()..];
-        let claim_dat =
-            validate_jwt(token).map_err(|_err| Authorization("Invalid token signature".to_string()))?;
+        let claim_dat = validate_jwt(token)
+            .map_err(|_err| Authorization("Invalid token signature".to_string()))?;
         if now_millis() > claim_dat.exp {
             Err(Authorization("Token has expired.".to_string()))?
         } else {
@@ -76,7 +81,7 @@ mod tests {
 
     #[test]
     fn test_account_login_auth() {
-        let token = create_jwt(1,"".to_string());
+        let token = create_jwt(1, "".to_string());
         println!("res {}", token);
     }
 }

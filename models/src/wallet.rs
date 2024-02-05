@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::vec_str2array_text;
 use common::data_structures::wallet::Wallet;
-use common::error_code::{BackendError};
-use common::http::BackendRes;
+use common::error_code::BackendError;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct WalletView {
@@ -32,7 +31,7 @@ impl WalletFilter {
     }
 }
 
-pub fn get_wallet(filter: WalletFilter) -> Result<Vec<WalletView>,BackendError> {
+pub fn get_wallet(filter: WalletFilter) -> Result<Vec<WalletView>, BackendError> {
     let sql = format!(
         "select user_id,\
          account_id,\
@@ -103,7 +102,7 @@ pub fn update(
     sign_strategies: Vec<String>,
     participate_device_ids: Vec<String>,
     filter: WalletFilter,
-) -> Result<(),BackendError>{
+) -> Result<(), BackendError> {
     let sql = format!(
         "update wallet set (sub_pubkeys,sign_strategies,participate_device_ids)=\
          ({},{},{}) where {}",
@@ -120,7 +119,7 @@ pub fn update(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+
     use std::env;
 
     #[test]

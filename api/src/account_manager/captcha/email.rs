@@ -50,7 +50,6 @@ pub fn send_email(code: &Captcha) -> Result<(), lettre::error::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
 
     #[test]
     fn test_send_email() {

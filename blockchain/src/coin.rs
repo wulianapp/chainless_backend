@@ -1,7 +1,7 @@
-use std::str::FromStr;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
 use near_primitives::types::{AccountId, BlockReference, Finality, FunctionArgs};
+use std::str::FromStr;
 
 use hex;
 use lazy_static::lazy_static;
@@ -10,7 +10,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::wallet::CoinTransaction;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -56,22 +56,8 @@ fn decode_action(acts: &Vec<Action>) -> Result<NRC20TransferArgs, String> {
 pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std::error::Error>> {
     let tx_hex = hex::decode(tx_raw)?;
     let transaction = Transaction::try_from_slice(&tx_hex)?;
-    let (hash, _) = transaction.get_hash_and_size();
-    let act = decode_action(&transaction.actions)?;
-    /***
-    Ok(CoinTransaction {
-        tx_id: hash.to_string(),
-        //receiver_id is contract account of coin
-        coin_type: CoinType::from_account_str(&transaction.receiver_id.to_string())?,
-        sender: transaction.signer_id.to_user_id(),
-        receiver: act.receiver_id.to_user_id(),
-        amount: act.amount,
-        //fixme: deal with status
-        status: CoinTxStatus::Created,
-        raw_data: Some(tx_raw.to_string()),
-        signatures: vec![],
-    })
-     */
+    let (_hash, _) = transaction.get_hash_and_size();
+    let _act = decode_action(&transaction.actions)?;
     Err("tmp".to_string())?
 }
 
@@ -81,15 +67,22 @@ async fn get_balance(account: &AccountId) -> u128 {
         request: QueryRequest::CallFunction {
             account_id: (*crate::coin::DW20_CID).clone(),
             method_name: "ft_balance_of".to_string(),
-            args: FunctionArgs::from(json!({
-                "account_id":account.to_string()
-            }).to_string().into_bytes()),
+            args: FunctionArgs::from(
+                json!({
+                    "account_id":account.to_string()
+                })
+                .to_string()
+                .into_bytes(),
+            ),
         },
     };
     let rep = crate::general::call(request).await.unwrap();
 
     if let QueryResponseKind::CallResult(result) = rep.kind {
-        let amount_str: String = String::from_utf8(result.result).unwrap().split("\"").collect();
+        let amount_str: String = String::from_utf8(result.result)
+            .unwrap()
+            .split("\"")
+            .collect();
         u128::from_str(&amount_str).unwrap()
     } else {
         unreachable!()
@@ -98,16 +91,16 @@ async fn get_balance(account: &AccountId) -> u128 {
 
 #[cfg(test)]
 mod tests {
+    use crate::general::gen_transaction;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::BorshSerialize;
     use near_primitives::types::AccountId;
-    use std::str::FromStr;
     use serde_json::json;
-    use crate::general::gen_transaction;
+    use std::str::FromStr;
 
     use super::*;
 
-    async fn gen_send_money_raw_data(
+    async fn gen_send_money_chain_tx_raw(
         from: &InMemorySigner,
         to: String,
         coin_type: CoinType,
@@ -140,7 +133,8 @@ mod tests {
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
 
         let raw_tx =
-            gen_send_money_raw_data(&signer, "2.node0".to_string(), CoinType::CLY, 123, None).await;
+            gen_send_money_chain_tx_raw(&signer, "2.node0".to_string(), CoinType::CLY, 123, None)
+                .await;
         println!("raw_tx {}", raw_tx);
         let decode_res = decode_coin_transfer(&raw_tx).unwrap();
         println!("decode_res {:?}", decode_res);

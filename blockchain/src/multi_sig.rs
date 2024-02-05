@@ -1,28 +1,27 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 //use ed25519_dalek::Signer;
-use ed25519_dalek::{Signature, Signer as DalekSigner};
+use ed25519_dalek::Signer as DalekSigner;
 use hex::ToHex;
-use near_crypto::{ED25519SecretKey, SecretKey, Signer};
+use near_crypto::{ED25519SecretKey, PublicKey, SecretKey, Signer};
 use near_jsonrpc_client::methods;
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::transaction::{Action, FunctionCallAction, SignedTransaction, Transaction};
+use near_primitives::transaction::{Action, FunctionCallAction, SignedTransaction};
 use near_primitives::types::{BlockReference, Finality, FunctionArgs};
 use near_primitives::views::{FinalExecutionStatus, QueryRequest};
 use serde_json::json;
-use near_jsonrpc_client::{JsonRpcClient};
-use near_jsonrpc_primitives::types::transactions::TransactionInfo;
-//use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
-use near_crypto::InMemorySigner;
-use near_primitives::types::AccountId;
-use lazy_static::lazy_static;
-use near_primitives::borsh::{BorshDeserialize, BorshSerialize};
 
-use serde::{Deserialize, Serialize};
+//use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
+use lazy_static::lazy_static;
+use near_crypto::InMemorySigner;
+use near_primitives::borsh::BorshSerialize;
+use near_primitives::types::AccountId;
+
 use common::data_structures::wallet::{AddressConvert, CoinType};
-use common::utils::time::{DAY1, now_millis};
-use crate::ContractClient;
+use serde::{Deserialize, Serialize};
+
 use crate::general::{gen_transaction, safe_gen_transaction};
+use crate::ContractClient;
 
 pub struct MultiSig {}
 
@@ -33,7 +32,7 @@ pub struct MultiSigRank {
     pub sig_num: u8,
 }
 
-impl Default for MultiSigRank{
+impl Default for MultiSigRank {
     fn default() -> Self {
         MultiSigRank {
             min: 0,
@@ -69,16 +68,20 @@ impl ContractClient<MultiSig> {
         }
     }
 
-    pub async fn get_strategy(&self,account_id: &str) -> Option<StrategyData> {
+    pub async fn get_strategy(&self, account_id: &str) -> Option<StrategyData> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
         let request = methods::query::RpcQueryRequest {
             block_reference: BlockReference::Finality(Finality::Final),
             request: QueryRequest::CallFunction {
                 account_id: (self.deployed_at).clone(),
                 method_name: "get_strategy".to_string(),
-                args: FunctionArgs::from(json!({
-                "user_account_id":user_account_id.to_string()
-            }).to_string().into_bytes()),
+                args: FunctionArgs::from(
+                    json!({
+                        "user_account_id":user_account_id.to_string()
+                    })
+                    .to_string()
+                    .into_bytes(),
+                ),
             },
         };
         let rep = crate::general::call(request).await.unwrap();
@@ -92,17 +95,26 @@ impl ContractClient<MultiSig> {
         }
     }
 
-    pub async fn init_strategy(&self,
-                               account_id: &str,
-                               main_device_pubkey: String,
+    pub async fn init_strategy(
+        &self,
+        account_id: &str,
+        main_device_pubkey: String,
     ) -> Result<String, String> {
-        self.set_strategy(account_id,main_device_pubkey,vec![],vec![MultiSigRank::default()]).await
+        self.set_strategy(
+            account_id,
+            main_device_pubkey,
+            vec![],
+            vec![MultiSigRank::default()],
+        )
+        .await
     }
 
-    pub async fn set_strategy(&self,account_id: &str,
-                          main_device_pubkey: String,
-                          servant_pubkey: Vec<String>,
-                          rank_arr: Vec<MultiSigRank>
+    pub async fn set_strategy(
+        &self,
+        account_id: &str,
+        main_device_pubkey: String,
+        servant_pubkey: Vec<String>,
+        rank_arr: Vec<MultiSigRank>,
     ) -> Result<String, String> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
 
@@ -114,8 +126,8 @@ impl ContractClient<MultiSig> {
                 "servant_device_pubkey": servant_pubkey,
                 "rank_arr": rank_arr,
             })
-                .to_string()
-                .into_bytes(),
+            .to_string()
+            .into_bytes(),
             gas: 300000000000000, // 100 TeraGas
             deposit: 0,
         }))];
@@ -124,15 +136,16 @@ impl ContractClient<MultiSig> {
         transaction.actions = set_strategy_actions;
 
         //get from front
-        let signature = self.relayer.sign(transaction.get_hash_and_size().0.as_ref());
-
+        let signature = self
+            .relayer
+            .sign(transaction.get_hash_and_size().0.as_ref());
 
         let tx = SignedTransaction::new(signature, transaction);
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
             signed_transaction: tx.clone(),
         };
 
-        println!("call set strategy txid {}",&tx.get_hash().to_string());
+        println!("call set strategy txid {}", &tx.get_hash().to_string());
 
         let rep = crate::general::call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
@@ -142,16 +155,16 @@ impl ContractClient<MultiSig> {
         Ok(tx_id)
     }
 
-    pub fn gen_send_money_raw_tx_hex(){
+    pub fn gen_send_money_raw_tx_hex() {
         todo!()
     }
 
     //for test
-    pub fn ed25519_sign(){
+    pub fn ed25519_sign() {
         todo!()
     }
 
-    pub fn multi_sig_send_money(){
+    pub fn multi_sig_send_money() {
         todo!()
     }
 
@@ -160,7 +173,7 @@ impl ContractClient<MultiSig> {
         signer: InMemorySigner,
         servant_device_sigs: Vec<SignInfo>,
         coin_tx: CoinTx,
-    ) -> Result<String, String>{
+    ) -> Result<String, String> {
         //let CoinTx{from,to,coin_id,amount,memo} = coin_tx;
         let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
             method_name: "send_money".to_string(),
@@ -168,15 +181,14 @@ impl ContractClient<MultiSig> {
                 "servant_device_sigs": servant_device_sigs,
                 "coin_tx": coin_tx,
             })
-                .to_string()
-                .into_bytes(),
+            .to_string()
+            .into_bytes(),
             gas: 300000000000000, // 100 TeraGas
             deposit: 0,
         }))];
 
         let mut transaction = gen_transaction(&signer, &self.deployed_at.to_string()).await;
         transaction.actions = set_strategy_actions;
-
 
         //get by user
         let signature = signer.sign(transaction.get_hash_and_size().0.as_ref());
@@ -186,7 +198,7 @@ impl ContractClient<MultiSig> {
             signed_transaction: tx.clone(),
         };
 
-        println!("call set strategy txid {}",&tx.get_hash().to_string());
+        println!("call set strategy txid {}", &tx.get_hash().to_string());
 
         let rep = crate::general::call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
@@ -196,26 +208,24 @@ impl ContractClient<MultiSig> {
         Ok(tx_id)
     }
 
-
-
     pub async fn gen_send_money_raw_tx(
         &self,
-        sender_account_id:&str,
-        sender_pubkey:&str,
+        sender_account_id: &str,
+        sender_pubkey: &str,
         servant_device_sigs: Vec<SignInfo>,
-        sender_id:&str,
-        receiver_id:&str,
+        from: &str,
+        to: &str,
         coin_id: CoinType,
         transfer_amount: u128,
-        expire_at:u64
-    ) -> Result<(String,String), String>{
+        expire_at: u64,
+    ) -> Result<(String, String), String> {
         let coin_tx = CoinTx {
-            from: AccountId::from_str(sender_id).unwrap(),
-            to: AccountId::from_str(receiver_id).unwrap(),
+            from: AccountId::from_str(from).unwrap(),
+            to: AccountId::from_str(to).unwrap(),
             coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
             amount: transfer_amount,
             expire_at,
-            memo:None
+            memo: None,
         };
 
         let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
@@ -224,44 +234,49 @@ impl ContractClient<MultiSig> {
                 "servant_device_sigs": servant_device_sigs,
                 "coin_tx": coin_tx,
             })
-                .to_string()
-                .into_bytes(),
+            .to_string()
+            .into_bytes(),
             gas: 300000000000000, // 100 TeraGas
             deposit: 0,
         }))];
 
         //let mut transaction = gen_transaction(&signer, &self.deployed_at.to_string()).await;
-        let mut transaction = safe_gen_transaction(sender_account_id,
-                                                   sender_pubkey,
-                                                   &self.deployed_at.to_string()).await;
+        //fixme: key must be hex to pubkey
+        let sender_pubkey = pubkey_from_hex(sender_pubkey).to_string();
+        let mut transaction = safe_gen_transaction(
+            sender_account_id,
+            &sender_pubkey,
+            &self.deployed_at.to_string(),
+        )
+        .await;
 
         transaction.actions = set_strategy_actions;
 
-        let hash =   transaction.get_hash_and_size().0.try_to_vec().unwrap();
+        let hash = transaction.get_hash_and_size().0.try_to_vec().unwrap();
         let txid = hex::encode(hash);
         let raw_bytes = transaction.try_to_vec().unwrap();
         let raw_str = hex::encode(raw_bytes);
 
         //let txid2 =   transaction.get_hash_and_size().0.to_string();
         //assert_eq!(txid1,txid2);
-        Ok((txid,raw_str))
+        Ok((txid, raw_str))
     }
 
     pub fn gen_send_money_info(
         &self,
-        sender_id:&str,
-        receiver_id:&str,
+        sender_id: &str,
+        receiver_id: &str,
         coin_id: CoinType,
         transfer_amount: u128,
-        expire_at: u64
-    ) -> Result<String, String>{
+        expire_at: u64,
+    ) -> Result<String, String> {
         let coin_tx_info = CoinTx {
             from: AccountId::from_str(sender_id).unwrap(),
             to: AccountId::from_str(receiver_id).unwrap(),
             coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
             amount: transfer_amount,
             expire_at,
-            memo:None
+            memo: None,
         };
         let coin_tx_json = serde_json::to_string(&coin_tx_info).unwrap();
         let coin_tx_hex_str = hex::encode(coin_tx_json.as_bytes());
@@ -269,43 +284,62 @@ impl ContractClient<MultiSig> {
     }
 }
 
-
-
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SignInfo {
-    pubkey: String,
-    signature: String,
+    pub pubkey: String,
+    pub signature: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CoinTx {
     from: AccountId,
     to: AccountId,
-    coin_id:AccountId,
-    amount:u128,
+    coin_id: AccountId,
+    amount: u128,
     expire_at: u64,
-    memo:Option<String>
+    memo: Option<String>,
 }
 
 lazy_static! {
     static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
 }
 
-fn get_pubkey(pri_key_str:&str) -> String{
+fn get_pubkey(pri_key_str: &str) -> String {
     let secret_key = near_crypto::SecretKey::from_str(pri_key_str).unwrap();
     let pubkey = secret_key.public_key().try_to_vec().unwrap();
     pubkey.as_slice()[1..].to_vec().encode_hex()
 }
 
-fn ed25519_sign_data(prikey_bytes:&[u8], data:&[u8]) -> String{
-    println!("ed25519_secret {:?}",prikey_bytes);
+fn pubkey_from_hex(hex_str: &str) -> PublicKey {
+    println!("pubkey_from_hex {}", hex_str);
+    let sender_id = AccountId::from_str(hex_str).unwrap();
+    let sender_pubkey = PublicKey::from_implicit_account(&sender_id).unwrap();
+    sender_pubkey
+}
+
+fn ed25519_sign_data(prikey_bytes: &[u8], data: &[u8]) -> String {
+    println!("ed25519_secret {:?}", prikey_bytes);
     let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
     let sig = secret_key.sign(data);
     sig.to_string()
 }
 
-fn sign_data_by_near_wallet(prikey_bytes: [u8;64], data:&[u8]) -> String{
+pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
+    let prikey: SecretKey = prikey_str.parse().unwrap();
+    let prikey_bytes = prikey.unwrap_as_ed25519().0;
+    let data = hex::decode(data_str).unwrap();
+
+    let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
+    let main_device_pubkey = get_pubkey(&near_secret.to_string());
+    let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
+    let signer = InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
+    let signature = signer.sign(&data);
+    let near_sig_bytes = signature.try_to_vec().unwrap();
+    let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
+    hex::encode(&ed25519_sig_bytes)
+}
+
+pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> String {
     let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
     let main_device_pubkey = get_pubkey(&near_secret.to_string());
     let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
@@ -319,13 +353,13 @@ fn sign_data_by_near_wallet(prikey_bytes: [u8;64], data:&[u8]) -> String{
 #[cfg(test)]
 mod tests {
     use ed25519_dalek::ed25519::signature::Signature;
-    use hex::encode;
+
     use near_crypto::{ED25519SecretKey, PublicKey};
-    use near_primitives::state_record::StateRecord::Contract;
-    use common::utils::time::{DAY1, now_millis, now_nanos};
-    use crate::ContractClient;
-    use crate::general::{broadcast_tx_commit_from_raw, broadcast_tx_commit_from_raw2};
+
     use super::*;
+    use crate::general::broadcast_tx_commit_from_raw2;
+    use crate::ContractClient;
+    use common::utils::time::{now_millis, DAY1};
 
     fn servant_keys() -> Vec<String> {
         vec![
@@ -364,151 +398,175 @@ mod tests {
     async fn test_multi_sig_strategy() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
         let secret_key: SecretKey = pri_key.parse().unwrap();
-        let secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
+        let _secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
         //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
         let main_device_pubkey = get_pubkey(&pri_key);
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let signer = near_crypto::InMemorySigner::from_secret_key(signer_account_id.to_owned(), secret_key.clone());
+        let _signer = near_crypto::InMemorySigner::from_secret_key(
+            signer_account_id.to_owned(),
+            secret_key.clone(),
+        );
 
         let client = ContractClient::<super::MultiSig>::new();
-        let sender_id = AccountId::from_str("6a7a4df96a60c\
-        225f25394fd0195eb938eb1162de944d2c331dccef324372f45").unwrap();
-        let receiver_id = AccountId::from_str("test1").unwrap();
+        let sender_id = AccountId::from_str(
+            "6a7a4df96a60c\
+        225f25394fd0195eb938eb1162de944d2c331dccef324372f45",
+        )
+        .unwrap();
+        let _receiver_id = AccountId::from_str("test1").unwrap();
 
-        let servant_pubkey = servant_keys().as_slice()[..2].iter().map(|x| {
-            let secret_key = near_crypto::SecretKey::from_str(x).unwrap();
-            let pubkey = secret_key.public_key().try_to_vec().unwrap();
-            pubkey.as_slice()[1..].to_vec().encode_hex()
-        }).collect::<Vec<String>>();
+        let servant_pubkey = servant_keys().as_slice()[..2]
+            .iter()
+            .map(|x| {
+                let secret_key = near_crypto::SecretKey::from_str(x).unwrap();
+                let pubkey = secret_key.public_key().try_to_vec().unwrap();
+                pubkey.as_slice()[1..].to_vec().encode_hex()
+            })
+            .collect::<Vec<String>>();
 
-        println!("{:?}",servant_pubkey);
+        println!("{:?}", servant_pubkey);
 
-        let ranks = dummy_ranks();
+        let _ranks = dummy_ranks();
         let ranks = vec![MultiSigRank::default()];
         //let ranks = vec![];
 
         let strategy_str = client.get_strategy(&sender_id).await;
         println!("strategy_str2 {:#?}", strategy_str);
 
-        let set_strategy_res = client.set_strategy(&sender_id,sender_id.to_string(),servant_pubkey,ranks).await.unwrap();
-        println!("call set strategy txid {}",set_strategy_res);
+        let set_strategy_res = client
+            .set_strategy(&sender_id, sender_id.to_string(), servant_pubkey, ranks)
+            .await
+            .unwrap();
+        println!("call set strategy txid {}", set_strategy_res);
     }
 
     #[tokio::test]
-    async fn test_sig_near_ed25519(){
+    async fn test_sig_near_ed25519() {
         let data_json = "{\"from\":\"6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45\",\
         \"to\":\"test1\",\"coin_id\":\"dw20.node0\",\"amount\":2,\"expire_at\":1706761873767,\"memo\":null}";
-        let data : CoinTx = serde_json::from_str(data_json).unwrap();
-        println!("{:#?}",data);
+        let data: CoinTx = serde_json::from_str(data_json).unwrap();
+        println!("{:#?}", data);
 
         let near_secret: SecretKey = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE".parse().unwrap();
 
         let near_secret_bytes = near_secret.unwrap_as_ed25519().0;
         let ed25519_raw_bytes = near_secret_bytes.clone();
         let data_str = serde_json::to_string(&data).unwrap();
-        let data_bytes= data_str.as_bytes();
+        let data_bytes = data_str.as_bytes();
 
         //ed25519
         let secret_key = ed25519_dalek::Keypair::from_bytes(&ed25519_raw_bytes).unwrap();
         let sig = secret_key.sign(data_bytes);
-        println!("ed25519_sig_res_bytes {:?}",sig.to_bytes());
-        println!("ed25519_sig_res_hex {}",hex::encode(sig.to_bytes()));
-        let test2 = secret_key.verify(data_bytes,&sig).unwrap();
+        println!("ed25519_sig_res_bytes {:?}", sig.to_bytes());
+        println!("ed25519_sig_res_hex {}", hex::encode(sig.to_bytes()));
+        let _test2 = secret_key.verify(data_bytes, &sig).unwrap();
 
         //near
-        let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(ed25519_raw_bytes));
+        let _near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(ed25519_raw_bytes));
         let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(near_secret_bytes));
-        let secret_key_bytes = near_secret.unwrap_as_ed25519().0.as_slice();
+        let _secret_key_bytes = near_secret.unwrap_as_ed25519().0.as_slice();
         let main_device_pubkey = get_pubkey(&near_secret.to_string());
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let signer = InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
+        let signer =
+            InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
         let signature = signer.sign(&data_bytes);
         let near_sig_bytes = signature.try_to_vec().unwrap();
         let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-        println!("near_sig_res_bytes {:?}",ed25519_sig_bytes);
-        println!("near_sig_res_hex {:?}",hex::encode(ed25519_sig_bytes));
-
+        println!("near_sig_res_bytes {:?}", ed25519_sig_bytes);
+        println!("near_sig_res_hex {:?}", hex::encode(ed25519_sig_bytes));
     }
-
 
     #[tokio::test]
     async fn test_multi_sig_send_money2() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
         let secret_key: SecretKey = pri_key.parse().unwrap();
-        let secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
+        let _secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
         //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
         let main_device_pubkey = get_pubkey(&pri_key);
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let signer = near_crypto::InMemorySigner::from_secret_key(signer_account_id.to_owned(), secret_key.clone());
+        let signer = near_crypto::InMemorySigner::from_secret_key(
+            signer_account_id.to_owned(),
+            secret_key.clone(),
+        );
 
         let client = ContractClient::<super::MultiSig>::new();
-        let sender_id = AccountId::from_str("6a7a4df96a60c\
-        225f25394fd0195eb938eb1162de944d2c331dccef324372f45").unwrap();
+        let sender_id = AccountId::from_str(
+            "6a7a4df96a60c\
+        225f25394fd0195eb938eb1162de944d2c331dccef324372f45",
+        )
+        .unwrap();
         let sender_pubkey = PublicKey::from_implicit_account(&sender_id).unwrap();
-
-
 
         let receiver_id = AccountId::from_str("test1").unwrap();
 
-        let servant_pubkey = servant_keys().as_slice()[..2].iter().map(|x| {
-            let secret_key = near_crypto::SecretKey::from_str(x).unwrap();
-            let pubkey = secret_key.public_key().try_to_vec().unwrap();
-            pubkey.as_slice()[1..].to_vec().encode_hex()
-        }).collect::<Vec<String>>();
+        let servant_pubkey = servant_keys().as_slice()[..2]
+            .iter()
+            .map(|x| {
+                let secret_key = near_crypto::SecretKey::from_str(x).unwrap();
+                let pubkey = secret_key.public_key().try_to_vec().unwrap();
+                pubkey.as_slice()[1..].to_vec().encode_hex()
+            })
+            .collect::<Vec<String>>();
 
-        println!("{:?}",servant_pubkey);
+        println!("{:?}", servant_pubkey);
 
-        let ranks = dummy_ranks();
+        let _ranks = dummy_ranks();
 
         let expire_at = now_millis() + DAY1;
-        let coin_tx_hex_str = client.gen_send_money_info(
-            sender_id.as_str(),
-            receiver_id.as_str(),
-            CoinType::DW20,
-            3u128,
-            expire_at
-        ).unwrap();
+        let coin_tx_hex_str = client
+            .gen_send_money_info(
+                sender_id.as_str(),
+                receiver_id.as_str(),
+                CoinType::DW20,
+                3u128,
+                expire_at,
+            )
+            .unwrap();
 
-        println!("coin_tx_str {}",coin_tx_hex_str);
-
+        println!("coin_tx_str {}", coin_tx_hex_str);
 
         //servant_device sign
-        let servant_sigs: Vec<SignInfo> = servant_keys().as_slice()[..1].iter().map(|x|
-            {
+        let servant_sigs: Vec<SignInfo> = servant_keys().as_slice()[..1]
+            .iter()
+            .map(|x| {
                 let prikey: SecretKey = x.parse().unwrap();
                 let prikey_byte = prikey.unwrap_as_ed25519().0;
                 let data = hex::decode(&coin_tx_hex_str).unwrap();
-                let signature = sign_data_by_near_wallet(prikey_byte,&data);
+                let signature = sign_data_by_near_wallet(prikey_byte, &data);
 
                 SignInfo {
                     pubkey: get_pubkey(x),
                     signature,
                 }
-            }
-        ).collect();
+            })
+            .collect();
 
-        let (txid,raw_str) = client.gen_send_money_raw_tx(
-                                                    sender_id.as_str(),
-                                                    &sender_pubkey.to_string(),
-                                                    servant_sigs,
-                                                    sender_id.as_str(),
-                                                    receiver_id.as_str(),
-                                                    CoinType::DW20,
-                                                    3u128,
-                                                    expire_at
-        ).await.unwrap();
+        let sender_pubkey =
+            hex::encode(sender_pubkey.try_to_vec().unwrap().as_slice()[1..].to_vec());
+        let (txid, raw_str) = client
+            .gen_send_money_raw_tx(
+                sender_id.as_str(),
+                &sender_pubkey.to_string(),
+                servant_sigs,
+                sender_id.as_str(),
+                receiver_id.as_str(),
+                CoinType::DW20,
+                3u128,
+                expire_at,
+            )
+            .await
+            .unwrap();
         println!("send_money_txid {}", txid);
 
         //master_device sign
         let tx_hash = hex::decode(txid).unwrap();
         let signature = signer.sign(&tx_hash);
-        let sig_str = hex::encode(signature.try_to_vec().unwrap());
-        println!("sig_str: {} ",sig_str);
+        let near_sig_bytes = signature.try_to_vec().unwrap();
+        let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
+        let sig_str = hex::encode(ed25519_sig_bytes);
+        println!("sig_str: {} ", sig_str);
 
         //broadcast
-        broadcast_tx_commit_from_raw2(&raw_str,&sig_str).await;
-
+        broadcast_tx_commit_from_raw2(&raw_str, &sig_str).await;
     }
 }
-
-

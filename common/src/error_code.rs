@@ -1,5 +1,3 @@
-use std::fmt;
-use near_primitives::types::AccountId;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -17,19 +15,19 @@ pub enum BackendError {
     #[error("{0}")]
     AccountManager(#[from] AccountManagerError),
     #[error("{0}")]
-    Wallet(#[from] WalletError)
+    Wallet(#[from] WalletError),
 }
 
 impl ErrorCode for BackendError {
     fn code(&self) -> u16 {
         match self {
-            BackendError::InternalError(_) => {1}
-            BackendError::RequestParamInvalid(_) => {2}
-            BackendError::DBError(_) => {3}
-            BackendError::ChainError(_) => {4}
-            BackendError::Authorization(_) => {5}
-            BackendError::AccountManager(err) => {err.code()}
-            BackendError::Wallet(err) => {err.code()}
+            BackendError::InternalError(_) => 1,
+            BackendError::RequestParamInvalid(_) => 2,
+            BackendError::DBError(_) => 3,
+            BackendError::ChainError(_) => 4,
+            BackendError::Authorization(_) => 5,
+            BackendError::AccountManager(err) => err.code(),
+            BackendError::Wallet(err) => err.code(),
         }
     }
 }

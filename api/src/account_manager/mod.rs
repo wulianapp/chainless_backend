@@ -4,21 +4,12 @@
 pub mod captcha;
 pub mod handlers;
 
-use actix_cors::Cors;
-use actix_web::{
-    get, http, middleware, post, web, App, HttpRequest, HttpResponse, HttpServer, Responder,
-};
+use actix_web::{get, post, web, Responder};
 
-use log::info;
 use serde::{Deserialize, Serialize};
 
-use common::data_structures::account_manager::UserInfo;
-use common::error_code::{AccountManagerError, ErrorCode};
-use common::http::token_auth;
-
 //use captcha::{ContactType, VerificationCode};
-use models::account_manager;
-use models::account_manager::{get_current_user_num, UserFilter};
+
 use common::http::gen_extra_respond;
 
 /**
@@ -46,14 +37,9 @@ pub struct GetCaptchaRequest {
 }
 
 #[post("/accountManager/getCaptcha")]
-async fn get_captcha(
-    request_data: web::Json<GetCaptchaRequest>,
-) -> impl Responder {
+async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Responder {
     gen_extra_respond(handlers::get_captcha::req(request_data.into_inner()).await)
 }
-
-
-
 
 /**
  * @api {get} /accountManager/contactIsUsed 检查账户是否已被使用
@@ -76,11 +62,10 @@ pub struct ContactIsUsedRequest {
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
     //request_data: web::Json<ContactIsUsedRequest>,1
-    query_params: web::Query<ContactIsUsedRequest>
+    query_params: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
     gen_extra_respond(handlers::contact_is_used::req(query_params.into_inner()))
 }
-
 
 /**
  * --api {post} /accountManager/verifyCaptcha check verificationCode
@@ -109,35 +94,31 @@ pub struct VerifyCodeRequest {
 }
 
 #[post("/accountManager/verifyCaptcha1")]
-async fn verify_captcha(
-    request_data: web::Json<VerifyCodeRequest>,
-) -> impl Responder {
+async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Responder {
     gen_extra_respond(handlers::verify_captcha::req(request_data.into_inner()).await)
 }
 
-
-
 /**
- * @api {post} /accountManager/registerByEmail 通过邮箱注册账户
- * @apiVersion 0.0.1
- * @apiName registerByEmail
- * @apiGroup AccountManager
- * @apiBody {String} deviceId  设备ID
- * @apiBody {String} email     邮箱 test@gmail.com
- * @apiBody {String} captcha   验证码
- * @apiBody {String} password     密码
- * @apiBody {String} encryptedPrikey     私钥加密后密文
- * @apiBody {String} pubkey     公钥的hex表达
- * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
- * @apiExample {curl} Example usage:
-     curl -X POST http://120.232.251.101:8065/accountManager/registerByEmail -H "Content-Type: application/json" -d
-   '{"deviceId": "123","email": "test@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
-    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
- * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
- */
+* @api {post} /accountManager/registerByEmail 通过邮箱注册账户
+* @apiVersion 0.0.1
+* @apiName registerByEmail
+* @apiGroup AccountManager
+* @apiBody {String} deviceId  设备ID
+* @apiBody {String} email     邮箱 test@gmail.com
+* @apiBody {String} captcha   验证码
+* @apiBody {String} password     密码
+* @apiBody {String} encryptedPrikey     私钥加密后密文
+* @apiBody {String} pubkey     公钥的hex表达
+* @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
+* @apiExample {curl} Example usage:
+    curl -X POST http://120.232.251.101:8065/accountManager/registerByEmail -H "Content-Type: application/json" -d
+  '{"deviceId": "123","email": "test@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
+   "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
+* @apiSuccess {string} status_code         status code.
+* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegisterByEmailRequest {
@@ -146,41 +127,36 @@ pub struct RegisterByEmailRequest {
     captcha: String,
     password: String,
     encrypted_prikey: String,
-    pubkey:String,
+    pubkey: String,
     predecessor_invite_code: Option<String>,
 }
 
 #[post("/accountManager/registerByEmail")]
-async fn register_by_email(
-    request_data: web::Json<RegisterByEmailRequest>,
-) -> impl Responder {
+async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
     gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()).await)
 }
 
-
-
-
 /**
- * @api {post} /accountManager/registerByPhone 通过手机注册账户
- * @apiVersion 0.0.1
- * @apiName registerByPhone
- * @apiGroup AccountManager
- * @apiBody {String} deviceId  设备ID
- * @apiBody {String} phoneNumber     手机号 +86 18888888888
- * @apiBody {String} captcha   验证码
- * @apiBody {String} password       密码
- * @apiBody {String} encryptedPrikey     私钥加密后密文
- * @apiBody {String} pubkey     公钥的hex表达
- * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
- * @apiExample {curl} Example usage:
- *    curl -X POST http://120.232.251.101:8065/accountManager/registerByPhone -H "Content-Type: application/json" -d
-   '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
-    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
- * @apiSuccess {string} data                jwt token.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
- */
+* @api {post} /accountManager/registerByPhone 通过手机注册账户
+* @apiVersion 0.0.1
+* @apiName registerByPhone
+* @apiGroup AccountManager
+* @apiBody {String} deviceId  设备ID
+* @apiBody {String} phoneNumber     手机号 +86 18888888888
+* @apiBody {String} captcha   验证码
+* @apiBody {String} password       密码
+* @apiBody {String} encryptedPrikey     私钥加密后密文
+* @apiBody {String} pubkey     公钥的hex表达
+* @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
+* @apiExample {curl} Example usage:
+*    curl -X POST http://120.232.251.101:8065/accountManager/registerByPhone -H "Content-Type: application/json" -d
+  '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
+   "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
+* @apiSuccess {string} status_code         status code.
+* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string} data                jwt token.
+* @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RegisterByPhoneRequest {
@@ -189,16 +165,13 @@ pub struct RegisterByPhoneRequest {
     captcha: String,
     password: String,
     encrypted_prikey: String,
-    pubkey:String,
+    pubkey: String,
     predecessor_invite_code: Option<String>,
 }
 #[post("/accountManager/registerByPhone")]
-async fn register_by_phone(
-    request_data: web::Json<RegisterByPhoneRequest>,
-) -> impl Responder {
+async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
     gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()).await)
 }
-
 
 /**
  * @api {post} /accountManager/login 登录
@@ -224,29 +197,27 @@ pub struct LoginRequest {
     password: String,
 }
 #[post("/accountManager/login")]
-async fn login(
-    request_data: web::Json<LoginRequest>,
-) -> impl Responder {
+async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
     gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
 }
 
 /**
- * @api {post} /accountManager/resetPassword  重置登录密码
- * @apiVersion 0.0.1
- * @apiName ResetPassword
- * @apiGroup AccountManager
- * @apiBody {String} deviceId     设备ID
- * @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test@gmail.com
- * @apiBody {String} newPassword  新密码  "abcd"
- * @apiBody {String} captcha      验证码  "123456"
- * @apiExample {curl} Example usage:
-   curl -X POST http://120.232.251.101:8065/accountManager/resetPassword -H "Content-Type: application/json"
-  -d '{"deviceId": "123","contact": "test@gmail.com","captcha":"287695","newPassword":"123456788"}'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
- * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/resetPassword
- */
+* @api {post} /accountManager/resetPassword  重置登录密码
+* @apiVersion 0.0.1
+* @apiName ResetPassword
+* @apiGroup AccountManager
+* @apiBody {String} deviceId     设备ID
+* @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test@gmail.com
+* @apiBody {String} newPassword  新密码  "abcd"
+* @apiBody {String} captcha      验证码  "123456"
+* @apiExample {curl} Example usage:
+  curl -X POST http://120.232.251.101:8065/accountManager/resetPassword -H "Content-Type: application/json"
+ -d '{"deviceId": "123","contact": "test@gmail.com","captcha":"287695","newPassword":"123456788"}'
+* @apiSuccess {string} status_code         status code.
+* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8065/accountManager/resetPassword
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPasswordRequest {
@@ -257,12 +228,9 @@ pub struct ResetPasswordRequest {
 }
 
 #[post("/accountManager/resetPassword")]
-async fn reset_password(
-    request_data: web::Json<ResetPasswordRequest>,
-) -> impl Responder {
+async fn reset_password(request_data: web::Json<ResetPasswordRequest>) -> impl Responder {
     gen_extra_respond(handlers::reset_password::req(request_data).await)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -271,18 +239,10 @@ mod tests {
     use actix_web::body::MessageBody;
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
-    use actix_web::{
-        error, get, http, middleware, post, web, App, Error, HttpRequest, HttpResponse, HttpServer,
-        Responder,test
-    };
+    use actix_web::{test, App, Error};
     use std::env;
-    use std::io::Read;
-    use std::ops::Deref;
-    use std::process::Command;
-    use std::sync::{Arc, RwLock};
-    use actix_web::web::service;
+
     use common::http::BackendRespond;
-    use tokio::runtime::Runtime;
 
     async fn init() -> App<
         impl ServiceFactory<
@@ -325,8 +285,14 @@ mod tests {
 
         //getCaptcha
         let payload = r#"{ "deviceId": "1", "contact": "test@gmail.com","kind": "register" }"#;
-        let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/getCaptcha",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
 
         //register
         let payload = r#"
@@ -337,8 +303,14 @@ mod tests {
             "encryptedPrikey": "encrypted_prikey_0x123",
             "pubkey": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb"
             }"#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/registerByEmail",Some(payload),None::<String>);
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/registerByEmail",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
 
         //login
         let payload = r#"
@@ -346,12 +318,24 @@ mod tests {
             "contact": "test@gmail.com",
              "password": "123456789"
             }"#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/login",Some(payload),None::<String>);
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/login",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
 
         //check contact if is used
-        let res: BackendRespond<bool> = test_service_call!(service,"get","/accountManager/contactIsUsed?contact=test@gmail.com",None::<String>,None::<String>);
-        println!("{:?}",res.data);
+        let res: BackendRespond<bool> = test_service_call!(
+            service,
+            "get",
+            "/accountManager/contactIsUsed?contact=test@gmail.com",
+            None::<String>,
+            None::<String>
+        );
+        println!("{:?}", res.data);
 
         //reset password
         /***
@@ -370,5 +354,4 @@ mod tests {
 
          */
     }
-
 }

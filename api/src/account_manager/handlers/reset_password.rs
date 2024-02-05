@@ -1,20 +1,17 @@
-use actix_web::{HttpRequest, HttpResponse, Responder, web};
-use log::{debug, info};
-use common::error_code::{AccountManagerError, WalletError};
-use common::http::{BackendRes, token_auth};
+use actix_web::web;
+use log::debug;
+
+use crate::account_manager::captcha::{Captcha, Usage};
+use crate::account_manager::ResetPasswordRequest;
+use common::error_code::AccountManagerError::*;
+use common::http::BackendRes;
 use models::account_manager;
 use models::account_manager::UserFilter;
-use crate::account_manager::{ResetPasswordRequest, captcha};
-use crate::account_manager::captcha::{Captcha, Usage};
-use common::error_code::AccountManagerError::*;
-use common::error_code::BackendError::*;
 
-pub async fn req(
-    request_data: web::Json<ResetPasswordRequest>,
-) -> BackendRes<String> {
+pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<String> {
     debug!("start reset_password");
     let ResetPasswordRequest {
-        device_id:String,
+        device_id: _String,
         contact,
         captcha,
         new_password,

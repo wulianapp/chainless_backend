@@ -1,13 +1,12 @@
 extern crate rustc_serialize;
 
-use std::fmt::format;
 use postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
-use common::utils::time::current_date;
-use serde::Serialize;
-use common::error_code::BackendError;
+
 use crate::vec_str2array_text;
+use common::error_code::BackendError;
+use serde::Serialize;
 
 #[derive(Serialize, Debug, Default)]
 pub struct UserInfoView {
@@ -54,28 +53,30 @@ impl UserFilter<'_> {
     }
 }
 
-pub fn get_current_user_num() -> Result<u64,BackendError> {
+pub fn get_current_user_num() -> Result<u64, BackendError> {
     let execute_res = crate::query("select count(1) from users")?;
     let user_info_raw = execute_res.first().unwrap();
     let user_num = user_info_raw.get::<usize, i64>(0) as u64;
     Ok(user_num)
 }
 
-pub fn get_next_uid() -> Result<u32,BackendError> {
-    let execute_res = crate::query("select last_value,is_called from users_id_seq order by last_value desc limit 1")?;
+pub fn get_next_uid() -> Result<u32, BackendError> {
+    let execute_res = crate::query(
+        "select last_value,is_called from users_id_seq order by last_value desc limit 1",
+    )?;
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
     let is_called = row.get::<usize, bool>(1);
 
-    if is_called{
-        Ok(current_user_id+1)
-    }else {
+    if is_called {
+        Ok(current_user_id + 1)
+    } else {
         Ok(1)
     }
 }
 
 //取当前和一天之前的快照
-pub fn get_user(filter: UserFilter) -> Result<Option<UserInfoView>,BackendError>{
+pub fn get_user(filter: UserFilter) -> Result<Option<UserInfoView>, BackendError> {
     let sql = format!(
         "select id,phone_number,email,\
          pwd_hash,predecessor,status,verified,invite_code,account_ids,\
@@ -91,22 +92,20 @@ pub fn get_user(filter: UserFilter) -> Result<Option<UserInfoView>,BackendError>
 
     //fixme:
     let user_info_raw = execute_res.first().unwrap();
-    let gen_snapshot = |row: &Row| {
-        UserInfoView {
-            id: row.get::<usize, i32>(0) as u32,
-            user_info: UserInfo {
-                phone_number: row.get(1),
-                email: row.get(2),
-                pwd_hash: row.get(3),
-                predecessor:  row.get::<usize, Option<i32>>(4).map(|id| id as u32),
-                status:  row.get::<usize, i16>(5) as u8,
-                verified:  row.get(6),
-                invite_code: row.get(7),
-                account_ids: row.get::<usize, Vec<String>>(8),
-            },
-            updated_at: row.get(9),
-            created_at: row.get(10),
-        }
+    let gen_snapshot = |row: &Row| UserInfoView {
+        id: row.get::<usize, i32>(0) as u32,
+        user_info: UserInfo {
+            phone_number: row.get(1),
+            email: row.get(2),
+            pwd_hash: row.get(3),
+            predecessor: row.get::<usize, Option<i32>>(4).map(|id| id as u32),
+            status: row.get::<usize, i16>(5) as u8,
+            verified: row.get(6),
+            invite_code: row.get(7),
+            account_ids: row.get::<usize, Vec<String>>(8),
+        },
+        updated_at: row.get(9),
+        created_at: row.get(10),
     };
     Ok(Some(gen_snapshot(user_info_raw)))
 }
@@ -123,22 +122,32 @@ pub fn single_insert(data: &UserInfo) -> Result<(), BackendError> {
         account_ids,
     } = data;
 
-    let predecessor_str = predecessor.map(|x| format!("{}",x)).unwrap_or("NULL".to_string());
+    let predecessor_str = predecessor
+        .map(|x| format!("{}", x))
+        .unwrap_or("NULL".to_string());
     //assembly string array to sql string
     let account_ids_str = vec_str2array_text(account_ids.to_owned());
 
-    let sql = format!("insert into users (phone_number,email,pwd_hash,\
+    let sql = format!(
+        "insert into users (phone_number,email,pwd_hash,\
     predecessor,verified,status,invite_code,account_ids) values ('{}','{}','{}',{},{},{},{},{});",
-                      phone_number,email,pwd_hash,predecessor_str,verified,status,invite_code,account_ids_str
+        phone_number,
+        email,
+        pwd_hash,
+        predecessor_str,
+        verified,
+        status,
+        invite_code,
+        account_ids_str
     );
-    println!("{}",sql);
+    println!("{}", sql);
     debug!("row sql {} rows", sql);
     let execute_res = crate::execute(sql.as_str())?;
     debug!("success insert {} rows", execute_res);
     Ok(())
 }
 
-pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(),BackendError>{
+pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(), BackendError> {
     let sql = format!(
         "UPDATE users SET pwd_hash='{}' where {}",
         new_password,
@@ -153,7 +162,7 @@ pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(),Back
 #[cfg(test)]
 mod tests {
     use std::env;
-    use postgres::types::ToSql;
+
     use super::*;
     use common::utils::math;
     #[test]

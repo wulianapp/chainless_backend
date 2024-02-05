@@ -1,20 +1,19 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
-use actix_web::{Responder, web};
-use serde::Serialize;
-use common::error_code::AccountManagerError;
-use common::error_code::AccountManagerError::{AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister};
-use common::error_code::BackendError::AccountManager;
-use common::http::{BackendRes, token_auth};
-use common::utils::time::{DAY1, MINUTE30, now_millis};
+
+use common::error_code::AccountManagerError::{
+    AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
+};
+
+use crate::account_manager::LoginRequest;
+use common::http::{token_auth, BackendRes};
+use common::utils::time::{now_millis, MINUTE30};
 use models::account_manager;
 use models::account_manager::UserFilter;
-use crate::account_manager::LoginRequest;
 
 lazy_static! {
     static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
 }
-
 
 /***
 fn get_retry_records(user_id:u32) -> Vec<u64>{
@@ -28,13 +27,13 @@ fn clear_retry_times(user_id:u32) {
 }
 */
 fn record_once_retry(user_id: u32) {
-    let mut retry_storage = &mut LOGIN_RETRY.lock().unwrap();
+    let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     let now = now_millis();
     retry_storage.entry(user_id).or_insert(vec![]).push(now);
 }
 
 fn is_locked(user_id: u32) -> bool {
-    let mut retry_storage = &mut LOGIN_RETRY.lock().unwrap();
+    let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
             if now_millis() <= *records.last().unwrap() + MINUTE30 {
@@ -53,7 +52,11 @@ fn is_locked(user_id: u32) -> bool {
 }
 
 pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
-    let LoginRequest { device_id, contact, password, } = request_data;
+    let LoginRequest {
+        device_id,
+        contact,
+        password,
+    } = request_data;
     let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?
         .ok_or(PhoneOrEmailNotRegister)?;
 

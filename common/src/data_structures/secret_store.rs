@@ -1,9 +1,4 @@
-use std::fmt;
-use std::str::FromStr;
-
-use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SecretStore {

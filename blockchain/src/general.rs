@@ -1,9 +1,9 @@
-use std::str::FromStr;
 use near_crypto::{InMemorySigner, KeyType, PublicKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
+use std::str::FromStr;
 
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
@@ -39,18 +39,21 @@ pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Tr
     }
 }
 
-pub fn account_id_from_hex_str(id: &str) -> AccountId{
+pub fn account_id_from_hex_str(id: &str) -> AccountId {
     let id_bytes = hex::decode(id).unwrap();
     AccountId::try_from_slice(&id_bytes).unwrap()
 }
 
-pub fn pubkey_from_hex_str(key: &str) -> PublicKey{
+pub fn pubkey_from_hex_str(key: &str) -> PublicKey {
     let key_bytes = hex::decode(key).unwrap();
     PublicKey::try_from_slice(&key_bytes).unwrap()
 }
 
-
-pub async fn safe_gen_transaction(caller_account_id:&str, caller_pubkey:&str,contract_addr: &str) -> Transaction {
+pub async fn safe_gen_transaction(
+    caller_account_id: &str,
+    caller_pubkey: &str,
+    contract_addr: &str,
+) -> Transaction {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
@@ -93,7 +96,8 @@ pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
     let sign_hex = hex::decode(sig_str).unwrap();
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
     println!("{:?}", transaction);
-    let signature = Signature::try_from_slice(&sign_hex).unwrap();
+    //let signature = Signature::try_from_slice(&sign_hex).unwrap();
+    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
     let rest = broadcast_tx_commit(transaction, signature).await;
     println!("broadcast_tx_commit_from_raw {:?}", rest);
 }

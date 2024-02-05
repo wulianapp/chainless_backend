@@ -1,34 +1,12 @@
 //! account manager http service
 
-mod transaction;
 mod handlers;
+mod transaction;
 
-use actix_cors::Cors;
-use actix_web::{
-    error, get, http, middleware, post, web, App, Error, HttpRequest, HttpResponse, HttpServer,
-    Responder,
-};
-use std::env;
+use actix_web::{get, post, web, HttpRequest, Responder};
 
-use actix_web_httpauth::middleware::HttpAuthentication;
-use blockchain::coin::decode_coin_transfer;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, SecretKeyType};
-use common::error_code::{AccountManagerError, WalletError};
-use log::info;
-use models::account_manager;
-use models::account_manager::UserFilter;
-use models::coin_transfer::CoinTxFilter;
-use models::wallet::{get_wallet, WalletFilter};
-use reqwest::Request;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashMap};
-use std::fmt::Debug;
-use std::str::FromStr;
-use std::sync::Mutex;
-use std::sync::{mpsc, Arc, RwLock};
-use lettre::transport::smtp::client::CertificateStore::Default;
-use blockchain::multi_sig::{CoinTx, MultiSigRank};
+
 use common::http::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
@@ -66,17 +44,21 @@ pub struct searchMessageByAccountIdRequest {
     account_id: String,
 }
 #[get("/wallet/searchMessageByAccountId")]
-async fn search_message_by_account_id(request: HttpRequest,
-                                      query_params: web::Query<searchMessageByAccountIdRequest>
+async fn search_message_by_account_id(
+    request: HttpRequest,
+    query_params: web::Query<searchMessageByAccountIdRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::search_message::req_by_account_id(request,query_params.into_inner()).await)
+    gen_extra_respond(
+        handlers::search_message::req_by_account_id(request, query_params.into_inner()).await,
+    )
 }
 
 #[get("/wallet/getStrategy")]
-async fn get_strategy(request: HttpRequest,
-                                      query_params: web::Query<searchMessageByAccountIdRequest>
+async fn get_strategy(
+    request: HttpRequest,
+    query_params: web::Query<searchMessageByAccountIdRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::get_strategy::req(request,query_params.into_inner()).await)
+    gen_extra_respond(handlers::get_strategy::req(request, query_params.into_inner()).await)
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -85,10 +67,10 @@ pub struct PreSendMoneyRequest {
     device_id: String,
     from: String,
     to: String,
-    coin:String,
-    amount:u128,
+    coin: String,
+    amount: u128,
     expire_at: u64,
-    memo:Option<String>
+    memo: Option<String>,
 }
 
 #[post("/wallet/preSendMoney")]
@@ -99,11 +81,6 @@ async fn pre_send_money(
     gen_extra_respond(handlers::pre_send_money::req(request, request_data.0).await)
 }
 
-
-
-
-
-
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct DirectSendMoneyRequest {
@@ -111,7 +88,6 @@ pub struct DirectSendMoneyRequest {
     signature: String,
     device_id: String,
 }
-
 
 #[post("/wallet/directSendMoney")]
 async fn direct_send_money(
@@ -121,15 +97,12 @@ async fn direct_send_money(
     gen_extra_respond(handlers::direct_send_money::req(request, request_data).await)
 }
 
-
-
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReactPreSendMoney {
-    tx_id: String,
+    tx_index: u32,
     is_agreed: bool,
 }
-
 
 #[post("/wallet/reactPreSendMoney")]
 async fn react_pre_send_money(
@@ -143,8 +116,8 @@ async fn react_pre_send_money(
 #[serde(rename_all = "camelCase")]
 pub struct ReconfirmSendMoneyRequest {
     device_id: String,
-    tx_id: String,
-    is_confirmed: bool,
+    tx_index: u32,
+    confirmed_sig: Option<String>,
 }
 #[post("/wallet/reconfirmSendMoney")]
 async fn reconfirm_send_money(
@@ -153,7 +126,6 @@ async fn reconfirm_send_money(
 ) -> impl Responder {
     gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data).await)
 }
-
 
 /**
  * @api {post} /wallet/uploadTxSignature  upload tx signatures
@@ -179,21 +151,17 @@ async fn reconfirm_send_money(
 #[serde(rename_all = "camelCase")]
 pub struct uploadTxSignatureRequest {
     device_id: String,
-    tx_id: String,
+    tx_index: u32,
     signature: String,
 }
 
-
-#[post("/wallet/uploadTxSignature")]
-async fn upload_tx_signed_data(
+#[post("/wallet/uploadServantSig")]
+async fn upload_servant_sig(
     request: HttpRequest,
     request_data: web::Json<uploadTxSignatureRequest>,
 ) -> impl Responder {
     gen_extra_respond(handlers::upload_servant_sig::req(request, request_data).await)
 }
-
-
-
 
 /**
  * @api {post} /wallet/backupSecretKeys  私钥密文备份
@@ -219,13 +187,12 @@ async fn upload_tx_signed_data(
  * @apiSampleRequest http://120.232.251.101:8069/wallet/backupSecretKeys
  */
 
-
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AddServantRequest {
-    account_id:String,
-    device_id:String,
-    pubkey:String,
+    account_id: String,
+    device_id: String,
+    pubkey: String,
     secret_key_data: String,
 }
 
@@ -233,12 +200,11 @@ pub struct AddServantRequest {
 async fn add_servant(
     req: HttpRequest,
     request_data: web::Json<AddServantRequest>,
-) -> impl Responder{
+) -> impl Responder {
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
-
-#[derive(Deserialize, Serialize,Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MultiSigRankExternal {
     min: u128,
@@ -248,8 +214,8 @@ pub struct MultiSigRankExternal {
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateStrategy {
-    account_id:String,
-    device_id:String,
+    account_id: String,
+    device_id: String,
     strategy: Vec<MultiSigRankExternal>,
 }
 
@@ -263,37 +229,35 @@ async fn update_strategy(
 
 #[cfg(test)]
 mod tests {
-    use std::default::Default;
     use super::*;
+    use std::default::Default;
 
-    use actix_http::Request;
     use actix_web::body::MessageBody;
-    use actix_web::dev::{Service, ServiceFactory, ServiceRequest, ServiceResponse};
+    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
-    use actix_web::middleware::ErrorHandlerResponse::Response;
-    use actix_web::{body, body::MessageBody as _, rt::pin, test, web, App};
-    use common::data_structures::wallet::Wallet;
+
+    use actix_web::{body::MessageBody as _, test, App};
+
     use models::coin_transfer::CoinTxView;
-    use models::{secret_store, wallet};
+    use models::secret_store;
     use serde_json::json;
-    use blockchain::ContractClient;
+
     use blockchain::multi_sig::MultiSig;
+    use blockchain::multi_sig::StrategyData;
     use common::data_structures::secret_store::SecretStore;
     use common::http::BackendRespond;
-    use blockchain::multi_sig::StrategyData;
 
-
-    struct TestWallet{
-        account_id:String,
-        pubkey:String,
-        prikey:String
+    struct TestWallet {
+        account_id: String,
+        pubkey: String,
+        prikey: String,
     }
-    struct TestWulianApp{
-        user_id:u32,
-        token:String,
-        contact:String,
-        password:String,
-        wallets: Vec<TestWallet>
+    struct TestWulianApp {
+        user_id: u32,
+        token: String,
+        contact: String,
+        password: String,
+        wallets: Vec<TestWallet>,
     }
 
     async fn init() -> App<
@@ -313,19 +277,18 @@ mod tests {
             .service(direct_send_money)
             .service(react_pre_send_money)
             .service(reconfirm_send_money)
-            .service(upload_tx_signed_data)
+            .service(upload_servant_sig)
             .service(add_servant)
             .service(update_strategy)
             .service(search_message_by_account_id)
             .service(get_strategy)
-
     }
 
     fn simulate_sender_master() -> TestWulianApp {
         let wallet = TestWallet{
             account_id: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
             pubkey: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
-            prikey: "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE".to_string(),
+            prikey: "ed25519:3rjQYUzeLzuX3M7ZAapNjjWnbRjmZrJqarVJrS8vHbhQrqMhLFpWDJafrkSnqdYbbBarzWoB5rb9QXWVDucffyy1".to_string(),
         };
 
         let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo\
@@ -335,7 +298,7 @@ mod tests {
         let app = TestWulianApp {
             user_id: 1u32,
             token,
-            password:"123456789".to_string(),
+            password: "123456789".to_string(),
             contact: "test@gmail.com".to_string(),
             wallets: vec![wallet],
         };
@@ -347,10 +310,10 @@ mod tests {
         user_info.invite_code = app.user_id.to_string();
         account_manager::single_insert(&user_info).unwrap();
         let data = SecretStore {
-            account_id:app.wallets.first().unwrap().account_id.clone(),
-            user_id:app.user_id,
+            account_id: app.wallets.first().unwrap().account_id.clone(),
+            user_id: app.user_id,
             master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
-            servant_encrypted_prikeys: vec![]
+            servant_encrypted_prikeys: vec![],
         };
         secret_store::single_insert(&data).unwrap();
 
@@ -372,7 +335,7 @@ mod tests {
         let app = TestWulianApp {
             user_id: 1u32,
             token,
-            password:"123456789".to_string(),
+            password: "123456789".to_string(),
             contact: "test@gmail.com".to_string(),
             wallets: vec![wallet],
         };
@@ -394,7 +357,7 @@ mod tests {
         let app = TestWulianApp {
             user_id: 2u32,
             token,
-            password:"123456789".to_string(),
+            password: "123456789".to_string(),
             contact: "tes2@gmail.com".to_string(),
             wallets: vec![wallet],
         };
@@ -406,18 +369,20 @@ mod tests {
         user_info.invite_code = app.user_id.to_string();
         account_manager::single_insert(&user_info).unwrap();
         let data = SecretStore {
-            account_id:app.wallets.first().unwrap().account_id.clone(),
-            user_id:app.user_id,
+            account_id: app.wallets.first().unwrap().account_id.clone(),
+            user_id: app.user_id,
             master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
-            servant_encrypted_prikeys: vec![]
+            servant_encrypted_prikeys: vec![],
         };
         secret_store::single_insert(&data).unwrap();
         app
     }
 
-    async fn clear_contract(account_id:&str){
+    async fn clear_contract(account_id: &str) {
         let cli = blockchain::ContractClient::<MultiSig>::new();
-        cli.init_strategy(account_id,account_id.to_owned()).await.unwrap();
+        cli.init_strategy(account_id, account_id.to_owned())
+            .await
+            .unwrap();
     }
 
     #[actix_web::test]
@@ -431,7 +396,6 @@ mod tests {
         let sender_servant = simulate_sender_servant();
         clear_contract("2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0").await;
 
-
         //step0: sender master add servant
         let payload = r#"
             {
@@ -440,28 +404,49 @@ mod tests {
              "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
              "secretKeyData": "ed25519:s1sw1PXCkHrbyE9Rmg6j18PoUxnhCNZ2CxSPUvvE7dZK9UCEkpTWC1Zy6ZKWvBcAdK8MoRUSdMsduMFRJrRtuGq"
             }"#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/addServant",Some(payload),Some(&sender_master.token));
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/addServant",
+            Some(payload),
+            Some(&sender_master.token)
+        );
+        println!("{:?}", res.data);
+        //给链上确认一些时间
+        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
 
         //step1: sender master update strategy
         let payload = r#"
             {
              "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "deviceId": "1",
-             "strategy": [{"min": 0, "maxEq": 1000, "sigNum": 0},{"min": 1000, "maxEq": 1844674407370955200, "sigNum": 1}]
+             "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
             }"#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/updateStrategy",Some(payload),Some(&sender_master.token));
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/updateStrategy",
+            Some(payload),
+            Some(&sender_master.token)
+        );
+        println!("{:?}", res.data);
         //给链上确认一些时间
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
+        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
 
         //step1.1: check sender's new strategy
-        let url = format!("/wallet/getStrategy?accountId={}",sender_master.wallets.first().unwrap().account_id);
-        let res : BackendRespond<StrategyData> = test_service_call!(service,"get",&url, None::<String>,Some(&sender_master.token));
+        let url = format!(
+            "/wallet/getStrategy?accountId={}",
+            sender_master.wallets.first().unwrap().account_id
+        );
+        let res: BackendRespond<StrategyData> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(&sender_master.token)
+        );
         let sender_strategy = res.data;
-        println!("{:?}",sender_strategy);
-
+        println!("{:?}", sender_strategy);
 
         //step2: master: pre_send_money
         let payload = r#"
@@ -473,13 +458,22 @@ mod tests {
              "amount": 123,
              "expireAt": 1708015513000
             }"#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/wallet/preSendMoney",Some(payload),Some(&sender_master.token));
-        println!("{:?}",res.data);
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/preSendMoney",
+            Some(payload),
+            Some(&sender_master.token)
+        );
+        println!("{:?}", res.data);
 
         //step3(optional): check new message
         //for sender master
-        let url = format!("/wallet/searchMessageByAccountId?accountId={}",sender_master.wallets.first().unwrap().account_id);
-        println!("{}",url);
+        let url = format!(
+            "/wallet/searchMessageByAccountId?accountId={}",
+            sender_master.wallets.first().unwrap().account_id
+        );
+        println!("{}", url);
         let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
             service,
             "get",
@@ -489,14 +483,18 @@ mod tests {
         );
         let tx = res.data.first().unwrap();
         //对于created状态的交易来说，主设备不处理，从设备上传签名
-        if tx.transaction.status == CoinTxStatus::Created {
-            if sender_master.wallets.first().unwrap().pubkey == sender_strategy.main_device_pubkey {
-                println!("this device hold  master key,and do nothing for 'Created' tx");
-            }
-        }
+        assert_eq!(tx.transaction.status, CoinTxStatus::Created);
+        assert_eq!(
+            sender_master.wallets.first().unwrap().pubkey,
+            sender_strategy.main_device_pubkey,
+            "this device hold  master key,and do nothing for 'Created' tx"
+        );
 
-        //for sender servant
-        let url = format!("/wallet/searchMessageByAccountId?accountId={}", sender_servant.wallets.first().unwrap().account_id);
+        //step3.1: sender servant sign
+        let url = format!(
+            "/wallet/searchMessageByAccountId?accountId={}",
+            sender_servant.wallets.first().unwrap().account_id
+        );
         let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
             service,
             "get",
@@ -506,159 +504,106 @@ mod tests {
         );
         let tx = res.data.first().unwrap();
         //对于created状态的交易来说，主设备不处理，从设备上传签名,其他设备不进行通知
-        if tx.transaction.status == CoinTxStatus::Created {
-            //从设备需要去本地签名
-            if sender_servant.wallets.first().unwrap().pubkey == *sender_strategy.servant_device_pubkey.first().unwrap() {
-                println!("this device hold  servant key,need to sig tx");
-                //todo: local sign
-            }
-        }
+        assert_eq!(tx.transaction.status, CoinTxStatus::Created);
+        assert_eq!(
+            sender_servant.wallets.first().unwrap().pubkey,
+            *sender_strategy.servant_device_pubkey.first().unwrap(),
+            "this device hold  servant key,need to sig tx"
+        );
+        //local sign
+        let signature = blockchain::multi_sig::sign_data_by_near_wallet2(
+            &sender_servant.wallets.first().unwrap().prikey,
+            &tx.transaction.coin_tx_raw,
+        );
+        //pubkey + signature
+        let signature = format!(
+            "{}{}",
+            sender_servant.wallets.first().unwrap().pubkey,
+            signature
+        );
+        println!("signature {}", signature);
+        //upload_servant_sig
+        let payload = json!({
+        "deviceId":  "2".to_string(),
+        "txIndex": tx.tx_index,
+        "signature": signature,
+        });
+        let payload = payload.to_string();
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/uploadServantSig",
+            Some(payload),
+            Some(&sender_servant.token)
+        );
+        println!("{:?}", res.data);
 
-        //接受者不关注created状态的交易
-        let url = format!("/wallet/searchMessageByAccountId?accountId={}", receiver.wallets.first().unwrap().account_id);
+        //接受者仅关注SenderSigCompleted状态的交易
+        let url = format!(
+            "/wallet/searchMessageByAccountId?accountId={}",
+            receiver.wallets.first().unwrap().account_id
+        );
+        let res: BackendRespond<Vec<CoinTxView>> =
+            test_service_call!(service, "get", &url, None::<String>, Some(&receiver.token));
+        let tx = res.data.first().unwrap();
+        assert_eq!(tx.transaction.status, CoinTxStatus::SenderSigCompleted);
+        let payload = json!({
+        "txIndex": tx.tx_index,
+        "isAgreed": true,
+        });
+        let payload = payload.to_string();
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/reactPreSendMoney",
+            Some(payload),
+            Some(&receiver.token)
+        );
+        println!("{:?}", res.data);
+
+        //step5: reconfirm_send_money
+        let url = format!(
+            "/wallet/searchMessageByAccountId?accountId={}",
+            sender_master.wallets.first().unwrap().account_id
+        );
+        println!("{}", url);
         let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
             service,
             "get",
             &url,
             None::<String>,
+            Some(&sender_master.token)
+        );
+        let tx = res.data.first().unwrap();
+        //对于ReceiverApproved状态的交易来说，只有主设备有权限处理
+        //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
+        //超过了就链上过期（非多签业务过期）
+        assert_eq!(tx.transaction.status, CoinTxStatus::ReceiverApproved);
+        assert_eq!(
+            sender_master.wallets.first().unwrap().pubkey,
+            sender_strategy.main_device_pubkey,
+            "this device hold  master key,and do nothing for 'ReceiverApproved' tx"
+        );
+        //master_from local sig
+
+        let signature = blockchain::multi_sig::sign_data_by_near_wallet2(
+            &sender_master.wallets.first().unwrap().prikey,
+            tx.transaction.tx_id.as_ref().unwrap(),
+        );
+
+        let payload = json!({
+        "deviceId": "1".to_string(),
+            "txIndex": tx.tx_index,
+        "confirmedSig": signature
+        });
+        let payload = payload.to_string();
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/reconfirmSendMoney",
+            Some(payload),
             Some(&receiver.token)
         );
-        println!("{:?}",res.data);
-
-        //step3: servent: upload_servant_sig
-        //step4: react_pre_send_money
-        //step5: reconfirm_send_money
-
-
-
-        /***
-        let req = test::TestRequest::post()
-            .uri("/wallet/addServant")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
-        println!("sender preSendMoneyRes {}", user.data);
-
-        //step0.1: sender set new strategy
-
-
-
-        //step 01: send transfer reuqest
-        let req = test::TestRequest::post()
-            .uri("/wallet/preSendMoney")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
-            .set_payload(payload.to_string())
-            .to_request();
-
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
-        println!("sender preSendMoneyRes {}", user.data);
-*/
-        //for receiver after preSendMoney
-        /***
-        let req = test::TestRequest::post()
-            .uri("/wallet/searchMessage")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", receiver.0)))
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("line {}:,{}", line!(), body_str);
-        let user: BackendRespond<Vec<CoinTxView>> =
-            serde_json::from_str(body_str.as_str()).unwrap();
-        println!("receiver searchMessageRes {:?}", user.data);
-        assert_eq!(
-            user.data.first().unwrap().transaction.status,
-            CoinTxStatus::Created
-        );
-
-        //step 02: receiver approve tx
-        let payload = json!({
-            "txId": user.data.first().unwrap().transaction.tx_id,
-            "isAgreed": true,
-        });
-        let req = test::TestRequest::post()
-            .uri("/wallet/reactPreSendMoney")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", receiver.0)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("line {}:,{}", line!(), body_str);
-        let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
-        println!("receiver reactPreSendMoney res {:?}", user.data);
-        //for sender after react preSendMoney
-        let req = test::TestRequest::post()
-            .uri("/wallet/searchMessage")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<Vec<CoinTxView>> =
-            serde_json::from_str(body_str.as_str()).unwrap();
-        println!("sender searchMessageRes {:?}", user.data);
-        assert_eq!(
-            user.data.first().unwrap().transaction.status,
-            CoinTxStatus::ReceiverApproved
-        );
-
-        //step 03: for all sender devices upload_tx_signed_data_inner
-        let payload = json!({
-            "txId": user.data.first().unwrap().transaction.tx_id,
-            "deviceId": "111",
-            "signature": "2222"
-        });
-        let req = test::TestRequest::post()
-            .uri("/wallet/uploadTxSignature")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
-            .set_payload(payload.to_string())
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<String> = serde_json::from_str(body_str.as_str()).unwrap();
-        //for sender after react uploadTxSignature,have a msg for to multiple sign
-        let req = test::TestRequest::post()
-            .uri("/wallet/searchMessage")
-            .insert_header(header::ContentType::json())
-            .insert_header((header::AUTHORIZATION, format!("Bearer {}", sender.0)))
-            .to_request();
-        let body = test::call_and_read_body(&service, req)
-            .await
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        let user: BackendRespond<Vec<CoinTxView>> =
-            serde_json::from_str(body_str.as_str()).unwrap();
-        println!("sender searchMessageRes {:?}", user.data);
-        assert_eq!(user.data.len(), 0);
-
-         */
+        println!("{:?}", res.data);
     }
 }
