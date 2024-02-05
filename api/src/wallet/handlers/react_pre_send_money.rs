@@ -9,15 +9,16 @@ use models::coin_transfer::{CoinTxFilter, CoinTxUpdate};
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: web::Json<ReactPreSendMoney>,
+    request_data: ReactPreSendMoney,
 ) -> BackendRes<String> {
     //todo:check user_id if valid
     let _user_id = token_auth::validate_credentials(&req)?;
 
     let ReactPreSendMoney {
+        device_id,
         tx_index,
         is_agreed,
-    } = request_data.0;
+    } = request_data;
     //message max is 10，
     //let FinalizeSha = request_data.clone();
     if is_agreed {

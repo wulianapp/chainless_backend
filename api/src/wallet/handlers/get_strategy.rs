@@ -4,11 +4,11 @@ use blockchain::multi_sig::{MultiSig, StrategyData};
 
 use common::http::{token_auth, BackendRes};
 
-use crate::wallet::searchMessageByAccountIdRequest;
+use crate::wallet::{getStrategyRequest, searchMessageByAccountIdRequest};
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: searchMessageByAccountIdRequest,
+    request_data: getStrategyRequest,
 ) -> BackendRes<StrategyData> {
     let _user_id = token_auth::validate_credentials(&req)?;
 

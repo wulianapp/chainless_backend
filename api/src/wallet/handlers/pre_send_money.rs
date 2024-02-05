@@ -29,8 +29,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let coin_tx = CoinTransaction {
         tx_id: None,
         coin_type,
-        from: from,
-        to: to,
+        from,
+        to,
         amount,
         status: CoinTxStatus::Created,
         coin_tx_raw,
