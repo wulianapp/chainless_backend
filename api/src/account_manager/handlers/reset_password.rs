@@ -9,6 +9,7 @@ use models::account_manager;
 use models::account_manager::UserFilter;
 
 pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<String> {
+    //todo: check jwt token
     debug!("start reset_password");
     let ResetPasswordRequest {
         device_id: _String,

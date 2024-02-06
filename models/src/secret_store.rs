@@ -1,102 +1,150 @@
 extern crate rustc_serialize;
 
+use std::fmt;
+use std::fmt::Display;
 use postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::secret_store::SecretStore;
 use serde::{Deserialize, Serialize};
+use common::data_structures::wallet::{CoinTxStatus, StrategyMessageType};
 
-use crate::vec_str2array_text;
+use crate::{PsqlOp, vec_str2array_text};
 
 use common::error_code::BackendError;
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct SecretView {
-    pub secret_store: SecretStore,
-    pub updated_at: String,
-    pub created_at: String,
-}
 
 #[derive(Clone, Debug)]
-pub enum SecretFilter<'a> {
-    ByAccountId(&'a str),
+pub enum SecretUpdate {
+    Servant(Vec<String>),
 }
 
-impl SecretFilter<'_> {
-    pub fn to_string(&self) -> String {
-        let filter_str = match self {
-            Self::ByAccountId(id) => {
-                format!("account_id='{}' ", id)
+impl fmt::Display for SecretUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            SecretUpdate::Servant(keys) =>  {
+                let new_servant_str = super::vec_str2array_text(keys.to_owned());
+                format!("servant_encrypted_prikeys={} ", new_servant_str)
             }
         };
-        filter_str
+        write!(f, "{}", description)
     }
 }
 
-pub fn get_secret(filter: SecretFilter) -> Result<Vec<SecretView>, BackendError> {
-    let sql = format!(
-        "select account_id,\
+#[derive(Clone, Debug)]
+pub enum SecretFilter {
+    ByAccountId(String),
+}
+
+impl fmt::Display for SecretFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            SecretFilter::ByAccountId(id) =>  format!("account_id='{}' ", id),
+        };
+        write!(f, "{}", description)
+    }
+}
+
+
+
+pub struct SecretStore2{
+    pub account_id: String,
+    pub user_id: u32,
+    pub master_encrypted_prikey: String,
+    pub servant_encrypted_prikeys: Vec<String>,
+}
+
+impl SecretStore2{
+    pub fn new_with_specified(account_id:String,
+                              user_id:u32,
+                              master_encrypted_prikey:String
+    ) -> Self{
+        SecretStore2{
+            account_id,
+            user_id,
+            master_encrypted_prikey,
+            servant_encrypted_prikeys: vec![]
+        }
+    }
+}
+
+impl PsqlOp for SecretStore2{
+
+    type UpdateContent = SecretUpdate;
+    type FilterContent = SecretFilter;
+
+    fn find(filter: SecretFilter) -> Result<Vec<SecretStore2>, BackendError> {
+        let sql = format!(
+            "select account_id,\
          user_id,\
          master_encrypted_prikey,\
          servant_encrypted_prikeys,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from secret_store where {}",
-        filter.to_string()
-    );
-    let execute_res = crate::query(sql.as_str())?;
-    debug!("get_secret: raw sql {}", sql);
-    let gen_view = |row: &Row| SecretView {
-        secret_store: SecretStore {
-            account_id: row.get(0),
-            user_id: row.get::<usize, i32>(1) as u32,
-            master_encrypted_prikey: row.get(2),
-            servant_encrypted_prikeys: row.get::<usize, Vec<String>>(3),
-        },
-        updated_at: row.get(4),
-        created_at: row.get(5),
-    };
-    Ok(execute_res
-        .iter()
-        .map(|x| gen_view(x))
-        .collect::<Vec<SecretView>>())
-}
+            filter.to_string()
+        );
+        let execute_res = crate::query(sql.as_str())?;
+        debug!("get_secret: raw sql {}", sql);
+        let gen_view = |row: &Row|{
+            SecretStore2 {
+                account_id: row.get(0),
+                user_id: row.get::<usize, i32>(1) as u32,
+                master_encrypted_prikey: row.get(2),
+                servant_encrypted_prikeys: row.get::<usize, Vec<String>>(3),
+            }
+        };
 
-pub fn single_insert(data: &SecretStore) -> Result<(), BackendError> {
-    let SecretStore {
-        account_id,
-        user_id,
-        master_encrypted_prikey,
-        servant_encrypted_prikeys,
-    } = data;
+        Ok(execute_res
+            .iter()
+            .map(|x| gen_view(x))
+            .collect::<Vec<SecretStore2>>())
+    }
+    fn update(new_value: SecretUpdate, filter: SecretFilter) -> Result<(), BackendError> {
+        let sql = format!(
+            "update secret_store set {} where {}",
+            new_value.to_string(),
+            filter.to_string()
+        );
+        debug!("start update orders {} ", sql);
+        let execute_res = crate::execute(sql.as_str())?;
+        debug!("success update orders {} rows", execute_res);
+        Ok(())
+    }
 
-    let servant_keys_str = vec_str2array_text(servant_encrypted_prikeys.to_owned());
+    fn insert(&self) -> Result<(), BackendError> {
+        let SecretStore2 {
+            account_id,
+            user_id,
+            master_encrypted_prikey,
+            servant_encrypted_prikeys,
+        } = self;
 
-    let sql = format!(
-        "insert into secret_store (\
+        let servant_keys_str = vec_str2array_text(servant_encrypted_prikeys.to_owned());
+
+        let sql = format!(
+            "insert into secret_store (\
          account_id,\
          user_id,\
          master_encrypted_prikey,\
          servant_encrypted_prikeys \
          ) values ('{}',{},'{}',{});",
-        account_id, user_id, master_encrypted_prikey, servant_keys_str
-    );
-    println!("row sql {} rows", sql);
+            account_id, user_id, master_encrypted_prikey, servant_keys_str
+        );
+        println!("row sql {} rows", sql);
 
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success insert {} rows", execute_res);
+        let execute_res = crate::execute(sql.as_str())?;
+        info!("success insert {} rows", execute_res);
 
-    Ok(())
+        Ok(())
+    }
+
 }
 
-pub fn update_servant(new_servants: Vec<String>, filter: SecretFilter) -> Result<(), BackendError> {
-    let new_servant_str = super::vec_str2array_text(new_servants);
-    let sql = format!(
-        "update secret_store set servant_encrypted_prikeys={} where {}",
-        new_servant_str,
-        filter.to_string()
-    );
-    debug!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    debug!("success update orders {} rows", execute_res);
-    Ok(())
+
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SecretView {
+    pub secret_store: SecretStore,
+    pub updated_at: String,
+    pub created_at: String,
 }

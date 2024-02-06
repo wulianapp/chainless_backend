@@ -1,14 +1,16 @@
 extern crate rustc_serialize;
 
+use std::fmt;
 use std::str::FromStr;
 
 use postgres::Row;
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 
-use crate::{vec_str2array_text, PsqlType};
+use crate::{vec_str2array_text, PsqlType, PsqlOp};
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::BackendError;
+use crate::secret_store::{SecretFilter, SecretStore2};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
@@ -16,6 +18,37 @@ pub struct CoinTxView {
     pub transaction: CoinTransaction,
     pub updated_at: String,
     pub created_at: String,
+}
+
+impl CoinTxView {
+    pub fn new_with_specified(coin_type:CoinType,
+                              from:String,
+                              to:String,
+                              amount:u128,
+                              coin_tx_raw:String,
+                              memo:Option<String>,
+                              expire_at:u64,
+    ) -> Self{
+        let coin_tx = CoinTransaction {
+            tx_id: None,
+            coin_type,
+            from,
+            to,
+            amount,
+            status: CoinTxStatus::Created,
+            coin_tx_raw,
+            chain_tx_raw: None,
+            signatures: vec![],
+            memo,
+            expire_at,
+        };
+        CoinTxView{
+            tx_index: 0,
+            transaction: coin_tx,
+            updated_at: "".to_string(),
+            created_at: "".to_string(),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -28,6 +61,25 @@ pub enum CoinTxFilter {
     ByTxIndex(u32),
 }
 
+impl fmt::Display for CoinTxFilter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            CoinTxFilter::ByUser(uid) =>  format!("sender='{}' or receiver='{}'", uid, uid),
+            CoinTxFilter::BySender(uid) =>    format!("sender='{}'", uid),
+            CoinTxFilter::ByReceiver(uid) =>  format!("receiver='{}' ", uid),
+            CoinTxFilter::ByAccountPending(acc_id) =>    format!(
+                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
+                receiver='{}' and status in ('SenderSigCompleted')",
+                acc_id, acc_id
+            ),
+            CoinTxFilter::ByTxIndex(tx_index) =>  format!("tx_index='{}' ", tx_index),
+
+        };
+        write!(f, "{}", description)
+    }
+}
+
+/***
 impl CoinTxFilter {
     pub fn to_string(&self) -> String {
         let filter_str = match self {
@@ -55,36 +107,43 @@ impl CoinTxFilter {
         filter_str
     }
 }
+***/
 
 #[derive(Clone, Debug)]
 pub enum CoinTxUpdate {
     Status(CoinTxStatus),
     ChainTxInfo(String, String, CoinTxStatus),
+    Signature(Vec<String>),
 }
 
-impl CoinTxUpdate {
-    pub fn to_string(&self) -> String {
-        let update_str = match self {
-            CoinTxUpdate::Status(tx_id) => {
-                //SET status='{}'
-                format!("status='{}'", tx_id.to_string())
-            }
-            CoinTxUpdate::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) => {
+impl fmt::Display for CoinTxUpdate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            CoinTxUpdate::Status(status) =>  format!("status='{}'", status.to_string()),
+            CoinTxUpdate::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) =>  {
                 format!(
                     "(tx_id,chain_tx_raw,status)=('{}','{}','{}')",
                     tx_id,
                     chain_tx_raw,
                     CoinTxStatus.to_string()
                 )
-            }
+            },
+            CoinTxUpdate::Signature(sigs) =>  format!("signatures={}", vec_str2array_text(sigs.to_owned())),
+
         };
-        update_str
+        write!(f, "{}", description)
     }
 }
 
-pub fn get_transactions(filter: CoinTxFilter) -> Result<Vec<CoinTxView>, BackendError> {
-    let sql = format!(
-        "select tx_index,\
+
+
+impl PsqlOp for CoinTxView {
+    type UpdateContent = CoinTxUpdate;
+    type FilterContent = CoinTxFilter;
+
+    fn find(filter: Self::FilterContent) -> Result<Vec<CoinTxView>, BackendError>{
+        let sql = format!(
+            "select tx_index,\
          tx_id,\
          coin_type,\
          sender,\
@@ -99,61 +158,73 @@ pub fn get_transactions(filter: CoinTxFilter) -> Result<Vec<CoinTxView>, Backend
          cast(updated_at as text), \
          cast(created_at as text) \
          from coin_transaction where {}",
-        filter.to_string()
-    );
-    let execute_res = crate::query(sql.as_str())?;
-    info!("get_snapshot: raw sql {}", sql);
-    if execute_res.len() > 1 {
-        //todo:throw error
-        panic!("_tmp");
+            filter.to_string()
+        );
+        let execute_res = crate::query(sql.as_str())?;
+        info!("get_snapshot: raw sql {}", sql);
+        if execute_res.len() > 1 {
+            //todo:throw error
+            panic!("_tmp");
+        }
+        //let user_info_raw = execute_res.first().unwrap();
+
+        let gen_view = |row: &Row| CoinTxView {
+            tx_index: row.get::<usize, i32>(0) as u32,
+            transaction: CoinTransaction {
+                tx_id: row.get(1),
+                coin_type: CoinType::from_account_str(row.get::<usize, &str>(2)).unwrap(),
+                from: row.get(3),
+                to: row.get(4),
+                amount: u128::from_str(row.get::<usize, &str>(5)).unwrap(),
+                expire_at: row.get::<usize, String>(6).parse().unwrap(),
+                memo: row.get(7),
+                status: CoinTxStatus::from_str(row.get::<usize, &str>(8)).unwrap(),
+                coin_tx_raw: row.get(9),
+                chain_tx_raw: row.get(10),
+                signatures: row.get::<usize, Vec<String>>(11),
+            },
+            updated_at: row.get(12),
+            created_at: row.get(13),
+        };
+        Ok(execute_res
+            .iter()
+            .map(|x| gen_view(x))
+            .collect::<Vec<CoinTxView>>())
     }
-    //let user_info_raw = execute_res.first().unwrap();
 
-    let gen_view = |row: &Row| CoinTxView {
-        tx_index: row.get::<usize, i32>(0) as u32,
-        transaction: CoinTransaction {
-            tx_id: row.get(1),
-            coin_type: CoinType::from_account_str(row.get::<usize, &str>(2)).unwrap(),
-            from: row.get(3),
-            to: row.get(4),
-            amount: u128::from_str(row.get::<usize, &str>(5)).unwrap(),
-            expire_at: row.get::<usize, String>(6).parse().unwrap(),
-            memo: row.get(7),
-            status: CoinTxStatus::from_str(row.get::<usize, &str>(8)).unwrap(),
-            coin_tx_raw: row.get(9),
-            chain_tx_raw: row.get(10),
-            signatures: row.get::<usize, Vec<String>>(11),
-        },
-        updated_at: row.get(12),
-        created_at: row.get(13),
-    };
-    Ok(execute_res
-        .iter()
-        .map(|x| gen_view(x))
-        .collect::<Vec<CoinTxView>>())
-}
+    fn update(update_data: CoinTxUpdate, filter: CoinTxFilter) -> Result<(), BackendError> {
+        let sql = format!(
+            "UPDATE coin_transaction SET {} where {}",
+            update_data.to_string(),
+            filter.to_string()
+        );
+        info!("start update orders {} ", sql);
+        let execute_res = crate::execute(sql.as_str())?;
+        info!("success update orders {} rows", execute_res);
+        Ok(())
+    }
 
-pub fn single_insert(data: &CoinTransaction) -> Result<(), BackendError> {
-    let CoinTransaction {
-        tx_id,
-        coin_type,
-        from: sender,
-        to: receiver,
-        amount,
-        expire_at,
-        memo,
-        status,
-        coin_tx_raw,
-        chain_tx_raw,
-        signatures,
-    } = data.to_owned();
-    let tx_id: PsqlType = tx_id.into();
-    let chain_raw_data: PsqlType = chain_tx_raw.into();
-    let memo: PsqlType = memo.into();
+    fn insert(&self) -> Result<(), BackendError> {
+        let CoinTransaction {
+            tx_id,
+            coin_type,
+            from: sender,
+            to: receiver,
+            amount,
+            expire_at,
+            memo,
+            status,
+            coin_tx_raw,
+            chain_tx_raw,
+            signatures,
+        } = self.transaction.clone();
+        let tx_id: PsqlType = tx_id.into();
+        let chain_raw_data: PsqlType = chain_tx_raw.into();
+        let memo: PsqlType = memo.into();
 
-    //todo: amount specific type short or long
-    let sql = format!(
-        "insert into coin_transaction (tx_id,\
+        //todo: amount specific type short or long
+        let sql = format!(
+            "insert into coin_transaction (tx_id,\
          coin_type,\
          sender,\
          receiver,\
@@ -165,62 +236,26 @@ pub fn single_insert(data: &CoinTransaction) -> Result<(), BackendError> {
          chain_tx_raw,\
          signatures\
          ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{});",
-        tx_id.to_psql_str(),
-        coin_type.to_account_str(),
-        sender,
-        receiver,
-        amount.to_string(),
-        expire_at.to_string(),
-        memo.to_psql_str(),
-        status.to_string(),
-        coin_tx_raw,
-        chain_raw_data.to_psql_str(),
-        vec_str2array_text(signatures.to_owned())
-    );
-    println!("row sql {} rows", sql);
+            tx_id.to_psql_str(),
+            coin_type.to_account_str(),
+            sender,
+            receiver,
+            amount.to_string(),
+            expire_at.to_string(),
+            memo.to_psql_str(),
+            status.to_string(),
+            coin_tx_raw,
+            chain_raw_data.to_psql_str(),
+            vec_str2array_text(signatures.to_owned())
+        );
+        println!("row sql {} rows", sql);
 
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success insert {} rows", execute_res);
+        let execute_res = crate::execute(sql.as_str())?;
+        info!("success insert {} rows", execute_res);
 
-    Ok(())
+        Ok(())
+    }
 }
-
-pub fn update(update_data: CoinTxUpdate, filter: CoinTxFilter) -> Result<(), BackendError> {
-    let sql = format!(
-        "UPDATE coin_transaction SET {} where {}",
-        update_data.to_string(),
-        filter.to_string()
-    );
-    info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success update orders {} rows", execute_res);
-    Ok(())
-}
-
-pub fn update_status(new_status: CoinTxStatus, filter: CoinTxFilter) -> Result<(), BackendError> {
-    let sql = format!(
-        "UPDATE coin_transaction SET status='{}' where {}",
-        new_status.to_string(),
-        filter.to_string()
-    );
-    info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success update orders {} rows", execute_res);
-    Ok(())
-}
-
-pub fn update_signature(signatures: Vec<String>, filter: CoinTxFilter) -> Result<(), BackendError> {
-    let sql = format!(
-        "UPDATE coin_transaction SET signatures={} where {}",
-        vec_str2array_text(signatures),
-        filter.to_string()
-    );
-    info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success update orders {} rows", execute_res);
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
 

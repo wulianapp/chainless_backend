@@ -27,8 +27,9 @@ use common::error_code::BackendError;
 use common::error_code::BackendError::{DBError, InternalError};
 use serde::Deserialize;
 use serde::Serialize;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::sync::Mutex;
+use common::http::BackendRespond;
 
 static TRY_TIMES: u8 = 5;
 
@@ -122,6 +123,31 @@ pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
             }
         }
     }
+}
+
+pub trait PsqlOp{
+    type UpdateContent: Display;
+    type FilterContent: Display;
+    fn find(filter: Self::FilterContent) -> Result<Vec<Self>,BackendError> where Self: Sized;
+    fn find_single(filter: Self::FilterContent) -> Result<Self,BackendError> where Self: Sized{
+        let mut get_res:Vec<Self> = Self::find(filter)?;
+        let data_len = get_res.len();
+        if data_len == 0{
+            //todo:return db error type
+            Err(InternalError("data isn't existed".to_string()))
+        }else if data_len > 1 {
+            Err(InternalError("data is repeated".to_string()))
+        }else {
+            Ok(get_res.pop().unwrap())
+        }
+    }
+    fn delete<T: Display>(filter: T) -> Result<(),BackendError>{
+        todo!()
+    }
+
+    fn update(new_value: Self::UpdateContent,filter:  Self::FilterContent) -> Result<(),BackendError>;
+
+    fn insert(&self) -> Result<(),BackendError>;
 }
 
 pub trait FormatSql {

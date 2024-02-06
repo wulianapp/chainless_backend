@@ -28,6 +28,38 @@ pub trait AddressConvert: Sized {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum StrategyMessageType {
+    AddServant,
+    RemoveServant,
+    ReplaceMaster
+}
+impl fmt::Display for StrategyMessageType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let description = match self {
+            StrategyMessageType::AddServant => "AddServant",
+            StrategyMessageType::RemoveServant => "RemoveServant",
+            StrategyMessageType::ReplaceMaster => "ReplaceMaster",
+        };
+        write!(f, "{}", description)
+    }
+}
+
+impl FromStr for StrategyMessageType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "AddServant" => Ok(StrategyMessageType::AddServant),
+            "RemoveServant" => Ok(StrategyMessageType::RemoveServant),
+            "ReplaceMaster" => Ok(StrategyMessageType::ReplaceMaster),
+            _ => Err("Don't support this".to_string()),
+        }
+    }
+}
+
+
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum CoinType {
     CLY,
     DW20,

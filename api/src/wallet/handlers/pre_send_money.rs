@@ -5,6 +5,8 @@ use blockchain::ContractClient;
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 
 use common::http::{token_auth, BackendRes};
+use models::coin_transfer::CoinTxView;
+use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyRequest;
 
@@ -26,19 +28,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let coin_tx_raw = cli
         .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
         .unwrap();
-    let coin_tx = CoinTransaction {
-        tx_id: None,
-        coin_type,
-        from,
-        to,
-        amount,
-        status: CoinTxStatus::Created,
-        coin_tx_raw,
-        chain_tx_raw: None,
-        signatures: vec![],
-        memo,
-        expire_at,
-    };
-    models::coin_transfer::single_insert(&coin_tx)?;
+    let coin_info = CoinTxView::new_with_specified(coin_type, from, to, amount, coin_tx_raw, memo, expire_at);
+    coin_info.insert()?;
     Ok(None::<String>)
 }

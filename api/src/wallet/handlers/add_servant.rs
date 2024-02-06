@@ -3,10 +3,11 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::MultiSig;
 
 use common::http::{token_auth, BackendRes};
-use models::secret_store::SecretFilter;
+use models::secret_store::{SecretFilter, SecretUpdate};
 
 use crate::wallet::AddServantRequest;
 use blockchain::ContractClient;
+use models::PsqlOp;
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -20,17 +21,11 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     //backup servant prikeys
     models::general::transaction_begin()?;
-    let all_secret = models::secret_store::get_secret(SecretFilter::ByAccountId(&account_id))?;
-    let mut current_servant_secret = all_secret
-        .first()
-        .unwrap()
-        .secret_store
-        .servant_encrypted_prikeys
-        .to_vec();
-    current_servant_secret.push(key_data);
-    models::secret_store::update_servant(
-        current_servant_secret,
-        SecretFilter::ByAccountId(&account_id),
+    let mut secret_info = models::secret_store::SecretStore2::find_single(SecretFilter::ByAccountId(account_id.clone()))?;
+    secret_info.servant_encrypted_prikeys.push(key_data);
+    models::secret_store::SecretStore2::update(
+        SecretUpdate::Servant(secret_info.servant_encrypted_prikeys),
+        SecretFilter::ByAccountId(account_id.clone()),
     )?;
 
     //add wallet info

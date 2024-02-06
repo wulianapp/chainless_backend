@@ -91,7 +91,7 @@ async fn search_message_by_account_id(
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
  * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
  * @apiSuccess {String} data.main_device_pubkey                钱包主公钥
- * @apiSuccess {String[]} StrategyData.servant_device_pubkey            钱包从公钥组
+ * @apiSuccess {String[]} data.servant_device_pubkey            钱包从公钥组
  * @apiSampleRequest http://120.232.251.101:8069/wallet/getStrategy
  */
 
@@ -397,6 +397,44 @@ async fn update_strategy(
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
+
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct NewMasterRequest {
+    encrypted_prikey: String,
+    pubkey: String,
+}
+
+#[post("/wallet/newMaster")]
+async fn new_master(    req: HttpRequest,
+                        request_data: web::Json<NewMasterRequest>) -> impl Responder {
+    gen_extra_respond(handlers::new_master::req(req,request_data.into_inner()).await)
+}
+
+//gather online_pubkey's 3 api to a mod
+//option account && pubkey
+async fn online_pubkey_join(){
+    todo!()
+}
+
+//suggest to call this api when switch account
+async fn online_pubkey_leave(){
+    todo!()
+}
+
+async fn get_online_pubkey_list(){
+    todo!()
+}
+
+//message type reserve
+async fn search_strategy_message(){
+    todo!()
+}
+async fn backup_servant_secret_key(){
+    todo!()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -410,7 +448,7 @@ mod tests {
     use actix_web::{body::MessageBody as _, test, App};
 
     use models::coin_transfer::CoinTxView;
-    use models::{account_manager, secret_store};
+    use models::{account_manager, PsqlOp, secret_store};
     use serde_json::json;
 
     use blockchain::multi_sig::MultiSig;
@@ -420,6 +458,7 @@ mod tests {
     use common::http::BackendRespond;
     use actix_web::{Error};
     use common::data_structures::wallet::CoinTxStatus;
+    use models::secret_store::SecretStore2;
 
 
     struct TestWallet {
@@ -484,14 +523,11 @@ mod tests {
         user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
         user_info.invite_code = app.user_id.to_string();
         account_manager::single_insert(&user_info).unwrap();
-        let data = SecretStore {
-            account_id: app.wallets.first().unwrap().account_id.clone(),
-            user_id: app.user_id,
-            master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
-            servant_encrypted_prikeys: vec![],
-        };
-        secret_store::single_insert(&data).unwrap();
 
+        let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
+                                                      app.user_id,
+                                                      app.wallets.first().unwrap().prikey.clone());
+        secret.insert().unwrap();
         app
     }
 
@@ -543,13 +579,10 @@ mod tests {
         user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
         user_info.invite_code = app.user_id.to_string();
         account_manager::single_insert(&user_info).unwrap();
-        let data = SecretStore {
-            account_id: app.wallets.first().unwrap().account_id.clone(),
-            user_id: app.user_id,
-            master_encrypted_prikey: app.wallets.first().unwrap().prikey.clone(),
-            servant_encrypted_prikeys: vec![],
-        };
-        secret_store::single_insert(&data).unwrap();
+        let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
+                                                      app.user_id,
+                                                      app.wallets.first().unwrap().prikey.clone());
+        secret.insert().unwrap();
         app
     }
 
@@ -724,6 +757,7 @@ mod tests {
         let tx = res.data.first().unwrap();
         assert_eq!(tx.transaction.status, CoinTxStatus::SenderSigCompleted);
         let payload = json!({
+            "deviceId": "3".to_string(),
         "txIndex": tx.tx_index,
         "isAgreed": true,
         });

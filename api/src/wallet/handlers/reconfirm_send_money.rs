@@ -4,7 +4,8 @@ use common::data_structures::wallet::CoinTxStatus;
 
 use crate::wallet::ReconfirmSendMoneyRequest;
 use common::http::{token_auth, BackendRes};
-use models::coin_transfer::CoinTxFilter;
+use models::coin_transfer::{CoinTxFilter, CoinTxUpdate};
+use models::PsqlOp;
 
 pub async fn req(
     req: HttpRequest,
@@ -21,13 +22,12 @@ pub async fn req(
     } = request_data.0;
 
     if let Some(sig) = confirmed_sig {
-        models::coin_transfer::update_status(
-            CoinTxStatus::SenderReconfirmed,
+        models::coin_transfer::CoinTxView::update(
+            CoinTxUpdate::Status(CoinTxStatus::SenderReconfirmed),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
-        //todo: broadcast
-        let coin_txs = models::coin_transfer::get_transactions(CoinTxFilter::ByTxIndex(tx_index))?;
-        let coin_tx = coin_txs.first().unwrap();
+
+        let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
         //broadcast
         blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
@@ -35,8 +35,8 @@ pub async fn req(
         )
         .await;
     } else {
-        models::coin_transfer::update_status(
-            CoinTxStatus::SenderCanceled,
+        models::coin_transfer::CoinTxView::update(
+            CoinTxUpdate::Status(CoinTxStatus::SenderCanceled),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     }

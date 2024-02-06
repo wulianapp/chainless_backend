@@ -5,6 +5,7 @@ use common::error_code::AccountManagerError;
 use common::http::{token_auth, BackendRes};
 use models::account_manager::{get_user, UserFilter};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
+use models::PsqlOp;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<(String, Vec<CoinTxView>)>> {
     let user_id = token_auth::validate_credentials(&req)?;
@@ -17,11 +18,8 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<(String, Vec<CoinTxV
         .account_ids
         .iter()
         .map(|acc_id| {
-            let acc_msg = models::coin_transfer::get_transactions(CoinTxFilter::ByAccountPending(
-                acc_id.to_string(),
-            ))
-            .unwrap();
-            (acc_id.to_string(), acc_msg)
+            let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(acc_id.to_string())).unwrap();
+        (acc_id.to_string(), coin_txs)
         })
         .collect::<Vec<(String, Vec<CoinTxView>)>>();
     Ok(Some(message))
@@ -37,9 +35,7 @@ pub(crate) async fn req_by_account_id(
 
     //todo: check if account_id is belong to user
     println!("searchMessage user_id {}", user_id);
-    let acc_msg = models::coin_transfer::get_transactions(CoinTxFilter::ByAccountPending(
-        request_data.account_id,
-    ))
-    .unwrap();
-    Ok(Some(acc_msg))
+    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(request_data.account_id))?;
+
+    Ok(Some(coin_txs))
 }

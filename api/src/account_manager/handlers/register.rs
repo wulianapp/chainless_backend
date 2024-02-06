@@ -8,7 +8,8 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::http::BackendRes;
 use models::account_manager::{get_next_uid, get_user, UserFilter};
-use models::{account_manager, secret_store};
+use models::{account_manager, PsqlOp, secret_store};
+use models::secret_store::SecretStore2;
 
 async fn register(
     _device_id: String,
@@ -53,17 +54,9 @@ async fn register(
 
     models::general::transaction_begin()?;
     account_manager::single_insert(&user_info)?;
-    let secret = SecretStore {
-        account_id: pubkey.clone(),
-        user_id: this_user_id,
-        master_encrypted_prikey: encrypted_prikey,
-        servant_encrypted_prikeys: vec![],
-    };
-    //todo: sql trans
-    secret_store::single_insert(&secret)?;
+    let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
+    secret.insert()?;
     let multi_cli = ContractClient::<MultiSig>::new();
-
-    //multi_cli.set_strategy(&pubkey,pubkey.clone(),vec![],vec![MultiSigRank::default()]).await.unwrap();
     multi_cli
         .init_strategy(&pubkey, pubkey.clone())
         .await

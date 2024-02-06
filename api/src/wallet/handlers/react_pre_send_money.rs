@@ -6,6 +6,7 @@ use common::data_structures::wallet::{CoinTxStatus, CoinType};
 use crate::wallet::ReactPreSendMoney;
 use common::http::{token_auth, BackendRes};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdate};
+use models::PsqlOp;
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -22,9 +23,7 @@ pub(crate) async fn req(
     //message max is 10，
     //let FinalizeSha = request_data.clone();
     if is_agreed {
-        let coin_txs =
-            models::coin_transfer::get_transactions(CoinTxFilter::ByTxIndex(tx_index)).unwrap();
-        let coin_tx = coin_txs.first().unwrap();
+        let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
         let cli = blockchain::ContractClient::<MultiSig>::new();
         let strategy = cli.get_strategy(&coin_tx.transaction.from).await.unwrap();
         let servant_sigs = coin_tx
@@ -51,13 +50,13 @@ pub(crate) async fn req(
             )
             .await
             .unwrap();
-        models::coin_transfer::update(
+        models::coin_transfer::CoinTxView::update(
             CoinTxUpdate::ChainTxInfo(tx_id, chain_raw_tx, CoinTxStatus::ReceiverApproved),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     } else {
-        models::coin_transfer::update_status(
-            CoinTxStatus::ReceiverRejected,
+        models::coin_transfer::CoinTxView::update(
+            CoinTxUpdate::Status(CoinTxStatus::ReceiverRejected),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     };
