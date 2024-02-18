@@ -4,7 +4,7 @@ use common::data_structures::wallet::CoinTxStatus;
 
 use crate::wallet::ReconfirmSendMoneyRequest;
 use common::http::{token_auth, BackendRes};
-use models::coin_transfer::{CoinTxFilter, CoinTxUpdate};
+use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
 pub async fn req(
@@ -23,7 +23,7 @@ pub async fn req(
 
     if let Some(sig) = confirmed_sig {
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdate::Status(CoinTxStatus::SenderReconfirmed),
+            CoinTxUpdater::Status(CoinTxStatus::SenderReconfirmed),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
 
@@ -36,7 +36,7 @@ pub async fn req(
         .await;
     } else {
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdate::Status(CoinTxStatus::SenderCanceled),
+            CoinTxUpdater::Status(CoinTxStatus::SenderCanceled),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     }

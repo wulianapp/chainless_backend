@@ -7,6 +7,6 @@ use crate::account_manager::ContactIsUsedRequest;
 
 pub fn req(request_data: ContactIsUsedRequest) -> BackendRes<bool> {
     let ContactIsUsedRequest { contact } = request_data;
-    let is_used = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?.is_some();
+    let is_used = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.is_some();
     Ok(Some(is_used))
 }

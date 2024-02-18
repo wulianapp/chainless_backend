@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::error_code::BackendError;
 use crate::error_code::BackendError::Authorization;
-use crate::utils::time::{now_millis, DAY15};
+use crate::utils::time::{now_millis, DAY15, YEAR100};
 use actix_web::http::header;
+use crate::env::ServiceMode;
+use crate::utils::math::gen_random_verify_code;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -31,7 +33,14 @@ const SECRET_KEY: &[u8] = b"your_secret_key";
 
 pub fn create_jwt(user_id: u32, device_id: String) -> String {
     let iat = now_millis();
-    let exp = iat + DAY15;
+
+    let exp = if crate::env::CONF.service_mode != ServiceMode::Product
+        && crate::env::CONF.service_mode != ServiceMode::Dev
+    {
+        iat + YEAR100
+    } else {
+        iat + DAY15
+    };
 
     let claims = Claims::new(user_id, device_id, iat, exp);
 

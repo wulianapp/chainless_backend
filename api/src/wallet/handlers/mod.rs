@@ -9,3 +9,4 @@ pub mod send_money;
 pub mod update_strategy;
 pub mod upload_servant_sig;
 pub mod new_master;
+pub mod pending_pubkey;

@@ -7,7 +7,7 @@ use crate::account_manager::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::http::BackendRes;
-use models::account_manager::{get_next_uid, get_user, UserFilter};
+use models::account_manager::{get_next_uid, get_user, UserFilter, UserInfoView};
 use models::{account_manager, PsqlOp, secret_store};
 use models::secret_store::SecretStore2;
 
@@ -24,7 +24,7 @@ async fn register(
     Captcha::check_user_code(&contact, &captcha, Usage::register)?;
 
     //check userinfo form db
-    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))? {
+    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact.clone()))? {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
 
@@ -33,27 +33,26 @@ async fn register(
     //store user info
     let this_user_id = get_next_uid()?;
     println!("this_user_id _______{}", this_user_id);
-    let mut user_info = UserInfo::default();
-    user_info.pwd_hash = password; //todo: hash it again before store
-    user_info.invite_code = this_user_id.to_string();
+    //todo: hash password  again before store
+    //pubkey is equal to account id when register
+    let mut view = UserInfoView::new_with_specified(password,this_user_id.to_string(),pubkey.clone());
     match contact_type {
         ContactType::PhoneNumber => {
-            user_info.phone_number = contact;
+            view.user_info.phone_number = contact;
         }
         ContactType::Email => {
-            user_info.email = contact;
+            view.user_info.email = contact;
         }
     }
-    //pubkey is equal to account id when register
-    user_info.account_ids.push(pubkey.clone());
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = get_user(UserFilter::ByInviteCode(&code))?.ok_or(InviteCodeNotExist)?;
-        user_info.predecessor = Some(predecessor.id);
+        let predecessor = get_user(UserFilter::ByInviteCode(code))?.ok_or(InviteCodeNotExist)?;
+        view.user_info.predecessor = Some(predecessor.id);
     }
 
     models::general::transaction_begin()?;
-    account_manager::single_insert(&user_info)?;
+    //account_manager::single_insert(&view.user_info)?;
+    account_manager::UserInfoView::insert(&view)?;
     let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
     secret.insert()?;
     let multi_cli = ContractClient::<MultiSig>::new();
@@ -62,7 +61,7 @@ async fn register(
         .await
         .unwrap();
     models::general::transaction_commit()?;
-    info!("user {:?} register successfully", user_info);
+    info!("user {:?} register successfully", view.user_info);
     Ok(None::<String>)
 }
 

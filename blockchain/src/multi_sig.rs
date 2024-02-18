@@ -324,6 +324,16 @@ fn ed25519_sign_data(prikey_bytes: &[u8], data: &[u8]) -> String {
     sig.to_string()
 }
 
+pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
+   let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
+    let data = hex::decode(data_hex).unwrap();
+
+    println!("ed25519_secret {:?}", prikey_bytes);
+    let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
+    let sig = secret_key.sign(&data);
+    sig.to_string()
+}
+
 pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
     let prikey: SecretKey = prikey_str.parse().unwrap();
     let prikey_bytes = prikey.unwrap_as_ed25519().0;

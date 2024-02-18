@@ -5,7 +5,7 @@ use common::data_structures::wallet::{CoinTxStatus, CoinType};
 
 use crate::wallet::ReactPreSendMoney;
 use common::http::{token_auth, BackendRes};
-use models::coin_transfer::{CoinTxFilter, CoinTxUpdate};
+use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
 pub(crate) async fn req(
@@ -51,12 +51,12 @@ pub(crate) async fn req(
             .await
             .unwrap();
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdate::ChainTxInfo(tx_id, chain_raw_tx, CoinTxStatus::ReceiverApproved),
+            CoinTxUpdater::ChainTxInfo(tx_id, chain_raw_tx, CoinTxStatus::ReceiverApproved),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     } else {
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdate::Status(CoinTxStatus::ReceiverRejected),
+            CoinTxUpdater::Status(CoinTxStatus::ReceiverRejected),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     };

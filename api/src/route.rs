@@ -1,4 +1,7 @@
-//! account manager http service
+//! wulian app backend service
+
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 #[macro_use]
 extern crate common;

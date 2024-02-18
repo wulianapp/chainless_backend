@@ -57,7 +57,7 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         contact,
         password,
     } = request_data;
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?
+    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?
         .ok_or(PhoneOrEmailNotRegister)?;
 
     if is_locked(user_at_stored.id) {

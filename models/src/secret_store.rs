@@ -14,14 +14,14 @@ use common::error_code::BackendError;
 
 
 #[derive(Clone, Debug)]
-pub enum SecretUpdate {
+pub enum SecretUpdater {
     Servant(Vec<String>),
 }
 
-impl fmt::Display for SecretUpdate {
+impl fmt::Display for SecretUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            SecretUpdate::Servant(keys) =>  {
+            SecretUpdater::Servant(keys) =>  {
                 let new_servant_str = super::vec_str2array_text(keys.to_owned());
                 format!("servant_encrypted_prikeys={} ", new_servant_str)
             }
@@ -69,7 +69,7 @@ impl SecretStore2{
 
 impl PsqlOp for SecretStore2{
 
-    type UpdateContent = SecretUpdate;
+    type UpdateContent = SecretUpdater;
     type FilterContent = SecretFilter;
 
     fn find(filter: SecretFilter) -> Result<Vec<SecretStore2>, BackendError> {
@@ -99,7 +99,7 @@ impl PsqlOp for SecretStore2{
             .map(|x| gen_view(x))
             .collect::<Vec<SecretStore2>>())
     }
-    fn update(new_value: SecretUpdate, filter: SecretFilter) -> Result<(), BackendError> {
+    fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<(), BackendError> {
         let sql = format!(
             "update secret_store set {} where {}",
             new_value.to_string(),

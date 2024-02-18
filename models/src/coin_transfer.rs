@@ -79,48 +79,18 @@ impl fmt::Display for CoinTxFilter {
     }
 }
 
-/***
-impl CoinTxFilter {
-    pub fn to_string(&self) -> String {
-        let filter_str = match self {
-            CoinTxFilter::ByUser(uid) => {
-                //todo: split page
-                format!("sender='{}' or receiver='{}'", uid, uid)
-            }
-            CoinTxFilter::BySender(sender_uid) => {
-                format!("sender='{}'", sender_uid)
-            }
-            CoinTxFilter::ByReceiver(receiver_uid) => {
-                format!("receiver='{}'", receiver_uid)
-            }
-            CoinTxFilter::ByAccountPending(acc_id) => {
-                format!(
-                    "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
-                receiver='{}' and status in ('SenderSigCompleted')",
-                    acc_id, acc_id
-                )
-            }
-            CoinTxFilter::ByTxIndex(tx_id) => {
-                format!("tx_index={}", tx_id)
-            }
-        };
-        filter_str
-    }
-}
-***/
-
 #[derive(Clone, Debug)]
-pub enum CoinTxUpdate {
+pub enum CoinTxUpdater {
     Status(CoinTxStatus),
     ChainTxInfo(String, String, CoinTxStatus),
     Signature(Vec<String>),
 }
 
-impl fmt::Display for CoinTxUpdate {
+impl fmt::Display for CoinTxUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            CoinTxUpdate::Status(status) =>  format!("status='{}'", status.to_string()),
-            CoinTxUpdate::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) =>  {
+            CoinTxUpdater::Status(status) =>  format!("status='{}'", status.to_string()),
+            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) =>  {
                 format!(
                     "(tx_id,chain_tx_raw,status)=('{}','{}','{}')",
                     tx_id,
@@ -128,7 +98,7 @@ impl fmt::Display for CoinTxUpdate {
                     CoinTxStatus.to_string()
                 )
             },
-            CoinTxUpdate::Signature(sigs) =>  format!("signatures={}", vec_str2array_text(sigs.to_owned())),
+            CoinTxUpdater::Signature(sigs) =>  format!("signatures={}", vec_str2array_text(sigs.to_owned())),
 
         };
         write!(f, "{}", description)
@@ -138,7 +108,7 @@ impl fmt::Display for CoinTxUpdate {
 
 
 impl PsqlOp for CoinTxView {
-    type UpdateContent = CoinTxUpdate;
+    type UpdateContent = CoinTxUpdater;
     type FilterContent = CoinTxFilter;
 
     fn find(filter: Self::FilterContent) -> Result<Vec<CoinTxView>, BackendError>{
@@ -192,7 +162,7 @@ impl PsqlOp for CoinTxView {
             .collect::<Vec<CoinTxView>>())
     }
 
-    fn update(update_data: CoinTxUpdate, filter: CoinTxFilter) -> Result<(), BackendError> {
+    fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<(), BackendError> {
         let sql = format!(
             "UPDATE coin_transaction SET {} where {}",
             update_data.to_string(),

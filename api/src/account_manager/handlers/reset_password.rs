@@ -5,8 +5,8 @@ use crate::account_manager::captcha::{Captcha, Usage};
 use crate::account_manager::ResetPasswordRequest;
 use common::error_code::AccountManagerError::*;
 use common::http::BackendRes;
-use models::account_manager;
-use models::account_manager::UserFilter;
+use models::{account_manager, PsqlOp};
+use models::account_manager::{UserFilter, UserUpdater};
 
 pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<String> {
     //todo: check jwt token
@@ -22,10 +22,10 @@ pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<St
     //check captcha
     Captcha::check_user_code(&contact, &captcha, Usage::reset_password)?;
 
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(&contact))?
+    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?
         .ok_or(PhoneOrEmailAlreadyRegister)?;
 
     //modify user's password  at db
-    account_manager::update_password(&new_password, UserFilter::ById(user_at_stored.id))?;
+    account_manager::UserInfoView::update(UserUpdater::Password(new_password),UserFilter::ById(user_at_stored.id))?;
     Ok(None::<String>)
 }
