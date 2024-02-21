@@ -1,6 +1,8 @@
 //! encapsulation of some postgresql interface for easy call
 //#![deny(missing_docs)]
 //#![deny(warnings)]
+#![allow(unused_imports)]
+#![allow(dead_code)]
 
 pub mod account_manager;
 pub mod airdrop;
@@ -11,8 +13,10 @@ pub mod coin_transfer;
 pub mod secret_store;
 pub mod wallet;
 
+//#[macro_use]
+//extern crate log;
 #[macro_use]
-extern crate log;
+extern crate tracing;
 #[macro_use]
 extern crate lazy_static;
 extern crate chrono;
@@ -57,13 +61,13 @@ lazy_static! {
 }
 fn connect_db() -> Result<Client, BackendError> {
     let global_conf = &common::env::CONF;
-    eprintln!("{}: start postgresql", common::utils::time::current_date());
+    info!("{}: start postgresql", common::utils::time::current_date());
     let url = format!(
         "host=localhost user=postgres port=5432 password=postgres dbname=backend_{}",
         global_conf.service_mode.to_string()
     );
     let cli = Client::connect(&url, NoTls).map_err(|error| {
-        eprintln!("connect postgresql failed,{:?}", error);
+        error!("connect postgresql failed,{:?}", error);
         DBError(error.to_string())
     })?;
     Ok(cli)
@@ -75,7 +79,6 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>, BackendError> {
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
     loop {
-        println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
             Ok(data) => {
@@ -103,7 +106,6 @@ pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
     loop {
-        println!("raw_sql {}", raw_sql);
         debug!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
             Ok(data) => {

@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 use common::http::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
+use tracing::{span, Level};
+use crate::account_manager::{contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password, verify_captcha};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -17,7 +19,7 @@ pub struct SearchMessageRequest {
     //unused
     user_id: String,
 }
-
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/searchMessage")]
 async fn search_message(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::search_message::req(request).await)
@@ -60,6 +62,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
 pub struct searchMessageByAccountIdRequest {
     account_id: String,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/searchMessageByAccountId")]
 async fn search_message_by_account_id(
     request: HttpRequest,
@@ -100,6 +103,8 @@ async fn search_message_by_account_id(
 pub struct getStrategyRequest {
     account_id: String,
 }
+
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getStrategy")]
 async fn get_strategy(
     request: HttpRequest,
@@ -152,6 +157,7 @@ pub struct PreSendMoneyRequest {
     memo: Option<String>,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/preSendMoney")]
 async fn pre_send_money(
     request: HttpRequest,
@@ -168,6 +174,7 @@ pub struct DirectSendMoneyRequest {
     device_id: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/directSendMoney")]
 async fn direct_send_money(
     request: HttpRequest,
@@ -209,6 +216,7 @@ pub struct ReactPreSendMoney {
     is_agreed: bool,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/reactPreSendMoney")]
 async fn react_pre_send_money(
     request: HttpRequest,
@@ -250,6 +258,7 @@ pub struct ReconfirmSendMoneyRequest {
     tx_index: u32,
     confirmed_sig: Option<String>,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/reconfirmSendMoney")]
 async fn reconfirm_send_money(
     request: HttpRequest,
@@ -292,6 +301,7 @@ pub struct uploadTxSignatureRequest {
     signature: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/uploadServantSig")]
 async fn upload_servant_sig(
     request: HttpRequest,
@@ -337,6 +347,7 @@ pub struct AddServantRequest {
     //secret_key_data: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/addServant")]
 async fn add_servant(
     req: HttpRequest,
@@ -388,6 +399,7 @@ pub struct UpdateStrategy {
     device_id: String,
     strategy: Vec<MultiSigRankExternal>,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/updateStrategy")]
 async fn update_strategy(
     req: HttpRequest,
@@ -423,6 +435,7 @@ async fn update_strategy(
 * @apiSuccess {string} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8065/wallet/newMaster
  */
+
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct NewMasterRequest {
@@ -430,6 +443,7 @@ pub struct NewMasterRequest {
     pubkey: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/newMaster")]
 async fn new_master(    req: HttpRequest,
                         request_data: web::Json<NewMasterRequest>) -> impl Responder {
@@ -468,6 +482,7 @@ pub struct PutPendingPubkeyRequest {
     pubkey: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/putPendingPubkey")]
 async fn put_pending_pubkey(req: HttpRequest,
                     request_data: web::Json<PutPendingPubkeyRequest>) -> impl Responder {
@@ -492,6 +507,8 @@ async fn put_pending_pubkey(req: HttpRequest,
 * @apiSuccess {string[]} data                可用密钥列表.
  * @apiSampleRequest http://120.232.251.101:8065/wallet/getPendingPubkey
  */
+//#[tracing::instrument(name = "handle_index", level = "info")]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getPendingPubkey")]
 async fn get_pending_pubkey(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::pending_pubkey::req_get(req).await)
@@ -520,6 +537,23 @@ async fn backup_servant_secret_key(){
     todo!()
 }
 
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    //            .service(account_manager::get_captcha)
+    cfg.service(search_message)
+        .service(search_message_by_account_id)
+        .service(get_strategy)
+        .service(pre_send_money)
+        .service(direct_send_money)
+        .service(react_pre_send_money)
+        .service(reconfirm_send_money)
+        .service(upload_servant_sig)
+        .service(add_servant)
+        .service(update_strategy)
+        .service(new_master)
+        .service(put_pending_pubkey)
+        .service(get_pending_pubkey);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -545,6 +579,9 @@ mod tests {
     use common::data_structures::wallet::CoinTxStatus;
     use common::utils::math;
     use models::secret_store::SecretStore2;
+   // use log::{info, LevelFilter,debug,error};
+    use tracing::{debug,info,error};
+    use models::account_manager::UserInfoView;
 
 
     struct TestWallet {
@@ -570,21 +607,10 @@ mod tests {
         >,
     > {
         env::set_var("SERVICE_MODE", "test");
+        //env_logger::init();
+        common::log::init_logger();
         models::general::table_all_clear();
-        App::new()
-            .service(search_message)
-            .service(pre_send_money)
-            .service(direct_send_money)
-            .service(react_pre_send_money)
-            .service(reconfirm_send_money)
-            .service(upload_servant_sig)
-            .service(add_servant)
-            .service(update_strategy)
-            .service(search_message_by_account_id)
-            .service(get_strategy)
-            .service(get_pending_pubkey)
-            .service(put_pending_pubkey)
-            .service(new_master)
+        App::new().configure(configure_routes)
     }
 
     fn simulate_sender_master() -> TestWulianApp {
@@ -607,12 +633,13 @@ mod tests {
             wallets: vec![wallet],
         };
 
-        let mut user_info = UserInfo::default();
-        user_info.email = app.contact.clone();
-        user_info.pwd_hash = app.password.clone();
-        user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
-        user_info.invite_code = app.user_id.to_string();
-        account_manager::single_insert(&user_info).unwrap();
+        let mut user_info = account_manager::UserInfoView::new_with_specified(
+            app.password.clone(),
+            app.user_id.to_string(),
+            app.wallets.first().unwrap().account_id.clone(),
+        );
+        user_info.user_info.email = app.contact.clone();
+        user_info.insert().unwrap();
 
         let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
                                                       app.user_id,
@@ -664,12 +691,15 @@ mod tests {
             wallets: vec![wallet],
         };
 
-        let mut user_info = UserInfo::default();
-        user_info.email = app.contact.clone();
-        user_info.pwd_hash = app.password.clone();
-        user_info.account_ids = vec![app.wallets.first().unwrap().account_id.clone()];
-        user_info.invite_code = app.user_id.to_string();
-        account_manager::single_insert(&user_info).unwrap();
+        let mut user_info = account_manager::UserInfoView::new_with_specified(
+            app.password.clone(),
+            app.user_id.to_string(),
+            app.wallets.first().unwrap().account_id.clone(),
+        );
+        user_info.user_info.email = app.contact.clone();
+        user_info.insert().unwrap();
+
+
         let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
                                                       app.user_id,
                                                       app.wallets.first().unwrap().prikey.clone());

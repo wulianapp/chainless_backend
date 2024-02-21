@@ -8,7 +8,7 @@ use common::error_code::AccountManagerError::{
 use crate::account_manager::LoginRequest;
 use common::http::{token_auth, BackendRes};
 use common::utils::time::{now_millis, MINUTE30};
-use models::account_manager;
+use models::{account_manager, PsqlOp};
 use models::account_manager::UserFilter;
 
 lazy_static! {
@@ -57,8 +57,8 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         contact,
         password,
     } = request_data;
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?
-        .ok_or(PhoneOrEmailNotRegister)?;
+    //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
+    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
 
     if is_locked(user_at_stored.id) {
         Err(AccountLocked)?;

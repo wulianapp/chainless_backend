@@ -130,11 +130,8 @@ impl PsqlOp for SecretStore2{
          ) values ('{}',{},'{}',{});",
             account_id, user_id, master_encrypted_prikey, servant_keys_str
         );
-        println!("row sql {} rows", sql);
-
+        debug!("row sql {} rows", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        info!("success insert {} rows", execute_res);
-
         Ok(())
     }
 

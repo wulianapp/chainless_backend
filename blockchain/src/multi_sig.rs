@@ -88,7 +88,6 @@ impl ContractClient<MultiSig> {
 
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result).unwrap();
-            println!("strategy_str {}", amount_str);
             Some(serde_json::from_str::<StrategyData>(&amount_str).unwrap())
         } else {
             None

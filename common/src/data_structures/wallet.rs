@@ -61,6 +61,10 @@ impl FromStr for StrategyMessageType {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum CoinType {
+    BTC,
+    ETH,
+    USDT,
+    USDC,
     CLY,
     DW20,
 }
@@ -68,6 +72,10 @@ pub enum CoinType {
 impl AddressConvert for CoinType {
     fn to_account_str(&self) -> String {
         match self {
+            CoinType::BTC => "btc".to_string() + PREDECESSOR_SUBFIX,
+            CoinType::ETH => "eth".to_string() + PREDECESSOR_SUBFIX,
+            CoinType::USDT => "usdt".to_string() + PREDECESSOR_SUBFIX,
+            CoinType::USDC => "usdc".to_string() + PREDECESSOR_SUBFIX,
             CoinType::CLY => "cly".to_string() + PREDECESSOR_SUBFIX,
             CoinType::DW20 => "dw20".to_string() + PREDECESSOR_SUBFIX,
         }
@@ -75,6 +83,10 @@ impl AddressConvert for CoinType {
     fn from_account_str(s: &str) -> Result<Self, String> {
         let id_str = s.replace(PREDECESSOR_SUBFIX, "");
         match id_str.as_str() {
+            "btc" => Ok(CoinType::BTC),
+            "eth" => Ok(CoinType::ETH),
+            "usdt" => Ok(CoinType::USDT),
+            "usdc" => Ok(CoinType::USDC),
             "cly" => Ok(CoinType::CLY),
             "dw20" => Ok(CoinType::DW20),
             _ => Err("Don't support this coin".to_string()),
@@ -102,7 +114,8 @@ pub enum CoinTxStatus {
     SenderReconfirmed,
     Expired,
     Broadcast,
-    Confirmed,
+    FinalizeAndFailed,
+    FinalizeAndSuccessful,
 }
 
 impl fmt::Display for CoinTxStatus {
@@ -116,7 +129,8 @@ impl fmt::Display for CoinTxStatus {
             CoinTxStatus::SenderReconfirmed => "SenderReconfirmed",
             CoinTxStatus::Broadcast => "Broadcast",
             CoinTxStatus::Expired => "Expired",
-            CoinTxStatus::Confirmed => "Confirmed",
+            CoinTxStatus::FinalizeAndFailed => "FinalizeAndFailed",
+            CoinTxStatus::FinalizeAndSuccessful => "FinalizeAndSuccessful",
         };
         write!(f, "{}", description)
     }
@@ -135,7 +149,8 @@ impl FromStr for CoinTxStatus {
             "SenderReconfirmed" => Ok(CoinTxStatus::SenderReconfirmed),
             "Expired" => Ok(CoinTxStatus::Expired),
             "Broadcast" => Ok(CoinTxStatus::Broadcast),
-            "Confirmed" => Ok(CoinTxStatus::Confirmed),
+            "FinalizeAndFailed" => Ok(CoinTxStatus::FinalizeAndFailed),
+            "FinalizeAndSuccessful" => Ok(CoinTxStatus::FinalizeAndSuccessful),
             _ => Err("Don't support this service mode".to_string()),
         }
     }

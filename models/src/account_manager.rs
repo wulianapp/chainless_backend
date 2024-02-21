@@ -114,8 +114,35 @@ impl PsqlOp for UserInfoView{
     type UpdateContent = UserUpdater;
     type FilterContent = UserFilter;
 
-    fn find(filter: Self::FilterContent) -> Result<Vec<Self>, BackendError> where Self: Sized {
-        todo!()
+    fn find(filter: UserFilter) -> Result<Vec<Self>, BackendError> {
+        let sql = format!(
+            "select id,phone_number,email,\
+         pwd_hash,predecessor,status,verified,invite_code,account_ids,\
+         cast(updated_at as text), cast(created_at as text) \
+         from users where {}",
+            filter.to_string()
+        );
+        let query_res = crate::query(sql.as_str())?;
+        debug!("get_snapshot: raw sql {}", sql);
+
+        //let rows = query_res.first().unwrap();
+        let gen_view = |row: &Row| UserInfoView {
+            id: row.get::<usize, i32>(0) as u32,
+            user_info: UserInfo {
+                phone_number: row.get(1),
+                email: row.get(2),
+                pwd_hash: row.get(3),
+                predecessor: row.get::<usize, Option<i32>>(4).map(|id| id as u32),
+                status: row.get::<usize, i16>(5) as u8,
+                verified: row.get(6),
+                invite_code: row.get(7),
+                account_ids: row.get::<usize, Vec<String>>(8),
+            },
+            updated_at: row.get(9),
+            created_at: row.get(10),
+        };
+        let users = query_res.iter().map(|x| gen_view(x)).collect();
+        Ok(users)
     }
 
     fn update(new_value: Self::UpdateContent, filter: Self::FilterContent) -> Result<(), BackendError> {
@@ -161,7 +188,6 @@ impl PsqlOp for UserInfoView{
             invite_code,
             account_ids_str
         );
-        println!("{}", sql);
         debug!("row sql {} rows", sql);
         let execute_res = crate::execute(sql.as_str())?;
         debug!("success insert {} rows", execute_res);
@@ -185,96 +211,12 @@ pub fn get_next_uid() -> Result<u32, BackendError> {
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
     let is_called = row.get::<usize, bool>(1);
-
+    //auto index is always 1 when no user or insert one
     if is_called {
         Ok(current_user_id + 1)
     } else {
         Ok(1)
     }
-}
-
-//取当前和一天之前的快照
-pub fn get_user(filter: UserFilter) -> Result<Option<UserInfoView>, BackendError> {
-    let sql = format!(
-        "select id,phone_number,email,\
-         pwd_hash,predecessor,status,verified,invite_code,account_ids,\
-         cast(updated_at as text), cast(created_at as text) \
-         from users where {}",
-        filter.to_string()
-    );
-    let execute_res = crate::query(sql.as_str())?;
-    debug!("get_snapshot: raw sql {}", sql);
-    if execute_res.is_empty() {
-        return Ok(None);
-    }
-
-    //fixme:
-    let user_info_raw = execute_res.first().unwrap();
-    let gen_snapshot = |row: &Row| UserInfoView {
-        id: row.get::<usize, i32>(0) as u32,
-        user_info: UserInfo {
-            phone_number: row.get(1),
-            email: row.get(2),
-            pwd_hash: row.get(3),
-            predecessor: row.get::<usize, Option<i32>>(4).map(|id| id as u32),
-            status: row.get::<usize, i16>(5) as u8,
-            verified: row.get(6),
-            invite_code: row.get(7),
-            account_ids: row.get::<usize, Vec<String>>(8),
-        },
-        updated_at: row.get(9),
-        created_at: row.get(10),
-    };
-    Ok(Some(gen_snapshot(user_info_raw)))
-}
-
-pub fn single_insert(data: &UserInfo) -> Result<(), BackendError> {
-    let UserInfo {
-        phone_number,
-        email,
-        pwd_hash,
-        predecessor,
-        verified,
-        status,
-        invite_code,
-        account_ids,
-    } = data;
-
-    let predecessor_str = predecessor
-        .map(|x| format!("{}", x))
-        .unwrap_or("NULL".to_string());
-    //assembly string array to sql string
-    let account_ids_str = vec_str2array_text(account_ids.to_owned());
-
-    let sql = format!(
-        "insert into users (phone_number,email,pwd_hash,\
-    predecessor,verified,status,invite_code,account_ids) values ('{}','{}','{}',{},{},{},{},{});",
-        phone_number,
-        email,
-        pwd_hash,
-        predecessor_str,
-        verified,
-        status,
-        invite_code,
-        account_ids_str
-    );
-    println!("{}", sql);
-    debug!("row sql {} rows", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    debug!("success insert {} rows", execute_res);
-    Ok(())
-}
-
-pub fn update_password(new_password: &str, filter: UserFilter) -> Result<(), BackendError> {
-    let sql = format!(
-        "UPDATE users SET pwd_hash='{}' where {}",
-        new_password,
-        filter.to_string()
-    );
-    info!("start update orders {} ", sql);
-    let execute_res = crate::execute(sql.as_str())?;
-    info!("success update orders {} rows", execute_res);
-    Ok(())
 }
 
 #[cfg(test)]

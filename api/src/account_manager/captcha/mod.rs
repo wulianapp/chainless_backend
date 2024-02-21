@@ -30,16 +30,24 @@ pub enum ContactType {
 
 #[derive(PartialEq, Clone, Debug, Eq, Hash)]
 pub enum Usage {
-    register,
-    reset_password,
+    Register,
+    ResetPassword,
+    SetSecurity,
+    AddServant,
+    ServantReplaceMaster,
+    NewcomerBecomeMaster
 }
 
 impl FromStr for Usage {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "register" => Ok(Self::register),
-            "resetPassword" => Ok(Self::reset_password),
+            "Register" => Ok(Self::Register),
+            "ResetPassword" => Ok(Self::ResetPassword),
+            "SetSecurity" => Ok(Self::SetSecurity),
+            "AddServant" => Ok(Self::AddServant),
+            "ServantReplaceMaster" => Ok(Self::ServantReplaceMaster),
+            "NewcomerBecomeMaster" => Ok(Self::NewcomerBecomeMaster),
             _ => Err(RequestParamInvalid(s.to_string())),
         }
     }

@@ -19,7 +19,7 @@ use actix_web::{http, middleware, App, HttpServer};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+    common::log::init_logger();
     let global_conf = &common::env::CONF;
     let service = format!("0.0.0.0:{}", global_conf.account_manage_api_port);
 
@@ -38,19 +38,8 @@ async fn main() -> std::io::Result<()> {
                     .allowed_header(http::header::CONTENT_TYPE)
                     .max_age(3600),
             )
-            .service(account_manager::get_captcha)
-            .service(account_manager::contact_is_used)
-            //.service(account_manager::verify_captcha)
-            .service(account_manager::reset_password)
-            .service(account_manager::register_by_email)
-            .service(account_manager::register_by_phone)
-            .service(account_manager::login)
-            .service(wallet::search_message)
-            .service(wallet::pre_send_money)
-            .service(wallet::direct_send_money)
-            .service(wallet::react_pre_send_money)
-            .service(wallet::reconfirm_send_money)
-            .service(wallet::search_message_by_account_id)
+            .configure(account_manager::configure_routes)
+            .configure(wallet::configure_routes)
     })
     .bind(service)?
     .run()

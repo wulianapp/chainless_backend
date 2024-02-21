@@ -1,13 +1,14 @@
 use actix_web::{HttpRequest, web};
-use log::info;
+//use log::info;
+use tracing::info;
 use blockchain::ContractClient;
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{InviteCodeNotExist, PhoneOrEmailAlreadyRegister};
+use common::error_code::AccountManagerError::{InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister};
 use common::http::{BackendRes, token_auth};
 use models::{account_manager, PsqlOp, secret_store};
-use models::account_manager::{get_next_uid, get_user, UserFilter, UserUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::secret_store::SecretStore2;
 use crate::account_manager::captcha::{Captcha, ContactType, Usage};
 use crate::wallet::{NewMasterRequest, ReconfirmSendMoneyRequest};
@@ -22,7 +23,7 @@ pub(crate) async fn req(
 
 
     //store user info
-   let mut user_info = models::account_manager::get_user(UserFilter::ById(user_id))?.unwrap();
+    let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     user_info.user_info.account_ids.push(pubkey.clone());
 
 

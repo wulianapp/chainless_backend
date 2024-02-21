@@ -1,13 +1,13 @@
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::*;
-use log::info;
-
+//use log::{debug, info};
+use tracing::{debug,info};
 use crate::account_manager::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::http::BackendRes;
-use models::account_manager::{get_next_uid, get_user, UserFilter, UserInfoView};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::{account_manager, PsqlOp, secret_store};
 use models::secret_store::SecretStore2;
 
@@ -21,18 +21,20 @@ async fn register(
     encrypted_prikey: String,
     pubkey: String,
 ) -> BackendRes<String> {
-    Captcha::check_user_code(&contact, &captcha, Usage::register)?;
+    Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
     //check userinfo form db
-    if let Some(_) = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact.clone()))? {
+    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(contact.clone()))?;
+    if !find_res.is_empty(){
         Err(PhoneOrEmailAlreadyRegister)?;
     }
+
 
     //todo: register multi_sig_contract account
 
     //store user info
     let this_user_id = get_next_uid()?;
-    println!("this_user_id _______{}", this_user_id);
+    debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
     let mut view = UserInfoView::new_with_specified(password,this_user_id.to_string(),pubkey.clone());
@@ -46,7 +48,8 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = get_user(UserFilter::ByInviteCode(code))?.ok_or(InviteCodeNotExist)?;
+        //let predecessor = get_user(UserFilter::ByInviteCode(code))?.ok_or(InviteCodeNotExist)?;
+        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(code)).map_err(|e|InviteCodeNotExist)?;
         view.user_info.predecessor = Some(predecessor.id);
     }
 

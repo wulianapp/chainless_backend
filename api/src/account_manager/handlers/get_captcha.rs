@@ -1,5 +1,5 @@
-use log::debug;
-
+//use log::debug;
+use tracing::debug;
 use common::error_code::AccountManagerError::CaptchaRequestTooFrequently;
 
 use crate::account_manager::captcha::{Captcha, ContactType, Usage};

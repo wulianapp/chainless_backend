@@ -21,7 +21,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     } = request_data;
 
     let keys = super::pending_pubkey::get_user_pending_keys(user_id)?;
-    println!("0001_{:?}",keys);
     let (prikey,_) = keys
         .iter()
         .find(|(prikey,pubkey)| *pubkey == new_servant)

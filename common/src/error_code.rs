@@ -13,10 +13,14 @@ pub enum BackendError {
     #[error("Authorization error: {0}")]
     Authorization(String),
     #[error("{0}")]
+    ExternalService(#[from] ExternalServiceError),
+    #[error("{0}")]
     AccountManager(#[from] AccountManagerError),
     #[error("{0}")]
     Wallet(#[from] WalletError),
 }
+
+
 
 impl ErrorCode for BackendError {
     fn code(&self) -> u16 {
@@ -26,6 +30,7 @@ impl ErrorCode for BackendError {
             BackendError::DBError(_) => 3,
             BackendError::ChainError(_) => 4,
             BackendError::Authorization(_) => 5,
+            BackendError::ExternalService(err) => err.code(),
             BackendError::AccountManager(err) => err.code(),
             BackendError::Wallet(err) => err.code(),
         }
@@ -100,6 +105,30 @@ impl ErrorCode for WalletError {
         }
     }
 }
+
+#[derive(Error, Debug)]
+pub enum ExternalServiceError {
+    #[error("EmailCaptcha Service error: {0}")]
+    EmailCaptcha(String),
+    #[error("PhoneCaptcha Service error: {0}")]
+    PhoneCaptcha(String),
+    #[error("Database Service error: {0}")]
+    Database(String),
+    #[error("Chain Service error: {0}")]
+    Chain(String),
+}
+
+impl ErrorCode for ExternalServiceError {
+    fn code(&self) -> u16 {
+        match self {
+            Self::EmailCaptcha(_) => 101,
+            Self::PhoneCaptcha(_) => 102,
+            Self::Database(_) => 103,
+            Self::Chain(_) => 104,
+        }
+    }
+}
+
 
 pub trait ErrorCode {
     fn code(&self) -> u16;

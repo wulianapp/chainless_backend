@@ -1,5 +1,7 @@
 use actix_web::web;
-use log::debug;
+//use log::debug;
+use tracing::debug;
+
 
 use crate::account_manager::captcha::{Captcha, Usage};
 use crate::account_manager::ResetPasswordRequest;
@@ -20,11 +22,10 @@ pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<St
     //todo: check if is master device
 
     //check captcha
-    Captcha::check_user_code(&contact, &captcha, Usage::reset_password)?;
+    Captcha::check_user_code(&contact, &captcha, Usage::ResetPassword)?;
 
-    let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?
-        .ok_or(PhoneOrEmailAlreadyRegister)?;
-
+    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))
+        .map_err(|e|PhoneOrEmailNotRegister)?;
     //modify user's password  at db
     account_manager::UserInfoView::update(UserUpdater::Password(new_password),UserFilter::ById(user_at_stored.id))?;
     Ok(None::<String>)

@@ -36,6 +36,7 @@ pub struct GetCaptchaRequest {
     kind: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/getCaptcha")]
 async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Responder {
     gen_extra_respond(handlers::get_captcha::req(request_data.into_inner()).await)
@@ -59,6 +60,7 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
 pub struct ContactIsUsedRequest {
     contact: String,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
     //request_data: web::Json<ContactIsUsedRequest>,1
@@ -93,6 +95,7 @@ pub struct VerifyCodeRequest {
     captcha: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/verifyCaptcha1")]
 async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Responder {
     gen_extra_respond(handlers::verify_captcha::req(request_data.into_inner()).await)
@@ -131,6 +134,7 @@ pub struct RegisterByEmailRequest {
     predecessor_invite_code: Option<String>,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByEmail")]
 async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
     gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()).await)
@@ -168,6 +172,7 @@ pub struct RegisterByPhoneRequest {
     pubkey: String,
     predecessor_invite_code: Option<String>,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
 async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
     gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()).await)
@@ -196,6 +201,7 @@ pub struct LoginRequest {
     contact: String,
     password: String,
 }
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/login")]
 async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
     gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
@@ -227,9 +233,20 @@ pub struct ResetPasswordRequest {
     new_password: String,
 }
 
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
 async fn reset_password(request_data: web::Json<ResetPasswordRequest>) -> impl Responder {
     gen_extra_respond(handlers::reset_password::req(request_data).await)
+}
+
+pub fn configure_routes(cfg: &mut web::ServiceConfig) {
+    cfg.service(get_captcha)
+        .service(contact_is_used)
+        .service(verify_captcha)
+        .service(register_by_email)
+        .service(register_by_phone)
+        .service(login)
+        .service(reset_password);
 }
 
 #[cfg(test)]
@@ -254,14 +271,9 @@ mod tests {
         >,
     > {
         env::set_var("SERVICE_MODE", "test");
+        common::log::init_logger();
         models::general::table_all_clear();
-        App::new()
-            .service(get_captcha)
-            .service(verify_captcha)
-            .service(register_by_email)
-            .service(login)
-            .service(reset_password)
-            .service(contact_is_used)
+        App::new().configure(configure_routes)
     }
 
     #[actix_web::test]

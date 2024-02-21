@@ -10,6 +10,9 @@ create table if not exists users
     verified boolean not null,
     invite_code text collate pg_catalog."default" not null,
     account_ids text[] not null,
+    predecessor_replace_laste_time text,
+    main_account_id text not null,
+    sub_account_ids text[] not null,
     constraint users_invite_code_key unique (invite_code),
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
@@ -87,6 +90,15 @@ create table secret_store
     user_id int,
     master_encrypted_prikey text,
     servant_encrypted_prikeys text[],
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
+);
+
+--储蓄账户的主pubkey和从pubkey，子账户的key不存
+create table key_info
+(
+    pubkey text primary key,
+    device_info text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );

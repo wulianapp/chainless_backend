@@ -1,8 +1,11 @@
+#![allow(unused_imports)]
+#![allow(dead_code)]
 pub mod data_structures;
 pub mod env;
 pub mod error_code;
 pub mod http;
 pub mod utils;
+pub mod log;
 
 #[macro_use]
 extern crate lazy_static;

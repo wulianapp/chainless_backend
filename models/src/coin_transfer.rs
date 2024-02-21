@@ -131,7 +131,7 @@ impl PsqlOp for CoinTxView {
             filter.to_string()
         );
         let execute_res = crate::query(sql.as_str())?;
-        info!("get_snapshot: raw sql {}", sql);
+        debug!("get_snapshot: raw sql {}", sql);
         if execute_res.len() > 1 {
             //todo:throw error
             panic!("_tmp");

@@ -8,6 +8,55 @@ use crate::vec_str2array_text;
 use common::data_structures::wallet::Wallet;
 use common::error_code::BackendError;
 
+pub struct CoinInfo{
+    name: String,
+    symbol: String,
+    precision: u8,
+    addr: String
+}
+
+//todo: get list from database
+pub fn support_coin_list() -> Vec<CoinInfo>{
+    vec![
+        CoinInfo{
+            name: "BTC".to_string(),
+            symbol: "BTC".to_string(),
+            precision: 8,
+            addr: "btc.node0".to_string(),
+        },
+        CoinInfo{
+            name: "ETH".to_string(),
+            symbol: "ETH".to_string(),
+            precision: 18,
+            addr: "eth.node0".to_string(),
+        },
+        CoinInfo{
+            name: "USDT".to_string(),
+            symbol: "USDT".to_string(),
+            precision: 6,
+            addr: "usdt.node0".to_string(),
+        },
+        CoinInfo{
+            name: "USDC".to_string(),
+            symbol: "USDC".to_string(),
+            precision: 6,
+            addr: "".to_string(),
+        },
+        CoinInfo{
+            name: "DW20".to_string(),
+            symbol: "DW20".to_string(),
+            precision: 0,
+            addr: "dw20.node0".to_string(),
+        },
+        CoinInfo{
+            name: "CLY".to_string(),
+            symbol: "CLY".to_string(),
+            precision: 18,
+            addr: "cly.node0".to_string(),
+        }
+    ]
+}
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct WalletView {
     pub wallet: Wallet,
@@ -44,7 +93,7 @@ pub fn get_wallet(filter: WalletFilter) -> Result<Vec<WalletView>, BackendError>
         filter.to_string()
     );
     let execute_res = crate::query(sql.as_str())?;
-    info!("get_snapshot: raw sql {}", sql);
+    debug!("get_snapshot: raw sql {}", sql);
     if execute_res.len() > 1 {
         //todo:throw error
         panic!("_tmp");
@@ -89,7 +138,7 @@ pub fn single_insert(data: &Wallet) -> Result<(), BackendError> {
         vec_str2array_text(sign_strategies.to_owned()),
         vec_str2array_text(participate_device_ids.to_owned())
     );
-    println!("row sql {} rows", sql);
+    debug!("row sql {} rows", sql);
 
     let execute_res = crate::execute(sql.as_str())?;
     info!("success insert {} rows", execute_res);
