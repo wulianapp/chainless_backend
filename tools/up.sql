@@ -9,8 +9,11 @@ create table if not exists users
     status smallint not null,
     verified boolean not null,
     invite_code text collate pg_catalog."default" not null,
-    account_ids text[] not null,
+    account_ids text[] not null,--待删除
+    kyc_status text,
+    secruity_set_status text,
     predecessor_replace_laste_time text,
+    create_subacc_laste_time text,
     main_account_id text not null,
     sub_account_ids text[] not null,
     constraint users_invite_code_key unique (invite_code),
@@ -98,7 +101,7 @@ create table secret_store
 create table key_info
 (
     pubkey text primary key,
-    device_info text,
+    current_device_info text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );

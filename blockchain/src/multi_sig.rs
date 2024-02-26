@@ -14,6 +14,7 @@ use serde_json::json;
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use lazy_static::lazy_static;
 use near_crypto::InMemorySigner;
+use near_primitives::account::Account;
 use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
 
@@ -62,7 +63,7 @@ impl ContractClient<MultiSig> {
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "multi_sig.node0".parse().unwrap(),
+            deployed_at: "multi_sig4.node0".parse().unwrap(),
             relayer: signer,
             phantom: Default::default(),
         }
@@ -88,11 +89,45 @@ impl ContractClient<MultiSig> {
 
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result).unwrap();
-            Some(serde_json::from_str::<StrategyData>(&amount_str).unwrap())
+            if amount_str.eq("null"){
+                None
+            }else {
+                Some(serde_json::from_str::<StrategyData>(&amount_str).unwrap())
+            }
         } else {
             None
         }
     }
+    /***
+     pub fn get_txs_state(&self, txs_index:Vec<Index>) -> Vec<(Index, bool)> {
+        let values:Vec<bool> = txs_index.iter().map(|index| self.success_tx.contains(index)).collect();
+        txs_index.into_iter().zip(values.into_iter()).collect()
+    }
+    */
+
+    pub async fn get_tx_status(&self, txs_index:Vec<u64>) -> Vec<(u64,bool)> {
+        let request = methods::query::RpcQueryRequest {
+            block_reference: BlockReference::Finality(Finality::Final),
+            request: QueryRequest::CallFunction {
+                account_id: (self.deployed_at).clone(),
+                method_name: "get_txs_state".to_string(),
+                args: FunctionArgs::from(
+                    json!({
+                        "txs_index":txs_index
+                    }).to_string().into_bytes(),
+                ),
+            },
+        };
+        let rep = crate::general::call(request).await.unwrap();
+
+        if let QueryResponseKind::CallResult(result) = rep.kind {
+            let amount_str: String = String::from_utf8(result.result).unwrap();
+                serde_json::from_str::<Vec<(u64,bool)>>(&amount_str).unwrap()
+        } else {
+            vec![]
+        }
+    }
+
 
     pub async fn init_strategy(
         &self,
@@ -106,6 +141,79 @@ impl ContractClient<MultiSig> {
             vec![MultiSigRank::default()],
         )
         .await
+    }
+
+    pub async fn remove_tx_index(
+        &self,
+        tx_index:u64
+    ) -> Result<String, String> {
+        let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
+            method_name: "remove_tx_index".to_string(),
+            args: json!({
+                "index": tx_index
+            }).to_string().into_bytes(),
+            gas: 300000000000000, // 100 TeraGas
+            deposit: 0,
+        }))];
+
+        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await;
+        transaction.actions = set_strategy_actions;
+
+        //get from front
+        let signature = self
+            .relayer
+            .sign(transaction.get_hash_and_size().0.as_ref());
+
+        let tx = SignedTransaction::new(signature, transaction);
+        let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
+            signed_transaction: tx.clone(),
+        };
+
+        println!("call set strategy txid {}", &tx.get_hash().to_string());
+
+        let rep = crate::general::call(request).await.unwrap();
+        if let FinalExecutionStatus::Failure(error) = rep.status {
+            Err(error.to_string())?;
+        }
+        let tx_id = rep.transaction.hash.to_string();
+        Ok(tx_id)
+    }
+
+    pub async fn remove_account_strategy(
+        &self,
+        acc:String
+    ) -> Result<String, String> {
+        let acc_id = AccountId::from_str(&acc).unwrap();
+        let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
+            method_name: "remove_account_strategy".to_string(),
+            args: json!({
+                "acc": acc_id
+            }).to_string().into_bytes(),
+            gas: 300000000000000, // 100 TeraGas
+            deposit: 0,
+        }))];
+
+        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await;
+        transaction.actions = set_strategy_actions;
+
+        //get from front
+        let signature = self
+            .relayer
+            .sign(transaction.get_hash_and_size().0.as_ref());
+
+        let tx = SignedTransaction::new(signature, transaction);
+        let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
+            signed_transaction: tx.clone(),
+        };
+
+        println!("call set strategy txid {}", &tx.get_hash().to_string());
+
+        let rep = crate::general::call(request).await.unwrap();
+        if let FinalExecutionStatus::Failure(error) = rep.status {
+            Err(error.to_string())?;
+        }
+        let tx_id = rep.transaction.hash.to_string();
+        Ok(tx_id)
     }
 
     pub async fn set_strategy(
@@ -248,6 +356,62 @@ impl ContractClient<MultiSig> {
             &self.deployed_at.to_string(),
         )
         .await;
+
+        transaction.actions = set_strategy_actions;
+
+        let hash = transaction.get_hash_and_size().0.try_to_vec().unwrap();
+        let txid = hex::encode(hash);
+        let raw_bytes = transaction.try_to_vec().unwrap();
+        let raw_str = hex::encode(raw_bytes);
+
+        //let txid2 =   transaction.get_hash_and_size().0.to_string();
+        //assert_eq!(txid1,txid2);
+        Ok((txid, raw_str))
+    }
+
+    pub async fn gen_send_money_raw_tx2(
+        &self,
+        tx_index: u64,
+        sender_account_id: &str,
+        sender_pubkey: &str,
+        servant_device_sigs: Vec<SignInfo>,
+        from: &str,
+        to: &str,
+        coin_id: CoinType,
+        transfer_amount: u128,
+        expire_at: u64,
+    ) -> Result<(String, String), String> {
+        let coin_tx = CoinTx {
+            from: AccountId::from_str(from).unwrap(),
+            to: AccountId::from_str(to).unwrap(),
+            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            amount: transfer_amount,
+            expire_at,
+            memo: None,
+        };
+
+        let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
+            method_name: "send_money".to_string(),
+            args: json!({
+                "tx_index": tx_index,
+                "servant_device_sigs": servant_device_sigs,
+                "coin_tx": coin_tx,
+            })
+                .to_string()
+                .into_bytes(),
+            gas: 300000000000000, // 100 TeraGas
+            deposit: 0,
+        }))];
+
+        //let mut transaction = gen_transaction(&signer, &self.deployed_at.to_string()).await;
+        //fixme: key must be hex to pubkey
+        let sender_pubkey = pubkey_from_hex(sender_pubkey).to_string();
+        let mut transaction = safe_gen_transaction(
+            sender_account_id,
+            &sender_pubkey,
+            &self.deployed_at.to_string(),
+        )
+            .await;
 
         transaction.actions = set_strategy_actions;
 

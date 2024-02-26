@@ -23,6 +23,7 @@ pub(crate) async fn req(
     //message max is 10，
     //let FinalizeSha = request_data.clone();
     if is_agreed {
+        //todo:check user_id's main account_id is receiver
         let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
         let cli = blockchain::ContractClient::<MultiSig>::new();
         let strategy = cli.get_strategy(&coin_tx.transaction.from).await.unwrap();
@@ -37,8 +38,10 @@ pub(crate) async fn req(
             })
             .collect();
 
+        //todo: replace with new api(gen_chain_tx) whereby avert tx expire
         let (tx_id, chain_raw_tx) = cli
-            .gen_send_money_raw_tx(
+            .gen_send_money_raw_tx2(
+                tx_index as u64,
                 &coin_tx.transaction.from,
                 &strategy.main_device_pubkey,
                 servant_sigs,

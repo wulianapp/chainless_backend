@@ -447,7 +447,7 @@ pub struct NewMasterRequest {
 #[post("/wallet/newMaster")]
 async fn new_master(    req: HttpRequest,
                         request_data: web::Json<NewMasterRequest>) -> impl Responder {
-    gen_extra_respond(handlers::new_master::req(req,request_data.into_inner()).await)
+    gen_extra_respond(handlers::new_sub_wallet::req(req, request_data.into_inner()).await)
 }
 
 
@@ -709,9 +709,16 @@ mod tests {
 
     async fn clear_contract(account_id: &str) {
         let cli = blockchain::ContractClient::<MultiSig>::new();
-        cli.init_strategy(account_id, account_id.to_owned())
-            .await
-            .unwrap();
+        //cli.clear_all().await.unwrap();
+        //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
+        cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
+        cli.remove_tx_index(1u64).await.unwrap();
+    }
+
+
+    async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64,bool)>{
+        let cli = blockchain::ContractClient::<MultiSig>::new();
+        cli.get_tx_status(txs_index).await
     }
 
     #[actix_web::test]
@@ -964,5 +971,8 @@ mod tests {
             Some(&receiver.token)
         );
         println!("{:?}", res.data);
+
+        let txs_success = get_tx_status_on_chain(vec![1u64,2u64]).await;
+        println!("txs_success {:?}", txs_success);
     }
 }

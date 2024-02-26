@@ -24,15 +24,15 @@ pub fn send_email(code: &Captcha) -> BackendRes<String> {
     let email_address = "cs2-test@chainless.top";
     let email_password = "vkHyW2dvynF8YuG1xN";
     let to = code.owner.clone();
-    let captcha = gen_random_verify_code().to_string();
-
+    let captcha = gen_random_verify_code();
+    let content = format!("[ChainLess] Your captcha is: {}, valid for 10 minutes.",captcha);
     // 创建电子邮件内容
     let email = Message::builder()
         .from(email_address.parse().unwrap())
         .to(to.parse().unwrap())
-        .subject("Captcha")
+        .subject("[ChainLess] Captcha")
         .header(ContentType::TEXT_PLAIN)
-        .body(captcha)
+        .body(content)
         .map_err(|e| {
             error!("Email parameters error {}",e.to_string());
             ExternalServiceError::EmailCaptcha(e.to_string())
