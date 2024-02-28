@@ -18,7 +18,7 @@ async fn register(
     predecessor_invite_code: Option<String>,
     password: String,
     contact_type: ContactType,
-    encrypted_prikey: String,
+    //encrypted_prikey: String,
     pubkey: String,
 ) -> BackendRes<String> {
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
@@ -56,8 +56,10 @@ async fn register(
     models::general::transaction_begin()?;
     //account_manager::single_insert(&view.user_info)?;
     account_manager::UserInfoView::insert(&view)?;
+    /***
     let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
     secret.insert()?;
+    ***/
     let multi_cli = ContractClient::<MultiSig>::new();
     multi_cli
         .init_strategy(&pubkey)
@@ -79,7 +81,7 @@ pub mod by_email {
             captcha,
             predecessor_invite_code,
             password,
-            encrypted_prikey,
+            //encrypted_prikey,
             pubkey,
         } = request_data;
         //captcha::validate_email(&email)?;
@@ -90,7 +92,7 @@ pub mod by_email {
             predecessor_invite_code,
             password,
             ContactType::Email,
-            encrypted_prikey,
+            //encrypted_prikey,
             pubkey,
         )
         .await
@@ -108,7 +110,7 @@ pub mod by_phone {
             captcha,
             predecessor_invite_code,
             password,
-            encrypted_prikey,
+            //encrypted_prikey,
             pubkey,
         } = request_data;
         //captcha::validate_phone(&phone_number)?;
@@ -119,7 +121,7 @@ pub mod by_phone {
             predecessor_invite_code,
             password,
             ContactType::PhoneNumber,
-            encrypted_prikey,
+            //encrypted_prikey,
             pubkey,
         )
         .await

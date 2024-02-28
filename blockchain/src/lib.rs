@@ -41,7 +41,7 @@ impl<T> ContractClient<T> {
     async fn gen_tx(&self,method_name:&str,args:&str) -> Transaction{
         let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
             method_name: method_name.to_string(),
-            args: args.try_to_vec().unwrap(),
+            args: args.as_bytes().to_vec(),
             gas: 300000000000000, // 100 TeraGas
             deposit: 0,
         }))];

@@ -31,16 +31,7 @@ pub async fn req(
 
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
-    //it is impossible to get none
-    let current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap().unwrap();
-    multi_sig_cli
-        .set_strategy(
-            &account_id,
-            current_strategy.servant_device_pubkey,
-            strategy,
-        )
-        .await
-        .unwrap();
+    multi_sig_cli.update_rank(&account_id, strategy).await?;
 
     Ok(None::<String>)
 }

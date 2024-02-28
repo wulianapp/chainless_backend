@@ -64,7 +64,7 @@ impl ContractClient<MultiSig> {
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "multi_sig5.node0".parse().unwrap(),
+            deployed_at: "multi_sig6.node0".parse().unwrap(),
             relayer: signer,
             phantom: Default::default(),
         }
@@ -90,6 +90,7 @@ impl ContractClient<MultiSig> {
         self.set_strategy(
             account_id,
             vec![],
+                            vec![],
             vec![MultiSigRank::default()],
         )
         .await
@@ -146,17 +147,23 @@ impl ContractClient<MultiSig> {
     pub async fn set_strategy(
         &self,
         account_id: &str,
-        servant_pubkey: Vec<String>,
+        servant_pubkeys: Vec<String>,
+        subaccounts: Vec<String>,
         rank_arr: Vec<MultiSigRank>,
     ) -> BackendRes<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id).unwrap();
+        let subaccounts = subaccounts
+        .iter()
+        .map(|acc_str| AccountId::from_str(acc_str).unwrap())
+        .collect::<Vec<AccountId>>();
         let args_str = json!({
             "user_account_id": user_account_id,
-            "servant_device_pubkey": servant_pubkey,
-            "rank_arr": rank_arr,
+            "servant_pubkeys": servant_pubkeys,
+            "subaccounts": subaccounts,
+            "rank_arr": rank_arr
         })
         .to_string();
-        self.commit_by_relayer("set_strategy", &args_str).await
+        self.commit_by_relayer("set_strategy2", &args_str).await
     }
 
     pub async fn update_rank(
@@ -497,7 +504,7 @@ mod tests {
         println!("strategy_str2 {:#?}", strategy_str);
 
         let set_strategy_res = client
-            .set_strategy(&sender_id, servant_pubkey, ranks)
+            .set_strategy(&sender_id, servant_pubkey, vec![],ranks)
             .await
             .unwrap();
         println!("call set strategy txid {}", set_strategy_res.unwrap());

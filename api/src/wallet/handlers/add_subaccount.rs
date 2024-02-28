@@ -10,7 +10,7 @@ use common::http::{BackendRes, token_auth};
 use models::{account_manager, PsqlOp, secret_store};
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::secret_store::SecretStore2;
-use crate::account_manager::captcha::{Captcha, ContactType, Usage};
+//use crate::account_manager::captcha::{Captcha, ContactType, Usage};
 use crate::wallet::{NewMasterRequest, ReconfirmSendMoneyRequest};
 
 pub async fn req(

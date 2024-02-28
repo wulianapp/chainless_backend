@@ -41,14 +41,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap().unwrap();
     current_strategy.servant_device_pubkey.push(new_servant);
-    multi_sig_cli
-        .set_strategy(
-            &account_id,
-            current_strategy.servant_device_pubkey,
-            current_strategy.multi_sig_ranks,
-        )
-        .await
-        .unwrap();
+    multi_sig_cli.update_servant_pubkey(&account_id, 
+        current_strategy.servant_device_pubkey).await?;
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

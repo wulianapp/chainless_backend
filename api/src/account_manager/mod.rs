@@ -19,7 +19,7 @@ use common::http::gen_extra_respond;
  * @apiGroup AccountManager
  * @apiBody {String} deviceId   用户设备ID
  * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test1@gmail.com
- * @apiBody {String="register","resetPassword"} kind 验证码类型
+ * @apiBody {String="register","resetPassword","setSecurity","addServant","servantReplaceMaster","newcomerBecomeMaster"} kind 验证码类型
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8065/accountManager/getCaptcha -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test1@gmail.com","kind":"register"}'
@@ -110,7 +110,7 @@ async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Resp
 * @apiBody {String} email     邮箱 test1@gmail.com
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password     登录密码
-* @apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
+* __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
 * @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
@@ -129,7 +129,7 @@ pub struct RegisterByEmailRequest {
     email: String,
     captcha: String,
     password: String,
-    encrypted_prikey: String,
+    //encrypted_prikey: String,
     pubkey: String,
     predecessor_invite_code: Option<String>,
 }
@@ -149,7 +149,7 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 * @apiBody {String} phoneNumber     手机号 +86 18888888888
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
-* @apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
+* __apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
 * @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
@@ -168,7 +168,7 @@ pub struct RegisterByPhoneRequest {
     phone_number: String,
     captcha: String,
     password: String,
-    encrypted_prikey: String,
+    //encrypted_prikey: String,
     pubkey: String,
     predecessor_invite_code: Option<String>,
 }
@@ -260,6 +260,13 @@ mod tests {
     use std::env;
 
     use common::http::BackendRespond;
+    async fn clear_contract(account_id: &str) {
+        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new();
+        cli.clear_all().await.unwrap();
+        //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
+        //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
+        //cli.remove_tx_index(1u64).await.unwrap();
+    }
 
     async fn init() -> App<
         impl ServiceFactory<
@@ -294,6 +301,7 @@ mod tests {
     async fn test_all_braced_account_manager_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
+        clear_contract("").await;
 
         //getCaptcha
         let payload = r#"{ "deviceId": "1", "contact": "test1@gmail.com","kind": "register" }"#;
@@ -307,12 +315,12 @@ mod tests {
         println!("{:?}", res.data);
 
         //register
+        //            "encryptedPrikey": "encrypted_prikey_0x123",
         let payload = r#"
             { "deviceId": "1",
             "email": "test1@gmail.com",
             "captcha": "000000",
             "password": "123456789",
-            "encryptedPrikey": "encrypted_prikey_0x123",
             "pubkey": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
             }"#;
         let res: BackendRespond<String> = test_service_call!(
@@ -407,20 +415,18 @@ mod tests {
          */
 
         //reset password
-        /***
-        let payload = r#"{ "deviceId": "1", "contact": "test2@gmail.com","kind": "resetPassword" }"#;
-        let res:BackendRespond<String> = service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
+        
+        let payload = r#"{ "deviceId": "1", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
+        let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
         println!("{:?}",res.data);
         let payload = r#"
-        { "deviceId": "111",
+        { "deviceId": "1",
          "captcha": "000000",
-          "contact": "test2@gmail.com",
+         "contact": "test1@gmail.com",
          "newPassword": "new123456789"
         }
         "#;
-        let res: BackendRespond<String> = service_call!(service,"post","/accountManager/resetPassword",Some(payload),None::<String>);
+        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/resetPassword",Some(payload),None::<String>);
         println!("{:?}",res.msg);
-
-         */
     }
 }

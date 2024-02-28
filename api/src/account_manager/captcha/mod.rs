@@ -42,12 +42,12 @@ impl FromStr for Usage {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "Register" => Ok(Self::Register),
-            "ResetPassword" => Ok(Self::ResetPassword),
-            "SetSecurity" => Ok(Self::SetSecurity),
-            "AddServant" => Ok(Self::AddServant),
-            "ServantReplaceMaster" => Ok(Self::ServantReplaceMaster),
-            "NewcomerBecomeMaster" => Ok(Self::NewcomerBecomeMaster),
+            "register" => Ok(Self::Register),
+            "resetPassword" => Ok(Self::ResetPassword),
+            "setSecurity" => Ok(Self::SetSecurity),
+            "addServant" => Ok(Self::AddServant),
+            "servantReplaceMaster" => Ok(Self::ServantReplaceMaster),
+            "newcomerBecomeMaster" => Ok(Self::NewcomerBecomeMaster),
             _ => Err(RequestParamInvalid(s.to_string())),
         }
     }
