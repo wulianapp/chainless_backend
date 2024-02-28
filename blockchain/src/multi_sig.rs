@@ -64,7 +64,7 @@ impl ContractClient<MultiSig> {
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "multi_sig4.node0".parse().unwrap(),
+            deployed_at: "multi_sig5.node0".parse().unwrap(),
             relayer: signer,
             phantom: Default::default(),
         }
@@ -77,7 +77,7 @@ impl ContractClient<MultiSig> {
     }
      
 
-    pub async fn get_tx_status(&self, txs_index:Vec<u64>) -> BackendRes<Vec<(u64,bool)>> {
+    pub async fn get_tx_state(&self, txs_index:Vec<u64>) -> BackendRes<Vec<(u64,bool)>> {
         let args_str = json!({"txs_index": txs_index}).to_string();
         self.query_call("get_txs_state", &args_str).await
     }
@@ -107,7 +107,6 @@ impl ContractClient<MultiSig> {
         &self,
         main_acc:&str,
         subacc:&str,
-        tx_index:u64
     ) -> BackendRes<String> {
         let main_acc = AccountId::from_str(&main_acc).unwrap();
         let subacc = AccountId::from_str(&subacc).unwrap();
@@ -498,10 +497,10 @@ mod tests {
         println!("strategy_str2 {:#?}", strategy_str);
 
         let set_strategy_res = client
-            .set_strategy(&sender_id, sender_id.to_string(), servant_pubkey, ranks)
+            .set_strategy(&sender_id, servant_pubkey, ranks)
             .await
             .unwrap();
-        println!("call set strategy txid {}", set_strategy_res);
+        println!("call set strategy txid {}", set_strategy_res.unwrap());
     }
 
     #[tokio::test]

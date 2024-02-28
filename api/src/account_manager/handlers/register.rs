@@ -60,7 +60,7 @@ async fn register(
     secret.insert()?;
     let multi_cli = ContractClient::<MultiSig>::new();
     multi_cli
-        .init_strategy(&pubkey, pubkey.clone())
+        .init_strategy(&pubkey)
         .await
         .unwrap();
     models::general::transaction_commit()?;

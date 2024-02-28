@@ -7,7 +7,7 @@ use common::http::{token_auth, BackendRes};
 use crate::wallet::UpdateStrategy;
 use blockchain::ContractClient;
 
-pub(crate) async fn req(
+pub async fn req(
     req: HttpRequest,
     request_data: web::Json<UpdateStrategy>,
 ) -> BackendRes<String> {
@@ -32,11 +32,10 @@ pub(crate) async fn req(
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
     //it is impossible to get none
-    let current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap();
+    let current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap().unwrap();
     multi_sig_cli
         .set_strategy(
             &account_id,
-            current_strategy.main_device_pubkey,
             current_strategy.servant_device_pubkey,
             strategy,
         )

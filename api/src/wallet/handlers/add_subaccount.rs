@@ -13,7 +13,7 @@ use models::secret_store::SecretStore2;
 use crate::account_manager::captcha::{Captcha, ContactType, Usage};
 use crate::wallet::{NewMasterRequest, ReconfirmSendMoneyRequest};
 
-pub(crate) async fn req(
+pub async fn req(
     req: HttpRequest,
     request_data: NewMasterRequest,
 ) -> BackendRes<String> {
@@ -35,9 +35,10 @@ pub(crate) async fn req(
     let multi_cli = ContractClient::<MultiSig>::new();
 
     multi_cli
-        .init_strategy(&pubkey, pubkey.clone())
+        .init_strategy(&pubkey)
         .await
         .unwrap();
+    //multi_cli.add_subaccount(user_info.user_info., subacc)1
     models::general::transaction_commit()?;
     info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)

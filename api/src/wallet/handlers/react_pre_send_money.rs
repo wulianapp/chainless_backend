@@ -40,10 +40,8 @@ pub(crate) async fn req(
 
         //todo: replace with new api(gen_chain_tx) whereby avert tx expire
         let (tx_id, chain_raw_tx) = cli
-            .gen_send_money_raw_tx2(
+            .gen_send_money_raw(
                 tx_index as u64,
-                &coin_tx.transaction.from,
-                &strategy.main_device_pubkey,
                 servant_sigs,
                 &coin_tx.transaction.from,
                 &coin_tx.transaction.to,
@@ -52,7 +50,7 @@ pub(crate) async fn req(
                 coin_tx.transaction.expire_at,
             )
             .await
-            .unwrap();
+            .unwrap().unwrap();
         models::coin_transfer::CoinTxView::update(
             CoinTxUpdater::ChainTxInfo(tx_id, chain_raw_tx, CoinTxStatus::ReceiverApproved),
             CoinTxFilter::ByTxIndex(tx_index),

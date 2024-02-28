@@ -134,13 +134,6 @@ pub async fn broadcast_tx_async(){
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::add;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
 
     #[tokio::test]
     async fn test_broadcast_tx_commit_from_raw() {

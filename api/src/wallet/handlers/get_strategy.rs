@@ -13,10 +13,7 @@ pub(crate) async fn req(
     let _user_id = token_auth::validate_credentials(&req)?;
 
     let strategy = blockchain::ContractClient::<MultiSig>::new();
-    let strategy = strategy
+    strategy
         .get_strategy(&request_data.account_id)
         .await
-        .unwrap();
-
-    Ok(Some(strategy))
 }

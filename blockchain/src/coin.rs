@@ -92,11 +92,13 @@ async fn get_balance(account: &AccountId) -> u128 {
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
+    use common::data_structures::wallet::CoinType;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::BorshSerialize;
     use near_primitives::types::AccountId;
     use serde_json::json;
     use std::str::FromStr;
+    use common::data_structures::wallet::AddressConvert;
 
     use super::*;
 

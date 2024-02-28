@@ -72,7 +72,7 @@ impl<T> ContractClient<T> {
             signed_transaction: tx.clone(),
         };
 
-        debug!("call set strategy txid {}", &tx.get_hash().to_string());
+        debug!("call commit_by_relayer txid {}", &tx.get_hash().to_string());
 
         let rep = crate::general::call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {

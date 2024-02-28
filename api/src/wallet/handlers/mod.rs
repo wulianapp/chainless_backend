@@ -8,5 +8,5 @@ pub mod search_message;
 pub mod send_money;
 pub mod update_strategy;
 pub mod upload_servant_sig;
-pub mod new_sub_wallet;
+pub mod add_subaccount;
 pub mod pending_pubkey;
