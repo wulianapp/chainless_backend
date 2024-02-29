@@ -27,6 +27,6 @@ pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<St
     let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))
         .map_err(|e|PhoneOrEmailNotRegister)?;
     //modify user's password  at db
-    account_manager::UserInfoView::update(UserUpdater::Password(new_password),UserFilter::ById(user_at_stored.id))?;
+    account_manager::UserInfoView::update(UserUpdater::LoginPwdHash(new_password),UserFilter::ById(user_at_stored.id))?;
     Ok(None::<String>)
 }

@@ -5,7 +5,7 @@ use postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::{PsqlOp, vec_str2array_text};
+use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use common::error_code::BackendError;
 use serde::Serialize;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
@@ -23,13 +23,13 @@ pub enum UserFilter {
 
 #[derive(Clone, Debug)]
 pub enum UserUpdater {
-    Password(String),
+    LoginPwdHash(String),
     AccountIds(Vec<String>),
 }
 impl fmt::Display for UserUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserUpdater::Password(pwd) =>  format!("pwd_hash='{}'", pwd),
+            UserUpdater::LoginPwdHash(pwd) =>  format!("login_pwd_hash='{}'", pwd),
             UserUpdater::AccountIds(ids) =>  {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
@@ -39,34 +39,6 @@ impl fmt::Display for UserUpdater {
     }
 }
 
-/***
-impl UserFilter<'_> {
-    pub fn to_string(&self) -> String {
-        let filter_str = match self {
-            UserFilter::ById(id) => {
-                format!("id='{}'", id)
-            }
-            UserFilter::ByPhone(index) => {
-                format!("phone_number='{}'", index)
-            }
-            UserFilter::ByEmail(email) => {
-                format!("email='{}'", email)
-            }
-            UserFilter::ByInviteCode(code) => {
-                format!("invite_code='{}'", code)
-            }
-            UserFilter::ByPhoneOrEmail(contact) => {
-                format!("email='{}' or phone_number='{}'", contact, contact)
-            }
-            UserFilter::ByAccountId(id) => {
-                format!("'{}'=any(account_ids) ", id)
-            }
-        };
-        filter_str
-    }
-}
-
- */
 impl fmt::Display for UserFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
@@ -81,7 +53,7 @@ impl fmt::Display for UserFilter {
     }
 }
 
-#[derive(Serialize, Debug, Default)]
+#[derive(Serialize, Debug)]
 pub struct UserInfoView {
     pub id: u32,
     pub user_info: UserInfo,
@@ -90,16 +62,24 @@ pub struct UserInfoView {
 }
 
 impl UserInfoView {
-    pub fn new_with_specified(pwd_hash:String,invite_code:String,account_id:String) -> Self{
+    pub fn new_with_specified(
+        login_pwd_hash:&str,
+        invite_code:&str,
+        main_account:&str,
+    ) -> Self{
         let user = UserInfo{
             phone_number: "".to_string(),
             email: "".to_string(),
-            pwd_hash,
+            login_pwd_hash:login_pwd_hash.to_owned(),
+            sign_pwd_hash: "".to_string(),
+            is_frozen: false,
             predecessor: None,
-            status: 0,
-            verified: false,
-            invite_code,
-            account_ids: vec![account_id],
+            laste_predecessor_replace_time: 0,
+            invite_code: invite_code.to_owned(),
+            kyc_is_verified: false,
+            secruity_is_seted: false,
+            create_subacc_time: vec![],
+            main_account: main_account.to_owned(),
         };
         UserInfoView{
             id: 0,
@@ -114,32 +94,47 @@ impl PsqlOp for UserInfoView{
     type UpdateContent = UserUpdater;
     type FilterContent = UserFilter;
 
-    fn find(filter: UserFilter) -> Result<Vec<Self>, BackendError> {
+    fn find(filter: Self::FilterContent) -> Result<Vec<Self>, BackendError> {
         let sql = format!(
-            "select id,phone_number,email,\
-         pwd_hash,predecessor,status,verified,invite_code,account_ids,\
-         cast(updated_at as text), cast(created_at as text) \
-         from users where {}",
+            "select id,\
+            phone_number,\
+            email,\
+            login_pwd_hash,\
+            sign_pwd_hash,\
+            is_frozen,\
+            predecessor,\
+            laste_predecessor_replace_time,\
+            invite_code,\
+            kyc_is_verified,\
+            secruity_is_seted,\
+            create_subacc_time,\
+            main_account,\
+            cast(updated_at as text),\
+            cast(created_at as text) \
+            from users where {}",
             filter.to_string()
         );
         let query_res = crate::query(sql.as_str())?;
         debug!("get_snapshot: raw sql {}", sql);
 
-        //let rows = query_res.first().unwrap();
         let gen_view = |row: &Row| UserInfoView {
             id: row.get::<usize, i32>(0) as u32,
             user_info: UserInfo {
                 phone_number: row.get(1),
                 email: row.get(2),
-                pwd_hash: row.get(3),
-                predecessor: row.get::<usize, Option<i32>>(4).map(|id| id as u32),
-                status: row.get::<usize, i16>(5) as u8,
-                verified: row.get(6),
-                invite_code: row.get(7),
-                account_ids: row.get::<usize, Vec<String>>(8),
+                login_pwd_hash: row.get(3),
+                sign_pwd_hash: row.get(4),
+                is_frozen: row.get::<usize, bool>(5),
+                predecessor: row.get::<usize, Option<i32>>(6).map(|id| id as u32),
+                laste_predecessor_replace_time: row.get::<usize, String>(7).parse().unwrap(),
+                invite_code: row.get(8),
+                kyc_is_verified: row.get(9),
+                secruity_is_seted: row.get(10),
+                create_subacc_time: row.get::<usize, Vec<String>>(11).iter().map(|t| t.parse().unwrap()).collect(),
+                main_account: row.get(12),
             },
-            updated_at: row.get(9),
-            created_at: row.get(10),
+            updated_at: row.get(13),
+            created_at: row.get(14),
         };
         let users = query_res.iter().map(|x| gen_view(x)).collect();
         Ok(users)
@@ -151,9 +146,9 @@ impl PsqlOp for UserInfoView{
             new_value.to_string(),
             filter.to_string()
         );
-        info!("start update orders {} ", sql);
+        debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        info!("success update orders {} rows", execute_res);
+        debug!("success update users {} rows", execute_res);
         Ok(())
     }
     
@@ -162,31 +157,52 @@ impl PsqlOp for UserInfoView{
         let UserInfo {
             phone_number,
             email,
-            pwd_hash,
+            login_pwd_hash,
+            sign_pwd_hash,
+            is_frozen,
             predecessor,
-            verified,
-            status,
+            laste_predecessor_replace_time,
             invite_code,
-            account_ids,
-        } = self.user_info.clone();
+            kyc_is_verified,
+            secruity_is_seted,
+            create_subacc_time,
+            main_account,
+        } = &self.user_info;
 
         let predecessor_str = predecessor
             .map(|x| format!("{}", x))
             .unwrap_or("NULL".to_string());
         //assembly string array to sql string
-        let account_ids_str = vec_str2array_text(account_ids.to_owned());
+        let create_subacc_time = create_subacc_time
+        .iter().map(|x| x.to_string()).collect();
+        let create_subacc_time_str = vec_str2array_text(create_subacc_time);
 
         let sql = format!(
-            "insert into users (phone_number,email,pwd_hash,\
-    predecessor,verified,status,invite_code,account_ids) values ('{}','{}','{}',{},{},{},{},{});",
+            "insert into users (phone_number,
+                email,
+                login_pwd_hash,\
+                sign_pwd_hash,
+                is_frozen,
+                predecessor,
+                laste_predecessor_replace_time,
+                invite_code,
+                kyc_is_verified,
+                secruity_is_seted,
+                create_subacc_time,
+                main_account
+            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}');",
             phone_number,
             email,
-            pwd_hash,
-            predecessor_str,
-            verified,
-            status,
+            login_pwd_hash,
+            sign_pwd_hash,
+            is_frozen,
+            PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
+            laste_predecessor_replace_time,
             invite_code,
-            account_ids_str
+            kyc_is_verified,
+            secruity_is_seted,
+            create_subacc_time_str,
+            main_account
         );
         debug!("row sql {} rows", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -221,26 +237,29 @@ pub fn get_next_uid() -> Result<u32, BackendError> {
 
 #[cfg(test)]
 mod tests {
+
     use std::env;
-
     use super::*;
-    use common::utils::math;
-    #[test]
-    fn test_models_account_manager_braced() {
-        env::set_var("SERVICE_MODE", "test");
-        crate::general::table_clear("users").unwrap();
-        let invite_code = math::gen_random_verify_code();
-        let mut user = UserInfo::default();
-        /***
-        user.email = format!("example{}@gmail.com", invite_code);
-        user.pwd_hash = "123".to_string();
-        user.invite_code = "1".to_string();
-        println!("start insert");
-        single_insert(&user).unwrap();
-        println!("start query");
-        let res = get_user(UserFilter::ByEmail(&user.email));
-        println!("res {:?}", res.unwrap());
+    use common::log::init_logger;
+    use postgres::types::ToSql;
 
-         */
+    #[test]
+    fn test_db_user_info() {
+        env::set_var("SERVICE_MODE", "test");
+        init_logger();
+        crate::general::table_all_clear();
+
+        let user = UserInfoView::new_with_specified(
+            "0123456789", "1", "main_acount_0123");
+            user.insert().unwrap();
+        let mut user_by_find = UserInfoView::find_single(
+            UserFilter::ById(1)).unwrap();
+        println!("{:?}",user_by_find);
+        assert_eq!(user_by_find.user_info,user.user_info);   
+
+        UserInfoView::update(
+            UserUpdater::LoginPwdHash("0123".to_string()), 
+            UserFilter::ById(1), 
+        ).unwrap();
     }
 }

@@ -94,7 +94,7 @@ impl<T> ContractClient<T> {
                 account_id: (self.deployed_at).clone(),
                 method_name: method_name.to_string(),
                 args: FunctionArgs::from(
-                    args.try_to_vec().unwrap(),
+                    args.to_string().into_bytes(),
                 ),
             },
         };

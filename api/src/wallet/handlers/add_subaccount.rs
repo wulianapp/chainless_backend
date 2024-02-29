@@ -24,12 +24,12 @@ pub async fn req(
     //todo: check if is master
 
     //store user info
-    let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
-    user_info.user_info.account_ids.push(pubkey.clone());
+    //let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
+    //user_info.user_info.account_ids.push(pubkey.clone());
 
 
     models::general::transaction_begin()?;
-    account_manager::UserInfoView::update(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
+    //account_manager::UserInfoView::update(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
 
     //todo: encrypted_prikey_by_password
     let secret = SecretStoreView::new_with_specified(
@@ -47,6 +47,6 @@ pub async fn req(
         .unwrap();
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
     models::general::transaction_commit()?;
-    info!("new wallet {:?}  successfully", user_info);
+    //info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)
 }

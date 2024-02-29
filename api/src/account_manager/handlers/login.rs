@@ -64,7 +64,7 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         Err(AccountLocked)?;
     }
 
-    if password != user_at_stored.user_info.pwd_hash {
+    if password != user_at_stored.user_info.login_pwd_hash {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect)?;
     }

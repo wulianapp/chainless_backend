@@ -37,7 +37,7 @@ async fn register(
     debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
-    let mut view = UserInfoView::new_with_specified(password,this_user_id.to_string(),pubkey.clone());
+    let mut view = UserInfoView::new_with_specified(&password,&this_user_id.to_string(),&pubkey);
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = contact;

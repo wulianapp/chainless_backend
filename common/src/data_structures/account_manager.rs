@@ -1,38 +1,20 @@
 use serde_derive::Serialize;
 
-/***
- id serial  primary key,
-    phone_number text collate pg_catalog."default" not null,
-    email text collate pg_catalog."default" not null,
-    pwd_hash text collate pg_catalog."default" not null,
-    status smallint not null,
-    predecessor text,
-    verified boolean not null,
-    invite_code text collate pg_catalog."default" not null,
-    account_ids text[] not null,
-*/
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone,PartialEq)]
 pub struct UserInfo {
     pub phone_number: String,
     pub email: String,
-    pub pwd_hash: String,
+    pub login_pwd_hash: String,
+    pub sign_pwd_hash: String,
+    //if is frozened,cannt operation anymore
+    pub is_frozen: bool,
     pub predecessor: Option<u32>,
-    pub status: u8,
-    pub verified: bool,
+    pub laste_predecessor_replace_time: u64,
+    //default is user_id
     pub invite_code: String,
-    pub account_ids: Vec<String>,
-}
-impl Default for UserInfo {
-    fn default() -> Self {
-        UserInfo {
-            phone_number: "".to_string(),
-            email: "".to_string(),
-            pwd_hash: "".to_string(),
-            predecessor: None,
-            status: 0,
-            verified: false,
-            invite_code: "".to_string(),
-            account_ids: vec![],
-        }
-    }
+    pub kyc_is_verified: bool,
+    pub secruity_is_seted: bool,
+    //last three time subaccounts creation
+    pub create_subacc_time: Vec<u64>,
+    pub main_account: String,
 }
