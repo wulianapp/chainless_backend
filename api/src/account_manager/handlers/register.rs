@@ -9,10 +9,10 @@ use blockchain::ContractClient;
 use common::http::BackendRes;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::{account_manager, PsqlOp, secret_store};
-use models::secret_store::SecretStore2;
+use models::secret_store::SecretStoreView;
 
 async fn register(
-    _device_id: String,
+    device_id: String,
     contact: String,
     captcha: String,
     predecessor_invite_code: Option<String>,
@@ -48,7 +48,6 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        //let predecessor = get_user(UserFilter::ByInviteCode(code))?.ok_or(InviteCodeNotExist)?;
         let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(code)).map_err(|e|InviteCodeNotExist)?;
         view.user_info.predecessor = Some(predecessor.id);
     }
@@ -60,14 +59,14 @@ async fn register(
     let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
     secret.insert()?;
     ***/
-    let multi_cli = ContractClient::<MultiSig>::new();
-    multi_cli
-        .init_strategy(&pubkey)
-        .await
-        .unwrap();
+    //注册多签账户放在安全问答之后
+    //let multi_cli = ContractClient::<MultiSig>::new();
+    //multi_cli.init_strategy(&pubkey).await.unwrap();
     models::general::transaction_commit()?;
+
+    let token = common::http::token_auth::create_jwt(this_user_id, device_id);
     info!("user {:?} register successfully", view.user_info);
-    Ok(None::<String>)
+    Ok(Some(token))
 }
 
 pub mod by_email {

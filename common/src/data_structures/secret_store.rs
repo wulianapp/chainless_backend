@@ -1,9 +1,11 @@
 use serde_derive::{Deserialize, Serialize};
+use super::{KeyRole, SecretKeyState, SecretKeyType};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug,PartialEq)]
 pub struct SecretStore {
-    pub account_id: String,
+    pub pubkey: String,
+    pub state: SecretKeyState,
     pub user_id: u32,
-    pub master_encrypted_prikey: String,
-    pub servant_encrypted_prikeys: Vec<String>,
+    pub encrypted_prikey_by_password: String,
+    pub encrypted_prikey_by_answer: String
 }

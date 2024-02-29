@@ -33,6 +33,6 @@ pub fn table_all_clear() {
     //table_clear("accounts").unwrap();
     table_clear("users").unwrap();
     table_clear("coin_transaction").unwrap();
-    //table_clear("wallet").unwrap();
+    table_clear("device_info").unwrap();
     table_clear("secret_store").unwrap()
 }

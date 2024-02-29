@@ -101,7 +101,9 @@ async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Resp
     gen_extra_respond(handlers::verify_captcha::req(request_data.into_inner()).await)
 }
 
+
 /**
+__apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
 * @api {post} /accountManager/registerByEmail 通过邮箱注册账户
 * @apiVersion 0.0.1
 * @apiName registerByEmail
@@ -110,7 +112,6 @@ async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Resp
 * @apiBody {String} email     邮箱 test1@gmail.com
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password     登录密码
-* __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
 * @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
@@ -141,6 +142,7 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 }
 
 /**
+ *  __apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
 * @api {post} /accountManager/registerByPhone 通过手机注册账户
 * @apiVersion 0.0.1
 * @apiName registerByPhone
@@ -149,7 +151,6 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 * @apiBody {String} phoneNumber     手机号 +86 18888888888
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
-* __apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
 * @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:

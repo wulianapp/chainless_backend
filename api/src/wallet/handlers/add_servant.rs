@@ -2,13 +2,17 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 
+use common::data_structures::SecretKeyType;
+use common::error_code::WalletError;
 use common::http::{token_auth, BackendRes};
+use models::account_manager::{UserFilter, UserInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use crate::wallet::AddServantRequest;
 use blockchain::ContractClient;
-use common::error_code::BackendError::InternalError;
+use common::error_code::BackendError::{self, InternalError};
 use models::PsqlOp;
+use models::secret_store::SecretStoreView;
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -25,24 +29,34 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         .iter()
         .find(|(prikey,pubkey)| *pubkey == new_servant)
         .ok_or( InternalError("".to_string()))?;
+    let user_info = UserInfoView::find_single(
+        UserFilter::ById(user_id)
+    )?.user_info;
 
     models::general::transaction_begin()?;
     //backup servant prikeys
-    let mut secret_info = models::secret_store::SecretStore2::find_single(SecretFilter::ByAccountId(account_id.clone()))?;
-    secret_info.servant_encrypted_prikeys.push(prikey.to_owned());
-    models::secret_store::SecretStore2::update(
-        SecretUpdater::Servant(secret_info.servant_encrypted_prikeys),
-        SecretFilter::ByAccountId(account_id.clone()),
-    )?;
+    if !SecretStoreView::find(
+        SecretFilter::ByPubkey(new_servant.clone())
+    )?.is_empty() {
+        Err(WalletError::PubkeyAlreadyExist)?
+    }
 
-
+    //todo: key,master_id
+    let secret_info = SecretStoreView::new_with_specified(
+        &new_servant, user_id, 
+        "encrypted_prikey_by_password", 
+        "encrypted_prikey_by_answer"
+    );
+    
+    secret_info.insert()?;
+   
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap().unwrap();
-    current_strategy.servant_device_pubkey.push(new_servant);
+    current_strategy.servant_pubkey.push(new_servant);
     multi_sig_cli.update_servant_pubkey(&account_id, 
-        current_strategy.servant_device_pubkey).await?;
+        current_strategy.servant_pubkey).await?;
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

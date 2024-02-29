@@ -557,6 +557,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 }
 
+/***
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -569,6 +571,7 @@ mod tests {
 
     use actix_web::{body::MessageBody as _, test, App};
 
+    use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxView;
     use models::{account_manager, PsqlOp, secret_store};
     use serde_json::json;
@@ -581,17 +584,38 @@ mod tests {
     use actix_web::{Error};
     use common::data_structures::wallet::CoinTxStatus;
     use common::utils::math;
-    use models::secret_store::SecretStore2;
+    use models::secret_store::SecretStoreView;
    // use log::{info, LevelFilter,debug,error};
     use tracing::{debug,info,error};
     use models::account_manager::UserInfoView;
 
 
     struct TestWallet {
-        account_id: String,
-        pubkey: String,
-        prikey: String,
+      main_account:String, 
+      main_key_type: KeyRole, 
+      main_prikey:String,
+      sub_prikeys: Vec<String>
     }
+
+    struct TestDevice {
+        device_id: String,
+        device_type:String,
+        role: Devic
+    }
+
+    struct TestUser{
+        user_id: u32,
+        token: String,
+        contact: String,
+        password: String,
+    }
+
+    struct TestWulianApp2 {
+        user: TestUser,
+        device: TestDevice,
+        wallet: TestWallet,
+    }
+
     struct TestWulianApp {
         user_id: u32,
         token: String,
@@ -617,6 +641,7 @@ mod tests {
     }
 
     fn simulate_sender_master() -> TestWulianApp {
+        /*** 
         let wallet = TestWallet{
             account_id: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
             pubkey: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
@@ -624,6 +649,7 @@ mod tests {
             prikey:"8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
             ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()
         };
+      
 
         let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2Vfa\
         WQiOiIxIiwiaWF0IjoxNzA4MjE5NzE2OTA3LCJleHAiOjQ4NjE4MTk3MTY5MDd9.ywLc5_LNscPamm0BRGvylP1\
@@ -644,11 +670,49 @@ mod tests {
         user_info.user_info.email = app.contact.clone();
         user_info.insert().unwrap();
 
-        let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
-                                                      app.user_id,
-                                                      app.wallets.first().unwrap().prikey.clone());
+        let secret = SecretStoreView::new_with_specified(
+            /***
+                         app.wallets.first().unwrap().account_id.clone(),  
+            app.user_id,
+            app.wallets.first().unwrap().prikey.clone()
+             */
+            wallet.pubkey,
+                            wallet.,
+                              master_id: String,
+                              key_type: SecretKeyType,
+                              encrypted_prikey_by_password:String,
+                              encrypted_prikey_by_answer:String
+
+        );
         secret.insert().unwrap();
         app
+        */
+        let device = TestDevice{
+            device_id: "12345".to_string(),
+            device_type: "Huawei P30".to_string(),
+        };
+        let wallet = TestWallet{
+            //pubkey: 2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0
+            main_prikey: "8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
+            ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
+            sub_prikeys: vec![],
+            main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
+            main_key_type: Some(KeyRole::Master),
+        };
+        let token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2Vfa\
+        WQiOiIxIiwiaWF0IjoxNzA4MjE5NzE2OTA3LCJleHAiOjQ4NjE4MTk3MTY5MDd9.ywLc5_LNscPamm0BRGvylP1\
+        HEYw0Z3xbbGXmBqEesBE".to_string();
+        let user = TestUser{
+            user_id: 1u32,
+            token,
+            password: "123456789".to_string(),
+            contact: "test1@gmail.com".to_string(),
+        };
+        let app = TestWulianApp2{
+            user,
+            device,
+            wallet,
+        }; 
     }
 
     fn simulate_sender_servant() -> TestWulianApp {
@@ -703,7 +767,7 @@ mod tests {
         user_info.insert().unwrap();
 
 
-        let secret = SecretStore2::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
+        let secret = SecretStore::new_with_specified(app.wallets.first().unwrap().account_id.clone(),
                                                       app.user_id,
                                                       app.wallets.first().unwrap().prikey.clone());
         secret.insert().unwrap();
@@ -982,3 +1046,5 @@ mod tests {
         */
     }
 }
+ * 
+ */

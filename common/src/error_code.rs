@@ -95,6 +95,10 @@ pub enum WalletError {
     ReceiverNotFound,
     #[error("sender is nonexistent  in database")]
     SenderNotFound,
+    #[error("pubkey is not exist")]
+    PubkeyNotExist,
+    #[error("pubkey have already been exist")]
+    PubkeyAlreadyExist,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -102,6 +106,8 @@ impl ErrorCode for WalletError {
             Self::TxFromNotBeUser => 3001,
             Self::ReceiverNotFound => 3002,
             Self::SenderNotFound => 3003,
+            Self::PubkeyNotExist => 3004,
+            Self::PubkeyAlreadyExist => 3005,
         }
     }
 }

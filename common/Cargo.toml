@@ -24,7 +24,8 @@ env_logger = "0.11"
 tracing = "0.1.27"
 tracing-futures = "0.2.5"
 tracing-subscriber = "0.2.22"
-
+strum_macros = "0.26.1"
+strum = "0.26.1"
 
 
 

@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::{vec_str2array_text, PsqlType, PsqlOp};
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::BackendError;
-use crate::secret_store::{SecretFilter, SecretStore2};
+use crate::secret_store::{SecretFilter, SecretStoreView};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {

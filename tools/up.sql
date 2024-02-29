@@ -15,7 +15,6 @@ create table if not exists users
     predecessor_replace_laste_time text,
     create_subacc_laste_time text,
     main_account_id text not null,
-    sub_account_ids text[] not null,
     constraint users_invite_code_key unique (invite_code),
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
@@ -64,44 +63,28 @@ create table coin_transaction(
 create index coin_transaction_tx_id on coin_transaction (tx_id);
 create index coin_transaction_user on coin_transaction (sender,receiver);
 
--- tokens table
-create table wallet
-(
-    account_id text primary key,
-    user_id int,
-    master_pubkey text,
-    servant_pubkeys text[],
-    sign_strategy text, --json
-    updated_at  timestamp with time zone default current_timestamp,
-    created_at  timestamp with time zone default current_timestamp
-);
-
-
-create table device
-(
-    device_id text primary key,
-    user_id int,
-    type   text, --master,servant,readonly
-    status text, --active,abandoned
-    updated_at  timestamp with time zone default current_timestamp,
-    created_at  timestamp with time zone default current_timestamp
-);
-
+--密钥备份
 create table secret_store
 (
-    account_id text primary key,
+    pubkey text primary key,
+    state text,--Sitting,Deprecated
     user_id int,
-    master_encrypted_prikey text,
-    servant_encrypted_prikeys text[],
+    encrypted_prikey_by_password text,
+    encrypted_prikey_by_answer text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );
 
 --储蓄账户的主pubkey和从pubkey，子账户的key不存
-create table key_info
+create table device_info
 (
-    pubkey text primary key,
-    current_device_info text,
+    id text,
+    user_id int,
+    state text,--Active,Inactive
+    hold_pubkey text,
+    brand text, --huawei,apple
     updated_at  timestamp with time zone default current_timestamp,
-    created_at  timestamp with time zone default current_timestamp
+    created_at  timestamp with time zone default current_timestamp,
+     --一台设备登陆多个账号
+    CONSTRAINT device_user PRIMARY KEY (id, user_id)
 );
