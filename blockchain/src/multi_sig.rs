@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::str::FromStr;
 use common::error_code::BackendError;
-use common::http::BackendRes;
+use common::error_code::BackendRes;
 //use ed25519_dalek::Signer;
 use ed25519_dalek::Signer as DalekSigner;
 use hex::ToHex;

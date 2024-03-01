@@ -4,7 +4,9 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
+
 use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 

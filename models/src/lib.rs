@@ -34,7 +34,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt::{Debug, Display};
 use std::sync::Mutex;
-use common::http::BackendRespond;
 
 static TRY_TIMES: u8 = 5;
 

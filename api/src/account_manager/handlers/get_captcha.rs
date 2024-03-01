@@ -2,9 +2,10 @@
 use tracing::debug;
 use common::error_code::AccountManagerError::CaptchaRequestTooFrequently;
 
-use crate::account_manager::captcha::{Captcha, ContactType, Usage};
-use crate::account_manager::{captcha, GetCaptchaRequest};
-use common::http::BackendRes;
+use crate::utils::captcha::{Captcha, ContactType, Usage};
+use crate::utils::{captcha};
+use crate::account_manager::GetCaptchaRequest;
+use common::error_code::BackendRes;
 use common::utils::time::{now_millis, MINUTE1};
 
 pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {

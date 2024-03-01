@@ -3,10 +3,10 @@ use actix_web::web;
 use tracing::debug;
 
 
-use crate::account_manager::captcha::{Captcha, Usage};
+use crate::utils::captcha::{Captcha, Usage};
 use crate::account_manager::ResetPasswordRequest;
 use common::error_code::AccountManagerError::*;
-use common::http::BackendRes;
+use common::error_code::BackendRes;
 use models::{account_manager, PsqlOp};
 use models::account_manager::{UserFilter, UserUpdater};
 

@@ -104,7 +104,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
 #[derive(Debug, Clone)]
 pub struct Captcha {
     //email address or phone number
-    pub owner: String,
+    owner: String,
     device_id: String,
     kind: Usage,
     code: String,

@@ -2,12 +2,12 @@ use actix_web::HttpRequest;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::error_code::BackendError;
-use crate::error_code::BackendError::Authorization;
-use crate::utils::time::{now_millis, DAY15, YEAR100};
+use common::error_code::BackendError;
+use common::error_code::BackendError::Authorization;
+use common::utils::time::{now_millis, DAY15, YEAR100};
 use actix_web::http::header;
-use crate::env::ServiceMode;
-use crate::utils::math::gen_random_verify_code;
+use common::env::ServiceMode;
+use common::utils::math::gen_random_verify_code;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -34,8 +34,8 @@ const SECRET_KEY: &[u8] = b"your_secret_key";
 pub fn create_jwt(user_id: u32, device_id: String) -> String {
     let iat = now_millis();
 
-    let exp = if crate::env::CONF.service_mode != ServiceMode::Product
-        && crate::env::CONF.service_mode != ServiceMode::Dev
+    let exp = if common::env::CONF.service_mode != ServiceMode::Product
+        && common::env::CONF.service_mode != ServiceMode::Dev
     {
         iat + YEAR100
     } else {

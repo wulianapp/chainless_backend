@@ -4,7 +4,8 @@ use std::sync::Mutex;
 use actix_web::HttpRequest;
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
-use common::http::{BackendRes, token_auth};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use crate::wallet::{NewMasterRequest, PutPendingPubkeyRequest};
 lazy_static! {
     static ref PENDING_KEYS: Mutex<HashMap<u32, Vec<(String,String)>>> = Mutex::new(HashMap::new());

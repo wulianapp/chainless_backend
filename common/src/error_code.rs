@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
+
 #[derive(Error, Debug)]
 pub enum BackendError {
     #[error("internal error: {0}")]

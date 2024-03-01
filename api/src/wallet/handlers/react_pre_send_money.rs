@@ -4,7 +4,8 @@ use blockchain::multi_sig::{MultiSig, SignInfo};
 use common::data_structures::wallet::{CoinTxStatus, CoinType};
 
 use crate::wallet::ReactPreSendMoney;
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 

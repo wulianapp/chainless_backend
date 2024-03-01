@@ -4,7 +4,8 @@ use blockchain::multi_sig::MultiSig;
 
 use common::data_structures::SecretKeyType;
 use common::error_code::WalletError;
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 

@@ -2,8 +2,8 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 
-use common::http::{token_auth, BackendRes};
-
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use crate::wallet::UpdateStrategy;
 use blockchain::ContractClient;
 

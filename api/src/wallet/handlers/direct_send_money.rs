@@ -1,8 +1,8 @@
 use actix_web::{web, HttpRequest};
 
 use crate::wallet::DirectSendMoneyRequest;
-use common::http::{token_auth, BackendRes};
-
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 pub(crate) async fn req(
     req: HttpRequest,
     _request_data: web::Json<DirectSendMoneyRequest>,

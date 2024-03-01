@@ -2,7 +2,9 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, StrategyData};
 
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
+
 
 use crate::wallet::{getStrategyRequest, searchMessageByAccountIdRequest};
 

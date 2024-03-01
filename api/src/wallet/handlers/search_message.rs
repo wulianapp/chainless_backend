@@ -2,7 +2,8 @@ use actix_web::HttpRequest;
 
 use crate::wallet::searchMessageByAccountIdRequest;
 use common::error_code::AccountManagerError;
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use models::account_manager::{ UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::PsqlOp;

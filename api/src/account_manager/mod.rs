@@ -1,7 +1,6 @@
 #![feature(async_closure)]
 
 //! account manager http service
-pub mod captcha;
 pub mod handlers;
 
 use actix_web::{get, post, web, Responder};
@@ -10,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 //use captcha::{ContactType, VerificationCode};
 
-use common::http::gen_extra_respond;
+use crate::utils::respond::gen_extra_respond;
 
 /**
  * @api {post} /accountManager/getCaptcha 获取验证码
@@ -259,8 +258,9 @@ mod tests {
     use actix_web::http::header;
     use actix_web::{test, App, Error};
     use std::env;
+    use crate::test_service_call;
 
-    use common::http::BackendRespond;
+    use crate::utils::respond::BackendRespond;
     async fn clear_contract(account_id: &str) {
         let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new();
         cli.clear_all().await.unwrap();

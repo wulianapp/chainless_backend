@@ -3,10 +3,10 @@ use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::*;
 //use log::{debug, info};
 use tracing::{debug,info};
-use crate::account_manager::captcha::{Captcha, ContactType, Usage};
+use crate::utils::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::http::BackendRes;
+use common::error_code::BackendRes;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::{account_manager, PsqlOp, secret_store};
 use models::secret_store::SecretStoreView;
@@ -64,7 +64,7 @@ async fn register(
     //multi_cli.init_strategy(&pubkey).await.unwrap();
     models::general::transaction_commit()?;
 
-    let token = common::http::token_auth::create_jwt(this_user_id, device_id);
+    let token = crate::utils::token_auth::create_jwt(this_user_id, device_id);
     info!("user {:?} register successfully", view.user_info);
     Ok(Some(token))
 }

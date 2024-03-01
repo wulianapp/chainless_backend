@@ -9,7 +9,7 @@ mod hello;
 pub mod multi_sig;
 mod newbie_reward;
 
-use common::{error_code::{BackendError, ExternalServiceError}, http::{BackendRes, BackendRespond}};
+use common::{error_code::{BackendError, ExternalServiceError}, error_code::{BackendRes}};
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};

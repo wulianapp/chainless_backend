@@ -6,7 +6,8 @@ use common::error_code::AccountManagerError::{
 };
 
 use crate::account_manager::LoginRequest;
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use common::utils::time::{now_millis, MINUTE30};
 use models::{account_manager, PsqlOp};
 use models::account_manager::UserFilter;

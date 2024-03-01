@@ -2,7 +2,8 @@ use actix_web::{web, HttpRequest};
 
 use common::data_structures::wallet::CoinTxStatus;
 
-use common::http::{token_auth, BackendRes};
+use common::error_code::{BackendRes};
+use crate::utils::token_auth;
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 

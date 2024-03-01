@@ -1,4 +1,4 @@
-use common::http::BackendRes;
+use common::error_code::BackendRes;
 
 use models::{account_manager, PsqlOp};
 use models::account_manager::UserFilter;

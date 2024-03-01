@@ -1,5 +1,5 @@
 use common::error_code::BackendError::InternalError;
-use common::http::BackendRes;
+use common::error_code::BackendRes;
 
 use crate::account_manager::VerifyCodeRequest;
 
