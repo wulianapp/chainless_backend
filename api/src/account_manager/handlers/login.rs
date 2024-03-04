@@ -55,6 +55,7 @@ fn is_locked(user_id: u32) -> bool {
 pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     let LoginRequest {
         device_id,
+        device_brand,
         contact,
         password,
     } = request_data;
@@ -69,7 +70,9 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect)?;
     }
+    //todo: 如果user的device换了，更新device_info的table
+    
     //generate auth token
-    let token = token_auth::create_jwt(user_at_stored.id, device_id);
+    let token = token_auth::create_jwt(user_at_stored.id, &device_id,&device_brand);
     Ok(Some(token))
 }

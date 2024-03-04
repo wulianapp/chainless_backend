@@ -13,15 +13,17 @@ use common::utils::math::gen_random_verify_code;
 struct Claims {
     user_id: u32,
     device_id: String,
+    device_brand: String,
     iat: u64,
     exp: u64,
 }
 
 impl Claims {
-    pub fn new(user_id: u32, device_id: String, iat: u64, exp: u64) -> Self {
+    pub fn new(user_id: u32, device_id: &str,device_brand: &str, iat: u64, exp: u64) -> Self {
         Self {
             user_id,
-            device_id,
+            device_id: device_id.to_owned(),
+            device_brand: device_brand.to_owned(),
             iat,
             exp,
         }
@@ -31,7 +33,7 @@ impl Claims {
 // todo: Secret key for JWT,setup by env or config
 const SECRET_KEY: &[u8] = b"your_secret_key";
 
-pub fn create_jwt(user_id: u32, device_id: String) -> String {
+pub fn create_jwt(user_id: u32, device_id: &str,device_brand:&str) -> String {
     let iat = now_millis();
 
     let exp = if common::env::CONF.service_mode != ServiceMode::Product
@@ -42,7 +44,7 @@ pub fn create_jwt(user_id: u32, device_id: String) -> String {
         iat + DAY15
     };
 
-    let claims = Claims::new(user_id, device_id, iat, exp);
+    let claims = Claims::new(user_id, device_id, device_brand,iat, exp);
 
     jsonwebtoken::encode(
         &Header::new(Algorithm::HS256),
@@ -90,7 +92,7 @@ mod tests {
 
     #[test]
     fn test_account_login_auth() {
-        let token = create_jwt(1, "".to_string());
+        let token = create_jwt(1, "","huawei");
         println!("res {}", token);
     }
 }

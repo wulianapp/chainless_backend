@@ -13,13 +13,14 @@ use models::secret_store::SecretStoreView;
 
 async fn register(
     device_id: String,
+    device_brand: String,
     contact: String,
     captcha: String,
     predecessor_invite_code: Option<String>,
     password: String,
     contact_type: ContactType,
     //encrypted_prikey: String,
-    pubkey: String,
+    //pubkey: String,
 ) -> BackendRes<String> {
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
@@ -37,6 +38,8 @@ async fn register(
     debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
+    //fixme: 
+    let pubkey = "";
     let mut view = UserInfoView::new_with_specified(&password,&this_user_id.to_string(),&pubkey);
     match contact_type {
         ContactType::PhoneNumber => {
@@ -62,9 +65,11 @@ async fn register(
     //注册多签账户放在安全问答之后
     //let multi_cli = ContractClient::<MultiSig>::new();
     //multi_cli.init_strategy(&pubkey).await.unwrap();
+    let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey);
+    device.insert()?;
     models::general::transaction_commit()?;
 
-    let token = crate::utils::token_auth::create_jwt(this_user_id, device_id);
+    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id,&device_brand);
     info!("user {:?} register successfully", view.user_info);
     Ok(Some(token))
 }
@@ -76,23 +81,25 @@ pub mod by_email {
     pub async fn req(request_data: RegisterByEmailRequest) -> BackendRes<String> {
         let RegisterByEmailRequest {
             device_id,
+            device_brand,
             email,
             captcha,
             predecessor_invite_code,
             password,
             //encrypted_prikey,
-            pubkey,
+            //pubkey,
         } = request_data;
         //captcha::validate_email(&email)?;
         super::register(
             device_id,
+            device_brand,
             email,
             captcha,
             predecessor_invite_code,
             password,
             ContactType::Email,
             //encrypted_prikey,
-            pubkey,
+            //pubkey,
         )
         .await
     }
@@ -105,23 +112,25 @@ pub mod by_phone {
     pub async fn req(request_data: RegisterByPhoneRequest) -> BackendRes<String> {
         let RegisterByPhoneRequest {
             device_id,
+            device_brand,
             phone_number,
             captcha,
             predecessor_invite_code,
             password,
             //encrypted_prikey,
-            pubkey,
+            //pubkey,
         } = request_data;
         //captcha::validate_phone(&phone_number)?;
         super::register(
             device_id,
+            device_brand,
             phone_number,
             captcha,
             predecessor_invite_code,
             password,
             ContactType::PhoneNumber,
             //encrypted_prikey,
-            pubkey,
+            //pubkey,
         )
         .await
     }

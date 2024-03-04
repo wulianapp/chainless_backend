@@ -59,9 +59,9 @@ pub struct DeviceInfoView{
 
 impl DeviceInfoView{
     pub fn new_with_specified(id:&str,
+                              brand:&str,
                               user_id:u32,
                               hold_pubkey: &str,
-                              brand:&str,
 
     ) -> Self{
         DeviceInfoView{
@@ -170,7 +170,7 @@ mod tests {
         crate::general::table_all_clear();
 
         let device = DeviceInfoView::new_with_specified(
-            "123", 1, "01234567890abcd", "Huawei");
+            "123", "Huawei",1, "01234567890abcd");
         device.insert().unwrap();
         let mut device_by_find = DeviceInfoView::find_single(
             DeviceInfoFilter::ByDeviceUser(("123".to_string(),1))).unwrap();

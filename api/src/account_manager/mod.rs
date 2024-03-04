@@ -103,15 +103,17 @@ async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Resp
 
 /**
 __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
+———apiBody {String} pubkey     公钥的hex表达
+
 * @api {post} /accountManager/registerByEmail 通过邮箱注册账户
 * @apiVersion 0.0.1
 * @apiName registerByEmail
 * @apiGroup AccountManager
 * @apiBody {String} deviceId  设备ID
+* @apiBody {String} deviceBrand  手机型号 Huawei-P20
 * @apiBody {String} email     邮箱 test1@gmail.com
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password     登录密码
-* @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
     curl -X POST http://120.232.251.101:8065/accountManager/registerByEmail -H "Content-Type: application/json" -d
@@ -126,11 +128,12 @@ __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
 #[serde(rename_all = "camelCase")]
 pub struct RegisterByEmailRequest {
     device_id: String,
+    device_brand: String,
     email: String,
     captcha: String,
     password: String,
     //encrypted_prikey: String,
-    pubkey: String,
+    //pubkey: String,
     predecessor_invite_code: Option<String>,
 }
 
@@ -141,16 +144,17 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 }
 
 /**
+ * * ——apiBody {String} pubkey     公钥的hex表达
  *  __apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
 * @api {post} /accountManager/registerByPhone 通过手机注册账户
 * @apiVersion 0.0.1
 * @apiName registerByPhone
 * @apiGroup AccountManager
 * @apiBody {String} deviceId  设备ID
+* @apiBody {String} deviceBrand  手机型号 Huawei-P20
 * @apiBody {String} phoneNumber     手机号 +86 18888888888
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
-* @apiBody {String} pubkey     公钥的hex表达
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
 *    curl -X POST http://120.232.251.101:8065/accountManager/registerByPhone -H "Content-Type: application/json" -d
@@ -165,11 +169,12 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 #[serde(rename_all = "camelCase")]
 pub struct RegisterByPhoneRequest {
     device_id: String,
+    device_brand: String,
     phone_number: String,
     captcha: String,
     password: String,
     //encrypted_prikey: String,
-    pubkey: String,
+    //pubkey: String,
     predecessor_invite_code: Option<String>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -198,6 +203,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
 #[serde(rename_all = "camelCase")]
 pub struct LoginRequest {
     device_id: String,
+    device_brand: String,
     contact: String,
     password: String,
 }
@@ -317,12 +323,14 @@ mod tests {
 
         //register
         //            "encryptedPrikey": "encrypted_prikey_0x123",
+        //            "pubkey": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
         let payload = r#"
-            { "deviceId": "1",
+            { 
+            "deviceId": "1",
+            "deviceBrand": "Apple",
             "email": "test1@gmail.com",
             "captcha": "000000",
-            "password": "123456789",
-            "pubkey": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
+            "password": "123456789"
             }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
@@ -336,6 +344,7 @@ mod tests {
         //login
         let payload = r#"
             { "deviceId": "1",
+             "deviceBrand": "Apple",
             "contact": "test1@gmail.com",
              "password": "123456789"
             }"#;
