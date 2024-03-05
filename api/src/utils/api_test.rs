@@ -28,3 +28,71 @@ macro_rules! test_service_call {
         serde_json::from_str::<_>(&body_str).unwrap()
     }};
 }
+
+#[macro_export]
+macro_rules! test_register {
+    ( $service:expr,$app:expr) => {{
+        if $app.wallet.master_prikey.is_some() {
+            let payload = json!({
+                "deviceId":  $app.device.id,
+                "contact": $app.user.contact,
+                "kind": "register"
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/getCaptcha",
+                Some(payload.to_string()),
+                None::<String>
+            );
+
+            let payload = json!({
+                "deviceId":  $app.device.id,
+                "deviceBrand": $app.device.brand,
+                "email": $app.user.contact,
+                "captcha": $app.device.id,
+                "password": $app.user.password    
+            });
+
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/registerByEmail",
+                Some(payload.to_string()),
+                None::<String>
+            );
+            $app.user.token = Some(res.data);
+            
+        }else {
+            assert!(false,"must be master");
+        }
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_login {
+    ($service:expr, $app:expr) => {{
+        if $app.wallet.master_prikey.is_none() {
+            let payload = json!({
+                "deviceId":  $app.device.id,
+                "deviceBrand": $app.device.brand,
+                "contact": $app.user.contact,
+                "password": $app.user.password    
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/login",
+                Some(payload.to_string()),
+                None::<String>
+            );
+            $app.user.token = Some(res.data);
+            
+        }else {
+            assert!(false,"must be servant");
+        }
+    }};
+}
+
+

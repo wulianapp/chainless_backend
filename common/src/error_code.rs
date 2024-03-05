@@ -55,8 +55,8 @@ pub enum AccountManagerError {
     PhoneOrEmailNotRegister,
     #[error("user's password is incorrect")]
     PasswordIncorrect,
-    #[error("Captcha request too frequently")]
-    CaptchaRequestTooFrequently,
+    #[error("Captcha request too frequently,and it is alive in [{0}] secs")]
+    CaptchaRequestTooFrequently(u8),
     #[error("Account is locking")]
     AccountLocked,
     #[error("Invite code not exist")]
@@ -75,7 +75,7 @@ impl ErrorCode for AccountManagerError {
             Self::PhoneOrEmailAlreadyRegister => 2006,
             Self::PhoneOrEmailNotRegister => 2008,
             Self::PasswordIncorrect => 2009,
-            Self::CaptchaRequestTooFrequently => 2011,
+            Self::CaptchaRequestTooFrequently(_) => 2011,
             Self::AccountLocked => 2012,
             Self::InviteCodeNotExist => 2013,
             Self::UserIdNotExist => 2014,

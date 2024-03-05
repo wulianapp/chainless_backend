@@ -118,7 +118,8 @@ impl Captcha {
         let code = if common::env::CONF.service_mode != ServiceMode::Product
             && common::env::CONF.service_mode != ServiceMode::Dev
         {
-            "000000".to_string()
+            //"000000".to_string()
+            device_id.to_string()
         } else {
             gen_random_verify_code().to_string()
         };
