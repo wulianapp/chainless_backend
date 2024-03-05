@@ -13,15 +13,20 @@ use models::{account_manager, PsqlOp, secret_store};
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::secret_store::SecretStoreView;
 //use crate::account_manager::captcha::{Captcha, ContactType, Usage};
-use crate::wallet::{NewMasterRequest, ReconfirmSendMoneyRequest};
+use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest};
 
 pub async fn req(
     req: HttpRequest,
-    request_data: NewMasterRequest,
+    request_data: AddSubaccountRequest,
 ) -> BackendRes<String> {
 
     let user_id = token_auth::validate_credentials(&req)?;
-    let NewMasterRequest{encrypted_prikey,pubkey} = request_data;
+    let AddSubaccountRequest{
+        main_account,
+        subaccount_pubkey,
+        subaccount_prikey_encryped_by_pwd,
+        subaccount_prikey_encryped_by_answer,
+    } = request_data;
     //todo: check if is master
 
     //store user info
@@ -34,16 +39,16 @@ pub async fn req(
 
     //todo: encrypted_prikey_by_password
     let secret = SecretStoreView::new_with_specified(
-        &pubkey,
+        &subaccount_pubkey,
         user_id,
-        "encrypted_prikey_by_password",
-        "encrypted_prikey_by_answer"
+        &subaccount_prikey_encryped_by_pwd,
+        &subaccount_prikey_encryped_by_answer
     );
     secret.insert()?;
     let multi_cli = ContractClient::<MultiSig>::new();
 
     multi_cli
-        .init_strategy(&pubkey)
+        .add_subaccount(&main_account,&subaccount_pubkey)
         .await
         .unwrap();
     //multi_cli.add_subaccount(user_info.user_info., subacc)1

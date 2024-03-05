@@ -25,6 +25,8 @@ pub enum UserFilter {
 pub enum UserUpdater {
     LoginPwdHash(String),
     AccountIds(Vec<String>),
+    //     * sign_pwd_hash,secruity_is_seted,main_account
+    SecruityInfo(String,bool,String)
 }
 impl fmt::Display for UserUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -33,7 +35,11 @@ impl fmt::Display for UserUpdater {
             UserUpdater::AccountIds(ids) =>  {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
-            }
+            },
+            UserUpdater::SecruityInfo(sign_pwd_hash,secruity_is_seted,main_account) => 
+             format!("sign_pwd_hash='{}',secruity_is_seted={},main_account='{}'",
+             sign_pwd_hash,secruity_is_seted,main_account
+            ),
         };
         write!(f, "{}", description)
     }

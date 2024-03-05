@@ -19,44 +19,41 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //todo: must be called by main device
     let user_id = token_auth::validate_credentials(&req)?;
     let AddServantRequest {
-        account_id,
-        device_id: _,
-        //secret_key_data: key_data,
-        pubkey: new_servant,
+        main_account,
+        servant_pubkey,
+        servant_prikey_encryped_by_pwd,
+        servant_prikey_encryped_by_answer,
     } = request_data;
 
-    let keys = super::pending_pubkey::get_user_pending_keys(user_id)?;
-    let (prikey,_) = keys
-        .iter()
-        .find(|(prikey,pubkey)| *pubkey == new_servant)
-        .ok_or( InternalError("".to_string()))?;
-    let user_info = UserInfoView::find_single(
-        UserFilter::ById(user_id)
-    )?.user_info;
+   /***
+    * 
+    1、secret
+    2、chain
+    */
 
     models::general::transaction_begin()?;
     //backup servant prikeys
     if !SecretStoreView::find(
-        SecretFilter::ByPubkey(new_servant.clone())
+        SecretFilter::ByPubkey(servant_pubkey.clone())
     )?.is_empty() {
         Err(WalletError::PubkeyAlreadyExist)?
     }
 
     //todo: key,master_id
     let secret_info = SecretStoreView::new_with_specified(
-        &new_servant, user_id, 
-        "encrypted_prikey_by_password", 
-        "encrypted_prikey_by_answer"
+        &servant_pubkey, 
+        user_id, 
+        &servant_prikey_encryped_by_pwd, 
+        &servant_prikey_encryped_by_answer
     );
-    
     secret_info.insert()?;
    
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
     //it is impossible to get none
-    let mut current_strategy = multi_sig_cli.get_strategy(&account_id).await.unwrap().unwrap();
-    current_strategy.servant_pubkey.push(new_servant);
-    multi_sig_cli.update_servant_pubkey(&account_id, 
+    let mut current_strategy = multi_sig_cli.get_strategy(&main_account).await.unwrap().unwrap();
+    current_strategy.servant_pubkey.push(servant_pubkey);
+    multi_sig_cli.update_servant_pubkey(&main_account, 
         current_strategy.servant_pubkey).await?;
 
     models::general::transaction_commit()?;

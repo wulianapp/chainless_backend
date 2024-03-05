@@ -85,12 +85,13 @@ impl ContractClient<MultiSig> {
 
     pub async fn init_strategy(
         &self,
-        account_id: &str,
+        main_account_id: &str,
+        subaccount_id: &str,
     ) -> BackendRes<String> {
         self.set_strategy(
-            account_id,
+            main_account_id,
             vec![],
-                            vec![],
+                            vec![subaccount_id.to_owned()],
             vec![MultiSigRank::default()],
         )
         .await

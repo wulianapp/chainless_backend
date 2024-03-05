@@ -16,7 +16,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     //todo: allow master only
     let _user_id = token_auth::validate_credentials(&req)?;
     let PreSendMoneyRequest {
-        device_id: _,
         from,
         to,
         coin,

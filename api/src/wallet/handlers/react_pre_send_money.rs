@@ -17,7 +17,6 @@ pub(crate) async fn req(
     let _user_id = token_auth::validate_credentials(&req)?;
 
     let ReactPreSendMoney {
-        device_id,
         tx_index,
         is_agreed,
     } = request_data;

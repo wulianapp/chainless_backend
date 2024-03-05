@@ -17,7 +17,6 @@ pub async fn req(
 
     //todo: check must be main device
     let ReconfirmSendMoneyRequest {
-        device_id: _,
         tx_index,
         confirmed_sig,
     } = request_data.0;

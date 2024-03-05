@@ -148,7 +148,6 @@ async fn get_strategy(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreSendMoneyRequest {
-    device_id: String,
     from: String,
     to: String,
     coin: String,
@@ -171,7 +170,6 @@ async fn pre_send_money(
 pub struct DirectSendMoneyRequest {
     tx_raw: String,
     signature: String,
-    device_id: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -211,7 +209,6 @@ async fn direct_send_money(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReactPreSendMoney {
-    device_id: String,
     tx_index: u32,
     is_agreed: bool,
 }
@@ -254,7 +251,6 @@ async fn react_pre_send_money(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReconfirmSendMoneyRequest {
-    device_id: String,
     tx_index: u32,
     confirmed_sig: Option<String>,
 }
@@ -296,7 +292,6 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct uploadTxSignatureRequest {
-    device_id: String,
     tx_index: u32,
     signature: String,
 }
@@ -341,10 +336,10 @@ async fn upload_servant_sig(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AddServantRequest {
-    account_id: String,
-    device_id: String,
-    pubkey: String,
-    //secret_key_data: String,
+    main_account: String,
+    servant_pubkey: String,
+    servant_prikey_encryped_by_pwd: String,
+    servant_prikey_encryped_by_answer: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -354,6 +349,52 @@ async fn add_servant(
     request_data: web::Json<AddServantRequest>,
 ) -> impl Responder {
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
+}
+
+
+
+/**
+ * @api {post} /wallet/addServant 主设备添加从公钥匙
+ * @apiVersion 0.0.1
+ * @apiName preSendMoney
+ * @apiGroup Wallet
+ * @apiBody {String} deviceId   设备ID
+ * @apiBody {String} accountId    钱包Id
+ * @apiBody {String} pubkey      从公钥
+ * @apiBody {String} secretKeyData   加密后的从私钥
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8065/wallet/preSendMoney
+   -d ' {
+             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "deviceId": "1",
+             "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+ * @apiSuccess {string} status_code         status code.
+ * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string} data                nothing.
+ * @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
+ */
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AddSubaccountRequest {
+    main_account: String,
+    subaccount_pubkey: String,
+    subaccount_prikey_encryped_by_pwd: String,
+    subaccount_prikey_encryped_by_answer: String,
+}
+
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/addSubaccount")]
+async fn add_subaccount(
+    req: HttpRequest,
+    request_data: web::Json<AddSubaccountRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::add_subaccount::req(req, request_data.0).await)
 }
 
 
@@ -396,7 +437,6 @@ pub struct MultiSigRankExternal {
 #[serde(rename_all = "camelCase")]
 pub struct UpdateStrategy {
     account_id: String,
-    device_id: String,
     strategy: Vec<MultiSigRankExternal>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -414,18 +454,21 @@ async fn update_strategy(
 
 
 /**
- * @api {post} /wallet/newMaster 创建新钱包
+ * @api {post} /wallet/createMainAccount 创建新钱包
  * @apiVersion 0.0.1
- * @apiName newMaster
+ * @apiName createMainAccount
  * @apiGroup Wallet
- * @apiBody {String} encryptedPrikey   新钱包私钥密文
- * @apiBody {String} pubkey      新钱包主公钥
+ * @apiBody {String} encrypted_master_prikey   新钱包私钥密文
+ * @apiBody {String} master_pubkey   新钱包私钥密文
+ * @apiBody {String} encrypted_subaccount_prikey   新钱包私钥密文
+ * @apiBody {String} subaccount_pubkey   新钱包私钥密文
+ * @apiBody {String} sign_pwd_hash   新钱包私钥密文
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8065/wallet/updateStrategy
    -d '  {
-             "encryptedPrikey": "a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89",
-             "pubkey": "19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89",
+             "encryptedPrikey": "",
+             "pubkey": "",
             }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
@@ -438,16 +481,21 @@ async fn update_strategy(
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct NewMasterRequest {
-    encrypted_prikey: String,
-    pubkey: String,
+pub struct CreateMainAccountRequest {
+    master_prikey_encrypted_by_pwd: String,
+    master_prikey_by_answer: String,
+    master_pubkey: String,
+    subaccount_prikey_encryped_by_answer: String,
+    subaccount_prikey_encryped_by_pwd: String,
+    subaccount_pubkey: String,
+    sign_pwd_hash: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/newMaster")]
+#[post("/wallet/create_main_account")]
 async fn new_master(    req: HttpRequest,
-                        request_data: web::Json<NewMasterRequest>) -> impl Responder {
-    gen_extra_respond(handlers::add_subaccount::req(req, request_data.into_inner()).await)
+                        request_data: web::Json<CreateMainAccountRequest>) -> impl Responder {
+    gen_extra_respond(handlers::create_main_account::req(req, request_data.into_inner()).await)
 }
 
 
@@ -548,11 +596,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(reconfirm_send_money)
         .service(upload_servant_sig)
         .service(add_servant)
+        .service(add_subaccount)
         .service(update_strategy)
         .service(new_master)
         .service(put_pending_pubkey)
         .service(get_pending_pubkey);
-        //.service(add_subaccount);
         //.service(remove_subaccount);
 
 }

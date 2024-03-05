@@ -19,7 +19,6 @@ pub async fn req(
 
     //todo: check must be main device
     let uploadTxSignatureRequest {
-        device_id: _,
         tx_index,
         signature,
     } = request_data.0;

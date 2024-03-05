@@ -15,7 +15,6 @@ pub async fn req(
     let _user_id = token_auth::validate_credentials(&req)?;
     let UpdateStrategy {
         account_id,
-        device_id: _,
         strategy,
     } = request_data.0;
 

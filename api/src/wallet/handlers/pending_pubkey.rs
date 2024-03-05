@@ -6,7 +6,7 @@ use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::{BackendRes};
 use crate::utils::token_auth;
-use crate::wallet::{NewMasterRequest, PutPendingPubkeyRequest};
+use crate::wallet::{CreateMainAccountRequest, PutPendingPubkeyRequest};
 lazy_static! {
     static ref PENDING_KEYS: Mutex<HashMap<u32, Vec<(String,String)>>> = Mutex::new(HashMap::new());
 }
