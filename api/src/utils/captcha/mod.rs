@@ -94,6 +94,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
     let code_storage = &CODE_STORAGE
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
+    
     let value = code_storage
         .get(&(user, kind.to_owned()))
         .as_ref()
@@ -141,6 +142,14 @@ impl Captcha {
             .lock()
             .map_err(|e| InternalError(e.to_string()))?;
         code_storage.insert((self.owner.to_string(), self.kind.clone()), self.clone());
+        Ok(())
+    }
+
+    pub fn delete(&self) -> Result<(), BackendError> {
+        let code_storage = &mut CODE_STORAGE
+            .lock()
+            .map_err(|e| InternalError(e.to_string()))?;
+        code_storage.remove(&(self.owner.to_string(), self.kind.clone()));
         Ok(())
     }
 

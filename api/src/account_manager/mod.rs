@@ -189,6 +189,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiName login
  * @apiGroup AccountManager
  * @apiBody {String} deviceId   设备ID
+ * @apiBody {String} deviceBrand  手机型号 Huawei-P20
  * @apiBody {String} contact    例如 phone +86 18888888888 or email test1@gmail.com
  * @apiBody {String} password   密码 1234
  * @apiExample {curl} Example usage:
@@ -322,8 +323,6 @@ mod tests {
         println!("{:?}", res.data);
 
         //register
-        //            "encryptedPrikey": "encrypted_prikey_0x123",
-        //            "pubkey": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
         let payload = r#"
             { 
             "deviceId": "1",
@@ -367,65 +366,6 @@ mod tests {
         );
         println!("{:?}", res.data);
 
-
-        /***
-        let payload = r#"{ "deviceId": "2", "contact": "test2@gmail.com","kind": "register" }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/getCaptcha",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-
-        //register
-        let payload = r#"
-            { "deviceId": "2",
-            "email": "test2@gmail.com",
-            "captcha": "000000",
-            "password": "123456789",
-            "encryptedPrikey": "encrypted_prikey_0x123",
-            "pubkey": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb"
-            }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/registerByEmail",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-
-        //login
-        let payload = r#"
-            { "deviceId": "1",
-            "contact": "test2@gmail.com",
-             "password": "123456789"
-            }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/login",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-
-        //check contact if is used
-        let res: BackendRespond<bool> = test_service_call!(
-            service,
-            "get",
-            "/accountManager/contactIsUsed?contact=test2@gmail.com",
-            None::<String>,
-            None::<String>
-        );
-        println!("{:?}", res.data);
-
-         */
-
-        //reset password
-        
         let payload = r#"{ "deviceId": "1", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
         let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
         println!("{:?}",res.data);
@@ -438,5 +378,36 @@ mod tests {
         "#;
         let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/resetPassword",Some(payload),None::<String>);
         println!("{:?}",res.msg);
+
+
+        
+        let payload = r#"{ "deviceId": "2", "contact": "test2@gmail.com","kind": "register" }"#;
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/getCaptcha",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
+
+        //register
+        let payload = r#"
+            { 
+            "deviceId": "2",
+            "deviceBrand": "Apple",
+            "email": "test2@gmail.com",
+            "captcha": "000000",
+            "password": "123456789"
+            }"#;
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/registerByEmail",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
+      
     }
 }

@@ -14,7 +14,7 @@ pub async fn req(request_data: web::Json<ResetPasswordRequest>) -> BackendRes<St
     //todo: check jwt token
     debug!("start reset_password");
     let ResetPasswordRequest {
-        device_id: _String,
+        device_id,
         contact,
         captcha,
         new_password,
