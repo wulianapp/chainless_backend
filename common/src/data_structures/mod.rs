@@ -42,7 +42,7 @@ pub enum SecretKeyType {
     ServantKey,
 }
 
-#[derive(Deserialize, Serialize, Debug,EnumString,Display,PartialEq)]
+#[derive(Deserialize, Serialize, Debug,EnumString,Display,PartialEq,Clone)]
 pub enum SecretKeyState {
     Sitting,
     Deprecated,

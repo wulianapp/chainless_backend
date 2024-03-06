@@ -609,7 +609,7 @@ mod tests {
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
     use actix_web::{Error};
-    use common::data_structures::wallet::CoinTxStatus;
+    use common::data_structures::wallet::{CoinTxStatus, AccountMessage};
     use common::utils::math;
     use models::secret_store::SecretStoreView;
    // use log::{info, LevelFilter,debug,error};
@@ -834,6 +834,19 @@ mod tests {
         );
         let sender_strategy = res.data;
         println!("{:?}", sender_strategy);
+
+
+        //step3(optional): check new message
+        //for sender master
+        let url = format!("/wallet/searchMessage");
+        let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_servant.user.token.as_ref().unwrap())
+        );
+        println!("{:?}", res.data);
 
 
                         /*** 

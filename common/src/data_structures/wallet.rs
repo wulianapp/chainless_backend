@@ -30,7 +30,7 @@ pub trait AddressConvert: Sized {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum MessageType {
+pub enum AccountMessage {
     NewcomerBecameSevant(SecretStore),
     CoinTx(CoinTransaction)
 }

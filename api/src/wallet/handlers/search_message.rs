@@ -1,41 +1,40 @@
 use actix_web::HttpRequest;
 
-use crate::wallet::searchMessageByAccountIdRequest;
 use common::error_code::AccountManagerError;
 use common::error_code::{BackendRes};
 use crate::utils::token_auth;
+use crate::wallet::add_servant;
 use models::account_manager::{ UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
+use models::secret_store::*;
+use models::device_info::*;
 use models::PsqlOp;
+use common::data_structures::wallet::AccountMessage;
 
-pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<(String, Vec<CoinTxView>)>> {
-    let user_id = token_auth::validate_credentials(&req)?;
-
+pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let user = UserInfoView::find_single(UserFilter::ById(user_id))
         .map_err(|e|AccountManagerError::UserIdNotExist)?;
 
-    //todo: get subaccounts by contract
-    let mut accounts: Vec<String> = vec![];
-    //let accouns = (vec![user.user_info.main_account],&subaccounts).concat();
-    accounts.push(user.user_info.main_account);
-    let message = accounts
-        .iter()
-        .map(|acc_id| {
-            let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(acc_id.to_string())).unwrap();
-        (acc_id.to_string(), coin_txs)
-        })
-        .collect::<Vec<(String, Vec<CoinTxView>)>>();
-    Ok(Some(message))
-}
+    let mut messages: Vec<AccountMessage> = vec![];
 
-pub(crate) async fn req_by_account_id(
-    req: HttpRequest,
-    request_data: searchMessageByAccountIdRequest,
-) -> BackendRes<Vec<CoinTxView>> {
-    let user_id = token_auth::validate_credentials(&req)?;
-    let _ = UserInfoView::find_single(UserFilter::ById(user_id)).map_err(|e|AccountManagerError::UserIdNotExist)?;
-    //todo: check if account_id is belong to user
-    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(request_data.account_id))?;
+    //if newcomer device not save,notify it to do
+    let device_info =  DeviceInfoView::find(DeviceInfoFilter::ByDeviceUser(device_id,user_id))?;   
+    if device_info.len() == 1 && !device_info[0].device_info.holder_confirm_saved{
+        let secret = SecretStoreView::find_single(
+            SecretFilter::ByPubkey(device_info[0].device_info.hold_pubkey.clone())
+            )?;
+        messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
+    }
 
-    Ok(Some(coin_txs))
+    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(
+        user.user_info.main_account.clone())
+    )?;
+    let mut tx_msg = coin_txs.into_iter().map(|tx| 
+            AccountMessage::CoinTx(tx.transaction)
+    ).collect::<Vec<AccountMessage>>();
+
+    messages.append(&mut tx_msg);
+
+    Ok(Some(messages))
 }

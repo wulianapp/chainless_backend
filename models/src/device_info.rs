@@ -35,14 +35,17 @@ impl fmt::Display for DeviceInfoUpdater {
 
 #[derive(Clone, Debug)]
 pub enum DeviceInfoFilter {
-    ByDeviceUser((String,u32)),
+    ByDeviceUser(String,u32),
+    ByUserDeviceHoldSecret(u32,String,bool),
 }
 
 impl fmt::Display for DeviceInfoFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            DeviceInfoFilter::ByDeviceUser((device_id,user_id)) =>  
+            DeviceInfoFilter::ByDeviceUser(device_id,user_id) =>  
             format!("id='{}' and user_id={} ", device_id,user_id),
+            DeviceInfoFilter::ByUserDeviceHoldSecret(user_id,device_id,saved) =>  
+            format!("user_id={} and id='{}' and holder_confirm_saved={} ", user_id,device_id,saved),
         };
         write!(f, "{}", description)
     }
@@ -179,14 +182,14 @@ mod tests {
             "123", "Huawei",1, "01234567890abcd",true);
         device.insert().unwrap();
         let mut device_by_find = DeviceInfoView::find_single(
-            DeviceInfoFilter::ByDeviceUser(("123".to_string(),1))).unwrap();
+            DeviceInfoFilter::ByDeviceUser("123".to_string(),1)).unwrap();
         println!("{:?}",device_by_find);
         assert_eq!(device.device_info,device_by_find.device_info);   
 
         device_by_find.device_info.user_id = 2;
         DeviceInfoView::update(
             DeviceInfoUpdater::State(SecretKeyState::Deprecated), 
-            DeviceInfoFilter::ByDeviceUser(("123".to_string(),1))
+            DeviceInfoFilter::ByDeviceUser("123".to_string(),1)
         ).unwrap();
     }
 }
