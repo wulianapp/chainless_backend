@@ -95,4 +95,26 @@ macro_rules! test_login {
     }};
 }
 
+#[macro_export]
+macro_rules! test_create_main_account{
+    ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "masterPubkey":  $app.wallet.main_account,
+            "masterPrikeyEncryptedByPwd": $app.wallet.master_prikey,
+            "masterPrikeyEncryptedByAnswer": $app.wallet.master_prikey,
+            "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
+            "subaccountPrikeyEncrypedByPwd": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
+            "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
+            "signPwdHash": ""
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/createMainAccount",
+            Some(payload.to_string()),
+            Some(&$app.user.token.unwrap())
+        );
+    }};
+}
+
 

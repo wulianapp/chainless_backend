@@ -62,6 +62,7 @@ impl DeviceInfoView{
                               brand:&str,
                               user_id:u32,
                               hold_pubkey: &str,
+                              holder_confirm_saved: bool
 
     ) -> Self{
         DeviceInfoView{
@@ -70,7 +71,8 @@ impl DeviceInfoView{
                 user_id,
                 state: common::data_structures::DeviceState::Active,
                 hold_pubkey:hold_pubkey.to_owned(),
-                brand:brand.to_owned()
+                brand:brand.to_owned(),
+                holder_confirm_saved,
             },
             updated_at: "".to_string(),
             created_at: "".to_string()
@@ -91,6 +93,7 @@ impl PsqlOp for DeviceInfoView{
             state,\
             hold_pubkey,\
             brand,\
+            holder_confirm_saved,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from device_info where {}",
@@ -106,9 +109,10 @@ impl PsqlOp for DeviceInfoView{
                     state:row.get::<usize, String>(2).parse().unwrap(),
                     hold_pubkey: row.get(3),
                     brand: row.get(4),
+                    holder_confirm_saved: row.get::<usize, bool>(5)
                 },
-                updated_at: row.get(5),
-                created_at: row.get(6),
+                updated_at: row.get(6),
+                created_at: row.get(7),
             }
         };
 
@@ -136,6 +140,7 @@ impl PsqlOp for DeviceInfoView{
             state,
             hold_pubkey,
             brand: device_type,
+            holder_confirm_saved,
         } = &self.device_info;
 
         let sql = format!(
@@ -144,9 +149,10 @@ impl PsqlOp for DeviceInfoView{
                 user_id,\
                 state,\
                 hold_pubkey,\
-                brand\
-         ) values ('{}',{},'{}','{}','{}');",
-         id,user_id,state.to_string(),hold_pubkey,device_type,
+                brand,\
+                holder_confirm_saved\
+         ) values ('{}',{},'{}','{}','{}',{});",
+         id,user_id,state.to_string(),hold_pubkey,device_type,holder_confirm_saved
         );
         debug!("row sql {} rows", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -170,7 +176,7 @@ mod tests {
         crate::general::table_all_clear();
 
         let device = DeviceInfoView::new_with_specified(
-            "123", "Huawei",1, "01234567890abcd");
+            "123", "Huawei",1, "01234567890abcd",true);
         device.insert().unwrap();
         let mut device_by_find = DeviceInfoView::find_single(
             DeviceInfoFilter::ByDeviceUser(("123".to_string(),1))).unwrap();

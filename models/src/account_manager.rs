@@ -71,7 +71,6 @@ impl UserInfoView {
     pub fn new_with_specified(
         login_pwd_hash:&str,
         invite_code:&str,
-        main_account:&str,
     ) -> Self{
         let user = UserInfo{
             phone_number: "".to_string(),
@@ -85,7 +84,8 @@ impl UserInfoView {
             kyc_is_verified: false,
             secruity_is_seted: false,
             create_subacc_time: vec![],
-            main_account: main_account.to_owned(),
+            //fixme: replace with None
+            main_account: "".to_string(),
         };
         UserInfoView{
             id: 0,
@@ -256,7 +256,7 @@ mod tests {
         crate::general::table_all_clear();
 
         let user = UserInfoView::new_with_specified(
-            "0123456789", "1", "main_acount_0123");
+            "0123456789", "1");
             user.insert().unwrap();
         let mut user_by_find = UserInfoView::find_single(
             UserFilter::ById(1)).unwrap();

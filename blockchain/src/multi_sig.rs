@@ -49,7 +49,7 @@ impl Default for MultiSigRank {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyData {
     pub multi_sig_ranks: Vec<MultiSigRank>,
-    pub servant_pubkey: Vec<String>,
+    pub servant_pubkeys: Vec<String>,
 }
 
 impl ContractClient<MultiSig> {

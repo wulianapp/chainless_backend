@@ -19,14 +19,14 @@ pub(crate) async fn req(
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
 
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,device_brand) = token_auth::validate_credentials2(&req)?;
     let CreateMainAccountRequest{
         master_pubkey,
         master_prikey_encrypted_by_pwd,
-        master_prikey_by_answer,
+        master_prikey_encrypted_by_answer,
         subaccount_pubkey,
-        subaccount_prikey_encryped_by_answer,
         subaccount_prikey_encryped_by_pwd,
+        subaccount_prikey_encryped_by_answer,
         sign_pwd_hash,
     } = request_data;
 
@@ -51,9 +51,19 @@ pub(crate) async fn req(
         &master_pubkey,
         user_info.id,
         &master_prikey_encrypted_by_pwd,
-        &master_prikey_by_answer
+        &master_prikey_encrypted_by_answer
     );
     master_secret.insert()?;
+    //only main_account need to store device info
+    let device = models::device_info::DeviceInfoView::new_with_specified(
+        &device_id, 
+        &device_brand,
+        user_id, 
+        &master_pubkey,
+        true);
+    device.insert()?;
+
+
     let sub_account_secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,
         user_info.id,
@@ -61,6 +71,8 @@ pub(crate) async fn req(
         &subaccount_prikey_encryped_by_answer
     );
     sub_account_secret.insert()?;
+
+
 
     let multi_cli = ContractClient::<MultiSig>::new();
 

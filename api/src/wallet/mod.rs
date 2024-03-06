@@ -340,6 +340,8 @@ pub struct AddServantRequest {
     servant_pubkey: String,
     servant_prikey_encryped_by_pwd: String,
     servant_prikey_encryped_by_answer: String,
+    holder_device_id: String,
+    holder_device_brand: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -482,18 +484,18 @@ async fn update_strategy(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateMainAccountRequest {
-    master_prikey_encrypted_by_pwd: String,
-    master_prikey_by_answer: String,
     master_pubkey: String,
-    subaccount_prikey_encryped_by_answer: String,
-    subaccount_prikey_encryped_by_pwd: String,
+    master_prikey_encrypted_by_pwd: String,
+    master_prikey_encrypted_by_answer: String,
     subaccount_pubkey: String,
+    subaccount_prikey_encryped_by_pwd: String,
+    subaccount_prikey_encryped_by_answer: String,
     sign_pwd_hash: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/create_main_account")]
-async fn new_master(    req: HttpRequest,
+#[post("/wallet/createMainAccount")]
+async fn create_main_account(    req: HttpRequest,
                         request_data: web::Json<CreateMainAccountRequest>) -> impl Responder {
     gen_extra_respond(handlers::create_main_account::req(req, request_data.into_inner()).await)
 }
@@ -598,7 +600,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(add_servant)
         .service(add_subaccount)
         .service(update_strategy)
-        .service(new_master)
+        .service(create_main_account)
         .service(put_pending_pubkey)
         .service(get_pending_pubkey);
         //.service(remove_subaccount);
@@ -608,7 +610,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_login, test_register, test_service_call};
+    use crate::{test_create_main_account, test_login, test_register, test_service_call};
     use crate::utils::respond::BackendRespond;
 
     use super::*;
@@ -704,8 +706,8 @@ mod tests {
                 main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
                 master_prikey: Some("8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
                   ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()),
-                subaccount:vec!["".to_string()], 
-                sub_prikey:Some(vec!["".to_string()]),
+                subaccount:vec!["0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()], 
+                sub_prikey:Some(vec!["2e1eee23ac76477ff1f9e9ae05829b0de3b89072d104c9de6daf0b1c38eddede0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()]),
                 servent_pubkey: None,
                 servent_prikey: None,
             },
@@ -727,7 +729,7 @@ mod tests {
             wallet: TestWallet {
                 main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
                 master_prikey: None,
-                subaccount:vec!["".to_string()],
+                subaccount:vec!["0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()],
                 sub_prikey:None,
                 servent_pubkey: Some("7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string()),
                 servent_prikey: Some("2b2193968a4e6ff5c6b8b51f8aed0ee41306c57d225885fca19bbc828a91d1a07d2e\
@@ -751,8 +753,8 @@ mod tests {
                 main_account: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
                 master_prikey: Some("119bef4d830c134a13b2a9661dbcf39fbd628bf216aea43a4b651085df521d525\
                 35ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string()),
-                subaccount:vec!["".to_string()], 
-                sub_prikey:Some(vec!["".to_string()]),
+                subaccount:vec!["19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()], 
+                sub_prikey:Some(vec!["a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()]),
                 servent_pubkey: None,
                 servent_prikey: None,
             },
@@ -775,129 +777,75 @@ mod tests {
 
     #[actix_web::test]
     async fn test_all_braced_wallet_ok() {
-        //测试从新账户注册，到完成交易的过程中的api，其中代币和主网币为人工提前给的
         let app = init().await;
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
         let mut receiver = simulate_receiver();
         let mut sender_servant = simulate_sender_servant();
         //get token by register or login
-        /*** 
-        let get_token = |app: &mut TestWulianApp2| {
-            if app.wallet.master_prikey.is_some() {
-                let payload = json!({
-                    "deviceId":  app.device.id,
-                    "contact": app.user.contact,
-                    "kind": "register"
-                });
-                let res: BackendRespond<String> = test_service_call!(
-                    service,
-                    "post",
-                    "/accountManager/getCaptcha",
-                    Some(payload),
-                    None::<String>
-                );
-  
-                let payload = json!({
-                    "deviceId":  app.device.id,
-                    "deviceBrand": app.device.brand,
-                    "email": app.user.contact,
-                    "captcha": app.device.id,
-                    "password": app.user.password    
-                });
-
-                let res: BackendRespond<String> = test_service_call!(
-                    service,
-                    "post",
-                    "/accountManager/registerByEmail",
-                    Some(payload),
-                    None::<String>
-                );
-                app.user.token = Some(res.data);
-                
-            }else {
-
-                //login
-                let payload = json!({
-                    "deviceId":  app.device.id,
-                    "deviceBrand": app.device.brand,
-                    "contact": app.user.contact,
-                    "password": app.user.password    
-                });
-                let res: BackendRespond<String> = test_service_call!(
-                    service,
-                    "post",
-                    "/accountManager/login",
-                    Some(payload),
-                    None::<String>
-                );
-                app.user.token = Some(res.data);
-            }
-        };
-        */
         test_register!(service,sender_master);
         test_register!(service,receiver);
         test_login!(service,sender_servant);
+        test_create_main_account!(service,receiver);
 
-        return;
-        /*** 
+
         //step1: new master account
-        let new_master_prikey = "16d825f2f8bd7e1a90db13875c2fed8ac074153e7c84a229832a005806f3123\
-        9526c843ca19e641276826b4a6837e513e8f2a920d24181666585fbfa967d77c6".to_string();
-        let new_master_pubkey = "526c843ca19e641276826b4a6837e513e8f2a920d24181666585fbfa967d77c6".to_string();
         let payload = json!({
-            "pubkey":  new_master_pubkey,
-            "encryptedPrikey": new_master_prikey,
+            "masterPubkey":  sender_master.wallet.main_account,
+            "masterPrikeyEncryptedByPwd": sender_master.wallet.master_prikey,
+            "masterPrikeyEncryptedByAnswer": sender_master.wallet.master_prikey,
+            "subaccountPubkey":  sender_master.wallet.subaccount.first().unwrap(),
+            "subaccountPrikeyEncrypedByPwd": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
+            "subaccountPrikeyEncrypedByAnswer": sender_master.wallet.sub_prikey.unwrap().first().unwrap(),
+            "signPwdHash": ""
         });
+        println!("0001_ {}",payload.to_string());
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
-            "/wallet/newMaster",
+            "/wallet/createMainAccount",
             Some(payload.to_string()),
-            Some(&sender_master.token)
+            Some(&sender_master.user.token.clone().unwrap())
         );
         println!("newMaster res {:?}", res.data);
-   
-        //step2: servant generate new pending_key
+
+        //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
+    
+        /***
+            main_account: String,
+    servant_pubkey: String,
+    servant_prikey_encryped_by_pwd: String,
+    servant_prikey_encryped_by_answer: String,
+    holder_device_id: String,
+    holder_device_brand: String,
+
+    main_account:String, 
+      master_prikey: Option<String>, 
+      servent_pubkey: Option<String>, 
+      servent_prikey: Option<String>, 
+      subaccount:Vec<String>,
+      sub_prikey:Option<Vec<String>>,
+        */
+        //给链上确认一些时间
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
         let payload = json!({
-            "pubkey":  sender_servant.wallets.first().unwrap().pubkey,
-            "encryptedPrikey": sender_servant.wallets.first().unwrap().prikey,
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/putPendingPubkey",
-            Some(payload.to_string()),
-            Some(&sender_servant.token)
-        );
-        println!("putPendingPubkey res {:?}", res.data);
-
-
-        //step3: new master find pending key
-        let res: BackendRespond<Vec<String>> = test_service_call!(
-            service,
-            "get",
-            "/wallet/getPendingPubkey",
-            None::<String>,
-            Some(&sender_master.token)
-        );
-        println!("getPendingPubkey res {:?}", res.data);
-
-
-        //step4: new master add servant by pending key
-        let payload = json!({
-            "accountId":  new_master_pubkey,
-            "deviceId": "1",
-            "pubkey": sender_servant.wallets.first().unwrap().pubkey,
+            "mainAccount":  sender_master.wallet.main_account,
+            "servantPubkey":  sender_servant.wallet.servent_pubkey.unwrap(),
+            "servantPrikeyEncrypedByPwd":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
+            "holderDeviceId":  sender_servant.device.id,
+            "holderDeviceBrand": sender_servant.device.brand,
         });
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
             "/wallet/addServant",
             Some(payload.to_string()),
-            Some(&sender_master.token)
+            Some(&sender_master.user.token.unwrap().clone())
         );
         println!("addServant res {:?}", res.data);
+        /*** 
         //给链上确认一些时间
         tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
 

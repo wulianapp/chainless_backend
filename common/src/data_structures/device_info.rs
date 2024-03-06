@@ -8,4 +8,5 @@ pub struct DeviceInfo {
     pub state: DeviceState,
     pub hold_pubkey: String,
     pub brand: String,
+    pub holder_confirm_saved: bool,
 }

@@ -39,8 +39,11 @@ async fn register(
     //todo: hash password  again before store
     //pubkey is equal to account id when register
     //fixme: 
-    let pubkey = "";
-    let mut view = UserInfoView::new_with_specified(&password,&this_user_id.to_string(),&pubkey);
+    //let pubkey = "";
+    let mut view = UserInfoView::new_with_specified(
+        &password,
+        &this_user_id.to_string(),
+    );
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = contact;
@@ -65,8 +68,8 @@ async fn register(
     //注册多签账户放在安全问答之后
     //let multi_cli = ContractClient::<MultiSig>::new();
     //multi_cli.init_strategy(&pubkey).await.unwrap();
-    let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey);
-    device.insert()?;
+    //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
+    //device.insert()?;
     models::general::transaction_commit()?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id,&device_brand);

@@ -101,6 +101,8 @@ pub enum WalletError {
     PubkeyNotExist,
     #[error("pubkey have already been exist")]
     PubkeyAlreadyExist,
+    #[error("main_account {0} is not existent on chain")]
+    MainAccountNotExist(String),
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -110,6 +112,7 @@ impl ErrorCode for WalletError {
             Self::SenderNotFound => 3003,
             Self::PubkeyNotExist => 3004,
             Self::PubkeyAlreadyExist => 3005,
+            Self::MainAccountNotExist(_) => 3006,
         }
     }
 }
