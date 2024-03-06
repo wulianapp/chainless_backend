@@ -13,25 +13,12 @@ use crate::utils::respond::gen_extra_respond;
 use tracing::{span, Level};
 use crate::account_manager::{contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password, verify_captcha};
 
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct SearchMessageRequest {
-    //unused
-    user_id: String,
-}
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[get("/wallet/searchMessage")]
-async fn search_message(request: HttpRequest) -> impl Responder {
-    gen_extra_respond(handlers::search_message::req(request).await)
-}
-
 
 /**
  * @api {get} /wallet/searchMessageByAccountId 查询待处理的钱包消息
  * @apiVersion 0.0.1
  * @apiName searchMessageByAccountId
  * @apiGroup Wallet
- * @apiQuery {String} accountId 钱包ID
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8065/wallet/searchMessageByAccountId?accounId
@@ -57,20 +44,10 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {String[]} data.transaction.signatures         从设备对业务数据的签名
  * @apiSampleRequest http://120.232.251.101:8065/wallet/searchMessageByAccountId
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct searchMessageByAccountIdRequest {
-    account_id: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[get("/wallet/searchMessageByAccountId")]
-async fn search_message_by_account_id(
-    request: HttpRequest,
-    query_params: web::Query<searchMessageByAccountIdRequest>,
-) -> impl Responder {
-    gen_extra_respond(
-        handlers::search_message::req_by_account_id(request, query_params.into_inner()).await,
-    )
+#[get("/wallet/searchMessage")]
+async fn search_message(request: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::search_message::req(request).await)
 }
 
 /**
@@ -590,7 +567,6 @@ async fn backup_servant_secret_key(){
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
-        .service(search_message_by_account_id)
         .service(get_strategy)
         .service(pre_send_money)
         .service(direct_send_money)
@@ -782,14 +758,14 @@ mod tests {
         let mut sender_master = simulate_sender_master();
         let mut receiver = simulate_receiver();
         let mut sender_servant = simulate_sender_servant();
-        //get token by register or login
+        //init: get token by register or login
         test_register!(service,sender_master);
         test_register!(service,receiver);
         test_login!(service,sender_servant);
         test_create_main_account!(service,receiver);
 
 
-        //step1: new master account
+        //step1: new sender main_account
         let payload = json!({
             "masterPubkey":  sender_master.wallet.main_account,
             "masterPrikeyEncryptedByPwd": sender_master.wallet.master_prikey,
@@ -805,30 +781,13 @@ mod tests {
             "post",
             "/wallet/createMainAccount",
             Some(payload.to_string()),
-            Some(&sender_master.user.token.clone().unwrap())
+            Some(&sender_master.user.token.as_ref().unwrap())
         );
         println!("newMaster res {:?}", res.data);
 
-        //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
-    
-        /***
-            main_account: String,
-    servant_pubkey: String,
-    servant_prikey_encryped_by_pwd: String,
-    servant_prikey_encryped_by_answer: String,
-    holder_device_id: String,
-    holder_device_brand: String,
-
-    main_account:String, 
-      master_prikey: Option<String>, 
-      servent_pubkey: Option<String>, 
-      servent_prikey: Option<String>, 
-      subaccount:Vec<String>,
-      sub_prikey:Option<Vec<String>>,
-        */
         //给链上确认一些时间
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
+        //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
             "servantPubkey":  sender_servant.wallet.servent_pubkey.unwrap(),
@@ -842,16 +801,15 @@ mod tests {
             "post",
             "/wallet/addServant",
             Some(payload.to_string()),
-            Some(&sender_master.user.token.unwrap().clone())
+            Some(sender_master.user.token.as_ref().unwrap())
         );
         println!("addServant res {:?}", res.data);
-        /*** 
-        //给链上确认一些时间
-        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        //step1: sender new master update strategy
+        //给链上确认一些时间
+        //step3: sender main_account update strategy
         let payload = json!({
-            "accountId":  new_master_pubkey,
+            "accountId":  sender_master.wallet.main_account,
             "deviceId": "1",
             "strategy": [{"min": 1, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200u64, "sigNum": 1}]
         });
@@ -860,24 +818,25 @@ mod tests {
             "post",
             "/wallet/updateStrategy",
             Some(payload.to_string()),
-            Some(&sender_master.token)
+            Some(sender_master.user.token.as_ref().unwrap())
         );
         println!("{:?}", res.data);
-        //给链上确认一些时间
-        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        //step1.1: check sender's new strategy
-        let url = format!("/wallet/getStrategy?accountId={}", new_master_pubkey);
+        //step3.1: check sender's new strategy
+        let url = format!("/wallet/getStrategy?accountId={}", sender_master.wallet.main_account);
         let res: BackendRespond<StrategyData> = test_service_call!(
             service,
             "get",
             &url,
             None::<String>,
-            Some(&sender_master.token)
+            Some(sender_master.user.token.as_ref().unwrap())
         );
         let sender_strategy = res.data;
         println!("{:?}", sender_strategy);
 
+
+                        /*** 
         //step2: master: pre_send_money
         let payload = json!({
              "deviceId": "1",

@@ -11,7 +11,7 @@ pub mod newbie_reward;
 
 pub mod coin_transfer;
 pub mod secret_store;
-pub mod wallet;
+//pub mod wallet;
 pub mod device_info;
 
 //#[macro_use]

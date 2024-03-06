@@ -3,6 +3,8 @@ use std::str::FromStr;
 
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
+use strum_macros::{EnumString, ToString,Display};
+use super::secret_store::SecretStore;
 
 const PREDECESSOR_SUBFIX: &'static str = ".node0";
 
@@ -28,33 +30,9 @@ pub trait AddressConvert: Sized {
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-pub enum StrategyMessageType {
-    AddServant,
-    RemoveServant,
-    ReplaceMaster
-}
-impl fmt::Display for StrategyMessageType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let description = match self {
-            StrategyMessageType::AddServant => "AddServant",
-            StrategyMessageType::RemoveServant => "RemoveServant",
-            StrategyMessageType::ReplaceMaster => "ReplaceMaster",
-        };
-        write!(f, "{}", description)
-    }
-}
-
-impl FromStr for StrategyMessageType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "AddServant" => Ok(StrategyMessageType::AddServant),
-            "RemoveServant" => Ok(StrategyMessageType::RemoveServant),
-            "ReplaceMaster" => Ok(StrategyMessageType::ReplaceMaster),
-            _ => Err("Don't support this".to_string()),
-        }
-    }
+pub enum MessageType {
+    NewcomerBecameSevant(SecretStore),
+    CoinTx(CoinTransaction)
 }
 
 
@@ -103,8 +81,7 @@ impl AddressConvert for AccountId {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Serialize, Clone)]
-//#[serde(rename_all = "lowercase")]
+#[derive(Deserialize, Debug, PartialEq, Serialize, Clone,EnumString,Display)]
 pub enum CoinTxStatus {
     Created,
     SenderSigCompleted,
@@ -118,44 +95,7 @@ pub enum CoinTxStatus {
     FinalizeAndSuccessful,
 }
 
-impl fmt::Display for CoinTxStatus {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let description = match self {
-            CoinTxStatus::Created => "Created",
-            CoinTxStatus::SenderSigCompleted => "SenderSigCompleted",
-            CoinTxStatus::ReceiverApproved => "ReceiverApproved",
-            CoinTxStatus::ReceiverRejected => "ReceiverRejected",
-            CoinTxStatus::SenderCanceled => "SenderCanceled",
-            CoinTxStatus::SenderReconfirmed => "SenderReconfirmed",
-            CoinTxStatus::Broadcast => "Broadcast",
-            CoinTxStatus::Expired => "Expired",
-            CoinTxStatus::FinalizeAndFailed => "FinalizeAndFailed",
-            CoinTxStatus::FinalizeAndSuccessful => "FinalizeAndSuccessful",
-        };
-        write!(f, "{}", description)
-    }
-}
-
-impl FromStr for CoinTxStatus {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Created" => Ok(CoinTxStatus::Created),
-            "SenderSigCompleted" => Ok(CoinTxStatus::SenderSigCompleted),
-            "ReceiverApproved" => Ok(CoinTxStatus::ReceiverApproved),
-            "ReceiverRejected" => Ok(CoinTxStatus::ReceiverRejected),
-            "SenderCanceled" => Ok(CoinTxStatus::SenderCanceled),
-            "SenderReconfirmed" => Ok(CoinTxStatus::SenderReconfirmed),
-            "Expired" => Ok(CoinTxStatus::Expired),
-            "Broadcast" => Ok(CoinTxStatus::Broadcast),
-            "FinalizeAndFailed" => Ok(CoinTxStatus::FinalizeAndFailed),
-            "FinalizeAndSuccessful" => Ok(CoinTxStatus::FinalizeAndSuccessful),
-            _ => Err("Don't support this service mode".to_string()),
-        }
-    }
-}
-
+/*** 
 #[derive(Deserialize, Debug, PartialEq, Serialize, Clone)]
 pub enum SecretKeyType {
     Master,
@@ -183,6 +123,7 @@ impl FromStr for SecretKeyType {
         }
     }
 }
+*/
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct CoinTransaction {
@@ -199,21 +140,4 @@ pub struct CoinTransaction {
     pub signatures: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Wallet {
-    pub user_id: u32,
-    pub account_id: String,
-    pub sub_pubkeys: Vec<String>,
-    pub sign_strategies: Vec<String>,
-    pub participate_device_ids: Vec<String>,
-}
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct Wallet2 {
-    pub account_id: String,
-    pub master_device_id: String,
-    pub master_pubkey: String,
-    pub servant_device_ids: Vec<String>,
-    pub servant_pubkeys: Vec<String>,
-    pub sign_strategies: String,
-}

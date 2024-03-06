@@ -8,7 +8,7 @@ use postgres::Row;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
 use common::data_structures::SecretKeyState;
 use serde::{Deserialize, Serialize};
-use common::data_structures::wallet::{CoinTxStatus, StrategyMessageType};
+use common::data_structures::wallet::{CoinTxStatus};
 use slog_term::PlainSyncRecordDecorator;
 use common::data_structures::*;
 

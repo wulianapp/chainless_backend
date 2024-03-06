@@ -6,7 +6,7 @@ use common::error_code::{BackendRes};
 use crate::utils::token_auth;
 
 
-use crate::wallet::{getStrategyRequest, searchMessageByAccountIdRequest};
+use crate::wallet::{getStrategyRequest};
 
 pub(crate) async fn req(
     req: HttpRequest,

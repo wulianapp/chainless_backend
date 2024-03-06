@@ -1,7 +1,7 @@
 use serde_derive::{Deserialize, Serialize};
 use super::{KeyRole, SecretKeyState, SecretKeyType};
 
-#[derive(Deserialize, Serialize, Debug,PartialEq)]
+#[derive(Deserialize, Serialize, Debug,Clone,PartialEq)]
 pub struct SecretStore {
     pub pubkey: String,
     pub state: SecretKeyState,
