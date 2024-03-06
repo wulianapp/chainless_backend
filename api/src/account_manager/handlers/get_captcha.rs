@@ -19,8 +19,9 @@ pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
 
     let contract_type = captcha::validate(&contact)?;
     if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
-        let remain_time = now_millis() - data.created_at;
-        if remain_time <= MINUTE1 {
+        let past_time =  now_millis() - data.created_at;
+        if past_time <= MINUTE1 {
+            let remain_time = MINUTE1 - past_time;
             let remain_secs = (remain_time / 1000) as u8;
             Err(CaptchaRequestTooFrequently(remain_secs))?;
         }else {

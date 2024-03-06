@@ -16,7 +16,7 @@ use crate::utils::respond::gen_extra_respond;
  * @apiVersion 0.0.1
  * @apiName getCaptcha
  * @apiGroup AccountManager
- * @apiBody {String} deviceId   用户设备ID
+ * @apiBody {String} deviceId   用户设备ID,也是测试服务的验证码返回值
  * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test1@gmail.com
  * @apiBody {String="register","resetPassword","setSecurity","addServant","servantReplaceMaster","newcomerBecomeMaster"} kind 验证码类型
  * @apiExample {curl} Example usage:
@@ -66,6 +66,31 @@ async fn contact_is_used(
     query_params: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
     gen_extra_respond(handlers::contact_is_used::req(query_params.into_inner()))
+}
+
+
+
+/**
+ * @api {get} /accountManager/userInfo 用户账号详情
+ * @apiVersion 0.0.1
+ * @apiName userInfo
+ * @apiGroup AccountManager
+ * @apiBody {String} contact   邮箱或者手机号
+ * @apiExample {curl} Example usage:
+ * curl -X GET "http://120.232.251.101:8065/accountManager/userInfo?contact=test1@gmail.com"
+ * @apiSuccess {string} status_code         status code.
+ * @apiSuccess {string} msg                 description of status.
+ * @apiSuccess {string} data                nothing.
+ * @apiSampleRequest http://120.232.251.101:8065/accountManager/userInfo
+ */
+type UserInfoRequest = ContactIsUsedRequest;
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/accountManager/userInfo")]
+async fn user_info(
+    //request_data: web::Json<ContactIsUsedRequest>,1
+    query_params: web::Query<UserInfoRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::user_info::req(query_params.into_inner()))
 }
 
 /**
@@ -253,6 +278,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(register_by_email)
         .service(register_by_phone)
         .service(login)
+        .service(user_info)
         .service(reset_password);
 }
 
