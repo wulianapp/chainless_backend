@@ -163,7 +163,6 @@ async fn direct_send_money(
  * @apiVersion 0.0.1
  * @apiName reactPreSendMoney
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
  * @apiBody {Number} txIndex    交易序列号
  * @apiBody {bool} isAgreed    是否同意接收
  * @apiHeader {String} Authorization  user's access token
@@ -777,7 +776,9 @@ mod tests {
         test_register!(service,receiver);
         test_login!(service,sender_servant);
         test_create_main_account!(service,receiver);
-
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let get_res = test_get_strategy!(service,receiver);
+        let receiver_strategy = get_res.data;
 
         //step1: new sender main_account
         let payload = json!({
@@ -933,7 +934,7 @@ mod tests {
 
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service,sender_master);
-        if let AccountMessage::CoinTx(index,tx ) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(_index,tx ) = res.data.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.unwrap(),
@@ -977,34 +978,34 @@ mod tests {
             assert_eq!(res.status_code,0);
         }
 
-        
+        //step5: receiver get notice and react it
+        let res = test_search_message!(service,receiver);
+        if let AccountMessage::CoinTx(index,tx ) = res.data.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
+            assert_eq!(
+                receiver.wallet.pubkey.unwrap(),
+                receiver_strategy.master_pubkey,
+                "only master_key can ratify or refuse it"
+            );
+
+            let payload = json!({
+                "txIndex": index,
+                "isAgreed": true,
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                "/wallet/reactPreSendMoney",
+                Some(payload.to_string()),
+                Some(receiver.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code,0);
+        }
 
         /*** 
 
         //接受者仅关注SenderSigCompleted状态的交易
-        let url = format!(
-            "/wallet/searchMessageByAccountId?accountId={}",
-            receiver.wallets.first().unwrap().account_id
-        );
-        let res: BackendRespond<Vec<CoinTxView>> =
-            test_service_call!(service, "get", &url, None::<String>, Some(&receiver.token));
-        let tx = res.data.first().unwrap();
-        assert_eq!(tx.transaction.status, CoinTxStatus::SenderSigCompleted);
-
-        let payload = json!({
-            "deviceId": "3".to_string(),
-        "txIndex": tx.tx_index,
-        "isAgreed": true,
-        });
-        let payload = payload.to_string();
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/reactPreSendMoney",
-            Some(payload.to_string()),
-            Some(&receiver.token)
-        );
-        println!("{:?}", res.data);
+     
 
         //step5: reconfirm_send_money
         let url = format!(

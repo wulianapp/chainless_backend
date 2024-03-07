@@ -102,7 +102,7 @@ macro_rules! test_create_main_account{
             "post",
             "/wallet/createMainAccount",
             Some(payload.to_string()),
-            Some(&$app.user.token.unwrap())
+            Some($app.user.token.as_ref().unwrap())
         );
     }};
 }

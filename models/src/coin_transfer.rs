@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{vec_str2array_text, PsqlType, PsqlOp};
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
-use common::error_code::BackendError;
+use common::error_code::{BackendError, TxStatus};
 use crate::secret_store::{SecretFilter, SecretStoreView};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -28,6 +28,7 @@ impl CoinTxView {
                               coin_tx_raw:String,
                               memo:Option<String>,
                               expire_at:u64,
+                              status: CoinTxStatus
     ) -> Self{
         let coin_tx = CoinTransaction {
             tx_id: None,
@@ -35,7 +36,7 @@ impl CoinTxView {
             from,
             to,
             amount,
-            status: CoinTxStatus::Created,
+            status,
             coin_tx_raw,
             chain_tx_raw: None,
             signatures: vec![],
