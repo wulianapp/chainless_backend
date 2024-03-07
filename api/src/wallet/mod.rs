@@ -330,6 +330,19 @@ async fn add_servant(
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ServantSavedSecretRequest {
+    servant_pubkey: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/servantSavedSecret")]
+async fn servant_saved_secret(request: HttpRequest,    
+    request_data: web::Json<ServantSavedSecretRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::servant_saved_secret::req(request,request_data.0).await)
+}
+
 
 
 /**
@@ -560,8 +573,11 @@ async fn get_online_pubkey_list(){
 async fn search_strategy_message(){
     todo!()
 }
-async fn backup_servant_secret_key(){
-    todo!()
+
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/deviceList")]
+async fn device_list(req: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::device_list::req(req).await)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -578,6 +594,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(update_strategy)
         .service(create_main_account)
         .service(put_pending_pubkey)
+        .service(servant_saved_secret)
+        .service(device_list)
         .service(get_pending_pubkey);
         //.service(remove_subaccount);
 
@@ -599,6 +617,7 @@ mod tests {
 
     use actix_web::{body::MessageBody as _, test, App};
 
+    use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxView;
     use models::{account_manager, PsqlOp, secret_store};
@@ -790,7 +809,7 @@ mod tests {
         //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
-            "servantPubkey":  sender_servant.wallet.servent_pubkey.unwrap(),
+            "servantPubkey":  sender_servant.wallet.servent_pubkey.as_ref().unwrap(),
             "servantPrikeyEncrypedByPwd":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
             "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
             "holderDeviceId":  sender_servant.device.id,
@@ -836,8 +855,7 @@ mod tests {
         println!("{:?}", sender_strategy);
 
 
-        //step3(optional): check new message
-        //for sender master
+        //step4: get message of becoming servant,and save encrypted prikey
         let url = format!("/wallet/searchMessage");
         let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
             service,
@@ -846,10 +864,41 @@ mod tests {
             None::<String>,
             Some(sender_servant.user.token.as_ref().unwrap())
         );
-        println!("{:?}", res.data);
+        if let AccountMessage::NewcomerBecameSevant(secret) = res.data.first().unwrap(){
+            println!("encrypted_prikey_by_password {:?}", secret.encrypted_prikey_by_password);
+            sender_servant.wallet.servent_prikey = Some(secret.encrypted_prikey_by_password.clone());
+            //todo: confirm prikey save
+            let payload = json!({
+                "servantPubkey":  sender_servant.wallet.servent_pubkey.as_ref().unwrap(),
+            });
+            let url = format!("/wallet/servantSavedSecret");
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                &url,
+                Some(payload.to_string()),
+                Some(sender_servant.user.token.as_ref().unwrap())
+            ); 
+            println!("{},,,{}",line!(),res.data);  
+        }
+
+        //step4.1: get device list
+        let url = format!("/wallet/deviceList");
+        let res: BackendRespond<Vec<DeviceInfo>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_servant.user.token.as_ref().unwrap())
+        );
+        println!("{},,,{:?}",line!(),res.data);  
 
 
-                        /*** 
+
+
+                /*** 
+
+
         //step2: master: pre_send_money
         let payload = json!({
              "deviceId": "1",

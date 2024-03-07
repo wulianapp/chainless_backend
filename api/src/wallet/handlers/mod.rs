@@ -11,3 +11,5 @@ pub mod upload_servant_sig;
 pub mod add_subaccount;
 pub mod pending_pubkey;
 pub mod create_main_account;
+pub mod servant_saved_secret;
+pub mod device_list;

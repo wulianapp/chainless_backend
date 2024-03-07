@@ -118,3 +118,34 @@ macro_rules! test_create_main_account{
 }
 
 
+#[macro_export]
+macro_rules! test_search_message{
+    ($service:expr, $app:expr) => {{
+        let url = format!("/wallet/searchMessage");
+        let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        res
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_get_strategy{
+    ($service:expr, $app:expr) => {{
+        let url = format!("/wallet/getStrategy?accountId={}", $app.wallet.main_account);
+        let res: BackendRespond<StrategyData> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        res
+    }};
+}
+

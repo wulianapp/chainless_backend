@@ -90,7 +90,7 @@ async fn user_info(
     //request_data: web::Json<ContactIsUsedRequest>,1
     query_params: web::Query<UserInfoRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::user_info::req(query_params.into_inner()))
+    gen_extra_respond(handlers::user_info::req(query_params.0))
 }
 
 /**
@@ -225,7 +225,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiSuccess {string} data                jwt token.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/login
  */
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginRequest {
     device_id: String,
@@ -338,7 +338,7 @@ mod tests {
         clear_contract("").await;
 
         //getCaptcha
-        let payload = r#"{ "deviceId": "1", "contact": "test1@gmail.com","kind": "register" }"#;
+        let payload = r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "register" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -351,7 +351,7 @@ mod tests {
         //register
         let payload = r#"
             { 
-            "deviceId": "1",
+            "deviceId": "000000",
             "deviceBrand": "Apple",
             "email": "test1@gmail.com",
             "captcha": "000000",
@@ -368,7 +368,7 @@ mod tests {
 
         //login
         let payload = r#"
-            { "deviceId": "1",
+            { "deviceId": "000000",
              "deviceBrand": "Apple",
             "contact": "test1@gmail.com",
              "password": "123456789"
@@ -392,11 +392,11 @@ mod tests {
         );
         println!("{:?}", res.data);
 
-        let payload = r#"{ "deviceId": "1", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
+        let payload = r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
         let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
         println!("{:?}",res.data);
         let payload = r#"
-        { "deviceId": "1",
+        { "deviceId": "000000",
          "captcha": "000000",
          "contact": "test1@gmail.com",
          "newPassword": "new123456789"
@@ -406,34 +406,20 @@ mod tests {
         println!("{:?}",res.msg);
 
 
-        
-        let payload = r#"{ "deviceId": "2", "contact": "test2@gmail.com","kind": "register" }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/getCaptcha",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-
-        //register
         let payload = r#"
-            { 
-            "deviceId": "2",
-            "deviceBrand": "Apple",
-            "email": "test2@gmail.com",
-            "captcha": "000000",
-            "password": "123456789"
-            }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/registerByEmail",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
+        { "deviceId": "000000",
+         "deviceBrand": "Apple",
+        "contact": "test1@gmail.com",
+         "password": "123456789"
+        }"#;
+    let res: BackendRespond<String> = test_service_call!(
+        service,
+        "post",
+        "/accountManager/login",
+        Some(payload),
+        None::<String>
+    );
+    println!("{:?}", res.data);
       
     }
 }

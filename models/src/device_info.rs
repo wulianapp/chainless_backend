@@ -20,6 +20,7 @@ use common::error_code::BackendError;
 #[derive(Debug)]
 pub enum DeviceInfoUpdater {
     State(SecretKeyState),
+    HolderSaved(bool),
 }
 
 impl fmt::Display for DeviceInfoUpdater {
@@ -27,6 +28,9 @@ impl fmt::Display for DeviceInfoUpdater {
         let description = match self {
             DeviceInfoUpdater::State(new_state) =>  {
                 format!("state='{}'", new_state.to_string())
+            },
+            DeviceInfoUpdater::HolderSaved(saved) =>  {
+                format!("holder_confirm_saved={} ", saved)
             }
         };
         write!(f, "{}", description)
@@ -35,6 +39,7 @@ impl fmt::Display for DeviceInfoUpdater {
 
 #[derive(Clone, Debug)]
 pub enum DeviceInfoFilter {
+    ByUser(u32),
     ByDeviceUser(String,u32),
     ByUserDeviceHoldSecret(u32,String,bool),
 }
@@ -42,6 +47,8 @@ pub enum DeviceInfoFilter {
 impl fmt::Display for DeviceInfoFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
+            DeviceInfoFilter::ByUser(user_id) =>  
+            format!("user_id={} ",user_id),
             DeviceInfoFilter::ByDeviceUser(device_id,user_id) =>  
             format!("id='{}' and user_id={} ", device_id,user_id),
             DeviceInfoFilter::ByUserDeviceHoldSecret(user_id,device_id,saved) =>  

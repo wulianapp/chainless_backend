@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use common::error_code::AccountManagerError::{
     AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
 };
+use tracing::debug;
 
 use crate::account_manager::LoginRequest;
 use common::error_code::{BackendRes};
@@ -53,6 +54,7 @@ fn is_locked(user_id: u32) -> bool {
 }
 
 pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
+    debug!("{:?}",request_data);
     let LoginRequest {
         device_id,
         device_brand,
@@ -62,11 +64,13 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
     let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
 
-    if is_locked(user_at_stored.id) {
-        Err(AccountLocked)?;
-    }
+   
 
     if password != user_at_stored.user_info.login_pwd_hash {
+        if is_locked(user_at_stored.id) {
+            Err(AccountLocked)?;
+        }
+
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect)?;
     }
