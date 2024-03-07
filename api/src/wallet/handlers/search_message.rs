@@ -31,7 +31,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
         user.user_info.main_account.clone())
     )?;
     let mut tx_msg = coin_txs.into_iter().map(|tx| 
-            AccountMessage::CoinTx(tx.transaction)
+            AccountMessage::CoinTx(tx.tx_index,tx.transaction)
     ).collect::<Vec<AccountMessage>>();
 
     messages.append(&mut tx_msg);

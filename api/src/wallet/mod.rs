@@ -933,7 +933,7 @@ mod tests {
 
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service,sender_master);
-        if let AccountMessage::CoinTx(tx ) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(index,tx ) = res.data.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.unwrap(),
@@ -942,46 +942,44 @@ mod tests {
             );
         }
         let res = test_search_message!(service,sender_servant);
-        if let AccountMessage::CoinTx(tx ) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(index,tx ) = res.data.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
-                sender_servant.wallet.pubkey.unwrap(),
-                sender_strategy.servant_pubkeys.first().unwrap().to_string(),
+                sender_servant.wallet.pubkey.as_ref().unwrap(),
+                sender_strategy.servant_pubkeys.first().unwrap(),
                 "this device hold  servant key,need to sig for 'Created' tx"
             );
+
+            //step4: upload sender servant sign
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                &sender_servant.wallet.prikey.unwrap(),
+                &tx.coin_tx_raw,
+            );
+            let signature = format!(
+                "{}{}",
+                sender_servant.wallet.pubkey.as_ref().unwrap(),
+                signature
+            );
+
+            //upload_servant_sig
+            let payload = json!({
+                "txIndex": index,
+                "signature": signature,
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                "/wallet/uploadServantSig",
+                Some(payload.to_string()),
+                Some(sender_servant.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code,0);
         }
 
         
 
-                                /*** 
-        //step3.1: sender servant sign
-        //local sign
-        let signature = blockchain::multi_sig::ed25519_sign_data2(
-            &sender_servant.wallets.first().unwrap().prikey,
-            &tx.transaction.coin_tx_raw,
-        );
-        //pubkey + signature
-        let signature = format!(
-            "{}{}",
-            sender_servant.wallets.first().unwrap().pubkey,
-            signature
-        );
-        println!("signature {}", signature);
-        //upload_servant_sig
-        let payload = json!({
-        "deviceId":  "2".to_string(),
-        "txIndex": tx.tx_index,
-        "signature": signature,
-        });
-        let payload = payload.to_string();
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/uploadServantSig",
-            Some(payload),
-            Some(&sender_servant.token)
-        );
-        println!("{:?}", res.data);
+        /*** 
 
         //接受者仅关注SenderSigCompleted状态的交易
         let url = format!(

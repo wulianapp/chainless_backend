@@ -32,7 +32,7 @@ pub trait AddressConvert: Sized {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AccountMessage {
     NewcomerBecameSevant(SecretStore),
-    CoinTx(CoinTransaction)
+    CoinTx(u32,CoinTransaction)
 }
 
 

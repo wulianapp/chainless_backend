@@ -56,7 +56,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
     //it is impossible to get none
-    error!("0001_ {}",main_account);
     let mut current_strategy = multi_sig_cli
     .get_strategy(&main_account)
     .await?.
