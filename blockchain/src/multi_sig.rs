@@ -23,6 +23,7 @@ use near_primitives::types::AccountId;
 use common::data_structures::wallet::{AddressConvert, CoinType};
 use serde::{Deserialize, Serialize};
 
+use crate::general::get_access_key_list;
 use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
 
@@ -71,6 +72,15 @@ impl ContractClient<MultiSig> {
             relayer: signer,
             phantom: Default::default(),
         }
+    }
+
+    pub async fn get_master_pubkey(&self,account_str: &str) -> String{
+        let list = get_access_key_list(account_str).await.keys;
+        if list.len() != 1 {
+            panic!("todo");
+        } 
+        let key = list.first().unwrap().public_key.key_data();
+        hex::encode(key)
     }
 
     pub async fn get_strategy(&self, account_id: &str) -> BackendRes<StrategyData> {

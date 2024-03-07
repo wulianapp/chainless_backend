@@ -96,7 +96,6 @@ async fn get_strategy(
  * @apiVersion 0.0.1
  * @apiName preSendMoney
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
  * @apiBody {String} from    发起方多签钱包ID
  * @apiBody {String} to      收款方ID
  * @apiBody {String=dw20,cly} coin      币种名字
@@ -604,7 +603,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_create_main_account, test_get_strategy, test_login, test_register, test_service_call};
+    use crate::{test_create_main_account, test_get_strategy, test_login, test_register, test_search_message, test_service_call};
     use crate::utils::respond::BackendRespond;
 
     use super::*;
@@ -623,7 +622,7 @@ mod tests {
     use models::{account_manager, PsqlOp, secret_store};
     use serde_json::json;
 
-    use blockchain::multi_sig::MultiSig;
+    use blockchain::multi_sig::{CoinTx, MultiSig};
     use blockchain::multi_sig::StrategyData;
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
@@ -634,13 +633,12 @@ mod tests {
    // use log::{info, LevelFilter,debug,error};
     use tracing::{debug,info,error};
     use models::account_manager::UserInfoView;
-
+    use handlers::get_strategy::StrategyDataTmp;
 
     struct TestWallet {
       main_account:String, 
-      master_prikey: Option<String>, 
-      servent_pubkey: Option<String>, 
-      servent_prikey: Option<String>, 
+      pubkey: Option<String>, 
+      prikey: Option<String>, 
       subaccount:Vec<String>,
       sub_prikey:Option<Vec<String>>,
     }
@@ -699,12 +697,11 @@ mod tests {
             },
             wallet: TestWallet {
                 main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
-                master_prikey: Some("8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
+                pubkey: Some("2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()),
+                prikey: Some("8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
                   ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()),
                 subaccount:vec!["0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()], 
                 sub_prikey:Some(vec!["2e1eee23ac76477ff1f9e9ae05829b0de3b89072d104c9de6daf0b1c38eddede0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()]),
-                servent_pubkey: None,
-                servent_prikey: None,
             },
         }
 
@@ -723,11 +720,10 @@ mod tests {
             },
             wallet: TestWallet {
                 main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
-                master_prikey: None,
                 subaccount:vec!["0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()],
                 sub_prikey:None,
-                servent_pubkey: Some("7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string()),
-                servent_prikey: Some("2b2193968a4e6ff5c6b8b51f8aed0ee41306c57d225885fca19bbc828a91d1a07d2e\
+                pubkey: Some("7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string()),
+                prikey: Some("2b2193968a4e6ff5c6b8b51f8aed0ee41306c57d225885fca19bbc828a91d1a07d2e\
                 7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string()),
             },
         }
@@ -746,12 +742,11 @@ mod tests {
             },
             wallet: TestWallet {
                 main_account: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
-                master_prikey: Some("119bef4d830c134a13b2a9661dbcf39fbd628bf216aea43a4b651085df521d525\
+                pubkey: Some("535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string()),
+                prikey: Some("119bef4d830c134a13b2a9661dbcf39fbd628bf216aea43a4b651085df521d525\
                 35ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string()),
                 subaccount:vec!["19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()], 
                 sub_prikey:Some(vec!["a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()]),
-                servent_pubkey: None,
-                servent_prikey: None,
             },
         }
     }
@@ -787,14 +782,13 @@ mod tests {
         //step1: new sender main_account
         let payload = json!({
             "masterPubkey":  sender_master.wallet.main_account,
-            "masterPrikeyEncryptedByPwd": sender_master.wallet.master_prikey,
-            "masterPrikeyEncryptedByAnswer": sender_master.wallet.master_prikey,
+            "masterPrikeyEncryptedByPwd": sender_master.wallet.prikey,
+            "masterPrikeyEncryptedByAnswer": sender_master.wallet.prikey,
             "subaccountPubkey":  sender_master.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPwd": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": sender_master.wallet.sub_prikey.unwrap().first().unwrap(),
             "signPwdHash": ""
         });
-        println!("0001_ {}",payload.to_string());
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -802,16 +796,16 @@ mod tests {
             Some(payload.to_string()),
             Some(&sender_master.user.token.as_ref().unwrap())
         );
-        println!("newMaster res {:?}", res.data);
+        assert_eq!(res.status_code,0);
 
         //给链上确认一些时间
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
-            "servantPubkey":  sender_servant.wallet.servent_pubkey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByPwd":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.servent_prikey.as_ref().unwrap(),
+            "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByPwd":  sender_servant.wallet.prikey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.prikey.as_ref().unwrap(),
             "holderDeviceId":  sender_servant.device.id,
             "holderDeviceBrand": sender_servant.device.brand,
         });
@@ -822,11 +816,11 @@ mod tests {
             Some(payload.to_string()),
             Some(sender_master.user.token.as_ref().unwrap())
         );
-        println!("addServant res {:?}", res.data);
+        assert_eq!(res.status_code,0);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         //给链上确认一些时间
-        //step3: sender main_account update strategy
+        //step2.1: sender main_account update strategy
         let payload = json!({
             "accountId":  sender_master.wallet.main_account,
             "deviceId": "1",
@@ -839,10 +833,10 @@ mod tests {
             Some(payload.to_string()),
             Some(sender_master.user.token.as_ref().unwrap())
         );
-        println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        //step3.1: check sender's new strategy
+        //step2.2: check sender's new strategy
         let url = format!("/wallet/getStrategy?accountId={}", sender_master.wallet.main_account);
         let res: BackendRespond<StrategyData> = test_service_call!(
             service,
@@ -855,7 +849,7 @@ mod tests {
         println!("{:?}", sender_strategy);
 
 
-        //step4: get message of becoming servant,and save encrypted prikey
+        //step2.3: get message of becoming servant,and save encrypted prikey
         let url = format!("/wallet/searchMessage");
         let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
             service,
@@ -866,10 +860,10 @@ mod tests {
         );
         if let AccountMessage::NewcomerBecameSevant(secret) = res.data.first().unwrap(){
             println!("encrypted_prikey_by_password {:?}", secret.encrypted_prikey_by_password);
-            sender_servant.wallet.servent_prikey = Some(secret.encrypted_prikey_by_password.clone());
+            sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
             //todo: confirm prikey save
             let payload = json!({
-                "servantPubkey":  sender_servant.wallet.servent_pubkey.as_ref().unwrap(),
+                "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
             });
             let url = format!("/wallet/servantSavedSecret");
             let res: BackendRespond<String> = test_service_call!(
@@ -879,10 +873,10 @@ mod tests {
                 Some(payload.to_string()),
                 Some(sender_servant.user.token.as_ref().unwrap())
             ); 
-            println!("{},,,{}",line!(),res.data);  
+            assert_eq!(res.status_code,0);
         }
 
-        //step4.1: get device list
+        //step2.4: get device list
         let url = format!("/wallet/deviceList");
         let res: BackendRespond<Vec<DeviceInfo>> = test_service_call!(
             service,
@@ -893,7 +887,7 @@ mod tests {
         );
         println!("{},,,{:?}",line!(),res.data);
 
-        //add servant
+        //step2.5: add subaccount
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
             "subaccountPubkey": "11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9",
@@ -908,22 +902,22 @@ mod tests {
             Some(payload.to_string()),
             Some(sender_master.user.token.as_ref().unwrap())
         );
+        assert_eq!(res.status_code,0);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let strategy = test_get_strategy!(service,sender_master);
-        println!("{},,,{:?}",line!(),res.data);
+        let res = test_get_strategy!(service,sender_master);
+        let sender_strategy = res.data;
+        println!("{},,,{:?}",line!(),sender_strategy);
 
 
 
 
 
-                /*** 
 
 
-        //step2: master: pre_send_money
+        //step3: master: pre_send_money
         let payload = json!({
-             "deviceId": "1",
-             "from": new_master_pubkey,
-             "to": receiver.wallets.first().unwrap().pubkey,
+             "from": &sender_master.wallet.main_account,
+             "to": &receiver.wallet.main_account,
              "coin":"dw20",
              "amount": 12,
              "expireAt": 1808015513000u64
@@ -933,48 +927,34 @@ mod tests {
             "post",
             "/wallet/preSendMoney",
             Some(payload.to_string()),
-            Some(&sender_master.token)
+            Some(sender_master.user.token.as_ref().unwrap())
         );
-        println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
 
-        //step3(optional): check new message
-        //for sender master
-        let url = format!("/wallet/searchMessageByAccountId?accountId={}", new_master_pubkey);
-        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(&sender_master.token)
-        );
-        let tx = res.data.first().unwrap();
-        //对于created状态的交易来说，主设备不处理，从设备上传签名
-        assert_eq!(tx.transaction.status, CoinTxStatus::Created);
-        assert_eq!(
-            new_master_pubkey,
-            sender_strategy.main_device_pubkey,
-            "this device hold  master key,and do nothing for 'Created' tx"
-        );
+        //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
+        let res = test_search_message!(service,sender_master);
+        if let AccountMessage::CoinTx(tx ) = res.data.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(
+                sender_master.wallet.pubkey.unwrap(),
+                sender_strategy.master_pubkey,
+                "this device hold  master key,and do nothing for 'Created' tx"
+            );
+        }
+        let res = test_search_message!(service,sender_servant);
+        if let AccountMessage::CoinTx(tx ) = res.data.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(
+                sender_servant.wallet.pubkey.unwrap(),
+                sender_strategy.servant_pubkeys.first().unwrap().to_string(),
+                "this device hold  servant key,need to sig for 'Created' tx"
+            );
+        }
 
+        
 
+                                /*** 
         //step3.1: sender servant sign
-        let url = format!("/wallet/searchMessageByAccountId?accountId={}", new_master_pubkey);
-        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(&sender_servant.token)
-        );
-        let tx = res.data.first().unwrap();
-        //对于created状态的交易来说，主设备不处理，从设备上传签名,其他设备不进行通知
-
-        assert_eq!(tx.transaction.status, CoinTxStatus::Created);
-        assert_eq!(
-            sender_servant.wallets.first().unwrap().pubkey,
-            *sender_strategy.servant_device_pubkey.first().unwrap(),
-            "this device hold  servant key,need to sig tx"
-        );
         //local sign
         let signature = blockchain::multi_sig::ed25519_sign_data2(
             &sender_servant.wallets.first().unwrap().prikey,

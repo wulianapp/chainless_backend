@@ -32,7 +32,6 @@ macro_rules! test_service_call {
 #[macro_export]
 macro_rules! test_register {
     ( $service:expr,$app:expr) => {{
-        if $app.wallet.master_prikey.is_some() {
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "contact": $app.user.contact,
@@ -62,10 +61,6 @@ macro_rules! test_register {
                 None::<String>
             );
             $app.user.token = Some(res.data);
-            
-        }else {
-            assert!(false,"must be master");
-        }
     }};
 }
 
@@ -73,7 +68,6 @@ macro_rules! test_register {
 #[macro_export]
 macro_rules! test_login {
     ($service:expr, $app:expr) => {{
-        if $app.wallet.master_prikey.is_none() {
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
@@ -87,11 +81,7 @@ macro_rules! test_login {
                 Some(payload.to_string()),
                 None::<String>
             );
-            $app.user.token = Some(res.data);
-            
-        }else {
-            assert!(false,"must be servant");
-        }
+            $app.user.token = Some(res.data);     
     }};
 }
 
@@ -100,8 +90,8 @@ macro_rules! test_create_main_account{
     ($service:expr, $app:expr) => {{
         let payload = json!({
             "masterPubkey":  $app.wallet.main_account,
-            "masterPrikeyEncryptedByPwd": $app.wallet.master_prikey,
-            "masterPrikeyEncryptedByAnswer": $app.wallet.master_prikey,
+            "masterPrikeyEncryptedByPwd": $app.wallet.prikey,
+            "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
             "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPwd": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
@@ -138,7 +128,7 @@ macro_rules! test_search_message{
 macro_rules! test_get_strategy{
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getStrategy?accountId={}", $app.wallet.main_account);
-        let res: BackendRespond<StrategyData> = test_service_call!(
+        let res: BackendRespond<StrategyDataTmp> = test_service_call!(
             $service,
             "get",
             &url,

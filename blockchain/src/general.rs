@@ -3,6 +3,7 @@ use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitRespo
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
+use near_primitives::views::AccessKeyList;
 use std::str::FromStr;
 
 use near_primitives::borsh::BorshDeserialize;
@@ -49,6 +50,26 @@ pub fn account_id_from_hex_str(id: &str) -> AccountId {
 pub fn pubkey_from_hex_str(key: &str) -> PublicKey {
     let key_bytes = hex::decode(key).unwrap();
     PublicKey::try_from_slice(&key_bytes).unwrap()
+}
+
+
+pub async fn get_access_key_list(
+    account_str: &str,
+) -> AccessKeyList {
+    let account_id = AccountId::from_str(account_str).unwrap();
+    let access_key_query_response = crate::CHAIN_CLIENT
+        .call(methods::query::RpcQueryRequest {
+            block_reference: BlockReference::latest(),
+            request: near_primitives::views::QueryRequest::ViewAccessKeyList {account_id},
+        })
+        .await
+        .unwrap();
+
+    let list = match access_key_query_response.kind {
+        QueryResponseKind::AccessKeyList(list) => list,
+        _ => Err("failed to extract current nonce").unwrap(),
+    };
+    list
 }
 
 pub async fn safe_gen_transaction(
