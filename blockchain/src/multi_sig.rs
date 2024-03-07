@@ -50,7 +50,10 @@ impl Default for MultiSigRank {
 pub struct StrategyData {
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub servant_pubkeys: Vec<String>,
+    pub subaccounts: Vec<AccountId>,
 }
+
+
 
 impl ContractClient<MultiSig> {
     //fixme: gen once object
@@ -117,7 +120,7 @@ impl ContractClient<MultiSig> {
             "main_account_id": main_acc,
             "accounts": vec![subacc]
         }).to_string();
-        self.commit_by_relayer("remove_tx_index", &args_str).await
+        self.commit_by_relayer("add_subaccounts", &args_str).await
     }
 
     pub async fn remove_subaccount(

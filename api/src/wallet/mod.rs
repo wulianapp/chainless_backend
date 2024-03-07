@@ -604,7 +604,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{test_create_main_account, test_login, test_register, test_service_call};
+    use crate::{test_create_main_account, test_get_strategy, test_login, test_register, test_service_call};
     use crate::utils::respond::BackendRespond;
 
     use super::*;
@@ -891,7 +891,27 @@ mod tests {
             None::<String>,
             Some(sender_servant.user.token.as_ref().unwrap())
         );
-        println!("{},,,{:?}",line!(),res.data);  
+        println!("{},,,{:?}",line!(),res.data);
+
+        //add servant
+        let payload = json!({
+            "mainAccount":  sender_master.wallet.main_account,
+            "subaccountPubkey": "11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9",
+            "subaccountPrikeyEncrypedByPwd": "by_pwd_ead4cf1",
+            "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
+        });
+        let url = format!("/wallet/addSubaccount");
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let strategy = test_get_strategy!(service,sender_master);
+        println!("{},,,{:?}",line!(),res.data);
+
 
 
 
