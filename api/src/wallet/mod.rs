@@ -937,8 +937,8 @@ mod tests {
         if let AccountMessage::CoinTx(_index,tx ) = res.data.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
-                sender_master.wallet.pubkey.unwrap(),
-                sender_strategy.master_pubkey,
+                sender_master.wallet.pubkey.as_ref().unwrap(),
+                &sender_strategy.master_pubkey,
                 "this device hold  master key,and do nothing for 'Created' tx"
             );
         }
@@ -1002,57 +1002,43 @@ mod tests {
             assert_eq!(res.status_code,0);
         }
 
-        /*** 
 
-        //接受者仅关注SenderSigCompleted状态的交易
-     
-
-        //step5: reconfirm_send_money
-        let url = format!(
-            "/wallet/searchMessageByAccountId?accountId={}",
-            new_master_pubkey
-        );
-        println!("{}", url);
-        let res: BackendRespond<Vec<CoinTxView>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(&sender_master.token)
-        );
-        let tx = res.data.first().unwrap();
-        //对于ReceiverApproved状态的交易来说，只有主设备有权限处理
+        //step6: sender_master get notice and react it
         //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
         //超过了就链上过期（非多签业务过期）
-        assert_eq!(tx.transaction.status, CoinTxStatus::ReceiverApproved);
-        assert_eq!(
-            new_master_pubkey,
-            sender_strategy.main_device_pubkey,
-            "this device hold  master key,and do nothing for 'ReceiverApproved' tx"
-        );
-        //local sign
-        let signature = blockchain::multi_sig::ed25519_sign_data2(
-            &new_master_prikey,
-            tx.transaction.tx_id.as_ref().unwrap(),
-        );
+        let res = test_search_message!(service,sender_master);
+        if let AccountMessage::CoinTx(index,tx ) = res.data.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+            assert_eq!(
+                sender_master.wallet.pubkey.as_ref().unwrap(),
+                &sender_strategy.master_pubkey,
+                "only sender_master_key can reconfirm or refuse it"
+            );
 
-        let payload = json!({
-        "deviceId": "1".to_string(),
-            "txIndex": tx.tx_index,
-        "confirmedSig": signature
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/reconfirmSendMoney",
-            Some(payload.to_string()),
-            Some(&receiver.token)
-        );
-        println!("{:?}", res.data);
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                tx.tx_id.as_ref().unwrap(),
+            );
+
+            let payload = json!({
+                "txIndex": index,
+                "confirmedSig": signature
+            });
+
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                "/wallet/reconfirmSendMoney",
+                Some(payload.to_string()),
+                Some(sender_master.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code,0);
+        }
 
         let txs_success = get_tx_status_on_chain(vec![1u64,2u64]).await;
         println!("txs_success {:?}", txs_success);
-        */
+    
     }
 
 }
