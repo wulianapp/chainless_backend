@@ -1,7 +1,7 @@
 use common::error_code::BackendRes;
 
-use models::{account_manager, PsqlOp};
 use models::account_manager::UserFilter;
+use models::{account_manager, PsqlOp};
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::ContactIsUsedRequest;
 

@@ -22,8 +22,6 @@ pub enum BackendError {
     Wallet(#[from] WalletError),
 }
 
-
-
 impl ErrorCode for BackendError {
     fn code(&self) -> u16 {
         match self {
@@ -139,7 +137,6 @@ impl ErrorCode for ExternalServiceError {
         }
     }
 }
-
 
 pub trait ErrorCode {
     fn code(&self) -> u16;

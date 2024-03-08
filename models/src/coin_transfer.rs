@@ -7,10 +7,10 @@ use postgres::Row;
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 
-use crate::{vec_str2array_text, PsqlType, PsqlOp};
+use crate::secret_store::{SecretFilter, SecretStoreView};
+use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::{BackendError, TxStatus};
-use crate::secret_store::{SecretFilter, SecretStoreView};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
@@ -21,15 +21,16 @@ pub struct CoinTxView {
 }
 
 impl CoinTxView {
-    pub fn new_with_specified(coin_type:CoinType,
-                              from:String,
-                              to:String,
-                              amount:u128,
-                              coin_tx_raw:String,
-                              memo:Option<String>,
-                              expire_at:u64,
-                              status: CoinTxStatus
-    ) -> Self{
+    pub fn new_with_specified(
+        coin_type: CoinType,
+        from: String,
+        to: String,
+        amount: u128,
+        coin_tx_raw: String,
+        memo: Option<String>,
+        expire_at: u64,
+        status: CoinTxStatus,
+    ) -> Self {
         let coin_tx = CoinTransaction {
             tx_id: None,
             coin_type,
@@ -43,7 +44,7 @@ impl CoinTxView {
             memo,
             expire_at,
         };
-        CoinTxView{
+        CoinTxView {
             tx_index: 0,
             transaction: coin_tx,
             updated_at: "".to_string(),
@@ -65,16 +66,15 @@ pub enum CoinTxFilter {
 impl fmt::Display for CoinTxFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            CoinTxFilter::ByUser(uid) =>  format!("sender='{}' or receiver='{}'", uid, uid),
-            CoinTxFilter::BySender(uid) =>    format!("sender='{}'", uid),
-            CoinTxFilter::ByReceiver(uid) =>  format!("receiver='{}' ", uid),
-            CoinTxFilter::ByAccountPending(acc_id) =>    format!(
+            CoinTxFilter::ByUser(uid) => format!("sender='{}' or receiver='{}'", uid, uid),
+            CoinTxFilter::BySender(uid) => format!("sender='{}'", uid),
+            CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),
+            CoinTxFilter::ByAccountPending(acc_id) => format!(
                 "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
                 receiver='{}' and status in ('SenderSigCompleted')",
                 acc_id, acc_id
             ),
-            CoinTxFilter::ByTxIndex(tx_index) =>  format!("tx_index='{}' ", tx_index),
-
+            CoinTxFilter::ByTxIndex(tx_index) => format!("tx_index='{}' ", tx_index),
         };
         write!(f, "{}", description)
     }
@@ -90,29 +90,28 @@ pub enum CoinTxUpdater {
 impl fmt::Display for CoinTxUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            CoinTxUpdater::Status(status) =>  format!("status='{}'", status.to_string()),
-            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) =>  {
+            CoinTxUpdater::Status(status) => format!("status='{}'", status.to_string()),
+            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) => {
                 format!(
                     "(tx_id,chain_tx_raw,status)=('{}','{}','{}')",
                     tx_id,
                     chain_tx_raw,
                     CoinTxStatus.to_string()
                 )
-            },
-            CoinTxUpdater::Signature(sigs) =>  format!("signatures={}", vec_str2array_text(sigs.to_owned())),
-
+            }
+            CoinTxUpdater::Signature(sigs) => {
+                format!("signatures={}", vec_str2array_text(sigs.to_owned()))
+            }
         };
         write!(f, "{}", description)
     }
 }
 
-
-
 impl PsqlOp for CoinTxView {
     type UpdateContent = CoinTxUpdater;
     type FilterContent = CoinTxFilter;
 
-    fn find(filter: Self::FilterContent) -> Result<Vec<CoinTxView>, BackendError>{
+    fn find(filter: Self::FilterContent) -> Result<Vec<CoinTxView>, BackendError> {
         let sql = format!(
             "select tx_index,\
          tx_id,\

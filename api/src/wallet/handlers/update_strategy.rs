@@ -2,15 +2,12 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 
-use common::error_code::{BackendRes};
 use crate::utils::token_auth;
 use crate::wallet::UpdateStrategy;
 use blockchain::ContractClient;
+use common::error_code::BackendRes;
 
-pub async fn req(
-    req: HttpRequest,
-    request_data: web::Json<UpdateStrategy>,
-) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> BackendRes<String> {
     //todo: must be called by main device
     let _user_id = token_auth::validate_credentials(&req)?;
     let UpdateStrategy {

@@ -2,12 +2,12 @@ use actix_web::HttpRequest;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-use common::error_code::BackendError;
-use common::error_code::BackendError::Authorization;
-use common::utils::time::{now_millis, DAY15, YEAR100};
 use actix_web::http::header;
 use common::env::ServiceMode;
+use common::error_code::BackendError;
+use common::error_code::BackendError::Authorization;
 use common::utils::math::gen_random_verify_code;
+use common::utils::time::{now_millis, DAY15, YEAR100};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -19,7 +19,7 @@ struct Claims {
 }
 
 impl Claims {
-    pub fn new(user_id: u32, device_id: &str,device_brand: &str, iat: u64, exp: u64) -> Self {
+    pub fn new(user_id: u32, device_id: &str, device_brand: &str, iat: u64, exp: u64) -> Self {
         Self {
             user_id,
             device_id: device_id.to_owned(),
@@ -33,7 +33,7 @@ impl Claims {
 // todo: Secret key for JWT,setup by env or config
 const SECRET_KEY: &[u8] = b"your_secret_key";
 
-pub fn create_jwt(user_id: u32, device_id: &str,device_brand:&str) -> String {
+pub fn create_jwt(user_id: u32, device_id: &str, device_brand: &str) -> String {
     let iat = now_millis();
 
     let exp = if common::env::CONF.service_mode != ServiceMode::Product
@@ -44,7 +44,7 @@ pub fn create_jwt(user_id: u32, device_id: &str,device_brand:&str) -> String {
         iat + DAY15
     };
 
-    let claims = Claims::new(user_id, device_id, device_brand,iat, exp);
+    let claims = Claims::new(user_id, device_id, device_brand, iat, exp);
 
     jsonwebtoken::encode(
         &Header::new(Algorithm::HS256),
@@ -86,7 +86,7 @@ pub fn validate_credentials(req: &HttpRequest) -> Result<u32, BackendError> {
     }
 }
 
-pub fn validate_credentials2(req: &HttpRequest) -> Result<(u32,String,String), BackendError> {
+pub fn validate_credentials2(req: &HttpRequest) -> Result<(u32, String, String), BackendError> {
     let auth_header = req
         .headers()
         .get(header::AUTHORIZATION)
@@ -102,7 +102,11 @@ pub fn validate_credentials2(req: &HttpRequest) -> Result<(u32,String,String), B
         if now_millis() > claim_dat.exp {
             Err(Authorization("Token has expired.".to_string()))?
         } else {
-            Ok((claim_dat.user_id,claim_dat.device_id.clone(),claim_dat.device_brand))
+            Ok((
+                claim_dat.user_id,
+                claim_dat.device_id.clone(),
+                claim_dat.device_brand,
+            ))
         }
     } else {
         Err(Authorization("Token is invalid or malformed".to_string()))?
@@ -115,7 +119,7 @@ mod tests {
 
     #[test]
     fn test_account_login_auth() {
-        let token = create_jwt(1, "","huawei");
+        let token = create_jwt(1, "", "huawei");
         println!("res {}", token);
     }
 }

@@ -1,15 +1,15 @@
 extern crate rustc_serialize;
 
-use std::fmt;
 use postgres::Row;
+use std::fmt;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
+use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
+use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::BackendError;
 use serde::Serialize;
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
-use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 
 #[derive(Clone, Debug)]
 pub enum UserFilter {
@@ -26,19 +26,19 @@ pub enum UserUpdater {
     LoginPwdHash(String),
     AccountIds(Vec<String>),
     //     * sign_pwd_hash,secruity_is_seted,main_account
-    SecruityInfo(String,bool,String)
+    SecruityInfo(String, bool, String),
 }
 impl fmt::Display for UserUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserUpdater::LoginPwdHash(pwd) =>  format!("login_pwd_hash='{}'", pwd),
-            UserUpdater::AccountIds(ids) =>  {
+            UserUpdater::LoginPwdHash(pwd) => format!("login_pwd_hash='{}'", pwd),
+            UserUpdater::AccountIds(ids) => {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
-            },
-            UserUpdater::SecruityInfo(sign_pwd_hash,secruity_is_seted,main_account) => 
-             format!("sign_pwd_hash='{}',secruity_is_seted={},main_account='{}'",
-             sign_pwd_hash,secruity_is_seted,main_account
+            }
+            UserUpdater::SecruityInfo(sign_pwd_hash, secruity_is_seted, main_account) => format!(
+                "sign_pwd_hash='{}',secruity_is_seted={},main_account='{}'",
+                sign_pwd_hash, secruity_is_seted, main_account
             ),
         };
         write!(f, "{}", description)
@@ -48,12 +48,14 @@ impl fmt::Display for UserUpdater {
 impl fmt::Display for UserFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserFilter::ById(id) =>  format!("id='{}'", id),
-            UserFilter::ByPhone(number) =>    format!("phone_number='{}'", number),
-            UserFilter::ByEmail(email) =>  format!("email='{}'", email),
-            UserFilter::ByInviteCode(code) =>   format!("invite_code='{}'", code),
-            UserFilter::ByPhoneOrEmail(contact) =>  format!("email='{}' or phone_number='{}'", contact, contact),
-            UserFilter::ByAccountId(id) =>   format!("'{}'=any(account_ids) ", id),
+            UserFilter::ById(id) => format!("id='{}'", id),
+            UserFilter::ByPhone(number) => format!("phone_number='{}'", number),
+            UserFilter::ByEmail(email) => format!("email='{}'", email),
+            UserFilter::ByInviteCode(code) => format!("invite_code='{}'", code),
+            UserFilter::ByPhoneOrEmail(contact) => {
+                format!("email='{}' or phone_number='{}'", contact, contact)
+            }
+            UserFilter::ByAccountId(id) => format!("'{}'=any(account_ids) ", id),
         };
         write!(f, "{}", description)
     }
@@ -68,14 +70,11 @@ pub struct UserInfoView {
 }
 
 impl UserInfoView {
-    pub fn new_with_specified(
-        login_pwd_hash:&str,
-        invite_code:&str,
-    ) -> Self{
-        let user = UserInfo{
+    pub fn new_with_specified(login_pwd_hash: &str, invite_code: &str) -> Self {
+        let user = UserInfo {
             phone_number: "".to_string(),
             email: "".to_string(),
-            login_pwd_hash:login_pwd_hash.to_owned(),
+            login_pwd_hash: login_pwd_hash.to_owned(),
             sign_pwd_hash: "".to_string(),
             is_frozen: false,
             predecessor: None,
@@ -87,7 +86,7 @@ impl UserInfoView {
             //fixme: replace with None
             main_account: "".to_string(),
         };
-        UserInfoView{
+        UserInfoView {
             id: 0,
             user_info: user,
             updated_at: "".to_string(),
@@ -96,7 +95,7 @@ impl UserInfoView {
     }
 }
 
-impl PsqlOp for UserInfoView{
+impl PsqlOp for UserInfoView {
     type UpdateContent = UserUpdater;
     type FilterContent = UserFilter;
 
@@ -136,7 +135,11 @@ impl PsqlOp for UserInfoView{
                 invite_code: row.get(8),
                 kyc_is_verified: row.get(9),
                 secruity_is_seted: row.get(10),
-                create_subacc_time: row.get::<usize, Vec<String>>(11).iter().map(|t| t.parse().unwrap()).collect(),
+                create_subacc_time: row
+                    .get::<usize, Vec<String>>(11)
+                    .iter()
+                    .map(|t| t.parse().unwrap())
+                    .collect(),
                 main_account: row.get(12),
             },
             updated_at: row.get(13),
@@ -146,7 +149,10 @@ impl PsqlOp for UserInfoView{
         Ok(users)
     }
 
-    fn update(new_value: Self::UpdateContent, filter: Self::FilterContent) -> Result<(), BackendError> {
+    fn update(
+        new_value: Self::UpdateContent,
+        filter: Self::FilterContent,
+    ) -> Result<(), BackendError> {
         let sql = format!(
             "UPDATE users SET {} where {}",
             new_value.to_string(),
@@ -157,7 +163,6 @@ impl PsqlOp for UserInfoView{
         debug!("success update users {} rows", execute_res);
         Ok(())
     }
-    
 
     fn insert(&self) -> Result<(), BackendError> {
         let UserInfo {
@@ -175,12 +180,11 @@ impl PsqlOp for UserInfoView{
             main_account,
         } = &self.user_info;
 
-        let predecessor_str = predecessor
+        let _predecessor_str = predecessor
             .map(|x| format!("{}", x))
             .unwrap_or("NULL".to_string());
         //assembly string array to sql string
-        let create_subacc_time = create_subacc_time
-        .iter().map(|x| x.to_string()).collect();
+        let create_subacc_time = create_subacc_time.iter().map(|x| x.to_string()).collect();
         let create_subacc_time_str = vec_str2array_text(create_subacc_time);
 
         let sql = format!(
@@ -217,8 +221,6 @@ impl PsqlOp for UserInfoView{
     }
 }
 
-
-
 pub fn get_current_user_num() -> Result<u64, BackendError> {
     let execute_res = crate::query("select count(1) from users")?;
     let user_info_raw = execute_res.first().unwrap();
@@ -244,10 +246,10 @@ pub fn get_next_uid() -> Result<u32, BackendError> {
 #[cfg(test)]
 mod tests {
 
-    use std::env;
     use super::*;
     use common::log::init_logger;
     use postgres::types::ToSql;
+    use std::env;
 
     #[test]
     fn test_db_user_info() {
@@ -255,17 +257,16 @@ mod tests {
         init_logger();
         crate::general::table_all_clear();
 
-        let user = UserInfoView::new_with_specified(
-            "0123456789", "1");
-            user.insert().unwrap();
-        let mut user_by_find = UserInfoView::find_single(
-            UserFilter::ById(1)).unwrap();
-        println!("{:?}",user_by_find);
-        assert_eq!(user_by_find.user_info,user.user_info);   
+        let user = UserInfoView::new_with_specified("0123456789", "1");
+        user.insert().unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
+        println!("{:?}", user_by_find);
+        assert_eq!(user_by_find.user_info, user.user_info);
 
         UserInfoView::update(
-            UserUpdater::LoginPwdHash("0123".to_string()), 
-            UserFilter::ById(1), 
-        ).unwrap();
+            UserUpdater::LoginPwdHash("0123".to_string()),
+            UserFilter::ById(1),
+        )
+        .unwrap();
     }
 }

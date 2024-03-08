@@ -1,7 +1,7 @@
-use serde_derive::{Deserialize, Serialize};
 use super::*;
+use serde_derive::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug,PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct DeviceInfo {
     pub id: String,
     pub user_id: u32,

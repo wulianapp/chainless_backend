@@ -42,8 +42,11 @@ pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Tr
     }
 }
 
-
-pub async fn gen_transaction_with_caller(caller_account_id: AccountId, caller_pubkey: PublicKey,contract_addr: &str) -> Transaction {
+pub async fn gen_transaction_with_caller(
+    caller_account_id: AccountId,
+    caller_pubkey: PublicKey,
+    contract_addr: &str,
+) -> Transaction {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
@@ -80,15 +83,12 @@ pub fn pubkey_from_hex_str(key: &str) -> PublicKey {
     PublicKey::from_implicit_account(&account_id).unwrap()
 }
 
-
-pub async fn get_access_key_list(
-    account_str: &str,
-) -> AccessKeyList {
+pub async fn get_access_key_list(account_str: &str) -> AccessKeyList {
     let account_id = AccountId::from_str(account_str).unwrap();
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKeyList {account_id},
+            request: near_primitives::views::QueryRequest::ViewAccessKeyList { account_id },
         })
         .await
         .unwrap();

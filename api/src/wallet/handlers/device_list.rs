@@ -2,22 +2,19 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, StrategyData};
 
+use crate::utils::token_auth;
 use blockchain::ContractClient;
 use common::data_structures::device_info::DeviceInfo;
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
-use crate::utils::token_auth;
 
+use crate::wallet::getStrategyRequest;
 
-use crate::wallet::{getStrategyRequest};
-
-pub(crate) async fn req(
-    req: HttpRequest,
-) -> BackendRes<Vec<DeviceInfo>> {
+pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    /*** 
+    /***
     let mut all_keys = vec![];
     let find_res = UserInfoView::find_single(UserFilter::ById(user_id))?;
     if find_res.user_info.main_account != ""{

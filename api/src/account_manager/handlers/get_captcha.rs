@@ -1,10 +1,10 @@
 //use log::debug;
-use tracing::debug;
 use common::error_code::AccountManagerError::CaptchaRequestTooFrequently;
+use tracing::debug;
 
-use crate::utils::captcha::{Captcha, ContactType, Usage};
-use crate::utils::{captcha};
 use crate::account_manager::GetCaptchaRequest;
+use crate::utils::captcha;
+use crate::utils::captcha::{Captcha, ContactType, Usage};
 use common::error_code::BackendRes;
 use common::utils::time::{now_millis, MINUTE1};
 
@@ -19,12 +19,12 @@ pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
 
     let contract_type = captcha::validate(&contact)?;
     if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
-        let past_time =  now_millis() - data.created_at;
+        let past_time = now_millis() - data.created_at;
         if past_time <= MINUTE1 {
             let remain_time = MINUTE1 - past_time;
             let remain_secs = (remain_time / 1000) as u8;
             Err(CaptchaRequestTooFrequently(remain_secs))?;
-        }else {
+        } else {
             //delete and regenerate new captcha
             data.delete();
         }

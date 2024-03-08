@@ -1,4 +1,4 @@
-use base58::{ToBase58, FromBase58};
+use base58::{FromBase58, ToBase58};
 use hex::FromHex;
 
 pub fn bs58_to_hex(bs58_private_key: &str) -> Result<String, base58::FromBase58Error> {
@@ -16,4 +16,3 @@ pub fn hex_to_bs58(hex_private_key: &str) -> Result<String, hex::FromHexError> {
 pub fn gen_random_verify_code() -> u32 {
     rand::random::<u32>() % 900000 + 100000
 }
-

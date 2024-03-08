@@ -2,12 +2,11 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
 
-use common::error_code::{BackendRes};
-use serde::{Deserialize, Serialize};
 use crate::utils::token_auth;
+use common::error_code::BackendRes;
+use serde::{Deserialize, Serialize};
 
-
-use crate::wallet::{getStrategyRequest};
+use crate::wallet::getStrategyRequest;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
@@ -25,9 +24,7 @@ pub(crate) async fn req(
 
     let multi_cli = blockchain::ContractClient::<MultiSig>::new();
 
-    let strategy = multi_cli
-        .get_strategy(&request_data.account_id)
-        .await?;
+    let strategy = multi_cli.get_strategy(&request_data.account_id).await?;
     let master_pubkey: String = multi_cli.get_master_pubkey(&request_data.account_id).await;
     Ok(strategy.map(|data| {
         let subaccounts = data.subaccounts.iter().map(|x| x.to_string()).collect();

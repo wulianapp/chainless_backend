@@ -12,8 +12,8 @@ pub mod account_manager;
 pub mod airdrop;
 pub mod general;
 pub mod newbie_reward;
-pub mod wallet;
 pub mod utils;
+pub mod wallet;
 
 use actix_cors::Cors;
 use actix_web::{http, middleware, App, HttpServer};
@@ -21,7 +21,7 @@ use actix_web::{http, middleware, App, HttpServer};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     common::log::init_logger();
-    let global_conf = &common::env::CONF;
+    let _global_conf = &common::env::CONF;
     //let service: String = format!("0.0.0.0:{}", global_conf.account_manage_api_port);
     let service: String = format!("0.0.0.0:{}", 8066);
 

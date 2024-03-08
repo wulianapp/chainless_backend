@@ -2,14 +2,14 @@ use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::*;
 //use log::{debug, info};
-use tracing::{debug,info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
-use models::{account_manager, PsqlOp, secret_store};
 use models::secret_store::SecretStoreView;
+use models::{account_manager, secret_store, PsqlOp};
+use tracing::{debug, info};
 
 async fn register(
     device_id: String,
@@ -25,11 +25,11 @@ async fn register(
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
     //check userinfo form db
-    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(contact.clone()))?;
-    if !find_res.is_empty(){
+    let find_res =
+        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(contact.clone()))?;
+    if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
-
 
     //todo: register multi_sig_contract account
 
@@ -38,12 +38,9 @@ async fn register(
     debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
-    //fixme: 
+    //fixme:
     //let pubkey = "";
-    let mut view = UserInfoView::new_with_specified(
-        &password,
-        &this_user_id.to_string(),
-    );
+    let mut view = UserInfoView::new_with_specified(&password, &this_user_id.to_string());
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = contact;
@@ -54,7 +51,8 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(code)).map_err(|e|InviteCodeNotExist)?;
+        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(code))
+            .map_err(|_e| InviteCodeNotExist)?;
         view.user_info.predecessor = Some(predecessor.id);
     }
 
@@ -72,7 +70,7 @@ async fn register(
     //device.insert()?;
     models::general::transaction_commit()?;
 
-    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id,&device_brand);
+    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand);
     info!("user {:?} register successfully", view.user_info);
     Ok(Some(token))
 }

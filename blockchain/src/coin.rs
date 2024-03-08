@@ -3,8 +3,8 @@ use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
 use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
-use tracing::debug;
 use std::str::FromStr;
+use tracing::debug;
 
 use hex;
 use lazy_static::lazy_static;
@@ -26,7 +26,7 @@ lazy_static! {
     static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
 }
 
-struct Coin{}
+struct Coin {}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NRC20TransferArgs {
@@ -104,7 +104,7 @@ impl ContractClient<Coin> {
             .parse()
             .unwrap();
         let pubkey = get_pubkey(&pri_key.to_string());
-        debug!("dw20 punkey {}",pubkey);
+        debug!("dw20 punkey {}", pubkey);
         let account_id: AccountId = AccountId::from_str(&pubkey).unwrap();
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
@@ -115,7 +115,7 @@ impl ContractClient<Coin> {
         }
     }
 
-    pub async fn send_coin(&self,receiver: &str,amount: u128) -> BackendRes<String>{
+    pub async fn send_coin(&self, receiver: &str, amount: u128) -> BackendRes<String> {
         let receiver: AccountId = AccountId::from_str(receiver).unwrap();
         let args_str = json!({
             "receiver_id":  receiver,
@@ -130,21 +130,20 @@ impl ContractClient<Coin> {
         let args_str = json!({"account_id": user_account_id}).to_string();
         self.query_call("ft_balance_of", &args_str).await
     }
-     
 }
 
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
+    use common::data_structures::wallet::AddressConvert;
     use common::data_structures::wallet::CoinType;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::BorshSerialize;
     use near_primitives::types::AccountId;
     use serde_json::json;
-    use tokio::time::sleep;
     use std::str::FromStr;
     use std::time::Duration;
-    use common::data_structures::wallet::AddressConvert;
+    use tokio::time::sleep;
 
     use super::*;
 
@@ -191,13 +190,13 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-       let coin_cli = ContractClient::<Coin>::new();
-       let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
-       let balance1 = coin_cli.get_balance(receiver).await.unwrap();
-       println!("balance1 {}",balance1.unwrap());
-       let send_res = coin_cli.send_coin(receiver, 123u128).await.unwrap();
-       sleep(Duration::from_secs(3)).await;
-       let balance2 = coin_cli.get_balance(receiver).await.unwrap();
-       println!("balance2 {}",balance2.unwrap());
+        let coin_cli = ContractClient::<Coin>::new();
+        let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
+        let balance1 = coin_cli.get_balance(receiver).await.unwrap();
+        println!("balance1 {}", balance1.unwrap());
+        let _send_res = coin_cli.send_coin(receiver, 123u128).await.unwrap();
+        sleep(Duration::from_secs(3)).await;
+        let balance2 = coin_cli.get_balance(receiver).await.unwrap();
+        println!("balance2 {}", balance2.unwrap());
     }
 }

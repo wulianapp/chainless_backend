@@ -7,11 +7,11 @@ use common::error_code::AccountManagerError::{
 use tracing::debug;
 
 use crate::account_manager::LoginRequest;
-use common::error_code::{BackendRes};
 use crate::utils::token_auth;
+use common::error_code::BackendRes;
 use common::utils::time::{now_millis, MINUTE30};
-use models::{account_manager, PsqlOp};
 use models::account_manager::UserFilter;
+use models::{account_manager, PsqlOp};
 
 lazy_static! {
     static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
@@ -54,7 +54,7 @@ fn is_locked(user_id: u32) -> bool {
 }
 
 pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
-    debug!("{:?}",request_data);
+    debug!("{:?}", request_data);
     let LoginRequest {
         device_id,
         device_brand,
@@ -62,9 +62,8 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
     //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
-    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
-
-   
+    let user_at_stored =
+        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
 
     if password != user_at_stored.user_info.login_pwd_hash {
         if is_locked(user_at_stored.id) {
@@ -75,8 +74,8 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         Err(PasswordIncorrect)?;
     }
     //todo: 如果user的device换了，更新device_info的table
-    
+
     //generate auth token
-    let token = token_auth::create_jwt(user_at_stored.id, &device_id,&device_brand);
+    let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);
     Ok(Some(token))
 }

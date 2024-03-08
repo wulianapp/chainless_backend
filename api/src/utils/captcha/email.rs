@@ -4,10 +4,10 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
 use anyhow::Result;
+use common::error_code::BackendRes;
+use common::error_code::{BackendError, ExternalServiceError};
 use lettre::transport::smtp::client::{Tls, TlsParameters};
 use tracing::{debug, error};
-use common::error_code::{BackendError, ExternalServiceError};
-use common::error_code::BackendRes;
 
 use crate::utils::captcha::Captcha;
 
@@ -25,7 +25,10 @@ pub fn send_email(code: &Captcha) -> BackendRes<String> {
     let email_password = "vkHyW2dvynF8YuG1xN";
     let to = code.owner.clone();
     let captcha = gen_random_verify_code();
-    let content = format!("[ChainLess] Your captcha is: {}, valid for 10 minutes.",captcha);
+    let content = format!(
+        "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
+        captcha
+    );
     // 创建电子邮件内容
     let email = Message::builder()
         .from(email_address.parse().unwrap())
@@ -34,7 +37,7 @@ pub fn send_email(code: &Captcha) -> BackendRes<String> {
         .header(ContentType::TEXT_PLAIN)
         .body(content)
         .map_err(|e| {
-            error!("Email parameters error {}",e.to_string());
+            error!("Email parameters error {}", e.to_string());
             ExternalServiceError::EmailCaptcha(e.to_string())
         })?;
 
@@ -42,15 +45,16 @@ pub fn send_email(code: &Captcha) -> BackendRes<String> {
 
     let tls = TlsParameters::builder("ud.1025.hk".to_owned())
         .dangerous_accept_invalid_certs(true)
-        .build().map_err(|e| {
-        error!("EmailCaptcha service is crashed {}",e.to_string());
-        ExternalServiceError::EmailCaptcha(e.to_string())
-    })?;
+        .build()
+        .map_err(|e| {
+            error!("EmailCaptcha service is crashed {}", e.to_string());
+            ExternalServiceError::EmailCaptcha(e.to_string())
+        })?;
 
     let mailer = SmtpTransport::relay("ud.1025.hk")
         .map(|c| c.port(1025)) // 指定 SMTP 服务器端口号
         .map_err(|e| {
-            error!("EmailCaptcha service is crashed {}",e.to_string());
+            error!("EmailCaptcha service is crashed {}", e.to_string());
             ExternalServiceError::EmailCaptcha(e.to_string())
         })?
         .tls(Tls::Required(tls))
@@ -58,21 +62,25 @@ pub fn send_email(code: &Captcha) -> BackendRes<String> {
         .build();
 
     let send_res = mailer.send(&email).map_err(|e| {
-        error!("Email send message failed {}",e.to_string());
+        error!("Email send message failed {}", e.to_string());
         ExternalServiceError::EmailCaptcha(e.to_string())
     })?;
-    debug!("mail send res {:?}",send_res);
+    debug!("mail send res {:?}", send_res);
     Ok(None::<String>)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::captcha::Captcha;
     use crate::utils::captcha::email::send_email;
+    use crate::utils::captcha::Captcha;
     use crate::utils::captcha::Usage;
     #[test]
     fn test_send_email_ok() {
-        let code = Captcha::new("eddy1guo@gmail.com".to_string(), "1".to_string(), Usage::Register);
+        let code = Captcha::new(
+            "eddy1guo@gmail.com".to_string(),
+            "1".to_string(),
+            Usage::Register,
+        );
         let res = send_email(&code).unwrap();
         println!("res {:?}", res);
     }

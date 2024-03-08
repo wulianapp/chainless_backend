@@ -1,10 +1,10 @@
 use std::fmt;
 use std::str::FromStr;
 
+use super::secret_store::SecretStore;
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
-use strum_macros::{EnumString, ToString,Display};
-use super::secret_store::SecretStore;
+use strum_macros::{Display, EnumString, ToString};
 
 const PREDECESSOR_SUBFIX: &'static str = ".node0";
 
@@ -32,10 +32,8 @@ pub trait AddressConvert: Sized {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AccountMessage {
     NewcomerBecameSevant(SecretStore),
-    CoinTx(u32,CoinTransaction)
+    CoinTx(u32, CoinTransaction),
 }
-
-
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum CoinType {
@@ -81,7 +79,7 @@ impl AddressConvert for AccountId {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, Serialize, Clone,EnumString,Display)]
+#[derive(Deserialize, Debug, PartialEq, Serialize, Clone, EnumString, Display)]
 pub enum CoinTxStatus {
     Created,
     SenderSigCompleted,
@@ -95,7 +93,7 @@ pub enum CoinTxStatus {
     FinalizeAndSuccessful,
 }
 
-/*** 
+/***
 #[derive(Deserialize, Debug, PartialEq, Serialize, Clone)]
 pub enum SecretKeyType {
     Master,
@@ -139,5 +137,3 @@ pub struct CoinTransaction {
     pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
 }
-
-

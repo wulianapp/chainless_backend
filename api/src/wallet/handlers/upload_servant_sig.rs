@@ -2,8 +2,8 @@ use actix_web::{web, HttpRequest};
 
 use common::data_structures::wallet::CoinTxStatus;
 
-use common::error_code::{BackendRes};
 use crate::utils::token_auth;
+use common::error_code::BackendRes;
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
@@ -28,7 +28,10 @@ pub async fn req(
     let tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
     let mut signatures = tx.transaction.signatures.clone();
     signatures.push(signature);
-    models::coin_transfer::CoinTxView::update(CoinTxUpdater::Signature(signatures), CoinTxFilter::ByTxIndex(tx_index))?;
+    models::coin_transfer::CoinTxView::update(
+        CoinTxUpdater::Signature(signatures),
+        CoinTxFilter::ByTxIndex(tx_index),
+    )?;
     //todo: collect enough signatures
     //let wallet_info = get_wallet(WalletFilter::ByUserId(user_id))?;
     //let wallet_info = &wallet_info.first().unwrap().wallet;

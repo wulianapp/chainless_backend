@@ -1,21 +1,20 @@
 extern crate rustc_serialize;
 
-use std::fmt;
-use std::fmt::Display;
 use common::data_structures::device_info::DeviceInfo;
 use postgres::Row;
+use std::fmt;
+use std::fmt::Display;
 //#[derive(Serialize)]
-use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use common::data_structures::wallet::CoinTxStatus;
 use common::data_structures::SecretKeyState;
-use serde::{Deserialize, Serialize};
-use common::data_structures::wallet::{CoinTxStatus};
-use slog_term::PlainSyncRecordDecorator;
 use common::data_structures::*;
+use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use serde::{Deserialize, Serialize};
+use slog_term::PlainSyncRecordDecorator;
 
-use crate::{PsqlOp, vec_str2array_text};
+use crate::{vec_str2array_text, PsqlOp};
 
 use common::error_code::BackendError;
-
 
 #[derive(Debug)]
 pub enum DeviceInfoUpdater {
@@ -26,10 +25,10 @@ pub enum DeviceInfoUpdater {
 impl fmt::Display for DeviceInfoUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            DeviceInfoUpdater::State(new_state) =>  {
+            DeviceInfoUpdater::State(new_state) => {
                 format!("state='{}'", new_state.to_string())
-            },
-            DeviceInfoUpdater::HolderSaved(saved) =>  {
+            }
+            DeviceInfoUpdater::HolderSaved(saved) => {
                 format!("holder_confirm_saved={} ", saved)
             }
         };
@@ -40,58 +39,57 @@ impl fmt::Display for DeviceInfoUpdater {
 #[derive(Clone, Debug)]
 pub enum DeviceInfoFilter {
     ByUser(u32),
-    ByDeviceUser(String,u32),
-    ByUserDeviceHoldSecret(u32,String,bool),
+    ByDeviceUser(String, u32),
+    ByUserDeviceHoldSecret(u32, String, bool),
 }
 
 impl fmt::Display for DeviceInfoFilter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            DeviceInfoFilter::ByUser(user_id) =>  
-            format!("user_id={} ",user_id),
-            DeviceInfoFilter::ByDeviceUser(device_id,user_id) =>  
-            format!("id='{}' and user_id={} ", device_id,user_id),
-            DeviceInfoFilter::ByUserDeviceHoldSecret(user_id,device_id,saved) =>  
-            format!("user_id={} and id='{}' and holder_confirm_saved={} ", user_id,device_id,saved),
+            DeviceInfoFilter::ByUser(user_id) => format!("user_id={} ", user_id),
+            DeviceInfoFilter::ByDeviceUser(device_id, user_id) => {
+                format!("id='{}' and user_id={} ", device_id, user_id)
+            }
+            DeviceInfoFilter::ByUserDeviceHoldSecret(user_id, device_id, saved) => format!(
+                "user_id={} and id='{}' and holder_confirm_saved={} ",
+                user_id, device_id, saved
+            ),
         };
         write!(f, "{}", description)
     }
 }
 
-
-
 #[derive(Deserialize, Serialize, Debug)]
-pub struct DeviceInfoView{
+pub struct DeviceInfoView {
     pub device_info: DeviceInfo,
     pub updated_at: String,
     pub created_at: String,
 }
 
-impl DeviceInfoView{
-    pub fn new_with_specified(id:&str,
-                              brand:&str,
-                              user_id:u32,
-                              hold_pubkey: &str,
-                              holder_confirm_saved: bool
-
-    ) -> Self{
-        DeviceInfoView{
-            device_info: DeviceInfo{
+impl DeviceInfoView {
+    pub fn new_with_specified(
+        id: &str,
+        brand: &str,
+        user_id: u32,
+        hold_pubkey: &str,
+        holder_confirm_saved: bool,
+    ) -> Self {
+        DeviceInfoView {
+            device_info: DeviceInfo {
                 id: id.to_owned(),
                 user_id,
                 state: common::data_structures::DeviceState::Active,
-                hold_pubkey:hold_pubkey.to_owned(),
-                brand:brand.to_owned(),
+                hold_pubkey: hold_pubkey.to_owned(),
+                brand: brand.to_owned(),
                 holder_confirm_saved,
             },
             updated_at: "".to_string(),
-            created_at: "".to_string()
+            created_at: "".to_string(),
         }
     }
 }
 
-impl PsqlOp for DeviceInfoView{
-
+impl PsqlOp for DeviceInfoView {
     type UpdateContent = DeviceInfoUpdater;
     type FilterContent = DeviceInfoFilter;
 
@@ -111,19 +109,17 @@ impl PsqlOp for DeviceInfoView{
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get_secret: raw sql {}", sql);
-        let gen_view = |row: &Row|{
-            DeviceInfoView {
-                device_info: DeviceInfo{
-                    id: row.get(0),
-                    user_id: row.get::<usize, i32>(1) as u32,
-                    state:row.get::<usize, String>(2).parse().unwrap(),
-                    hold_pubkey: row.get(3),
-                    brand: row.get(4),
-                    holder_confirm_saved: row.get::<usize, bool>(5)
-                },
-                updated_at: row.get(6),
-                created_at: row.get(7),
-            }
+        let gen_view = |row: &Row| DeviceInfoView {
+            device_info: DeviceInfo {
+                id: row.get(0),
+                user_id: row.get::<usize, i32>(1) as u32,
+                state: row.get::<usize, String>(2).parse().unwrap(),
+                hold_pubkey: row.get(3),
+                brand: row.get(4),
+                holder_confirm_saved: row.get::<usize, bool>(5),
+            },
+            updated_at: row.get(6),
+            created_at: row.get(7),
         };
 
         Ok(execute_res
@@ -131,7 +127,10 @@ impl PsqlOp for DeviceInfoView{
             .map(|x| gen_view(x))
             .collect::<Vec<Self>>())
     }
-    fn update(new_value: Self::UpdateContent, filter: Self::FilterContent) -> Result<(), BackendError> {
+    fn update(
+        new_value: Self::UpdateContent,
+        filter: Self::FilterContent,
+    ) -> Result<(), BackendError> {
         let sql = format!(
             "update device_info set {} where {}",
             new_value.to_string(),
@@ -162,21 +161,25 @@ impl PsqlOp for DeviceInfoView{
                 brand,\
                 holder_confirm_saved\
          ) values ('{}',{},'{}','{}','{}',{});",
-         id,user_id,state.to_string(),hold_pubkey,device_type,holder_confirm_saved
+            id,
+            user_id,
+            state.to_string(),
+            hold_pubkey,
+            device_type,
+            holder_confirm_saved
         );
         debug!("row sql {} rows", sql);
-        let execute_res = crate::execute(sql.as_str())?;
+        let _execute_res = crate::execute(sql.as_str())?;
         Ok(())
     }
-
 }
 
 #[cfg(test)]
 mod tests {
 
-    use std::env;
     use super::*;
     use common::log::init_logger;
+    use std::env;
 
     #[test]
     fn test_db_device_info() {
@@ -185,18 +188,20 @@ mod tests {
 
         crate::general::table_all_clear();
 
-        let device = DeviceInfoView::new_with_specified(
-            "123", "Huawei",1, "01234567890abcd",true);
+        let device =
+            DeviceInfoView::new_with_specified("123", "Huawei", 1, "01234567890abcd", true);
         device.insert().unwrap();
-        let mut device_by_find = DeviceInfoView::find_single(
-            DeviceInfoFilter::ByDeviceUser("123".to_string(),1)).unwrap();
-        println!("{:?}",device_by_find);
-        assert_eq!(device.device_info,device_by_find.device_info);   
+        let mut device_by_find =
+            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123".to_string(), 1))
+                .unwrap();
+        println!("{:?}", device_by_find);
+        assert_eq!(device.device_info, device_by_find.device_info);
 
         device_by_find.device_info.user_id = 2;
         DeviceInfoView::update(
-            DeviceInfoUpdater::State(SecretKeyState::Deprecated), 
-            DeviceInfoFilter::ByDeviceUser("123".to_string(),1)
-        ).unwrap();
+            DeviceInfoUpdater::State(SecretKeyState::Deprecated),
+            DeviceInfoFilter::ByDeviceUser("123".to_string(), 1),
+        )
+        .unwrap();
     }
 }

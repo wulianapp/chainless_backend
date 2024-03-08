@@ -9,22 +9,32 @@ mod hello;
 pub mod multi_sig;
 mod newbie_reward;
 
-use common::{error_code::{BackendError, ExternalServiceError}, error_code::{BackendRes}};
+use common::{
+    error_code::BackendRes,
+    error_code::{BackendError, ExternalServiceError},
+};
 use general::gen_transaction_with_caller;
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
-use near_crypto::{InMemorySigner, PublicKey, Signer};
-use near_primitives::{borsh::BorshSerialize, transaction::{Action, CreateAccountAction, FunctionCallAction, SignedTransaction, Transaction, TransferAction}, types::{AccountId, BlockReference, Finality, FunctionArgs}, views::{FinalExecutionStatus, QueryRequest}};
-use serde::{de::DeserializeOwned, Deserialize};
-use tracing::{debug,info};
-use std::{marker::PhantomData, str::FromStr};
-use serde_json::json;
 use common::error_code;
+use near_crypto::{InMemorySigner, PublicKey, Signer};
+use near_primitives::{
+    borsh::BorshSerialize,
+    transaction::{
+        Action, CreateAccountAction, FunctionCallAction, SignedTransaction, Transaction,
+        TransferAction,
+    },
+    types::{AccountId, BlockReference, Finality, FunctionArgs},
+    views::{FinalExecutionStatus, QueryRequest},
+};
+use serde::{de::DeserializeOwned, Deserialize};
+use serde_json::json;
+use std::{marker::PhantomData, str::FromStr};
+use tracing::{debug, info};
 
 use crate::general::gen_transaction;
-
 
 lazy_static! {
     //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://120.232.251.101:8061");
@@ -39,68 +49,94 @@ pub struct ContractClient<T> {
 }
 
 impl<T> ContractClient<T> {
-    async fn gen_tx(&self,caller_account_id: &AccountId, caller_pubkey: &PublicKey,method_name:&str,args:&str) -> Transaction{
-        let (receiver_str,action) = if method_name == "register_account" {
-            (args.to_string(),Action::Transfer(TransferAction{deposit: 0u128}))
-        }else{
+    async fn gen_tx(
+        &self,
+        caller_account_id: &AccountId,
+        caller_pubkey: &PublicKey,
+        method_name: &str,
+        args: &str,
+    ) -> Transaction {
+        let (receiver_str, action) = if method_name == "register_account" {
+            (
+                args.to_string(),
+                Action::Transfer(TransferAction { deposit: 0u128 }),
+            )
+        } else {
             let call_action = Action::FunctionCall(*Box::new(FunctionCallAction {
                 method_name: method_name.to_string(),
                 args: args.as_bytes().to_vec(),
                 gas: 300000000000000, // 100 TeraGas
                 deposit: 0,
             }));
-            (self.deployed_at.to_string(),call_action)
+            (self.deployed_at.to_string(), call_action)
         };
 
-
         let mut transaction = gen_transaction_with_caller(
-            caller_account_id.to_owned(), 
+            caller_account_id.to_owned(),
             caller_pubkey.to_owned(),
-            &receiver_str
-        ).await;
+            &receiver_str,
+        )
+        .await;
         transaction.actions = vec![action];
         transaction
     }
 
-    async fn gen_create_account_tx(&self,receiver:&AccountId) -> Transaction{
-        let deposit_actions: Vec<Action> = vec![Action::Transfer(TransferAction{deposit: 0u128})];
+    async fn gen_create_account_tx(&self, receiver: &AccountId) -> Transaction {
+        let deposit_actions: Vec<Action> =
+            vec![Action::Transfer(TransferAction { deposit: 0u128 })];
 
         let mut transaction = gen_transaction_with_caller(
-            self.relayer.account_id.clone(), 
+            self.relayer.account_id.clone(),
             self.relayer.public_key().clone(),
-            &receiver.to_string()
-        ).await;
+            &receiver.to_string(),
+        )
+        .await;
         transaction.actions = deposit_actions;
         transaction
     }
 
-    async fn gen_raw_with_relayer(&self,method_name:&str,args:&str) -> BackendRes<(String,String)>{
+    async fn gen_raw_with_relayer(
+        &self,
+        method_name: &str,
+        args: &str,
+    ) -> BackendRes<(String, String)> {
         self.gen_raw_with_caller(
             &self.relayer.account_id,
             &self.relayer.public_key(),
             method_name,
-            args
-        ).await
+            args,
+        )
+        .await
     }
 
-    async fn gen_raw_with_caller(&self,caller_account_id: &AccountId, caller_pubkey: &PublicKey,method_name:&str,args:&str) -> BackendRes<(String,String)>{
-        let tx = self.gen_tx(caller_account_id,caller_pubkey,method_name,args).await;
+    async fn gen_raw_with_caller(
+        &self,
+        caller_account_id: &AccountId,
+        caller_pubkey: &PublicKey,
+        method_name: &str,
+        args: &str,
+    ) -> BackendRes<(String, String)> {
+        let tx = self
+            .gen_tx(caller_account_id, caller_pubkey, method_name, args)
+            .await;
 
         let hash = tx.get_hash_and_size().0.try_to_vec().unwrap();
         let txid = hex::encode(hash);
 
         let raw_bytes = tx.try_to_vec().unwrap();
         let raw_str = hex::encode(raw_bytes);
-        Ok(Some((txid,raw_str)))
+        Ok(Some((txid, raw_str)))
     }
 
-    async fn commit_by_relayer(&self,method_name:&str,args:&str) -> BackendRes<String>{
-        let transaction = self.gen_tx(
+    async fn commit_by_relayer(&self, method_name: &str, args: &str) -> BackendRes<String> {
+        let transaction = self
+            .gen_tx(
                 &self.relayer.account_id,
                 &self.relayer.public_key(),
                 method_name,
-                args
-            ).await;
+                args,
+            )
+            .await;
         //relayer_sign
         let signature = self
             .relayer
@@ -121,38 +157,37 @@ impl<T> ContractClient<T> {
         Ok(Some(txid))
     }
 
-
-
-    
-
-    pub async fn clear_all(&self) -> BackendRes<String>{
+    pub async fn clear_all(&self) -> BackendRes<String> {
         self.commit_by_relayer("clear_all", "").await
     }
 
-
-    async fn query_call<R:DeserializeOwned>(&self,method_name:&str,args:&str) -> BackendRes<R>{
+    async fn query_call<R: DeserializeOwned>(
+        &self,
+        method_name: &str,
+        args: &str,
+    ) -> BackendRes<R> {
         let request = methods::query::RpcQueryRequest {
             block_reference: BlockReference::Finality(Finality::Final),
             request: QueryRequest::CallFunction {
                 account_id: (self.deployed_at).clone(),
                 method_name: method_name.to_string(),
-                args: FunctionArgs::from(
-                    args.to_string().into_bytes(),
-                ),
+                args: FunctionArgs::from(args.to_string().into_bytes()),
             },
         };
         let rep = crate::general::call(request).await.unwrap();
 
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result).unwrap();
-            debug!("query_res1 {}",amount_str);
-            if amount_str.eq("null"){
+            debug!("query_res1 {}", amount_str);
+            if amount_str.eq("null") {
                 Ok(None)
-            }else {
+            } else {
                 Ok(Some(serde_json::from_str::<R>(&amount_str).unwrap()))
             }
         } else {
-            Err(BackendError::InternalError("kind must be contract call".to_string()))?
+            Err(BackendError::InternalError(
+                "kind must be contract call".to_string(),
+            ))?
         }
     }
 }

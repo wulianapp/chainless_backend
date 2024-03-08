@@ -3,8 +3,8 @@
 pub mod data_structures;
 pub mod env;
 pub mod error_code;
-pub mod utils;
 pub mod log;
+pub mod utils;
 
 #[macro_use]
 extern crate lazy_static;

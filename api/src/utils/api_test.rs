@@ -37,7 +37,7 @@ macro_rules! test_register {
                 "contact": $app.user.contact,
                 "kind": "register"
             });
-            let res: BackendRespond<String> = test_service_call!(
+            let _res: BackendRespond<String> = test_service_call!(
                 $service,
                 "post",
                 "/accountManager/getCaptcha",
@@ -50,7 +50,7 @@ macro_rules! test_register {
                 "deviceBrand": $app.device.brand,
                 "email": $app.user.contact,
                 "captcha": $app.device.id,
-                "password": $app.user.password    
+                "password": $app.user.password
             });
 
             let res: BackendRespond<String> = test_service_call!(
@@ -64,7 +64,6 @@ macro_rules! test_register {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_login {
     ($service:expr, $app:expr) => {{
@@ -72,7 +71,7 @@ macro_rules! test_login {
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
                 "contact": $app.user.contact,
-                "password": $app.user.password    
+                "password": $app.user.password
             });
             let res: BackendRespond<String> = test_service_call!(
                 $service,
@@ -81,7 +80,7 @@ macro_rules! test_login {
                 Some(payload.to_string()),
                 None::<String>
             );
-            $app.user.token = Some(res.data);     
+            $app.user.token = Some(res.data);
     }};
 }
 
@@ -97,7 +96,7 @@ macro_rules! test_create_main_account{
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
             "signPwdHash": ""
         });
-        let res: BackendRespond<String> = test_service_call!(
+        let _res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             "/wallet/createMainAccount",
@@ -107,9 +106,8 @@ macro_rules! test_create_main_account{
     }};
 }
 
-
 #[macro_export]
-macro_rules! test_search_message{
+macro_rules! test_search_message {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/searchMessage");
         let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
@@ -123,9 +121,8 @@ macro_rules! test_search_message{
     }};
 }
 
-
 #[macro_export]
-macro_rules! test_get_strategy{
+macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getStrategy?accountId={}", $app.wallet.main_account);
         let res: BackendRespond<StrategyDataTmp> = test_service_call!(
@@ -138,4 +135,3 @@ macro_rules! test_get_strategy{
         res
     }};
 }
-

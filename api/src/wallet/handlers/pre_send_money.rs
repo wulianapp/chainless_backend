@@ -4,9 +4,9 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
 
+use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendRes, WalletError};
 use models::account_manager::{UserFilter, UserInfoView};
-use crate::utils::token_auth;
 
 use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
@@ -29,20 +29,29 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new();
-    let strategy =  cli
-    .get_strategy(&user_info.user_info.main_account)
-    .await?
-    .ok_or(WalletError::SenderNotFound)?;
-    let tx_status = if strategy.servant_pubkeys.is_empty(){
+    let strategy = cli
+        .get_strategy(&user_info.user_info.main_account)
+        .await?
+        .ok_or(WalletError::SenderNotFound)?;
+    let tx_status = if strategy.servant_pubkeys.is_empty() {
         CoinTxStatus::SenderSigCompleted
-    }else{
+    } else {
         CoinTxStatus::Created
     };
-    
+
     let coin_tx_raw = cli
         .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
         .unwrap();
-    let coin_info = CoinTxView::new_with_specified(coin_type, from, to, amount, coin_tx_raw, memo, expire_at,tx_status);
+    let coin_info = CoinTxView::new_with_specified(
+        coin_type,
+        from,
+        to,
+        amount,
+        coin_tx_raw,
+        memo,
+        expire_at,
+        tx_status,
+    );
     coin_info.insert()?;
     Ok(None::<String>)
 }

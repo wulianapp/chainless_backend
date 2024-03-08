@@ -1,7 +1,7 @@
-use std::fmt::Debug;
-use std::str::FromStr;
 use common::error_code::BackendError;
 use common::error_code::BackendRes;
+use std::fmt::Debug;
+use std::str::FromStr;
 //use ed25519_dalek::Signer;
 use ed25519_dalek::Signer as DalekSigner;
 use hex::ToHex;
@@ -56,8 +56,6 @@ pub struct StrategyData {
     pub subaccounts: Vec<AccountId>,
 }
 
-
-
 impl ContractClient<MultiSig> {
     //fixme: gen once object
     pub fn new() -> Self {
@@ -76,11 +74,11 @@ impl ContractClient<MultiSig> {
         }
     }
 
-    pub async fn get_master_pubkey(&self,account_str: &str) -> String{
+    pub async fn get_master_pubkey(&self, account_str: &str) -> String {
         let list = get_access_key_list(account_str).await.keys;
         if list.len() != 1 {
             panic!("todo");
-        } 
+        }
         let key = list.first().unwrap().public_key.key_data();
         hex::encode(key)
     }
@@ -90,13 +88,11 @@ impl ContractClient<MultiSig> {
         let args_str = json!({"user_account_id": user_account_id}).to_string();
         self.query_call("get_strategy", &args_str).await
     }
-     
 
-    pub async fn get_tx_state(&self, txs_index:Vec<u64>) -> BackendRes<Vec<(u64,bool)>> {
+    pub async fn get_tx_state(&self, txs_index: Vec<u64>) -> BackendRes<Vec<(u64, bool)>> {
         let args_str = json!({"txs_index": txs_index}).to_string();
         self.query_call("get_txs_state", &args_str).await
     }
-
 
     pub async fn init_strategy(
         &self,
@@ -105,66 +101,53 @@ impl ContractClient<MultiSig> {
     ) -> BackendRes<String> {
         //create account by send token
         let register_main_tx_id = self.register_account(main_account_id).await?.unwrap();
-        debug!("register_main_tx_id {}",register_main_tx_id);
+        debug!("register_main_tx_id {}", register_main_tx_id);
         let register_tx_id = self.register_account(subaccount_id).await?.unwrap();
-        debug!("register_tx_id {}",register_tx_id);
-
+        debug!("register_tx_id {}", register_tx_id);
 
         self.set_strategy(
             main_account_id,
             vec![],
-                            vec![subaccount_id.to_owned()],
+            vec![subaccount_id.to_owned()],
             vec![MultiSigRank::default()],
         )
         .await
     }
 
-    pub async fn remove_tx_index(
-        &self,
-        tx_index:u64
-    ) -> BackendRes<String> {
+    pub async fn remove_tx_index(&self, tx_index: u64) -> BackendRes<String> {
         let args_str = json!({"index": tx_index}).to_string();
         self.commit_by_relayer("remove_tx_index", &args_str).await
     }
 
-    pub async fn add_subaccount(
-        &self,
-        main_acc:&str,
-        subacc:&str,
-    ) -> BackendRes<String> {
+    pub async fn add_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
         let main_acc = AccountId::from_str(&main_acc).unwrap();
         let subacc = AccountId::from_str(&subacc).unwrap();
 
         let args_str = json!({
             "main_account_id": main_acc,
             "accounts": vec![subacc]
-        }).to_string();
+        })
+        .to_string();
         self.commit_by_relayer("add_subaccounts", &args_str).await
     }
 
-    pub async fn remove_subaccount(
-        &self,
-        main_acc:&str,
-        subacc:&str,
-        ) -> BackendRes<String> {
+    pub async fn remove_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
         let main_acc = AccountId::from_str(&main_acc).unwrap();
         let subacc = AccountId::from_str(&subacc).unwrap();
 
         let args_str = json!({
             "main_account_id": main_acc,
             "accounts": vec![subacc]
-        }).to_string();
+        })
+        .to_string();
         self.commit_by_relayer("remove_tx_index", &args_str).await
     }
 
-
-    pub async fn remove_account_strategy(
-        &self,
-        acc:String
-    ) -> BackendRes<String> {
+    pub async fn remove_account_strategy(&self, acc: String) -> BackendRes<String> {
         let acc_id = AccountId::from_str(&acc).unwrap();
         let args_str = json!({"acc": acc_id}).to_string();
-        self.commit_by_relayer("remove_account_strategy", &args_str).await
+        self.commit_by_relayer("remove_account_strategy", &args_str)
+            .await
     }
 
     pub async fn set_strategy(
@@ -176,9 +159,9 @@ impl ContractClient<MultiSig> {
     ) -> BackendRes<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id).unwrap();
         let subaccounts = subaccounts
-        .iter()
-        .map(|acc_str| AccountId::from_str(acc_str).unwrap())
-        .collect::<Vec<AccountId>>();
+            .iter()
+            .map(|acc_str| AccountId::from_str(acc_str).unwrap())
+            .collect::<Vec<AccountId>>();
         let args_str = json!({
             "user_account_id": user_account_id,
             "servant_pubkeys": servant_pubkeys,
@@ -203,11 +186,7 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("update_rank", &args_str).await
     }
 
-
-    async fn register_account(
-        &self,
-        account_id: &str,
-    ) -> BackendRes<String> {
+    async fn register_account(&self, account_id: &str) -> BackendRes<String> {
         self.commit_by_relayer("register_account", account_id).await
     }
 
@@ -222,9 +201,9 @@ impl ContractClient<MultiSig> {
             "servant_device_pubkey": servant_pubkey,
         })
         .to_string();
-        self.commit_by_relayer("update_servant_pubkey", &args_str).await
+        self.commit_by_relayer("update_servant_pubkey", &args_str)
+            .await
     }
-
 
     pub async fn internal_transfer_main_to_sub(
         &self,
@@ -236,8 +215,6 @@ impl ContractClient<MultiSig> {
         transfer_amount: u128,
         expire_at: u64,
     ) -> BackendRes<String> {
-
-
         let coin_tx = CoinTx {
             from: AccountId::from_str(from).unwrap(),
             to: AccountId::from_str(to).unwrap(),
@@ -253,10 +230,10 @@ impl ContractClient<MultiSig> {
             "coin_tx": coin_tx,
         })
         .to_string();
-        self.commit_by_relayer("internal_transfer_main_to_sub", &args_str).await
+        self.commit_by_relayer("internal_transfer_main_to_sub", &args_str)
+            .await
     }
 
-    
     pub async fn internal_transfer_sub_to_main(
         &self,
         main_account: &str,
@@ -267,7 +244,7 @@ impl ContractClient<MultiSig> {
         let main_account_id: AccountId = AccountId::from_str(main_account).unwrap();
         let coin_tx = SubAccCoinTx {
             coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
-            amount: transfer_amount,                    
+            amount: transfer_amount,
         };
 
         let args_str = json!({
@@ -276,10 +253,9 @@ impl ContractClient<MultiSig> {
             "coin_tx": coin_tx,
         })
         .to_string();
-        self.commit_by_relayer("internal_transfer_main_to_sub", &args_str).await
+        self.commit_by_relayer("internal_transfer_main_to_sub", &args_str)
+            .await
     }
-
-
 
     pub async fn gen_send_money_raw(
         &self,
@@ -310,7 +286,8 @@ impl ContractClient<MultiSig> {
             "coin_tx": coin_tx,
         })
         .to_string();
-        self.gen_raw_with_caller(&caller_id, &caller_pubkey, "send_money", &args_str).await
+        self.gen_raw_with_caller(&caller_id, &caller_pubkey, "send_money", &args_str)
+            .await
     }
 
     //for test
@@ -318,12 +295,11 @@ impl ContractClient<MultiSig> {
         todo!()
     }
 
-
     pub async fn gen_send_money_raw_tx2(
         &self,
         tx_index: u64,
-        sender_account_id: &str,
-        sender_pubkey: &str,
+        _sender_account_id: &str,
+        _sender_pubkey: &str,
         servant_device_sigs: Vec<SignInfo>,
         from: &str,
         to: &str,
@@ -390,8 +366,8 @@ pub struct CoinTx {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SubAccCoinTx {
-    coin_id:AccountId,
-    amount:u128,
+    coin_id: AccountId,
+    amount: u128,
 }
 
 lazy_static! {
@@ -419,7 +395,7 @@ fn ed25519_sign_data(prikey_bytes: &[u8], data: &[u8]) -> String {
 }
 
 pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
-   let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
+    let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
     let data = hex::decode(data_hex).unwrap();
 
     println!("ed25519_secret {:?}", prikey_bytes);
@@ -538,7 +514,7 @@ mod tests {
         println!("strategy_str2 {:#?}", strategy_str);
 
         let set_strategy_res = client
-            .set_strategy(&sender_id, servant_pubkey, vec![],ranks)
+            .set_strategy(&sender_id, servant_pubkey, vec![], ranks)
             .await
             .unwrap();
         println!("call set strategy txid {}", set_strategy_res.unwrap());
@@ -581,7 +557,7 @@ mod tests {
         println!("near_sig_res_hex {:?}", hex::encode(ed25519_sig_bytes));
     }
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_multi_sig_send_money2() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";

@@ -38,7 +38,7 @@ pub struct GetCaptchaRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/getCaptcha")]
 async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_captcha::req(request_data.into_inner()).await)
 }
 
@@ -66,11 +66,9 @@ async fn contact_is_used(
     //request_data: web::Json<ContactIsUsedRequest>,1
     request_data: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::contact_is_used::req(request_data.into_inner()))
 }
-
-
 
 /**
  * @api {get} /accountManager/userInfo 用户账号详情
@@ -92,7 +90,7 @@ async fn user_info(
     //request_data: web::Json<ContactIsUsedRequest>,1
     request_data: web::Query<UserInfoRequest>,
 ) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::user_info::req(request_data.into_inner()))
 }
 
@@ -125,10 +123,9 @@ pub struct VerifyCodeRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/verifyCaptcha1")]
 async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::verify_captcha::req(request_data.into_inner()).await)
 }
-
 
 /**
 __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
@@ -169,7 +166,7 @@ pub struct RegisterByEmailRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByEmail")]
 async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()).await)
 }
 
@@ -210,7 +207,7 @@ pub struct RegisterByPhoneRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
 async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()).await)
 }
 
@@ -231,7 +228,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiSuccess {string} data                jwt token.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/login
  */
-#[derive(Deserialize, Serialize, Clone,Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginRequest {
     device_id: String,
@@ -242,7 +239,7 @@ pub struct LoginRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/login")]
 async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
 }
 
@@ -275,7 +272,7 @@ pub struct ResetPasswordRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
 async fn reset_password(request_data: web::Json<ResetPasswordRequest>) -> impl Responder {
-    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::reset_password::req(request_data).await)
 }
 
@@ -294,15 +291,15 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
 
+    use crate::test_service_call;
     use actix_web::body::MessageBody;
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
     use actix_web::{test, App, Error};
     use std::env;
-    use crate::test_service_call;
 
     use crate::utils::respond::BackendRespond;
-    async fn clear_contract(account_id: &str) {
+    async fn clear_contract(_account_id: &str) {
         let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new();
         cli.clear_all().await.unwrap();
         //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
@@ -346,7 +343,8 @@ mod tests {
         clear_contract("").await;
 
         //getCaptcha
-        let payload = r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "register" }"#;
+        let payload =
+            r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "register" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -400,9 +398,16 @@ mod tests {
         );
         println!("{:?}", res.data);
 
-        let payload = r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
-        let res:BackendRespond<String> = test_service_call!(service,"post","/accountManager/getCaptcha",Some(payload),None::<String>);
-        println!("{:?}",res.data);
+        let payload =
+            r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/getCaptcha",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
         let payload = r#"
         { "deviceId": "000000",
          "captcha": "000000",
@@ -410,9 +415,14 @@ mod tests {
          "newPassword": "new123456789"
         }
         "#;
-        let res: BackendRespond<String> = test_service_call!(service,"post","/accountManager/resetPassword",Some(payload),None::<String>);
-        println!("{:?}",res.msg);
-
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/resetPassword",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.msg);
 
         let payload = r#"
         { "deviceId": "000000",
@@ -420,14 +430,13 @@ mod tests {
         "contact": "test1@gmail.com",
          "password": "123456789"
         }"#;
-    let res: BackendRespond<String> = test_service_call!(
-        service,
-        "post",
-        "/accountManager/login",
-        Some(payload),
-        None::<String>
-    );
-    println!("{:?}", res.data);
-      
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/accountManager/login",
+            Some(payload),
+            None::<String>
+        );
+        println!("{:?}", res.data);
     }
 }

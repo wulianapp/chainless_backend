@@ -1,11 +1,10 @@
 use common::error_code::BackendRes;
 
-use models::{account_manager, PsqlOp};
 use models::account_manager::{UserFilter, UserInfoView};
+use models::{account_manager, PsqlOp};
 use serde::Serialize;
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::UserInfoRequest;
-
 
 #[derive(Serialize, Debug)]
 pub struct UserInfoTmp {
@@ -23,7 +22,7 @@ pub struct UserInfoTmp {
 pub fn req(request_data: UserInfoRequest) -> BackendRes<UserInfoTmp> {
     let UserInfoRequest { contact } = request_data;
     let res = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
-    let info =  UserInfoTmp{
+    let info = UserInfoTmp {
         id: res.id,
         phone_number: res.user_info.phone_number,
         email: res.user_info.email,

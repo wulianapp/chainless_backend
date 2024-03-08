@@ -1,17 +1,18 @@
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::sync::Mutex;
+use crate::utils::token_auth;
+use crate::wallet::{CreateMainAccountRequest, PutPendingPubkeyRequest};
 use actix_web::HttpRequest;
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
-use common::error_code::{BackendRes};
-use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, PutPendingPubkeyRequest};
+use common::error_code::BackendRes;
+use std::collections::HashMap;
+use std::ops::Deref;
+use std::sync::Mutex;
 lazy_static! {
-    static ref PENDING_KEYS: Mutex<HashMap<u32, Vec<(String,String)>>> = Mutex::new(HashMap::new());
+    static ref PENDING_KEYS: Mutex<HashMap<u32, Vec<(String, String)>>> =
+        Mutex::new(HashMap::new());
 }
 
-pub fn get_user_pending_keys(user_id:u32) -> Result<Vec<(String,String)>,BackendError> {
+pub fn get_user_pending_keys(user_id: u32) -> Result<Vec<(String, String)>, BackendError> {
     let pending_keys_storage = PENDING_KEYS
         .lock()
         .map_err(|e| InternalError(e.to_string()))?
@@ -28,14 +29,23 @@ pub async fn req_get(req: HttpRequest) -> BackendRes<Vec<String>> {
     Ok(Some(pending_pubkey))
 }
 
-pub async fn req_put(req: HttpRequest, request_data: PutPendingPubkeyRequest) -> BackendRes<String> {
+pub async fn req_put(
+    req: HttpRequest,
+    request_data: PutPendingPubkeyRequest,
+) -> BackendRes<String> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let PutPendingPubkeyRequest{encrypted_prikey,pubkey} = request_data;
+    let PutPendingPubkeyRequest {
+        encrypted_prikey,
+        pubkey,
+    } = request_data;
     //if key is already used，should throw error
     let pending_keys_storage = &mut PENDING_KEYS
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
-    pending_keys_storage.entry(user_id).or_insert(vec![]).push((encrypted_prikey,pubkey));
+    pending_keys_storage
+        .entry(user_id)
+        .or_insert(vec![])
+        .push((encrypted_prikey, pubkey));
     Ok(None::<String>)
 }
 //remove的逻辑，在其他接口，添加从设备、更换主设备的时候的进行处理

@@ -1,6 +1,6 @@
 use serde_derive::Serialize;
 
-#[derive(Serialize, Debug, Clone,PartialEq)]
+#[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct UserInfo {
     pub phone_number: String,
     pub email: String,

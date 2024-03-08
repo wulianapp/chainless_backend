@@ -37,7 +37,7 @@ pub enum Usage {
     SetSecurity,
     AddServant,
     ServantReplaceMaster,
-    NewcomerBecomeMaster
+    NewcomerBecomeMaster,
 }
 
 impl FromStr for Usage {
@@ -96,7 +96,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
     let code_storage = &CODE_STORAGE
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
-    
+
     let value = code_storage
         .get(&(user, kind.to_owned()))
         .as_ref()
