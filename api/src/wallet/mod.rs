@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
-use tracing::{span, Level};
+use tracing::{debug, span, Level};
 use crate::account_manager::{contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password, verify_captcha};
 
 
@@ -44,12 +44,7 @@ use crate::account_manager::{contact_is_used, get_captcha, login, register_by_em
  * @apiSuccess {String[]} data.transaction.signatures         从设备对业务数据的签名
  * @apiSampleRequest http://120.232.251.101:8065/wallet/searchMessageByAccountId
  */
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/searchMessage")]
 async fn search_message(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::search_message::req(request).await)
@@ -86,18 +81,13 @@ pub struct getStrategyRequest {
     account_id: String,
 }
 
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getStrategy")]
 async fn get_strategy(
     request: HttpRequest,
     request_data: web::Query<getStrategyRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_strategy::req(request, request_data.into_inner()).await)
 }
 
@@ -143,18 +133,13 @@ pub struct PreSendMoneyRequest {
     memo: Option<String>,
 }
 
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/preSendMoney")]
 async fn pre_send_money(
     request: HttpRequest,
     request_data: web::Json<PreSendMoneyRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pre_send_money::req(request, request_data.0).await)
 }
 
@@ -164,19 +149,13 @@ pub struct DirectSendMoneyRequest {
     tx_raw: String,
     signature: String,
 }
-
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/directSendMoney")]
 async fn direct_send_money(
     request: HttpRequest,
     request_data: web::Json<DirectSendMoneyRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::direct_send_money::req(request, request_data).await)
 }
 
@@ -210,18 +189,13 @@ pub struct ReactPreSendMoney {
     tx_index: u32,
     is_agreed: bool,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/reactPreSendMoney")]
 async fn react_pre_send_money(
     request: HttpRequest,
     request_data: web::Json<ReactPreSendMoney>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::react_pre_send_money::req(request, request_data.into_inner()).await)
 }
 
@@ -257,18 +231,13 @@ pub struct ReconfirmSendMoneyRequest {
     tx_index: u32,
     confirmed_sig: Option<String>,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/reconfirmSendMoney")]
 async fn reconfirm_send_money(
     request: HttpRequest,
     request_data: web::Json<ReconfirmSendMoneyRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data).await)
 }
 
@@ -304,18 +273,13 @@ pub struct uploadTxSignatureRequest {
     tx_index: u32,
     signature: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/uploadServantSig")]
 async fn upload_servant_sig(
     request: HttpRequest,
     request_data: web::Json<uploadTxSignatureRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::upload_servant_sig::req(request, request_data).await)
 }
 
@@ -357,18 +321,13 @@ pub struct AddServantRequest {
     holder_device_id: String,
     holder_device_brand: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/addServant")]
 async fn add_servant(
     req: HttpRequest,
     request_data: web::Json<AddServantRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
@@ -378,17 +337,12 @@ async fn add_servant(
 pub struct ServantSavedSecretRequest {
     servant_pubkey: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/servantSavedSecret")]
 async fn servant_saved_secret(request: HttpRequest,    
     request_data: web::Json<ServantSavedSecretRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::servant_saved_secret::req(request,request_data.0).await)
 }
 
@@ -428,18 +382,13 @@ pub struct AddSubaccountRequest {
     subaccount_prikey_encryped_by_pwd: String,
     subaccount_prikey_encryped_by_answer: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/addSubaccount")]
 async fn add_subaccount(
     req: HttpRequest,
     request_data: web::Json<AddSubaccountRequest>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::add_subaccount::req(req, request_data.0).await)
 }
 
@@ -485,18 +434,13 @@ pub struct UpdateStrategy {
     account_id: String,
     strategy: Vec<MultiSigRankExternal>,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/updateStrategy")]
 async fn update_strategy(
     req: HttpRequest,
     request_data: web::Json<UpdateStrategy>,
 ) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
@@ -539,16 +483,11 @@ pub struct CreateMainAccountRequest {
     subaccount_prikey_encryped_by_answer: String,
     sign_pwd_hash: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/createMainAccount")]
 async fn create_main_account(    req: HttpRequest,
                         request_data: web::Json<CreateMainAccountRequest>) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::create_main_account::req(req, request_data.into_inner()).await)
 }
 
@@ -583,16 +522,11 @@ pub struct PutPendingPubkeyRequest {
     encrypted_prikey: String,
     pubkey: String,
 }
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-        request = serde_json::to_string(&request_data.0).unwrap()
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/putPendingPubkey")]
 async fn put_pending_pubkey(req: HttpRequest,
                     request_data: web::Json<PutPendingPubkeyRequest>) -> impl Responder {
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pending_pubkey::req_put(req,request_data.into_inner()).await)
 }
 
@@ -615,13 +549,7 @@ async fn put_pending_pubkey(req: HttpRequest,
  * @apiSampleRequest http://120.232.251.101:8065/wallet/getPendingPubkey
  */
 //#[tracing::instrument(name = "handle_index", level = "info")]
-#[tracing::instrument(
-    skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getPendingPubkey")]
 async fn get_pending_pubkey(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::pending_pubkey::req_get(req).await)

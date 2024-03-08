@@ -22,6 +22,7 @@ use near_primitives::types::AccountId;
 
 use common::data_structures::wallet::{AddressConvert, CoinType};
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
@@ -102,7 +103,13 @@ impl ContractClient<MultiSig> {
         main_account_id: &str,
         subaccount_id: &str,
     ) -> BackendRes<String> {
-        //fixme: 连续调用三个
+        //create account by send token
+        let register_main_tx_id = self.register_account(main_account_id).await?.unwrap();
+        debug!("register_main_tx_id {}",register_main_tx_id);
+        let register_tx_id = self.register_account(subaccount_id).await?.unwrap();
+        debug!("register_tx_id {}",register_tx_id);
+
+
         self.set_strategy(
             main_account_id,
             vec![],
@@ -196,8 +203,8 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("update_rank", &args_str).await
     }
 
-    //
-    pub async fn send_gas(
+
+    async fn register_account(
         &self,
         account_id: &str,
     ) -> BackendRes<String> {

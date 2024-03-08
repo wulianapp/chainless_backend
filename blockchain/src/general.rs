@@ -139,7 +139,7 @@ pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) {
     debug!("{:?}", transaction);
     let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
     let rest = broadcast_tx_commit(transaction, signature).await;
-    debug!("broadcast_tx_commit_from_raw {:?}", rest);
+    debug!("broadcast_tx_commit_from_raw {:?}", rest.status);
 }
 
 pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
