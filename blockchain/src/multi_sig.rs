@@ -102,6 +102,7 @@ impl ContractClient<MultiSig> {
         main_account_id: &str,
         subaccount_id: &str,
     ) -> BackendRes<String> {
+        //fixme: 连续调用三个
         self.set_strategy(
             main_account_id,
             vec![],
@@ -193,6 +194,14 @@ impl ContractClient<MultiSig> {
         })
         .to_string();
         self.commit_by_relayer("update_rank", &args_str).await
+    }
+
+    //
+    pub async fn send_gas(
+        &self,
+        account_id: &str,
+    ) -> BackendRes<String> {
+        self.commit_by_relayer("register_account", account_id).await
     }
 
     pub async fn update_servant_pubkey(

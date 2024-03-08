@@ -16,10 +16,10 @@ use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
-use near_primitives::{borsh::BorshSerialize, transaction::{Action, FunctionCallAction, SignedTransaction, Transaction}, types::{AccountId, BlockReference, Finality, FunctionArgs}, views::{FinalExecutionStatus, QueryRequest}};
+use near_primitives::{borsh::BorshSerialize, transaction::{Action, CreateAccountAction, FunctionCallAction, SignedTransaction, Transaction, TransferAction}, types::{AccountId, BlockReference, Finality, FunctionArgs}, views::{FinalExecutionStatus, QueryRequest}};
 use serde::{de::DeserializeOwned, Deserialize};
 use tracing::{debug,info};
-use std::marker::PhantomData;
+use std::{marker::PhantomData, str::FromStr};
 use serde_json::json;
 use common::error_code;
 
@@ -40,19 +40,37 @@ pub struct ContractClient<T> {
 
 impl<T> ContractClient<T> {
     async fn gen_tx(&self,caller_account_id: &AccountId, caller_pubkey: &PublicKey,method_name:&str,args:&str) -> Transaction{
-        let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
-            method_name: method_name.to_string(),
-            args: args.as_bytes().to_vec(),
-            gas: 300000000000000, // 100 TeraGas
-            deposit: 0,
-        }))];
+        let (receiver_str,action) = if method_name == "register_account" {
+            (args.to_string(),Action::Transfer(TransferAction{deposit: 0u128}))
+        }else{
+            let call_action = Action::FunctionCall(*Box::new(FunctionCallAction {
+                method_name: method_name.to_string(),
+                args: args.as_bytes().to_vec(),
+                gas: 300000000000000, // 100 TeraGas
+                deposit: 0,
+            }));
+            (self.deployed_at.to_string(),call_action)
+        };
+
 
         let mut transaction = gen_transaction_with_caller(
             caller_account_id.to_owned(), 
             caller_pubkey.to_owned(),
-            &self.deployed_at.to_string()
+            &receiver_str
         ).await;
-        transaction.actions = set_strategy_actions;
+        transaction.actions = vec![action];
+        transaction
+    }
+
+    async fn gen_create_account_tx(&self,receiver:&AccountId) -> Transaction{
+        let deposit_actions: Vec<Action> = vec![Action::Transfer(TransferAction{deposit: 0u128})];
+
+        let mut transaction = gen_transaction_with_caller(
+            self.relayer.account_id.clone(), 
+            self.relayer.public_key().clone(),
+            &receiver.to_string()
+        ).await;
+        transaction.actions = deposit_actions;
         transaction
     }
 
@@ -78,11 +96,11 @@ impl<T> ContractClient<T> {
 
     async fn commit_by_relayer(&self,method_name:&str,args:&str) -> BackendRes<String>{
         let transaction = self.gen_tx(
-            &self.relayer.account_id,
-            &self.relayer.public_key(),
-            method_name,
-            args
-        ).await;
+                &self.relayer.account_id,
+                &self.relayer.public_key(),
+                method_name,
+                args
+            ).await;
         //relayer_sign
         let signature = self
             .relayer
@@ -102,6 +120,10 @@ impl<T> ContractClient<T> {
         let txid = rep.transaction.hash.to_string();
         Ok(Some(txid))
     }
+
+
+
+    
 
     pub async fn clear_all(&self) -> BackendRes<String>{
         self.commit_by_relayer("clear_all", "").await
