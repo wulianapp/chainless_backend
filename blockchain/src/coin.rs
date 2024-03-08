@@ -26,7 +26,7 @@ lazy_static! {
     static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
 }
 
-struct Coin {}
+pub struct Coin {}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NRC20TransferArgs {

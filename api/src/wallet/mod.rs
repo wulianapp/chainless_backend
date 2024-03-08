@@ -614,6 +614,7 @@ mod tests {
 
     use actix_web::{body::MessageBody as _, test, App};
 
+    use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxView;
@@ -621,7 +622,7 @@ mod tests {
     use serde_json::json;
 
     use actix_web::Error;
-    use blockchain::multi_sig::StrategyData;
+    use blockchain::multi_sig::{ed25519_key_gen, StrategyData};
     use blockchain::multi_sig::{CoinTx, MultiSig};
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
@@ -770,14 +771,65 @@ mod tests {
         let cli = blockchain::ContractClient::<MultiSig>::new();
         cli.get_tx_state(txs_index).await.unwrap().unwrap()
     }
-
     #[actix_web::test]
-    async fn test_all_braced_wallet_ok() {
-        let app = init().await;
-        let service = test::init_service(app).await;
+    async fn test_all_braced_wallet_ok_with_fix_key() {
         let mut sender_master = simulate_sender_master();
         let mut receiver = simulate_receiver();
         let mut sender_servant = simulate_sender_servant();
+        test_all_braced_wallet_ok(sender_master,receiver,sender_servant).await;
+    }
+
+    #[actix_web::test]
+    async fn test_all_braced_wallet_ok_with_new_key() {
+        let sender_master_secret = ed25519_key_gen();
+        println!("{:?}",sender_master_secret);
+        let sender_sub_secret = ed25519_key_gen();
+        let sender_servant_secret = ed25519_key_gen();
+        let receiver_master_secret = ed25519_key_gen();
+        let receiver_sub_secret = ed25519_key_gen();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new();
+        coin_cli.send_coin(&sender_master_secret.1, 13u128).await.unwrap();
+
+        let mut sender_master = simulate_sender_master();
+        sender_master.wallet = TestWallet{ 
+            main_account: sender_master_secret.1.clone(),
+             pubkey: Some(sender_master_secret.1.clone()), 
+             prikey: Some(sender_master_secret.0.clone()), 
+             subaccount: vec![sender_sub_secret.1.clone()], 
+             sub_prikey: Some(vec![sender_sub_secret.0.clone()])
+        };
+
+        let mut receiver = simulate_receiver();
+        receiver.wallet = TestWallet{ 
+            main_account: receiver_master_secret.1.clone(),
+             pubkey: Some(receiver_master_secret.1), 
+             prikey: Some(receiver_master_secret.0), 
+             subaccount: vec![receiver_sub_secret.1], 
+             sub_prikey: Some(vec![receiver_sub_secret.0])
+        };
+
+        let mut sender_servant = simulate_sender_servant();
+        sender_servant.wallet = TestWallet{ 
+            main_account: sender_master_secret.1.clone(),
+             pubkey: Some(sender_servant_secret.1.clone()), 
+             prikey: Some(sender_servant_secret.0.clone()), 
+             subaccount: vec![sender_sub_secret.1.clone()], 
+             sub_prikey: None
+        };
+        test_all_braced_wallet_ok(sender_master,receiver,sender_servant).await;
+    }
+
+
+    //#[actix_web::test]
+    async fn test_all_braced_wallet_ok(
+        mut sender_master:  TestWulianApp2,
+        mut receiver: TestWulianApp2,
+        mut sender_servant: TestWulianApp2) {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        //let mut sender_master = simulate_sender_master();
+        //let mut receiver = simulate_receiver();
+        //let mut sender_servant = simulate_sender_servant();
         //init: get token by register or login
         test_register!(service, sender_master);
         test_register!(service, receiver);

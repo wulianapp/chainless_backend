@@ -18,6 +18,7 @@ serde = "1.0.193"
 common = {path = "../common"}
 ed25519-dalek = "1.0.1"
 tracing = "0.1.27"
+rand = "0.7"
 
 
 

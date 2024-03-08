@@ -56,10 +56,11 @@ impl<T> ContractClient<T> {
         method_name: &str,
         args: &str,
     ) -> Transaction {
+        //todo: when mainnet deposit is zero，now is 100 * cost
         let (receiver_str, action) = if method_name == "register_account" {
             (
                 args.to_string(),
-                Action::Transfer(TransferAction { deposit: 0u128 }),
+                Action::Transfer(TransferAction { deposit: 18927320303528646025800000u128 }),
             )
         } else {
             let call_action = Action::FunctionCall(*Box::new(FunctionCallAction {

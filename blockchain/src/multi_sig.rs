@@ -12,6 +12,8 @@ use near_primitives::transaction::{Action, FunctionCallAction, SignedTransaction
 use near_primitives::types::{BlockReference, Finality, FunctionArgs};
 use near_primitives::views::{FinalExecutionStatus, QueryRequest};
 use serde_json::json;
+use rand::rngs::OsRng;
+
 
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use lazy_static::lazy_static;
@@ -402,6 +404,16 @@ pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
     let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
     let sig = secret_key.sign(&data);
     sig.to_string()
+}
+
+pub fn ed25519_key_gen() -> (String,String) {
+    let mut csprng = OsRng{};
+    let key_pair = ed25519_dalek::Keypair::generate(&mut csprng);
+
+    let prikey:String = key_pair.secret.encode_hex();
+    let pubkey:String = key_pair.public.to_bytes().encode_hex();
+    let prikey = format!("{}{}",prikey,pubkey);
+    (prikey,pubkey)
 }
 
 pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
