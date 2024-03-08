@@ -7,6 +7,7 @@ use std::str::FromStr;
 use common::error_code::{AccountManagerError, BackendError};
 use common::utils::math::gen_random_verify_code;
 use lazy_static::lazy_static;
+use tracing::debug;
 use std::sync::Mutex;
 
 use common::env::ServiceMode;
@@ -17,12 +18,13 @@ use common::error_code::BackendError::InternalError;
 use common::error_code::BackendError::*;
 
 use common::utils::time::{now_millis, MINUTE10};
+use phonenumber::Mode;
 
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq,Debug)]
 pub enum ContactType {
     PhoneNumber,
     Email,
@@ -57,38 +59,22 @@ impl FromStr for Usage {
 
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
-    let phone_re = Regex::new(r"^\+\d{1,3}\s\d{10,15}$").unwrap();
-    let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
-
-    if phone_re.is_match(input) {
-        Ok(ContactType::PhoneNumber)
-    } else if email_re.is_match(input) {
-        Ok(ContactType::Email)
-    } else {
-        Err(PhoneOrEmailIncorrect)
-    }
-}
-
-pub fn validate_email(input: &str) -> Result<(), AccountManagerError> {
-    // Updated regex for phone numbers with international dialing code
-
-    let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
-
-    if !email_re.is_match(input) {
-        Err(PhoneOrEmailIncorrect)
-    } else {
-        Ok(())
-    }
-}
-
-pub fn validate_phone(input: &str) -> Result<(), AccountManagerError> {
-    // Updated regex for phone numbers with international dialing code
-    let phone_re = Regex::new(r"^\+\d{1,3}\s\d{10,15}$").unwrap();
-
-    if !phone_re.is_match(input) {
-        Err(PhoneOrEmailIncorrect)
-    } else {
-        Ok(())
+    if input.contains("mail"){
+        let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
+        if email_re.is_match(input){
+            Ok(ContactType::Email)
+        }else {
+            Err(PhoneOrEmailIncorrect)
+        }
+    }else {
+        //这里和前端的有效判断不一致先放开
+	    let number = phonenumber::parse(None, input);
+        //if phonenumber::is_valid(&number){
+        if number.is_ok(){    
+            Ok(ContactType::PhoneNumber)
+        }else {
+            Err(PhoneOrEmailIncorrect)
+        }
     }
 }
 
@@ -114,14 +100,30 @@ pub struct Captcha {
     pub created_at: u64,
     pub expiration_time: u64,
 }
+//手机+86开头的后六位做验证码:  +86 13682470011 
+//邮箱test和@中间的字符作为验证码: test0000001@gmail.com
+//其他情况都是真随机验证码
+fn distill_code_from_contact(contact:&str) ->  String{
+    if contact.contains("+86") {
+        contact[contact.len() - 6..].to_string()
+    }else {
+        let re = Regex::new(r"test(.*?)@").unwrap();
+        let mut code = gen_random_verify_code().to_string();
+        if let Some(captures) = re.captures(contact) {
+            if let Some(matched_text) = captures.get(1) {
+                code  = matched_text.as_str().to_string();
+            } 
+        }; 
+        code
+    }
+}
 
 impl Captcha {
     pub fn new(user: String, device_id: String, kind: Usage) -> Self {
         let code = if common::env::CONF.service_mode != ServiceMode::Product
             && common::env::CONF.service_mode != ServiceMode::Dev
         {
-            //"000000".to_string()
-            device_id.to_string()
+            distill_code_from_contact(&user)
         } else {
             gen_random_verify_code().to_string()
         };
@@ -168,5 +170,19 @@ impl Captcha {
         } else {
             Err(UserVerificationCodeNotFound)?
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::utils::captcha::email::send_email;
+    use crate::utils::captcha::validate;
+    use crate::utils::captcha::Captcha;
+    use crate::utils::captcha::Usage;
+    #[test]
+    fn test_phone_valided() {
+        assert!(validate("+86 13682471710").is_ok());
+        assert!(validate("+355 88888888").is_ok());
+        assert!(validate("+852 89587885").is_ok());
     }
 }

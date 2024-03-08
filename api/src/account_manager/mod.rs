@@ -360,7 +360,7 @@ mod tests {
             "deviceId": "000000",
             "deviceBrand": "Apple",
             "email": "test1@gmail.com",
-            "captcha": "000000",
+            "captcha": "1",
             "password": "123456789"
             }"#;
         let res: BackendRespond<String> = test_service_call!(
@@ -410,7 +410,7 @@ mod tests {
         println!("{:?}", res.data);
         let payload = r#"
         { "deviceId": "000000",
-         "captcha": "000000",
+         "captcha": "1",
          "contact": "test1@gmail.com",
          "newPassword": "new123456789"
         }
