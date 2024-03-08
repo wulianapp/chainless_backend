@@ -42,14 +42,42 @@ pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Tr
     }
 }
 
+
+pub async fn gen_transaction_with_caller(caller_account_id: AccountId, caller_pubkey: PublicKey,contract_addr: &str) -> Transaction {
+    let access_key_query_response = crate::CHAIN_CLIENT
+        .call(methods::query::RpcQueryRequest {
+            block_reference: BlockReference::latest(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id: caller_account_id.clone(),
+                public_key: caller_pubkey.clone(),
+            },
+        })
+        .await
+        .unwrap();
+
+    let current_nonce = match access_key_query_response.kind {
+        QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+        _ => Err("failed to extract current nonce").unwrap(),
+    };
+
+    Transaction {
+        signer_id: caller_account_id,
+        public_key: caller_pubkey,
+        nonce: current_nonce + 1,
+        receiver_id: contract_addr.parse().unwrap(),
+        block_hash: access_key_query_response.block_hash,
+        actions: vec![],
+    }
+}
+
 pub fn account_id_from_hex_str(id: &str) -> AccountId {
     let id_bytes = hex::decode(id).unwrap();
     AccountId::try_from_slice(&id_bytes).unwrap()
 }
 
 pub fn pubkey_from_hex_str(key: &str) -> PublicKey {
-    let key_bytes = hex::decode(key).unwrap();
-    PublicKey::try_from_slice(&key_bytes).unwrap()
+    let account_id = AccountId::from_str(key).unwrap();
+    PublicKey::from_implicit_account(&account_id).unwrap()
 }
 
 

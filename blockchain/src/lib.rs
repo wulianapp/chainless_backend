@@ -10,11 +10,12 @@ pub mod multi_sig;
 mod newbie_reward;
 
 use common::{error_code::{BackendError, ExternalServiceError}, error_code::{BackendRes}};
+use general::gen_transaction_with_caller;
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
-use near_crypto::{InMemorySigner, Signer};
+use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{borsh::BorshSerialize, transaction::{Action, FunctionCallAction, SignedTransaction, Transaction}, types::{AccountId, BlockReference, Finality, FunctionArgs}, views::{FinalExecutionStatus, QueryRequest}};
 use serde::{de::DeserializeOwned, Deserialize};
 use tracing::{debug,info};
@@ -38,7 +39,7 @@ pub struct ContractClient<T> {
 }
 
 impl<T> ContractClient<T> {
-    async fn gen_tx(&self,method_name:&str,args:&str) -> Transaction{
+    async fn gen_tx(&self,caller_account_id: &AccountId, caller_pubkey: &PublicKey,method_name:&str,args:&str) -> Transaction{
         let set_strategy_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
             method_name: method_name.to_string(),
             args: args.as_bytes().to_vec(),
@@ -46,12 +47,26 @@ impl<T> ContractClient<T> {
             deposit: 0,
         }))];
 
-        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await;
+        let mut transaction = gen_transaction_with_caller(
+            caller_account_id.to_owned(), 
+            caller_pubkey.to_owned(),
+            &self.deployed_at.to_string()
+        ).await;
         transaction.actions = set_strategy_actions;
         transaction
     }
-    async fn gen_raw(&self,method_name:&str,args:&str) -> BackendRes<(String,String)>{
-        let tx = self.gen_tx(method_name,args).await;
+
+    async fn gen_raw_with_relayer(&self,method_name:&str,args:&str) -> BackendRes<(String,String)>{
+        self.gen_raw_with_caller(
+            &self.relayer.account_id,
+            &self.relayer.public_key(),
+            method_name,
+            args
+        ).await
+    }
+
+    async fn gen_raw_with_caller(&self,caller_account_id: &AccountId, caller_pubkey: &PublicKey,method_name:&str,args:&str) -> BackendRes<(String,String)>{
+        let tx = self.gen_tx(caller_account_id,caller_pubkey,method_name,args).await;
 
         let hash = tx.get_hash_and_size().0.try_to_vec().unwrap();
         let txid = hex::encode(hash);
@@ -60,8 +75,14 @@ impl<T> ContractClient<T> {
         let raw_str = hex::encode(raw_bytes);
         Ok(Some((txid,raw_str)))
     }
+
     async fn commit_by_relayer(&self,method_name:&str,args:&str) -> BackendRes<String>{
-        let transaction = self.gen_tx(method_name,args).await;
+        let transaction = self.gen_tx(
+            &self.relayer.account_id,
+            &self.relayer.public_key(),
+            method_name,
+            args
+        ).await;
         //relayer_sign
         let signature = self
             .relayer

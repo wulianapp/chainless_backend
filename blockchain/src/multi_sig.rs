@@ -24,6 +24,7 @@ use common::data_structures::wallet::{AddressConvert, CoinType};
 use serde::{Deserialize, Serialize};
 
 use crate::general::get_access_key_list;
+use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
 
@@ -274,6 +275,10 @@ impl ContractClient<MultiSig> {
         transfer_amount: u128,
         expire_at: u64,
     ) -> BackendRes<(String, String)> {
+        let caller_id = AccountId::from_str(from).unwrap();
+        let caller_pubkey_str = self.get_master_pubkey(from).await;
+        let caller_pubkey = pubkey_from_hex_str(&caller_pubkey_str);
+
         let coin_tx = CoinTx {
             from: AccountId::from_str(from).unwrap(),
             to: AccountId::from_str(to).unwrap(),
@@ -289,8 +294,7 @@ impl ContractClient<MultiSig> {
             "coin_tx": coin_tx,
         })
         .to_string();
-
-        self.gen_raw("send_money", &args_str).await
+        self.gen_raw_with_caller(&caller_id, &caller_pubkey, "send_money", &args_str).await
     }
 
     //for test
@@ -327,7 +331,7 @@ impl ContractClient<MultiSig> {
         })
         .to_string();
 
-        self.gen_raw("send_money", &args_str).await
+        self.gen_raw_with_relayer("send_money", &args_str).await
     }
 
     pub fn gen_send_money_info(
@@ -534,6 +538,7 @@ mod tests {
         let near_secret: SecretKey = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE".parse().unwrap();
 
         let near_secret_bytes = near_secret.unwrap_as_ed25519().0;
+
         let ed25519_raw_bytes = near_secret_bytes.clone();
         let data_str = serde_json::to_string(&data).unwrap();
         let data_bytes = data_str.as_bytes();

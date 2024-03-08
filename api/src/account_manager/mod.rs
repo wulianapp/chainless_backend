@@ -90,7 +90,7 @@ async fn user_info(
     //request_data: web::Json<ContactIsUsedRequest>,1
     query_params: web::Query<UserInfoRequest>,
 ) -> impl Responder {
-    gen_extra_respond(handlers::user_info::req(query_params.0))
+    gen_extra_respond(handlers::user_info::req(query_params.into_inner()))
 }
 
 /**
