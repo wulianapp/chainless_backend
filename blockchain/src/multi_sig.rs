@@ -398,7 +398,7 @@ lazy_static! {
     static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
 }
 
-fn get_pubkey(pri_key_str: &str) -> String {
+pub fn get_pubkey(pri_key_str: &str) -> String {
     let secret_key = near_crypto::SecretKey::from_str(pri_key_str).unwrap();
     let pubkey = secret_key.public_key().try_to_vec().unwrap();
     pubkey.as_slice()[1..].to_vec().encode_hex()

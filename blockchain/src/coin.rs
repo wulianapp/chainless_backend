@@ -1,6 +1,9 @@
+use common::error_code::BackendRes;
+use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
-use near_primitives::types::{AccountId, BlockReference, Finality, FunctionArgs};
+use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
+use tracing::debug;
 use std::str::FromStr;
 
 use hex;
@@ -15,10 +18,15 @@ use common::data_structures::wallet::CoinTransaction;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
+use crate::multi_sig::get_pubkey;
+use crate::ContractClient;
+
 lazy_static! {
     static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
     static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
 }
+
+struct Coin{}
 
 #[derive(Serialize, Deserialize, Debug)]
 struct NRC20TransferArgs {
@@ -89,6 +97,42 @@ async fn get_balance(account: &AccountId) -> u128 {
     }
 }
 
+impl ContractClient<Coin> {
+    //fixme: gen once object
+    pub fn new() -> Self {
+        let pri_key: SecretKey = "ed25519:22GxjZNCaqqnCph62YUrhm5y2QAebLvjc8NuBEVmciXSYkpebJt2SPYMqQ4G4ERNDAbeFmWjKPFWWTA2psR8e11K"
+            .parse()
+            .unwrap();
+        let pubkey = get_pubkey(&pri_key.to_string());
+        debug!("dw20 punkey {}",pubkey);
+        let account_id: AccountId = AccountId::from_str(&pubkey).unwrap();
+
+        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
+        Self {
+            deployed_at: "dw20.node0".parse().unwrap(),
+            relayer: signer,
+            phantom: Default::default(),
+        }
+    }
+
+    pub async fn send_coin(&self,receiver: &str,amount: u128) -> BackendRes<String>{
+        let receiver: AccountId = AccountId::from_str(receiver).unwrap();
+        let args_str = json!({
+            "receiver_id":  receiver,
+            "amount": amount.to_string(),
+        })
+        .to_string();
+        self.commit_by_relayer("ft_transfer", &args_str).await
+    }
+
+    pub async fn get_balance(&self, account_id: &str) -> BackendRes<String> {
+        let user_account_id = AccountId::from_str(account_id).unwrap();
+        let args_str = json!({"account_id": user_account_id}).to_string();
+        self.query_call("ft_balance_of", &args_str).await
+    }
+     
+}
+
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
@@ -97,7 +141,9 @@ mod tests {
     use near_primitives::borsh::BorshSerialize;
     use near_primitives::types::AccountId;
     use serde_json::json;
+    use tokio::time::sleep;
     use std::str::FromStr;
+    use std::time::Duration;
     use common::data_structures::wallet::AddressConvert;
 
     use super::*;
@@ -140,5 +186,18 @@ mod tests {
         println!("raw_tx {}", raw_tx);
         let decode_res = decode_coin_transfer(&raw_tx).unwrap();
         println!("decode_res {:?}", decode_res);
+    }
+
+    #[tokio::test]
+    async fn test_call_coin_transfer_commit() {
+        common::log::init_logger();
+       let coin_cli = ContractClient::<Coin>::new();
+       let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
+       let balance1 = coin_cli.get_balance(receiver).await.unwrap();
+       println!("balance1 {}",balance1.unwrap());
+       let send_res = coin_cli.send_coin(receiver, 123u128).await.unwrap();
+       sleep(Duration::from_secs(3)).await;
+       let balance2 = coin_cli.get_balance(receiver).await.unwrap();
+       println!("balance2 {}",balance2.unwrap());
     }
 }

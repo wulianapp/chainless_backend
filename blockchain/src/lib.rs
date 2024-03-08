@@ -145,7 +145,7 @@ impl<T> ContractClient<T> {
 
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result).unwrap();
-            debug!("query_res {}",amount_str);
+            debug!("query_res1 {}",amount_str);
             if amount_str.eq("null"){
                 Ok(None)
             }else {
