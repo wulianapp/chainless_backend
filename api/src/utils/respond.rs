@@ -1,4 +1,5 @@
 use actix_web::{HttpResponse, Responder};
+use tracing::debug;
 use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 use common::error_code::{BackendError, ErrorCode};
@@ -14,6 +15,7 @@ pub struct BackendRespond<T: Serialize> {
 }
 
 pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
+    debug!("generate_ok_respond: {}",serde_json::to_string(&info).unwrap());
     if let Some(data) = info {
         HttpResponse::Ok().json(BackendRespond {
             msg: "successfully".to_string(),
@@ -30,6 +32,7 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
 }
 
 pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse {
+    debug!("return_error_respond: {}",error.to_string());
     return HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error.code(),
