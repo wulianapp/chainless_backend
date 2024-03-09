@@ -17,34 +17,40 @@ use crate::account_manager::{
 use tracing::{debug, span, Level};
 
 /**
- * @api {get} /wallet/searchMessageByAccountId 查询待处理的钱包消息
+ * @api {get} /wallet/searchMessage 查询待处理的钱包消息
  * @apiVersion 0.0.1
- * @apiName searchMessageByAccountId
+ * @apiName searchMessage
  * @apiGroup Wallet
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/searchMessageByAccountId?accounId
-=2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0
+ *   curl -X POST http://120.232.251.101:8065/wallet/searchMessage
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
- * @apiSuccess {object[]} data                当前需要处理的交易详情.
- * @apiSuccess {Number} data.tx_index          交易索引号.
- * @apiSuccess {object} data.transaction        交易详情.
- * @apiSuccess {String} [data.transaction.tx_id]        链上交易id.
- * @apiSuccess {String=dw20,cly} data.transaction.coin_type      币种名字
- * @apiSuccess {String} data.transaction.from                发起方
- * @apiSuccess {String} data.transaction.to                接收方
- * @apiSuccess {Number} data.transaction.amount               交易量
- * @apiSuccess {String} data.transaction.expireAt             交易截止时间戳
- * @apiSuccess {String} [data.transaction.memo]                交易备注
- * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.transaction.status                交易状态
- * @apiSuccess {String} data.transaction.coin_tx_raw           币种转账的业务原始数据hex
- * @apiSuccess {String} [data.transaction.chain_tx_raw]          链上交互的原始数据
- * @apiSuccess {String[]} data.transaction.signatures         从设备对业务数据的签名
- * @apiSampleRequest http://120.232.251.101:8065/wallet/searchMessageByAccountId
+ * @apiSuccess {string=0,1,3,5,2014} status_code         status code.
+ * @apiSuccess {string=UserIdNotExist,Authorization,InternalError,DBError} msg                 description of status.
+ * @apiSuccess {object[]} data                当前需要处理的消息详情.
+ * @apiSuccess {object} data.NewcomerBecameSevant    新设备成为从设备消息 
+ * @apiSuccess {string} data.NewcomerBecameSevant.pubkey           被分配的servant_pubkey
+ * @apiSuccess {string} data.NewcomerBecameSevant.state            不用关注
+ * @apiSuccess {Number} data.NewcomerBecameSevant.user_id          所属用户id
+ * @apiSuccess {string} data.NewcomerBecameSevant.encrypted_prikey_by_password    安全密码加密私钥的输出
+ * @apiSuccess {string} data.NewcomerBecameSevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
+ * @apiSuccess {object[]} data.CoinTx                转账消息
+ * @apiSuccess {Number} data.CoinTx.tx_index          交易索引号.
+ * @apiSuccess {object} data.CoinTx.transaction        交易详情.
+ * @apiSuccess {String} [data.CoinTx.transaction.tx_id]        链上交易id.
+ * @apiSuccess {String=dw20,cly} data.CoinTx.transaction.coin_type      币种名字
+ * @apiSuccess {String} data.CoinTx.transaction.from                发起方
+ * @apiSuccess {String} data.CoinTx.transaction.to                接收方
+ * @apiSuccess {Number} data.CoinTx.transaction.amount               交易量
+ * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
+ * @apiSuccess {String} [data.CoinTx.transaction.memo]                交易备注
+ * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+ * @apiSuccess {String} data.CoinTx.transaction.coin_tx_raw           币种转账的业务原始数据hex
+ * @apiSuccess {String} [data.CoinTx.transaction.chain_tx_raw]          链上交互的原始数据
+ * @apiSuccess {String[]} data.CoinTx.transaction.signatures         从设备对业务数据的签名
+ * @apiSampleRequest http://120.232.251.101:8065/wallet/searchMessage
  */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/searchMessage")]
@@ -65,24 +71,33 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+ * @apiSuccess {string=0,1,3,5,2014} status_code         status code.
+ * @apiSuccess {string=UserIdNotExist,Authorization,InternalError,DBError} msg                 description of status.
  * @apiSuccess {Object} data                          策略详情.
- * @apiSuccess {Object[]} data.multi_sig_ranks        转账额度对应签名数的档位.
+ * @apiSuccess {String} data.master_pubkey        主账户的maser的公钥
+ * @apiSuccess {String[]} data.servant_pubkeys    主账户的servant的公钥组
+ * @apiSuccess {String[]} data.subaccounts        子账户的公钥组
+ * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
  * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
  * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
- * @apiSuccess {String} data.main_device_pubkey                钱包主公钥
- * @apiSuccess {String[]} data.servant_device_pubkey            钱包从公钥组
  * @apiSampleRequest http://120.232.251.101:8065/wallet/getStrategy
  */
+
+ /*
+ {"multi_sig_ranks":[{"min":1,"max_eq":100,"sig_num":0},
+ {"min":100,"max_eq":1844674407370955200,"sig_num":1}],
+ "master_pubkey":"bd2b5cca1ec057f415e19a962bc5507e2004bf03ae07e4550c
+ d5dd8e3acde0bd",
+ "servant_pubkeys":["f13764c39b24211c9b2598b1bbdd2d4ca3179f87844087a6305fe0d9f717fc28"],"subaccounts":["5da35636c570f7f9b9dc873cae00bf9bd1863261843cb0948bffb514e442f086","11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9"]}
+ ***/
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct getStrategyRequest {
     account_id: String,
 }
-
+//todo: 删掉account_id，从数据库去拿
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getStrategy")]
 async fn get_strategy(
@@ -650,6 +665,7 @@ mod tests {
     struct TestUser {
         contact: String,
         password: String,
+        captcha: String,
         token: Option<String>,
     }
 
@@ -690,6 +706,7 @@ mod tests {
             user: TestUser {
                 contact: "test1@gmail.com".to_string(),
                 password: "123456789".to_string(),
+                captcha: "1".to_string(),
                 token: None,
             },
             device: TestDevice{
@@ -712,6 +729,7 @@ mod tests {
             user: TestUser {
                 contact: "test1@gmail.com".to_string(),
                 password: "123456789".to_string(),
+                captcha: "1".to_string(),
                 token: None,
             },
             device: TestDevice {
@@ -742,6 +760,7 @@ mod tests {
             user: TestUser {
                 contact: "test2@gmail.com".to_string(),
                 password: "123456789".to_string(),
+                captcha: "2".to_string(),
                 token: None,
             },
             device: TestDevice{

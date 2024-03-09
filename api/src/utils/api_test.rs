@@ -49,7 +49,7 @@ macro_rules! test_register {
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
                 "email": $app.user.contact,
-                "captcha": $app.device.id,
+                "captcha": $app.user.captcha,
                 "password": $app.user.password
             });
 

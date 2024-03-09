@@ -63,7 +63,7 @@ fn connect_db() -> Result<Client, BackendError> {
     let global_conf = &common::env::CONF;
     info!("{}: start postgresql", common::utils::time::current_date());
     let url = format!(
-        "host=localhost user=postgres port=5432 password=postgres dbname=backend_{}",
+        "host=localhost user=postgres port=8068 password=postgres dbname=backend_{}",
         global_conf.service_mode.to_string()
     );
     let cli = Client::connect(&url, NoTls).map_err(|error| {
