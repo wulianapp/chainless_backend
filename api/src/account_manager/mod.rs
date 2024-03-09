@@ -23,8 +23,8 @@ use crate::utils::respond::gen_extra_respond;
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8065/accountManager/getCaptcha -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test1@gmail.com","kind":"register"}'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+ * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {string} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/getCaptcha
  */
@@ -50,9 +50,9 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8065/accountManager/contactIsUsed?contact=test1@gmail.com"
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
- * @apiSuccess {string} data                nothing.
+ * @apiSuccess {string=0,1,} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {bool} data                result.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/contactIsUsed
  */
 #[derive(Deserialize, Serialize, Default, Clone)]
@@ -63,7 +63,7 @@ pub struct ContactIsUsedRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
-    //request_data: web::Json<ContactIsUsedRequest>,1
+    //request_data: web::Json<ContactIsUsedRequest>,
     request_data: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -78,8 +78,8 @@ async fn contact_is_used(
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8065/accountManager/userInfo?contact=test1@gmail.com"
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+ * @apiSuccess {string=0,1,} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {string} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/userInfo
  */
@@ -87,7 +87,7 @@ type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/userInfo")]
 async fn user_info(
-    //request_data: web::Json<ContactIsUsedRequest>,1
+    //request_data: web::Json<ContactIsUsedRequest>
     request_data: web::Query<UserInfoRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -95,58 +95,24 @@ async fn user_info(
 }
 
 /**
- * --api {post} /accountManager/verifyCaptcha check verificationCode
- * --apiVersion 0.0.1
- * --apiName verify_captcha
- * --apiGroup AccountManager
- * --apiBody {String} deviceId   user's device id
- * --apiBody {String} userContact example phone +86 18888888888 or email test1@gmail.com
- * --apiBody {String} verificationCode   user's verification code for register
- * --apiBody {String=101,102,103,104} kind   101 register，102 login，103 reset password，104 shortcut login
- * --apiExample {curl} Example usage:
- * curl -X POST http://120.232.251.101:8065/accountManager/getCaptcha -H "Content-Type: application/json" -d
- *   '{"deviceId": "John Doe","userContact": "johne@example.com","kind":"101","verificationCode":"685886"}'
- * --apiSuccess {string} status_code         status code.
- * --apiSuccess {string} msg                 description of status.
- * --apiSuccess {string} data                nothing.
- * --apiSampleRequest http://120.232.251.101:8065/accountManager/verifyCaptcha
- */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct VerifyCodeRequest {
-    device_id: String,
-    user_contact: String,
-    kind: String,
-    captcha: String,
-}
-
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/accountManager/verifyCaptcha1")]
-async fn verify_captcha(request_data: web::Json<VerifyCodeRequest>) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::verify_captcha::req(request_data.into_inner()).await)
-}
-
-/**
-__apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
-———apiBody {String} pubkey     公钥的hex表达
-
+  __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
+  ———apiBody {String} pubkey     公钥的hex表达
 * @api {post} /accountManager/registerByEmail 通过邮箱注册账户
 * @apiVersion 0.0.1
 * @apiName registerByEmail
 * @apiGroup AccountManager
-* @apiBody {String} deviceId  设备ID
+* @apiBody {String} deviceId     设备ID
 * @apiBody {String} deviceBrand  手机型号 Huawei-P20
-* @apiBody {String} email     邮箱 test1@gmail.com
-* @apiBody {String} captcha   验证码
+* @apiBody {String} email        邮箱 test1@gmail.com
+* @apiBody {String} captcha      验证码
 * @apiBody {String} password     登录密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
     curl -X POST http://120.232.251.101:8065/accountManager/registerByEmail -H "Content-Type: application/json" -d
   '{"deviceId": "123","email": "test1@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
-* @apiSuccess {string} status_code         status code.
-* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
 */
@@ -187,8 +153,8 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 *    curl -X POST http://120.232.251.101:8065/accountManager/registerByPhone -H "Content-Type: application/json" -d
   '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
-* @apiSuccess {string} status_code         status code.
-* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                jwt token.
 * @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
 */
@@ -223,8 +189,8 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8065/accountManager/login -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test1@gmail.com","password":"123456789"}'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1,2012,2009} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
  * @apiSuccess {string} data                jwt token.
  * @apiSampleRequest http://120.232.251.101:8065/accountManager/login
  */
@@ -255,8 +221,8 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
 * @apiExample {curl} Example usage:
   curl -X POST http://120.232.251.101:8065/accountManager/resetPassword -H "Content-Type: application/json"
  -d '{"deviceId": "123","contact": "test1@gmail.com","captcha":"287695","newPassword":"123456788"}'
-* @apiSuccess {string} status_code         status code.
-* @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8065/accountManager/resetPassword
 */
@@ -279,7 +245,6 @@ async fn reset_password(request_data: web::Json<ResetPasswordRequest>) -> impl R
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(get_captcha)
         .service(contact_is_used)
-        .service(verify_captcha)
         .service(register_by_email)
         .service(register_by_phone)
         .service(login)

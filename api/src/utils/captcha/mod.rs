@@ -104,7 +104,7 @@ pub struct Captcha {
 //邮箱test和@中间的字符作为验证码: test0000001@gmail.com
 //其他情况都是真随机验证码
 fn distill_code_from_contact(contact:&str) ->  String{
-    if contact.contains("+86") {
+    if contact.contains("+852") {
         contact[contact.len() - 6..].to_string()
     }else {
         let re = Regex::new(r"test(.*?)@").unwrap();
@@ -161,14 +161,14 @@ impl Captcha {
     pub fn check_user_code(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
         if let Some(data) = get_captcha(user.to_string(), &kind)? {
             if data.code != code {
-                Err(UserVerificationCodeIncorrect)?
+                Err(CaptchaIncorrect)?
             } else if data.code == code && data.is_expired() {
-                Err(UserVerificationCodeExpired)?
+                Err(CaptchaExpired)?
             } else {
                 Ok(())
             }
         } else {
-            Err(UserVerificationCodeNotFound)?
+            Err(CaptchaNotFound)?
         }
     }
 }

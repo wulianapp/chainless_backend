@@ -11,8 +11,7 @@ use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
 use crate::account_manager::{
-    contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password,
-    verify_captcha,
+    contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password
 };
 use tracing::{debug, span, Level};
 
@@ -27,8 +26,8 @@ use tracing::{debug, span, Level};
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1,3,5,2014} status_code         status code.
- * @apiSuccess {string=UserIdNotExist,Authorization,InternalError,DBError} msg                 description of status.
+ * @apiSuccess {string=0,1,2014} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError,UserIdNotExist} msg                 description of status.
  * @apiSuccess {object[]} data                当前需要处理的消息详情.
  * @apiSuccess {object} data.NewcomerBecameSevant    新设备成为从设备消息 
  * @apiSuccess {string} data.NewcomerBecameSevant.pubkey           被分配的servant_pubkey
@@ -71,8 +70,8 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1,3,5,2014} status_code         status code.
- * @apiSuccess {string=UserIdNotExist,Authorization,InternalError,DBError} msg                 description of status.
+ * @apiSuccess {string=0,1} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {Object} data                          策略详情.
  * @apiSuccess {String} data.master_pubkey        主账户的maser的公钥
  * @apiSuccess {String[]} data.servant_pubkeys    主账户的servant的公钥组
@@ -83,14 +82,6 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
  * @apiSampleRequest http://120.232.251.101:8065/wallet/getStrategy
  */
-
- /*
- {"multi_sig_ranks":[{"min":1,"max_eq":100,"sig_num":0},
- {"min":100,"max_eq":1844674407370955200,"sig_num":1}],
- "master_pubkey":"bd2b5cca1ec057f415e19a962bc5507e2004bf03ae07e4550c
- d5dd8e3acde0bd",
- "servant_pubkeys":["f13764c39b24211c9b2598b1bbdd2d4ca3179f87844087a6305fe0d9f717fc28"],"subaccounts":["5da35636c570f7f9b9dc873cae00bf9bd1863261843cb0948bffb514e442f086","11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9"]}
- ***/
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -133,11 +124,11 @@ async fn get_strategy(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/preSendMoney
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/preSendMoney
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreSendMoneyRequest {
@@ -193,11 +184,11 @@ async fn direct_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/reactPreSendMoney
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/reactPreSendMoney
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReactPreSendMoney {
@@ -235,11 +226,11 @@ async fn react_pre_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/reconfirmSendMoney
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/reconfirmSendMoney
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReconfirmSendMoneyRequest {
@@ -318,11 +309,11 @@ async fn upload_servant_sig(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
+*/
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -379,11 +370,11 @@ async fn servant_saved_secret(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
+*/
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -431,11 +422,11 @@ pub struct MultiSigRankExternal {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/updateStrategy
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/updateStrategy
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateStrategy {
@@ -472,11 +463,11 @@ async fn update_strategy(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/newMaster
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/newMaster
+*/
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -516,11 +507,11 @@ async fn create_main_account(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/putPendingPubkey
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/putPendingPubkey
+*/
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
 async fn faucet_claim(
@@ -540,11 +531,11 @@ async fn faucet_claim(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string[]} data                可用密钥列表.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/balanceList
- */
+* @apiSampleRequest http://120.232.251.101:8065/wallet/balanceList
+*/
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/balanceList")]
 async fn balance_list(req: HttpRequest) -> impl Responder {

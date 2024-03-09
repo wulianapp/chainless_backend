@@ -40,11 +40,11 @@ impl ErrorCode for BackendError {
 #[derive(Error, Debug)]
 pub enum AccountManagerError {
     #[error("cann't find user's code in memory map")]
-    UserVerificationCodeNotFound,
+    CaptchaNotFound,
     #[error("user's code is expired")]
-    UserVerificationCodeExpired,
+    CaptchaExpired,
     #[error("user's code is different with storage")]
-    UserVerificationCodeIncorrect,
+    CaptchaIncorrect,
     #[error("user's phone number or email address is invalided")]
     PhoneOrEmailIncorrect,
     #[error("user's phone number or email already used for register")]
@@ -66,9 +66,9 @@ pub enum AccountManagerError {
 impl ErrorCode for AccountManagerError {
     fn code(&self) -> u16 {
         match self {
-            Self::UserVerificationCodeNotFound => 2002,
-            Self::UserVerificationCodeExpired => 2003,
-            Self::UserVerificationCodeIncorrect => 2004,
+            Self::CaptchaNotFound => 2002,
+            Self::CaptchaExpired => 2003,
+            Self::CaptchaIncorrect => 2004,
             Self::PhoneOrEmailIncorrect => 2005,
             Self::PhoneOrEmailAlreadyRegister => 2006,
             Self::PhoneOrEmailNotRegister => 2008,
