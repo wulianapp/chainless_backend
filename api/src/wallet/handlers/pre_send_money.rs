@@ -1,8 +1,10 @@
+use std::str::FromStr;
+
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
 
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendRes, WalletError};
@@ -25,7 +27,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         expire_at,
         memo,
     } = request_data;
-    let coin_type = CoinType::from_account_str(&coin).unwrap();
+    let coin_type = CoinType::from_str(&coin).unwrap();
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new();

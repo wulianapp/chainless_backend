@@ -13,7 +13,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::wallet::CoinTransaction;
+use common::data_structures::wallet::{CoinTransaction, CoinType};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -99,17 +99,18 @@ async fn get_balance(account: &AccountId) -> u128 {
 
 impl ContractClient<Coin> {
     //fixme: gen once object
-    pub fn new() -> Self {
+    pub fn new(coin: CoinType) -> Self {
         let pri_key: SecretKey = "ed25519:22GxjZNCaqqnCph62YUrhm5y2QAebLvjc8NuBEVmciXSYkpebJt2SPYMqQ4G4ERNDAbeFmWjKPFWWTA2psR8e11K"
             .parse()
             .unwrap();
         let pubkey = get_pubkey(&pri_key.to_string());
+        //bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a
         debug!("dw20 punkey {}", pubkey);
         let account_id: AccountId = AccountId::from_str(&pubkey).unwrap();
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "dw20.node0".parse().unwrap(),
+            deployed_at: coin.to_account_id(),
             relayer: signer,
             phantom: Default::default(),
         }
@@ -135,7 +136,6 @@ impl ContractClient<Coin> {
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
-    use common::data_structures::wallet::AddressConvert;
     use common::data_structures::wallet::CoinType;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::BorshSerialize;
@@ -190,7 +190,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new();
+        let coin_cli = ContractClient::<Coin>::new(CoinType::DW20);
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());

@@ -22,7 +22,7 @@ use near_primitives::account::Account;
 use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
 
-use common::data_structures::wallet::{AddressConvert, CoinType};
+use common::data_structures::wallet::{CoinType};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -213,14 +213,14 @@ impl ContractClient<MultiSig> {
         servant_sigs: Vec<SignInfo>,
         from: &str,
         to: &str,
-        coin_id: CoinType,
+        coin: CoinType,
         transfer_amount: u128,
         expire_at: u64,
     ) -> BackendRes<String> {
         let coin_tx = CoinTx {
             from: AccountId::from_str(from).unwrap(),
             to: AccountId::from_str(to).unwrap(),
-            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            coin_id: coin.to_account_id(),
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -240,12 +240,12 @@ impl ContractClient<MultiSig> {
         &self,
         main_account: &str,
         servant_sig: SignInfo,
-        coin_id: CoinType,
+        coin: CoinType,
         transfer_amount: u128,
     ) -> BackendRes<String> {
         let main_account_id: AccountId = AccountId::from_str(main_account).unwrap();
         let coin_tx = SubAccCoinTx {
-            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            coin_id: coin.to_account_id(),
             amount: transfer_amount,
         };
 
@@ -265,7 +265,7 @@ impl ContractClient<MultiSig> {
         servant_device_sigs: Vec<SignInfo>,
         from: &str,
         to: &str,
-        coin_id: CoinType,
+        coin: CoinType,
         transfer_amount: u128,
         expire_at: u64,
     ) -> BackendRes<(String, String)> {
@@ -276,7 +276,7 @@ impl ContractClient<MultiSig> {
         let coin_tx = CoinTx {
             from: AccountId::from_str(from).unwrap(),
             to: AccountId::from_str(to).unwrap(),
-            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            coin_id: coin.to_account_id(),
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -305,14 +305,14 @@ impl ContractClient<MultiSig> {
         servant_device_sigs: Vec<SignInfo>,
         from: &str,
         to: &str,
-        coin_id: CoinType,
+        coin: CoinType,
         transfer_amount: u128,
         expire_at: u64,
     ) -> BackendRes<(String, String)> {
         let coin_tx = CoinTx {
             from: AccountId::from_str(from).unwrap(),
             to: AccountId::from_str(to).unwrap(),
-            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            coin_id: coin.to_account_id(),
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -332,14 +332,14 @@ impl ContractClient<MultiSig> {
         &self,
         sender_id: &str,
         receiver_id: &str,
-        coin_id: CoinType,
+        coin: CoinType,
         transfer_amount: u128,
         expire_at: u64,
     ) -> Result<String, String> {
         let coin_tx_info = CoinTx {
             from: AccountId::from_str(sender_id).unwrap(),
             to: AccountId::from_str(receiver_id).unwrap(),
-            coin_id: AccountId::from_str(&coin_id.to_account_str()).unwrap(),
+            coin_id: coin.to_account_id(),
             amount: transfer_amount,
             expire_at,
             memo: None,

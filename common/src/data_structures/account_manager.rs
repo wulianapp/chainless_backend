@@ -16,5 +16,6 @@ pub struct UserInfo {
     pub secruity_is_seted: bool,
     //last three time subaccounts creation
     pub create_subacc_time: Vec<u64>,
+    //todo: convert to Option<String>
     pub main_account: String,
 }

@@ -521,71 +521,37 @@ async fn create_main_account(
 * @apiSuccess {string} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8065/wallet/putPendingPubkey
  */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct PutPendingPubkeyRequest {
-    encrypted_prikey: String,
-    pubkey: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/putPendingPubkey")]
-async fn put_pending_pubkey(
-    req: HttpRequest,
-    request_data: web::Json<PutPendingPubkeyRequest>,
+#[post("/wallet/faucetClaim")]
+async fn faucet_claim(
+    req: HttpRequest
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::pending_pubkey::req_put(req, request_data.into_inner()).await)
+    gen_extra_respond(handlers::faucet_claim::req(req).await)
 }
 
 /**
- * @api {get} /wallet/getPendingPubkey 查询可以使用的密钥列表
+ * @api {get} /wallet/balanceList 返回支持的五种资产的余额信息
  * @apiVersion 0.0.1
- * @apiName getPendingPubkey
+ * @apiName balanceList
  * @apiGroup Wallet
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/getPendingPubkey
+ *   curl -X POST http://120.232.251.101:8065/wallet/balanceList
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
  * @apiSuccess {string} status_code         status code.
  * @apiSuccess {string} msg                 description of status.
 * @apiSuccess {string[]} data                可用密钥列表.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/getPendingPubkey
+ * @apiSampleRequest http://120.232.251.101:8065/wallet/balanceList
  */
-//#[tracing::instrument(name = "handle_index", level = "info")]
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[get("/wallet/getPendingPubkey")]
-async fn get_pending_pubkey(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(handlers::pending_pubkey::req_get(req).await)
+#[get("/wallet/balanceList")]
+async fn balance_list(req: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::balance_list::req(req).await)
 }
 
-//gather online_pubkey's 3 api to a mod
-//option account && pubkey
-async fn online_pubkey_join() {
-    todo!()
-}
-
-//suggest to call this api when switch account
-async fn online_pubkey_leave() {
-    todo!()
-}
-
-async fn get_online_pubkey_list() {
-    todo!()
-}
-
-//message type reserve
-async fn search_strategy_message() {
-    todo!()
-}
-
-#[tracing::instrument(skip_all,
-    level = Level::DEBUG,
-    fields(
-        trace_id = common::log::generate_trace_id(),
-    )
-)]
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/deviceList")]
 async fn device_list(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::device_list::req(req).await)
@@ -604,10 +570,10 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(add_subaccount)
         .service(update_strategy)
         .service(create_main_account)
-        .service(put_pending_pubkey)
         .service(servant_saved_secret)
         .service(device_list)
-        .service(get_pending_pubkey);
+        .service(balance_list)
+        .service(faucet_claim);
     //.service(remove_subaccount);
 }
 
@@ -648,6 +614,7 @@ mod tests {
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
+    use common::data_structures::wallet::CoinType;
 
     struct TestWallet {
         main_account: String,
@@ -790,6 +757,41 @@ mod tests {
         let cli = blockchain::ContractClient::<MultiSig>::new();
         cli.get_tx_state(txs_index).await.unwrap().unwrap()
     }
+
+    #[actix_web::test]
+    async fn test_faucet_ok() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+
+        //claim
+        let url = format!("/wallet/faucetClaim");
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            &url,
+            None::<String>,
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        println!("{}", res.data);
+
+        //balance
+        let url = format!("/wallet/balanceList");
+        let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        let sender_strategy = res.data;
+        println!("{:?}", sender_strategy);
+        
+
+    }
+
     #[actix_web::test]
     async fn test_all_braced_wallet_ok_with_fix_key() {
         let mut sender_master = simulate_sender_master();
@@ -806,7 +808,7 @@ mod tests {
         let sender_servant_secret = ed25519_key_gen();
         let receiver_master_secret = ed25519_key_gen();
         let receiver_sub_secret = ed25519_key_gen();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
         coin_cli.send_coin(&sender_master_secret.1, 13u128).await.unwrap();
 
         let mut sender_master = simulate_sender_master();
@@ -996,7 +998,7 @@ mod tests {
         let payload = json!({
              "from": &sender_master.wallet.main_account,
              "to": &receiver.wallet.main_account,
-             "coin":"dw20",
+             "coin":"DW20",
              "amount": 12,
              "expireAt": 1808015513000u64
         });

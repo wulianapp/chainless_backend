@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::wallet::{AddressConvert, CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
 use common::error_code::{BackendError, TxStatus};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -142,7 +142,7 @@ impl PsqlOp for CoinTxView {
             tx_index: row.get::<usize, i32>(0) as u32,
             transaction: CoinTransaction {
                 tx_id: row.get(1),
-                coin_type: CoinType::from_account_str(row.get::<usize, &str>(2)).unwrap(),
+                coin_type: CoinType::from_str(row.get::<usize, &str>(2)).unwrap(),
                 from: row.get(3),
                 to: row.get(4),
                 amount: u128::from_str(row.get::<usize, &str>(5)).unwrap(),
@@ -207,7 +207,7 @@ impl PsqlOp for CoinTxView {
          signatures\
          ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{});",
             tx_id.to_psql_str(),
-            coin_type.to_account_str(),
+            coin_type.to_string(),
             sender,
             receiver,
             amount.to_string(),
