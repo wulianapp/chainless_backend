@@ -21,12 +21,12 @@ use crate::utils::respond::gen_extra_respond;
  * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test1@gmail.com
  * @apiBody {String="register","resetPassword","setSecurity","addServant","servantReplaceMaster","newcomerBecomeMaster"} kind 验证码类型
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/accountManager/getCaptcha -H "Content-Type: application/json" -d
+ *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptcha -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test1@gmail.com","kind":"register"}'
  * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/getCaptcha
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptcha
  */
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -49,11 +49,11 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8065/accountManager/contactIsUsed?contact=test1@gmail.com"
+ * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test1@gmail.com"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {bool} data                result.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/contactIsUsed
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
  */
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -77,11 +77,11 @@ async fn contact_is_used(
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8065/accountManager/userInfo?contact=test1@gmail.com"
+ * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo?contact=test1@gmail.com"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/userInfo
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -108,13 +108,13 @@ async fn user_info(
 * @apiBody {String} password     登录密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
-    curl -X POST http://120.232.251.101:8065/accountManager/registerByEmail -H "Content-Type: application/json" -d
+    curl -X POST http://120.232.251.101:8066/accountManager/registerByEmail -H "Content-Type: application/json" -d
   '{"deviceId": "123","email": "test1@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
 * @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -150,13 +150,13 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 * @apiBody {String} password       密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
-*    curl -X POST http://120.232.251.101:8065/accountManager/registerByPhone -H "Content-Type: application/json" -d
+*    curl -X POST http://120.232.251.101:8066/accountManager/registerByPhone -H "Content-Type: application/json" -d
   '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
 * @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                jwt token.
-* @apiSampleRequest http://120.232.251.101:8065/accountManager/registerByEmail
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -187,12 +187,12 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiBody {String} contact    例如 phone +86 18888888888 or email test1@gmail.com
  * @apiBody {String} password   密码 1234
  * @apiExample {curl} Example usage:
- *    curl -X POST http://120.232.251.101:8065/accountManager/login -H "Content-Type: application/json" -d
+ *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test1@gmail.com","password":"123456789"}'
 * @apiSuccess {string=0,1,2012,2009} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
  * @apiSuccess {string} data                jwt token.
- * @apiSampleRequest http://120.232.251.101:8065/accountManager/login
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -219,12 +219,12 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
 * @apiBody {String} newPassword  新密码  "abcd"
 * @apiBody {String} captcha      验证码  "123456"
 * @apiExample {curl} Example usage:
-  curl -X POST http://120.232.251.101:8065/accountManager/resetPassword -H "Content-Type: application/json"
+  curl -X POST http://120.232.251.101:8066/accountManager/resetPassword -H "Content-Type: application/json"
  -d '{"deviceId": "123","contact": "test1@gmail.com","captcha":"287695","newPassword":"123456788"}'
 * @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/accountManager/resetPassword
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

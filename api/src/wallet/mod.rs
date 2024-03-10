@@ -22,12 +22,12 @@ use tracing::{debug, span, Level};
  * @apiGroup Wallet
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/searchMessage
+ *   curl -X POST http://120.232.251.101:8066/wallet/searchMessage
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1,2014} status_code         status code.
- * @apiSuccess {string=Successfully,InternalError,UserIdNotExist} msg                 description of status.
+ * @apiSuccess {string=0,1} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg                 description of status.
  * @apiSuccess {object[]} data                当前需要处理的消息详情.
  * @apiSuccess {object} data.NewcomerBecameSevant    新设备成为从设备消息 
  * @apiSuccess {string} data.NewcomerBecameSevant.pubkey           被分配的servant_pubkey
@@ -49,7 +49,7 @@ use tracing::{debug, span, Level};
  * @apiSuccess {String} data.CoinTx.transaction.coin_tx_raw           币种转账的业务原始数据hex
  * @apiSuccess {String} [data.CoinTx.transaction.chain_tx_raw]          链上交互的原始数据
  * @apiSuccess {String[]} data.CoinTx.transaction.signatures         从设备对业务数据的签名
- * @apiSampleRequest http://120.232.251.101:8065/wallet/searchMessage
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
  */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/searchMessage")]
@@ -65,7 +65,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiQuery {String} accountId 钱包ID
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/searchMessageByAccountId?accounId
+ *   curl -X POST http://120.232.251.101:8066/wallet/searchMessageByAccountId?accounId
 =2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
@@ -80,7 +80,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
  * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/getStrategy
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
  */
 
 #[derive(Deserialize, Serialize, Default, Clone)]
@@ -106,15 +106,14 @@ async fn get_strategy(
  * @apiGroup Wallet
  * @apiBody {String} from    发起方多签钱包ID
  * @apiBody {String} to      收款方ID
- * @apiBody {String=dw20,cly} coin      币种名字
+ * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
  * @apiBody {Number} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/preSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
    -d ' {
-            "deviceId": "1",
             "from": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
             "to": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb",
             "coin":"dw20",
@@ -127,7 +126,7 @@ async fn get_strategy(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/preSendMoney
+* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -175,9 +174,8 @@ async fn direct_send_money(
  * @apiBody {bool} isAgreed    是否同意接收
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/reactPreSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/reactPreSendMoney
    -d ' {
-        "deviceId":  "2",
         "txIndex": 1,
         "isAgreed": true
            }'
@@ -187,7 +185,7 @@ async fn direct_send_money(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/reactPreSendMoney
+* @apiSampleRequest http://120.232.251.101:8066/wallet/reactPreSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -210,12 +208,11 @@ async fn react_pre_send_money(
  * @apiVersion 0.0.1
  * @apiName reconfirmSendMoney
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
  * @apiBody {Number} txIndex    交易序列号
  * @apiBody {String} [confirmedSig]    再确认就传签名结果，取消就不传这个字段
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/reconfirmSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
    -d ' {
         "deviceId":  "1",
         "txIndex": 1,
@@ -229,7 +226,7 @@ async fn react_pre_send_money(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/reconfirmSendMoney
+* @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -252,14 +249,12 @@ async fn reconfirm_send_money(
  * @apiVersion 0.0.1
  * @apiName uploadServantSig
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
  * @apiBody {Number} txIndex    交易序列号
  * @apiBody {String} signature  pubkey和签名结果的拼接
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/uploadServantSig
+ *   curl -X POST http://120.232.251.101:8066/wallet/uploadServantSig
    -d ' {
-        "deviceId":  "2",
         "txIndex": 1,
         "signature": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe
 3ac02e2bff9ee3e683ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4
@@ -268,10 +263,10 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string} status_code         status code.
- * @apiSuccess {string} msg                 description of status.
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8065/wallet/uploadServantSig
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/uploadServantSig
  */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -294,17 +289,23 @@ async fn upload_servant_sig(
  * @apiVersion 0.0.1
  * @apiName preSendMoney
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
- * @apiBody {String} accountId    钱包Id
- * @apiBody {String} pubkey      从公钥
- * @apiBody {String} secretKeyData   加密后的从私钥
+ * @apiBody {String} mainAccount    主账户Id
+ * @apiBody {String} servantPubkey   从公钥
+ * @apiBody {String} servantPrikeyEncrypedByPwd   经密码加密后的从私钥
+ * @apiBody {String} servantPrikeyEncrypedByAnswer   经问答加密后的从私钥
+ * @apiBody {String} holderDeviceId   指定持有从私钥的设备id
+ * @apiBody {String} holderDeviceBrand   指定持有从私钥的设备型号
+
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/preSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
    -d ' {
-             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
-             "deviceId": "1",
-             "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
+             "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "servantPubkey": "123",
+             "servantPrikeyEncrypedByPwd": "12345",
+             "servantPrikeyEncrypedByAnswer": "12345",
+             "holderDeviceId": "123",
+             "holderDeviceBrand": "Apple",
            }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
@@ -312,7 +313,7 @@ async fn upload_servant_sig(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
+* @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -335,6 +336,31 @@ async fn add_servant(
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
+/***
+* @api {post} /wallet/servantSavedSecret 从设备通知服务端已经本地保存好
+* @apiVersion 0.0.1
+* @apiName servantSavedSecret
+* @apiGroup Wallet
+* @apiBody {String} servantPubkey   从公钥
+* @apiHeader {String} Authorization  user's access token
+* @apiExample {curl} Example usage:
+*   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+  -d ' {
+            "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+            "servantPubkey": "123",
+            "servantPrikeyEncrypedByPwd": "12345",
+            "servantPrikeyEncrypedByAnswer": "12345",
+            "holderDeviceId": "123",
+            "holderDeviceBrand": "Apple",
+          }'
+  -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+   OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+   iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ServantSavedSecretRequest {
@@ -351,17 +377,17 @@ async fn servant_saved_secret(
 }
 
 /**
- * @api {post} /wallet/addServant 主设备添加从公钥匙
+ * @api {post} /wallet/addSubaccount 添加子账户
  * @apiVersion 0.0.1
- * @apiName preSendMoney
- * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
- * @apiBody {String} accountId    钱包Id
- * @apiBody {String} pubkey      从公钥
- * @apiBody {String} secretKeyData   加密后的从私钥
+ * @apiName addSubaccount
+ * @apiGroup Wallet 
+ * @apiBody {String} mainAccount                        主账户id
+ * @apiBody {String} subaccountPubkey                   从公钥
+ * @apiBody {String} subaccountPrikeyEncrypedByPwd      密码加密后的从私钥
+ * @apiBody {String} subaccountPrikeyEncrypedByAnswer   问答加密后的从私钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/preSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
    -d ' {
              "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "deviceId": "1",
@@ -373,7 +399,7 @@ async fn servant_saved_secret(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/addServant
+* @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -403,20 +429,22 @@ pub struct MultiSigRankExternal {
 }
 
 /**
- * @api {post} /wallet/updateStrategy 主设备更新交易策略
+ * @api {post} /wallet/updateStrategy 更新主账户多签梯度
  * @apiVersion 0.0.1
  * @apiName updateStrategy
  * @apiGroup Wallet
- * @apiBody {String} deviceId   设备ID
- * @apiBody {String} accountId    钱包Id
- * @apiBody {String} pubkey      从公钥
+ * @apiBody {String} accountId    主钱包Id
  * @apiBody {Object[]} strategy   策略内容
+ * @apiBody {Number} strategy.min   档位最小值(开区间)
+ * @apiBody {Number} strategy.maxEq  档位最大值(闭区间)
+ * @apiBody {Number} strategy.sigNum   所需签名数量
+
+
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/updateStrategy
+ *   curl -X POST http://120.232.251.101:8066/wallet/updateStrategy
    -d '  {
              "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
-             "deviceId": "1",
              "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
             }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
@@ -425,7 +453,7 @@ pub struct MultiSigRankExternal {
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/updateStrategy
+* @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -444,18 +472,20 @@ async fn update_strategy(
 }
 
 /**
- * @api {post} /wallet/createMainAccount 创建新钱包
+ * @api {post} /wallet/createMainAccount 创建主钱包
  * @apiVersion 0.0.1
  * @apiName createMainAccount
  * @apiGroup Wallet
- * @apiBody {String} encrypted_master_prikey   新钱包私钥密文
- * @apiBody {String} master_pubkey   新钱包私钥密文
- * @apiBody {String} encrypted_subaccount_prikey   新钱包私钥密文
- * @apiBody {String} subaccount_pubkey   新钱包私钥密文
- * @apiBody {String} sign_pwd_hash   新钱包私钥密文
+ * @apiBody {String} masterPubkey                 主账户master公钥  
+ * @apiBody {String} masterPrikeyEncryptedByPwd   密码加密的master私钥
+ * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
+ * @apiBody {String} subaccountPubkey              子账户
+ * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子账户私钥
+ * @apiBody {String} subaccountPrikeyEncrypedPyAnswer  问答加密的子账户私钥
+ * @apiBody {String} signPwdHash               密码和问答拼接后的hash结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/updateStrategy
+ *   curl -X POST http://120.232.251.101:8066/wallet/createMainAccount
    -d '  {
              "encryptedPrikey": "",
              "pubkey": "",
@@ -466,7 +496,7 @@ async fn update_strategy(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/newMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/newMaster
 */
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -491,18 +521,15 @@ async fn create_main_account(
 }
 
 /**
- * @api {post} /wallet/putPendingPubkey 提交新的待使用的密钥对（添加从密钥）
+ * @api {post} /wallet/faucetClaim 领取测试币
  * @apiVersion 0.0.1
- * @apiName putPendingPubkey
+ * @apiName faucetClaim
  * @apiGroup Wallet
- * @apiBody {String} encryptedPrikey   新钱包私钥密文
- * @apiBody {String} pubkey            新钱包主公钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/putPendingPubkey
+ *   curl -X POST http://120.232.251.101:8066/wallet/putPendingPubkey
    -d '  {
              "encryptedPrikey": "a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89",
-             "pubkey": "19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89",
             }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
@@ -510,7 +537,7 @@ async fn create_main_account(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/putPendingPubkey
+* @apiSampleRequest http://120.232.251.101:8066/wallet/faucetClaim
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
@@ -527,14 +554,14 @@ async fn faucet_claim(
  * @apiGroup Wallet
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8065/wallet/balanceList
+ *   curl -X POST http://120.232.251.101:8066/wallet/balanceList
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string[]} data                可用密钥列表.
-* @apiSampleRequest http://120.232.251.101:8065/wallet/balanceList
+* @apiSuccess {string[]} data                币种和余额列表.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/balanceList")]
