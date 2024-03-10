@@ -1,4 +1,5 @@
-
+Wallet Structure
+![wallet structure](../../../docs/wallet.png)
 Flow diagram
 ---------------
 ```mermaid
