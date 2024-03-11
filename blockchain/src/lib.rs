@@ -193,7 +193,7 @@ impl<T> ContractClient<T> {
     }
 }
 
-pub async fn test1() {
+pub async fn test_connect() {
     let mainnet_client = JsonRpcClient::connect("http://120.232.251.101:8061");
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
@@ -223,6 +223,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_sdk() {
-        test1().await;
+        test_connect().await;
     }
 }

@@ -569,6 +569,27 @@ async fn balance_list(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::balance_list::req(req).await)
 }
 
+/**
+ * @api {get} /wallet/deviceList 返回设备信息列表
+ * @apiVersion 0.0.1
+ * @apiName deviceList
+ * @apiGroup Wallet
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/deviceList
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {object[]} data                 设备信息列表.
+* @apiSuccess {string} data.id                设备id.
+* @apiSuccess {string} data.user_id           设备当前所属用户id.
+* @apiSuccess {string} data.state             （不关注）.
+* @apiSuccess {string} data.brand             设备品牌.
+* @apiSuccess {string} data.holder_confirm_saved   设备主账户持有的master或者servant的pubkey.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/deviceList
+*/
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/deviceList")]
 async fn device_list(req: HttpRequest) -> impl Responder {
@@ -689,9 +710,9 @@ mod tests {
     fn simulate_sender_master() -> TestWulianApp2 {
         TestWulianApp2{
             user: TestUser {
-                contact: "test1@gmail.com".to_string(),
+                contact: "test000001@gmail.com".to_string(),
                 password: "123456789".to_string(),
-                captcha: "1".to_string(),
+                captcha: "000001".to_string(),
                 token: None,
             },
             device: TestDevice{
@@ -712,9 +733,9 @@ mod tests {
     fn simulate_sender_servant() -> TestWulianApp2 {
         TestWulianApp2 {
             user: TestUser {
-                contact: "test1@gmail.com".to_string(),
+                contact: "test000001@gmail.com".to_string(),
                 password: "123456789".to_string(),
-                captcha: "1".to_string(),
+                captcha: "000001".to_string(),
                 token: None,
             },
             device: TestDevice {
@@ -743,9 +764,9 @@ mod tests {
     fn simulate_receiver() -> TestWulianApp2 {
         TestWulianApp2{
             user: TestUser {
-                contact: "test2@gmail.com".to_string(),
+                contact: "test000002@gmail.com".to_string(),
                 password: "123456789".to_string(),
-                captcha: "2".to_string(),
+                captcha: "000002".to_string(),
                 token: None,
             },
             device: TestDevice{

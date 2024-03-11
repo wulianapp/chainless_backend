@@ -100,10 +100,10 @@ pub struct Captcha {
     pub created_at: u64,
     pub expiration_time: u64,
 }
-//手机+86开头的后六位做验证码:  +86 13682470011 
-//邮箱test和@中间的字符作为验证码: test0000001@gmail.com
+//手机+852开头的后六位做验证码:  +852 13682470011 
+//邮箱test和@中间的字符，且字符长度等于6的作为验证码: test000001@gmail.com
 //其他情况都是真随机验证码
-fn distill_code_from_contact(contact:&str) ->  String{
+pub fn distill_code_from_contact(contact:&str) ->  String{
     if contact.contains("+852") {
         contact[contact.len() - 6..].to_string()
     }else {
@@ -111,7 +111,10 @@ fn distill_code_from_contact(contact:&str) ->  String{
         let mut code = gen_random_verify_code().to_string();
         if let Some(captures) = re.captures(contact) {
             if let Some(matched_text) = captures.get(1) {
-                code  = matched_text.as_str().to_string();
+                let filter_str = matched_text.as_str();
+                if filter_str.len() == 6 {
+                    code  = filter_str.to_string();
+                }
             } 
         }; 
         code

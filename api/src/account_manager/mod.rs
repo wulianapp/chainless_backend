@@ -18,11 +18,11 @@ use crate::utils::respond::gen_extra_respond;
  * @apiName getCaptcha
  * @apiGroup AccountManager
  * @apiBody {String} deviceId   用户设备ID,也是测试服务的验证码返回值
- * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test1@gmail.com
+ * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test000001@gmail.com
  * @apiBody {String="register","resetPassword","setSecurity","addServant","servantReplaceMaster","newcomerBecomeMaster"} kind 验证码类型
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptcha -H "Content-Type: application/json" -d
- *  '{"deviceId": "abc","contact": "test1@gmail.com","kind":"register"}'
+ *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
  * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {string} data                nothing.
@@ -49,7 +49,7 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test1@gmail.com"
+ * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {bool} data                result.
@@ -77,7 +77,7 @@ async fn contact_is_used(
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo?contact=test1@gmail.com"
+ * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo?contact=test000001@gmail.com"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {string} data                nothing.
@@ -103,13 +103,13 @@ async fn user_info(
 * @apiGroup AccountManager
 * @apiBody {String} deviceId     设备ID
 * @apiBody {String} deviceBrand  手机型号 Huawei-P20
-* @apiBody {String} email        邮箱 test1@gmail.com
+* @apiBody {String} email        邮箱 test000001@gmail.com
 * @apiBody {String} captcha      验证码
 * @apiBody {String} password     登录密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
 * @apiExample {curl} Example usage:
     curl -X POST http://120.232.251.101:8066/accountManager/registerByEmail -H "Content-Type: application/json" -d
-  '{"deviceId": "123","email": "test1@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
+  '{"deviceId": "123","email": "test000001@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
 * @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
@@ -184,11 +184,11 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiGroup AccountManager
  * @apiBody {String} deviceId   设备ID
  * @apiBody {String} deviceBrand  手机型号 Huawei-P20
- * @apiBody {String} contact    例如 phone +86 18888888888 or email test1@gmail.com
+ * @apiBody {String} contact    例如 phone +86 18888888888 or email test000001@gmail.com
  * @apiBody {String} password   密码 1234
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
- *  '{"deviceId": "1234","contact": "test1@gmail.com","password":"123456789"}'
+ *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
 * @apiSuccess {string=0,1,2012,2009} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
  * @apiSuccess {string} data                jwt token.
@@ -215,12 +215,12 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
 * @apiName ResetPassword
 * @apiGroup AccountManager
 * @apiBody {String} deviceId     设备ID
-* @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test1@gmail.com
+* @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test000001@gmail.com
 * @apiBody {String} newPassword  新密码  "abcd"
 * @apiBody {String} captcha      验证码  "123456"
 * @apiExample {curl} Example usage:
   curl -X POST http://120.232.251.101:8066/accountManager/resetPassword -H "Content-Type: application/json"
- -d '{"deviceId": "123","contact": "test1@gmail.com","captcha":"287695","newPassword":"123456788"}'
+ -d '{"deviceId": "123","contact": "test000001@gmail.com","captcha":"287695","newPassword":"123456788"}'
 * @apiSuccess {string=0,1,2002,2003,2004} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
 * @apiSuccess {string} data                nothing.
@@ -309,7 +309,7 @@ mod tests {
 
         //getCaptcha
         let payload =
-            r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "register" }"#;
+            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "register" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -324,8 +324,8 @@ mod tests {
             { 
             "deviceId": "000000",
             "deviceBrand": "Apple",
-            "email": "test1@gmail.com",
-            "captcha": "1",
+            "email": "test000001@gmail.com",
+            "captcha": "000001",
             "password": "123456789"
             }"#;
         let res: BackendRespond<String> = test_service_call!(
@@ -341,7 +341,7 @@ mod tests {
         let payload = r#"
             { "deviceId": "000000",
              "deviceBrand": "Apple",
-            "contact": "test1@gmail.com",
+            "contact": "test000001@gmail.com",
              "password": "123456789"
             }"#;
         let res: BackendRespond<String> = test_service_call!(
@@ -357,14 +357,14 @@ mod tests {
         let res: BackendRespond<bool> = test_service_call!(
             service,
             "get",
-            "/accountManager/contactIsUsed?contact=test1@gmail.com",
+            "/accountManager/contactIsUsed?contact=test000001@gmail.com",
             None::<String>,
             None::<String>
         );
         println!("{:?}", res.data);
 
         let payload =
-            r#"{ "deviceId": "000000", "contact": "test1@gmail.com","kind": "resetPassword" }"#;
+            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "resetPassword" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -375,8 +375,8 @@ mod tests {
         println!("{:?}", res.data);
         let payload = r#"
         { "deviceId": "000000",
-         "captcha": "1",
-         "contact": "test1@gmail.com",
+         "captcha": "000001",
+         "contact": "test000001@gmail.com",
          "newPassword": "new123456789"
         }
         "#;
@@ -392,7 +392,7 @@ mod tests {
         let payload = r#"
         { "deviceId": "000000",
          "deviceBrand": "Apple",
-        "contact": "test1@gmail.com",
+        "contact": "test000001@gmail.com",
          "password": "123456789"
         }"#;
         let res: BackendRespond<String> = test_service_call!(
