@@ -62,11 +62,42 @@ pub async fn gen_transaction_with_caller(
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
         _ => Err("failed to extract current nonce").unwrap(),
     };
-
     Transaction {
         signer_id: caller_account_id,
         public_key: caller_pubkey,
         nonce: current_nonce + 1,
+        receiver_id: contract_addr.parse().unwrap(),
+        block_hash: access_key_query_response.block_hash,
+        actions: vec![],
+    }
+}
+
+
+pub async fn gen_transaction_with_caller_with_nonce(
+    caller_account_id: AccountId,
+    caller_pubkey: PublicKey,
+    contract_addr: &str,
+    add_nonce: u8,
+) -> Transaction {
+    let access_key_query_response = crate::CHAIN_CLIENT
+        .call(methods::query::RpcQueryRequest {
+            block_reference: BlockReference::latest(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id: caller_account_id.clone(),
+                public_key: caller_pubkey.clone(),
+            },
+        })
+        .await
+        .unwrap();
+
+    let current_nonce = match access_key_query_response.kind {
+        QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+        _ => Err("failed to extract current nonce").unwrap(),
+    };
+    Transaction {
+        signer_id: caller_account_id,
+        public_key: caller_pubkey,
+        nonce: current_nonce + add_nonce as u64,
         receiver_id: contract_addr.parse().unwrap(),
         block_hash: access_key_query_response.block_hash,
         actions: vec![],

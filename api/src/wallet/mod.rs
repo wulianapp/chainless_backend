@@ -596,6 +596,46 @@ async fn device_list(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::device_list::req(req).await)
 }
 
+
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenTxNewcomerReplaceMasterRequest {
+    newcomer_pubkey: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/genTxNewcomerReplaceMaster")]
+async fn gen_tx_newcomer_replace_master(
+    req: HttpRequest,
+    request_data: web::Json<GenTxNewcomerReplaceMasterRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::gen_tx_newcomer_replace_master::req(req, request_data.into_inner()).await)
+}
+
+
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitNewcomerReplaceMasterRequest {
+    newcomer_pubkey: String,
+    add_key_raw: String,
+    delete_key_raw: String,
+    add_key_sig: String,
+    delete_key_sig: String,
+    newcomer_prikey_encrypted_by_pwd: String,
+    newcomer_prikey_encrypted_by_answer: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/commitTxNewcomerReplaceMaster")]
+async fn commit_newcomer_replace_master(
+    req: HttpRequest,
+    request_data: web::Json<CommitNewcomerReplaceMasterRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::commit_newcomer_replace_master::req(req, request_data.into_inner()).await)
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
@@ -612,6 +652,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(servant_saved_secret)
         .service(device_list)
         .service(balance_list)
+        .service(gen_tx_newcomer_replace_master)
+        .service(commit_newcomer_replace_master)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -798,6 +840,72 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_new_commer_replace_master() {
+        //let newcommer_pubkey = "4b8837f83d6b25118275149cb3cf6c57407cb0f1cb0953b0b6faf3a1f171f15b".to_string();
+        let newcommer_pubkey = ed25519_key_gen().1;
+        println!("newcommer_pubkey {} ",newcommer_pubkey);
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let sender_sub_secret = ed25519_key_gen();
+        let sender_master_secret = ed25519_key_gen();
+
+        sender_master.wallet = TestWallet{ 
+            main_account: sender_master_secret.1.clone(),
+             pubkey: Some(sender_master_secret.1.clone()), 
+             prikey: Some(sender_master_secret.0.clone()), 
+             subaccount: vec![sender_sub_secret.1.clone()], 
+             sub_prikey: Some(vec![sender_sub_secret.0.clone()])
+        };
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+
+        let payload = json!({
+            "newcomerPubkey":  newcommer_pubkey
+        });
+        //claim
+        let url = format!("/wallet/genTxNewcomerReplaceMaster");
+        let res: BackendRespond<super::handlers::gen_tx_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+
+        let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+            sender_master.wallet.prikey.as_ref().unwrap(),
+            &res.data.add_key_txid
+        );
+
+        let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+            &sender_master.wallet.prikey.as_ref().unwrap(),
+            &res.data.delete_key_txid
+        );
+        let payload = json!({
+            "newcomerPubkey":  newcommer_pubkey.to_string(),
+            "addKeyRaw":  res.data.add_key_raw,
+            "deleteKeyRaw":  res.data.delete_key_raw,
+            "addKeySig":  add_key_sig,
+            "deleteKeySig": delete_key_sig,
+            "newcomerPrikeyEncryptedByPwd":  "".to_string(),
+            "newcomerPrikeyEncryptedByAnswer":  "".to_string()
+        });
+
+        //claim
+        println!("{:?}",payload.to_string());
+        let url = format!("/wallet/commitTxNewcomerReplaceMaster");
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        println!("{:?}", res.data);
+    }
+
+    #[actix_web::test]
     async fn test_faucet_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
@@ -827,8 +935,6 @@ mod tests {
         );
         let sender_strategy = res.data;
         println!("{:?}", sender_strategy);
-        
-
     }
 
     #[actix_web::test]

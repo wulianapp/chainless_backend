@@ -14,3 +14,6 @@ pub mod servant_saved_secret;
 pub mod update_strategy;
 pub mod upload_servant_sig;
 pub mod faucet_claim;
+pub mod gen_tx_newcomer_replace_master;
+pub mod commit_newcomer_replace_master;
+pub mod servant_replace_master;

@@ -1,5 +1,6 @@
 use common::error_code::BackendError;
 use common::error_code::BackendRes;
+use tracing::error;
 use std::fmt::Debug;
 use std::str::FromStr;
 //use ed25519_dalek::Signer;
@@ -76,14 +77,52 @@ impl ContractClient<MultiSig> {
         }
     }
 
+    //fixeme:
+    //用户永远只持有最后一个master的私钥
+    //增加key的时候，新key永远不会放在末尾
     pub async fn get_master_pubkey(&self, account_str: &str) -> String {
         let list = get_access_key_list(account_str).await.keys;
         if list.len() != 1 {
-            panic!("todo");
+            error!("account have multi key {:?}",list);
+            //panic!("todo");
         }
-        let key = list.first().unwrap().public_key.key_data();
+        //let key = list.first().unwrap().public_key.key_data();
+        let key = list.last().unwrap().public_key.key_data();
+
         hex::encode(key)
     }
+
+    pub async fn get_master_pubkey_list(&self, account_str: &str) -> Vec<String> {
+        let list = get_access_key_list(account_str).await.keys;
+        list.iter().map(|key|hex::encode(key.public_key.key_data())).collect()
+    }
+
+    //add_master
+    //这里先查询如果已经存在就不加了
+    pub async fn add_key(&self, main_account: &str,new_key: &str) -> BackendRes<(String, String)> {
+        let master_pubkey = self.get_master_pubkey(main_account).await;
+        let master_pubkey = pubkey_from_hex_str(&master_pubkey);
+        let main_account = AccountId::from_str(main_account).unwrap();
+        self.gen_raw_with_caller(
+            &main_account,
+             &master_pubkey, 
+             "add_key", 
+             new_key)
+        .await
+    }
+
+    pub async fn delete_key(&self, main_account: &str,delete_key: &str) -> BackendRes<(String, String)> {
+        let master_pubkey = self.get_master_pubkey(main_account).await;
+        let master_pubkey = pubkey_from_hex_str(&master_pubkey);
+        let main_account = AccountId::from_str(main_account).unwrap();
+        self.gen_raw_with_caller(
+            &main_account,
+             &master_pubkey, 
+             "delete_key", 
+             delete_key)
+        .await
+    }
+
 
     pub async fn get_strategy(&self, account_id: &str) -> BackendRes<StrategyData> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
@@ -484,6 +523,42 @@ mod tests {
                 sig_num: 2,
             },
         ]
+    }
+
+    #[tokio::test]
+    async fn test_add_key_delete_key() {
+        common::log::init_logger();
+        let newcomer_pubkey = "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9";
+        let main_account = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
+        let master_pubkey = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
+        let master_prikey = "331dde3ee69831fd2d8f0505a7f19b06c83bb14e11651debf29b8bf018e7d13ebcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
+        let client = ContractClient::<super::MultiSig>::new();
+        let master_list = client.get_master_pubkey_list(main_account).await;
+
+        //增加之前判断是否有
+        if !master_list.contains(&newcomer_pubkey.to_string()){
+            let res = client.add_key(main_account, newcomer_pubkey).await.unwrap().unwrap();
+            let signature = crate::multi_sig::ed25519_sign_data2(
+                master_prikey,
+                &res.0,
+            );
+            let test = crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
+        }else{
+            debug!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
+        }
+    
+        //删除之前判断目标新公钥是否在，在的话就把新公钥之外的全删了
+        let mut master_list = client.get_master_pubkey_list(main_account).await;
+        master_list.retain(|x| x != master_pubkey);
+        if !master_list.is_empty(){
+            //理论上生产环境不会出现3个master并存的场景
+            for master_pubkey  in master_list {
+                let res = client.delete_key(main_account, &master_pubkey).await.unwrap().unwrap();
+                let signature = crate::multi_sig::ed25519_sign_data2(master_prikey,&res.0);
+                crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
+            }
+        }
+
     }
 
     #[tokio::test]
