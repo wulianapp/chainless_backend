@@ -3,7 +3,7 @@
 //! account manager http service
 pub mod handlers;
 
-use actix_web::{get, post, web, Responder};
+use actix_web::{get, post, web, HttpRequest, Responder};
 
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
@@ -77,7 +77,7 @@ async fn contact_is_used(
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo?contact=test000001@gmail.com"
+ * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {string} data                nothing.
@@ -86,12 +86,9 @@ async fn contact_is_used(
 type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/userInfo")]
-async fn user_info(
-    //request_data: web::Json<ContactIsUsedRequest>
-    request_data: web::Query<UserInfoRequest>,
-) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::user_info::req(request_data.into_inner()))
+async fn user_info(request: HttpRequest) -> impl Responder {
+    //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::user_info::req(request))
 }
 
 /**
@@ -261,6 +258,7 @@ mod tests {
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
     use actix_web::{test, App, Error};
+    use tests::handlers::user_info::UserInfoTmp;
     use std::env;
 
     use crate::utils::respond::BackendRespond;
@@ -393,7 +391,7 @@ mod tests {
         { "deviceId": "000000",
          "deviceBrand": "Apple",
         "contact": "test000001@gmail.com",
-         "password": "123456789"
+         "password": "new123456789"
         }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
@@ -401,6 +399,15 @@ mod tests {
             "/accountManager/login",
             Some(payload),
             None::<String>
+        );
+        println!("{:?}", res.data);
+
+        let res: BackendRespond<UserInfoTmp> = test_service_call!(
+            service,
+            "get",
+            "/accountManager/userInfo",
+            None::<String>,
+            Some(res.data)
         );
         println!("{:?}", res.data);
     }

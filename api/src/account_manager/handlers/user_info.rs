@@ -1,12 +1,14 @@
+use actix_web::HttpRequest;
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoView};
 use models::{account_manager, PsqlOp};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::UserInfoRequest;
+use crate::utils::token_auth;
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize,Deserialize, Debug)]
 pub struct UserInfoTmp {
     pub id: u32,
     pub phone_number: String,
@@ -19,9 +21,10 @@ pub struct UserInfoTmp {
     pub main_account: String,
 }
 
-pub fn req(request_data: UserInfoRequest) -> BackendRes<UserInfoTmp> {
-    let UserInfoRequest { contact } = request_data;
-    let res = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
+pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
+    let user_id = token_auth::validate_credentials(&request)?;
+
+    let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     let info = UserInfoTmp {
         id: res.id,
         phone_number: res.user_info.phone_number,
