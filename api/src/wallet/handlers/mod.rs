@@ -1,4 +1,5 @@
 pub mod add_servant;
+pub mod remove_servant;
 pub mod add_subaccount;
 pub mod create_main_account;
 pub mod device_list;
@@ -14,6 +15,6 @@ pub mod servant_saved_secret;
 pub mod update_strategy;
 pub mod upload_servant_sig;
 pub mod faucet_claim;
-pub mod gen_tx_newcomer_replace_master;
+pub mod gen_newcomer_replace_master;
 pub mod commit_newcomer_replace_master;
 pub mod servant_replace_master;

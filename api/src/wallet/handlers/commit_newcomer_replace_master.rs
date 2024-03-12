@@ -1,6 +1,7 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::error_code::BackendRes;
+use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::SecretStoreView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
@@ -48,17 +49,28 @@ pub(crate) async fn req(
     //增加之前判断是否有
     if !master_list.contains(&newcomer_pubkey.to_string()){
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw,&add_key_sig).await;
+         //更新设备信息
+         DeviceInfoView::update(
+            DeviceInfoUpdater::BecomeMaster(newcomer_pubkey.to_string()),
+            DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_id)
+        )?;
     }else{
         error!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
     }
 
     //删除之前判断目标新公钥是否在，在的话就把新公钥之外的全删了
+    //删除key比较敏感，冗余的检查是必要的
     let mut master_list = client.get_master_pubkey_list(&main_account).await;
     master_list.retain(|x| x != &newcomer_pubkey);
     if !master_list.is_empty(){
         //理论上生产环境other_master不会超过1
         if master_list.len() == 1 {
             blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw,&delete_key_sig).await;
+            //更新设备信息
+            DeviceInfoView::update(
+                DeviceInfoUpdater::BecomeUndefined(master_list[0].clone()),
+                DeviceInfoFilter::ByDeviceUser(device_id,user_id)
+            )?;
         }else {
             error!("other master more than 1");
         }
@@ -66,8 +78,7 @@ pub(crate) async fn req(
         error!("main account have no other master");
     }
 
-    //info!("new wallet {:?}  successfully", user_info);
-    
+     
     
     Ok(None::<String>)
 }

@@ -189,7 +189,7 @@ mod tests {
         assert_eq!(secret_by_find.secret_store, secret.secret_store);
 
         SecretStoreView::update(
-            SecretUpdater::State(SecretKeyState::Deprecated),
+            SecretUpdater::State(SecretKeyState::Abandoned),
             SecretFilter::BySittingPubkey("01".to_string()),
         )
         .unwrap();

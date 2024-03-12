@@ -336,6 +336,23 @@ async fn add_servant(
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
+
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveServantRequest {
+    servant_pubkey: String
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/removeServant")]
+async fn remove_servant(
+    req: HttpRequest,
+    request_data: web::Json<RemoveServantRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::remove_servant::req(req, request_data.0).await)
+}
+
 /***
 * @api {post} /wallet/servantSavedSecret 从设备通知服务端已经本地保存好
 * @apiVersion 0.0.1
@@ -588,6 +605,8 @@ async fn balance_list(req: HttpRequest) -> impl Responder {
 * @apiSuccess {string} data.state             （不关注）.
 * @apiSuccess {string} data.brand             设备品牌.
 * @apiSuccess {string} data.holder_confirm_saved   设备主账户持有的master或者servant的pubkey.
+* @apiSuccess {string=Master,Servant,Undefined} data.key_role           当前设备持有的key的类型
+
 * @apiSampleRequest http://120.232.251.101:8066/wallet/deviceList
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -610,7 +629,7 @@ async fn gen_tx_newcomer_replace_master(
     request_data: web::Json<GenTxNewcomerReplaceMasterRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::gen_tx_newcomer_replace_master::req(req, request_data.into_inner()).await)
+    gen_extra_respond(handlers::gen_newcomer_replace_master::req(req, request_data.into_inner()).await)
 }
 
 
@@ -646,6 +665,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(reconfirm_send_money)
         .service(upload_servant_sig)
         .service(add_servant)
+        .service(remove_servant)
         .service(add_subaccount)
         .service(update_strategy)
         .service(create_main_account)
@@ -865,7 +885,7 @@ mod tests {
         });
         //claim
         let url = format!("/wallet/genTxNewcomerReplaceMaster");
-        let res: BackendRespond<super::handlers::gen_tx_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<super::handlers::gen_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
             service,
             "post",
             &url,
@@ -921,7 +941,7 @@ mod tests {
         );
         let sender_strategy = res.data;
         println!("{:?}", sender_strategy);
-        
+
         test_create_main_account!(service, sender_master);
 
         //claim
@@ -1055,6 +1075,31 @@ mod tests {
         );
         assert_eq!(res.status_code, 0);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        /*** 
+         test removeServant
+        let res = test_get_strategy!(service, sender_master);
+        let sender_strategy = res.data;
+        println!("{},,,{:?}", line!(), sender_strategy);
+
+        let payload = json!({
+            "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/removeServant",
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        let res = test_get_strategy!(service, sender_master);
+        let sender_strategy = res.data;
+        println!("{},,,{:?}", line!(), sender_strategy);
+        return;
+        ***/
 
         //给链上确认一些时间
         //step2.1: sender main_account update strategy

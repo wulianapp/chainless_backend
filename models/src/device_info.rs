@@ -20,8 +20,9 @@ use common::error_code::BackendError;
 pub enum DeviceInfoUpdater {
     State(SecretKeyState),
     HolderSaved(bool),
-    CreateMainAccount(String),
-    AddServant(String),
+    BecomeMaster(String),
+    BecomeServant(String),
+    BecomeUndefined(String),
 }
 
 impl fmt::Display for DeviceInfoUpdater {
@@ -33,12 +34,15 @@ impl fmt::Display for DeviceInfoUpdater {
             DeviceInfoUpdater::HolderSaved(saved) => {
                 format!("holder_confirm_saved={} ", saved)
             },
-            DeviceInfoUpdater::CreateMainAccount(key) => {
+            DeviceInfoUpdater::BecomeMaster(key) => {
                 format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Master') ", key)
             },
-            DeviceInfoUpdater::AddServant(key) => {
+            DeviceInfoUpdater::BecomeServant(key) => {
                 format!("(hold_pubkey,key_role)=('{}','Servant') ", key)
-            }
+            },
+            DeviceInfoUpdater::BecomeUndefined(key) => {
+                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',false,'Undefined') ", key)
+            },
         };
         write!(f, "{}", description)
     }
@@ -212,7 +216,7 @@ mod tests {
 
         device_by_find.device_info.user_id = 2;
         DeviceInfoView::update(
-            DeviceInfoUpdater::State(SecretKeyState::Deprecated),
+            DeviceInfoUpdater::State(SecretKeyState::Abandoned),
             DeviceInfoFilter::ByDeviceUser("123".to_string(), 1),
         )
         .unwrap();

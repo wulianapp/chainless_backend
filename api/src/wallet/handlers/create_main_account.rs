@@ -51,7 +51,7 @@ pub(crate) async fn req(
     master_secret.insert()?;
     //only main_account need to store device info
     DeviceInfoView::update(
-        DeviceInfoUpdater::CreateMainAccount(master_pubkey.clone()),
+        DeviceInfoUpdater::BecomeMaster(master_pubkey.clone()),
         DeviceInfoFilter::ByDeviceUser(device_id,user_id)
     )?;
 
