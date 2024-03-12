@@ -29,7 +29,7 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
         HttpResponse::Ok().json(BackendRespond {
             msg: "successfully".to_string(),
             status_code: 0u16,
-            data: "".to_string(),
+            data: "null".to_string(),
         })
     }
 }

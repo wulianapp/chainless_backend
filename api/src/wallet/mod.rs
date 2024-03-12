@@ -85,7 +85,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct getStrategyRequest {
+pub struct GetStrategyRequest {
     account_id: String,
 }
 //todo: 删掉account_id，从数据库去拿
@@ -93,10 +93,26 @@ pub struct getStrategyRequest {
 #[get("/wallet/getStrategy")]
 async fn get_strategy(
     request: HttpRequest,
-    request_data: web::Query<getStrategyRequest>,
+    request_data: web::Query<GetStrategyRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_strategy::req(request, request_data.into_inner()).await)
+}
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSecretRequest {
+    pubkey: String
+}
+//todo: 删掉account_id，从数据库去拿
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/getSecret")]
+async fn get_secret(
+    request: HttpRequest,
+    request_data: web::Query<GetSecretRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::get_secret::req(request, request_data.into_inner()).await)
 }
 
 /**
@@ -287,7 +303,7 @@ async fn upload_servant_sig(
 /**
  * @api {post} /wallet/addServant 主设备添加从公钥匙
  * @apiVersion 0.0.1
- * @apiName preSendMoney
+ * @apiName addServant
  * @apiGroup Wallet
  * @apiBody {String} mainAccount    主账户Id
  * @apiBody {String} servantPubkey   从公钥
@@ -334,6 +350,27 @@ async fn add_servant(
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
+}
+
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReplaceServantRequest {
+    main_account: String,
+    old_servant_pubkey: String,
+    new_servant_pubkey: String,
+    new_servant_prikey_encryped_by_pwd: String,
+    new_servant_prikey_encryped_by_answer: String,
+    new_device_id: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/replaceServant")]
+async fn replace_servant(
+    req: HttpRequest,
+    request_data: web::Json<ReplaceServantRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::replace_servant::req(req, request_data.0).await)
 }
 
 
@@ -498,7 +535,7 @@ async fn update_strategy(
  * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
  * @apiBody {String} subaccountPubkey              子账户
  * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子账户私钥
- * @apiBody {String} subaccountPrikeyEncrypedPyAnswer  问答加密的子账户私钥
+ * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子账户私钥
  * @apiBody {String} signPwdHash               密码和问答拼接后的hash结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -659,6 +696,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
         .service(get_strategy)
+        .service(get_secret)
         .service(pre_send_money)
         .service(direct_send_money)
         .service(react_pre_send_money)
@@ -674,6 +712,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(balance_list)
         .service(gen_tx_newcomer_replace_master)
         .service(commit_newcomer_replace_master)
+        .service(replace_servant)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -682,8 +721,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::{
-        test_create_main_account, test_get_strategy, test_login, test_register,
-        test_search_message, test_service_call,
+        test_add_servant, test_create_main_account, test_get_strategy, test_login, test_register, test_search_message, test_service_call
     };
 
     use super::*;
@@ -823,6 +861,38 @@ mod tests {
         }
     }
 
+    fn simulate_sender_new_device() -> TestWulianApp2 {
+        TestWulianApp2 {
+            user: TestUser {
+                contact: "test000001@gmail.com".to_string(),
+                password: "123456789".to_string(),
+                captcha: "000001".to_string(),
+                token: None,
+            },
+            device: TestDevice {
+                id: "4".to_string(),
+                brand: "Apple".to_string(),
+            },
+            wallet: TestWallet {
+                main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
+                    .to_string(),
+                subaccount: vec![
+                    "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string(),
+                ],
+                sub_prikey: None,
+                pubkey: Some(
+                    "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849".to_string(),
+                ),
+                prikey: Some(
+                    "e6913a533e66bbb52ca1f9d773154e608a6a9eacb998b61c0a7592b4b0a130c4\
+                    e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849"
+                        .to_string(),
+                ),
+            },
+        }
+    }
+
+
     fn simulate_receiver() -> TestWulianApp2 {
         TestWulianApp2{
             user: TestUser {
@@ -858,6 +928,45 @@ mod tests {
         let cli = blockchain::ContractClient::<MultiSig>::new();
         cli.get_tx_state(txs_index).await.unwrap().unwrap()
     }
+
+
+    #[actix_web::test]
+    async fn test_replace_servant() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let mut sender_servant = simulate_sender_servant();
+        let mut sender_new_device = simulate_sender_new_device();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_add_servant!(service,sender_master,sender_servant);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        let payload = json!({
+            "mainAccount": sender_master.wallet.main_account,
+            "oldServantPubkey": sender_servant.wallet.pubkey.unwrap(),
+            "newServantPubkey": sender_new_device.wallet.pubkey.unwrap(),
+            "newServantPrikeyEncrypedByPwd": sender_new_device.wallet.prikey.clone().unwrap(),
+            "newServantPrikeyEncrypedByAnswer": sender_new_device.wallet.prikey.unwrap(),
+            "newDeviceId": sender_new_device.device.id
+        });
+        //claim
+        let url = format!("/wallet/replaceServant");
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        println!("{:?}", res.data);
+    }
+
+
+    
 
     #[actix_web::test]
     async fn test_new_commer_replace_master() {
@@ -924,6 +1033,39 @@ mod tests {
         );
         println!("{:?}", res.data);
     }
+
+    #[actix_web::test]
+    async fn test_get_all() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+
+        //balance
+        let url = format!("/wallet/balanceList");
+        let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        let sender_strategy = res.data;
+        println!("{:?}", sender_strategy);
+
+
+        let url = format!("/wallet/getSecret?pubkey={}",sender_master.wallet.pubkey.unwrap());
+        let res: BackendRespond<SecretStore> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        println!("res {:?}",res.data);
+    }
+
 
     #[actix_web::test]
     async fn test_faucet_ok() {

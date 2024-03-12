@@ -71,7 +71,7 @@ impl SecretStoreView {
         SecretStoreView {
             secret_store: SecretStore {
                 pubkey: pubkey.to_string(),
-                state: SecretKeyState::Sitting,
+                state: SecretKeyState::Incumbent,
                 user_id,
                 encrypted_prikey_by_password: encrypted_prikey_by_password.to_string(),
                 encrypted_prikey_by_answer: encrypted_prikey_by_answer.to_string(),

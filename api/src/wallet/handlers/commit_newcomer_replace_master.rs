@@ -1,8 +1,9 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
+use common::data_structures::SecretKeyState;
 use common::error_code::BackendRes;
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
-use models::secret_store::SecretStoreView;
+use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -54,6 +55,25 @@ pub(crate) async fn req(
             DeviceInfoUpdater::BecomeMaster(newcomer_pubkey.to_string()),
             DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_id)
         )?;
+        //check if stored already ,if not insert sercret_store or update
+        let origin_secret = SecretStoreView::find(
+            SecretFilter::ByPubkey(newcomer_pubkey.clone())
+        )?;
+        if origin_secret.is_empty(){
+            let secret_info = SecretStoreView::new_with_specified(
+                &newcomer_pubkey,
+                user_id,
+                &newcomer_prikey_encrypted_by_pwd,
+                &newcomer_prikey_encrypted_by_answer,
+            );
+            secret_info.insert()?;
+        }else {
+            SecretStoreView::update(
+                SecretUpdater::State(SecretKeyState::Incumbent), 
+                SecretFilter::ByPubkey(newcomer_pubkey.clone())
+            )?;
+        }
+        
     }else{
         error!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
     }
@@ -70,6 +90,11 @@ pub(crate) async fn req(
             DeviceInfoView::update(
                 DeviceInfoUpdater::BecomeUndefined(master_list[0].clone()),
                 DeviceInfoFilter::ByDeviceUser(device_id,user_id)
+            )?;
+            //update sercret_store status with abandon
+            SecretStoreView::update(
+                SecretUpdater::State(SecretKeyState::Abandoned), 
+                SecretFilter::ByPubkey(master_list[0].clone())
             )?;
         }else {
             error!("other master more than 1");

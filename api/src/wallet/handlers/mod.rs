@@ -18,3 +18,5 @@ pub mod faucet_claim;
 pub mod gen_newcomer_replace_master;
 pub mod commit_newcomer_replace_master;
 pub mod servant_replace_master;
+pub mod replace_servant;
+pub mod get_secret;

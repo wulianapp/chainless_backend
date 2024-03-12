@@ -6,7 +6,7 @@ use crate::utils::token_auth;
 use common::error_code::BackendRes;
 use serde::{Deserialize, Serialize};
 
-use crate::wallet::getStrategyRequest;
+use crate::wallet::GetStrategyRequest;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
@@ -18,7 +18,7 @@ pub struct StrategyDataTmp {
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: getStrategyRequest,
+    request_data: GetStrategyRequest,
 ) -> BackendRes<StrategyDataTmp> {
     let _user_id = token_auth::validate_credentials(&req)?;
 

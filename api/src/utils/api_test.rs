@@ -135,3 +135,25 @@ macro_rules! test_get_strategy {
         res
     }};
 }
+
+#[macro_export]
+macro_rules! test_add_servant {
+    ($service:expr, $master:expr, $servant:expr) => {{
+        let payload = json!({
+            "mainAccount":  $master.wallet.main_account,
+            "servantPubkey":  $servant.wallet.pubkey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByPwd":  $servant.wallet.prikey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByAnswer":  $servant.wallet.prikey.as_ref().unwrap(),
+            "holderDeviceId":  $servant.device.id,
+            "holderDeviceBrand": $servant.device.brand,
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/addServant",
+            Some(payload.to_string()),
+            Some($master.user.token.as_ref().unwrap())
+        );
+        res
+    }};
+}

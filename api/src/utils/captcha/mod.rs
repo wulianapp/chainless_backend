@@ -100,11 +100,11 @@ pub struct Captcha {
     pub created_at: u64,
     pub expiration_time: u64,
 }
-//手机+852开头的后六位做验证码:  +852 13682470011 
+//手机+852开头的后六位做验证码:  +86 13682470011 
 //邮箱test和@中间的字符，且字符长度等于6的作为验证码: test000001@gmail.com
 //其他情况都是真随机验证码
 pub fn distill_code_from_contact(contact:&str) ->  String{
-    if contact.contains("+852") {
+    if contact.contains("+86") {
         contact[contact.len() - 6..].to_string()
     }else {
         let re = Regex::new(r"test(.*?)@").unwrap();

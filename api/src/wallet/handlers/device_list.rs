@@ -10,7 +10,7 @@ use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 
-use crate::wallet::getStrategyRequest;
+use crate::wallet::GetStrategyRequest;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     let user_id = token_auth::validate_credentials(&req)?;
