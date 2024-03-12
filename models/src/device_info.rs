@@ -12,7 +12,7 @@ use common::data_structures::{secret_store::SecretStore, SecretKeyType};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
-use crate::{vec_str2array_text, PsqlOp};
+use crate::{vec_str2array_text, PsqlOp, PsqlType};
 
 use common::error_code::BackendError;
 
@@ -20,6 +20,8 @@ use common::error_code::BackendError;
 pub enum DeviceInfoUpdater {
     State(SecretKeyState),
     HolderSaved(bool),
+    CreateMainAccount(String),
+    AddServant(String),
 }
 
 impl fmt::Display for DeviceInfoUpdater {
@@ -30,6 +32,12 @@ impl fmt::Display for DeviceInfoUpdater {
             }
             DeviceInfoUpdater::HolderSaved(saved) => {
                 format!("holder_confirm_saved={} ", saved)
+            },
+            DeviceInfoUpdater::CreateMainAccount(key) => {
+                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Master') ", key)
+            },
+            DeviceInfoUpdater::AddServant(key) => {
+                format!("(hold_pubkey,key_role)=('{}','Servant') ", key)
             }
         };
         write!(f, "{}", description)
@@ -71,17 +79,16 @@ impl DeviceInfoView {
         id: &str,
         brand: &str,
         user_id: u32,
-        hold_pubkey: &str,
-        holder_confirm_saved: bool,
     ) -> Self {
         DeviceInfoView {
             device_info: DeviceInfo {
                 id: id.to_owned(),
                 user_id,
                 state: common::data_structures::DeviceState::Active,
-                hold_pubkey: hold_pubkey.to_owned(),
+                hold_pubkey: None,
                 brand: brand.to_owned(),
-                holder_confirm_saved,
+                holder_confirm_saved: false,
+                key_role: KeyRole2::Undefined
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -102,6 +109,7 @@ impl PsqlOp for DeviceInfoView {
             hold_pubkey,\
             brand,\
             holder_confirm_saved,\
+            key_role,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from device_info where {}",
@@ -117,9 +125,10 @@ impl PsqlOp for DeviceInfoView {
                 hold_pubkey: row.get(3),
                 brand: row.get(4),
                 holder_confirm_saved: row.get::<usize, bool>(5),
+                key_role: row.get::<usize, String>(6).parse().unwrap(),
             },
-            updated_at: row.get(6),
-            created_at: row.get(7),
+            updated_at: row.get(7),
+            created_at: row.get(8),
         };
 
         Ok(execute_res
@@ -150,7 +159,9 @@ impl PsqlOp for DeviceInfoView {
             hold_pubkey,
             brand: device_type,
             holder_confirm_saved,
+            key_role,
         } = &self.device_info;
+        let hold_pubkey: PsqlType = hold_pubkey.to_owned().into();
 
         let sql = format!(
             "insert into device_info (\
@@ -159,14 +170,16 @@ impl PsqlOp for DeviceInfoView {
                 state,\
                 hold_pubkey,\
                 brand,\
-                holder_confirm_saved\
-         ) values ('{}',{},'{}','{}','{}',{});",
+                holder_confirm_saved,\
+                key_role\
+         ) values ('{}',{},'{}',{},'{}',{},'{}');",
             id,
             user_id,
             state.to_string(),
-            hold_pubkey,
+            hold_pubkey.to_psql_str(),
             device_type,
-            holder_confirm_saved
+            holder_confirm_saved,
+            key_role.to_string()
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
@@ -189,7 +202,7 @@ mod tests {
         crate::general::table_all_clear();
 
         let device =
-            DeviceInfoView::new_with_specified("123", "Huawei", 1, "01234567890abcd", true);
+            DeviceInfoView::new_with_specified("123", "Huawei", 1);
         device.insert().unwrap();
         let mut device_by_find =
             DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123".to_string(), 1))

@@ -8,6 +8,27 @@ use serde::{Deserialize, Serialize};
 use crate::account_manager::UserInfoRequest;
 use crate::utils::token_auth;
 
+/***
+ * 
+  pub phone_number: String,
+    pub email: String,
+    pub login_pwd_hash: String,
+    pub sign_pwd_hash: String,
+    //if is frozened,cannt operation anymore
+    pub is_frozen: bool,
+    pub predecessor: Option<u32>,
+    pub laste_predecessor_replace_time: u64,
+    //default is user_id
+    pub invite_code: String,
+    pub kyc_is_verified: bool,
+    pub secruity_is_seted: bool,
+    //last three time subaccounts creation
+    pub create_subacc_time: Vec<u64>,
+    //todo: convert to Option<String>
+    pub main_account: String,
+ * 
+*/
+
 #[derive(Serialize,Deserialize, Debug)]
 pub struct UserInfoTmp {
     pub id: u32,
@@ -18,6 +39,8 @@ pub struct UserInfoTmp {
     pub predecessor: Option<u32>,
     pub laste_predecessor_replace_time: u64,
     pub invite_code: String,
+    pub kyc_is_verified: bool,
+    pub secruity_is_seted: bool,
     pub main_account: String,
 }
 
@@ -34,6 +57,8 @@ pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         predecessor: res.user_info.predecessor,
         laste_predecessor_replace_time: res.user_info.laste_predecessor_replace_time,
         invite_code: res.user_info.invite_code,
+        kyc_is_verified: res.user_info.kyc_is_verified,
+        secruity_is_seted: res.user_info.secruity_is_seted,
         main_account: res.user_info.main_account,
     };
     Ok(Some(info))

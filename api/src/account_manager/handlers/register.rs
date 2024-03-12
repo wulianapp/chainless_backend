@@ -1,6 +1,8 @@
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
+use common::data_structures::KeyRole2;
 use common::error_code::AccountManagerError::*;
+use models::device_info::DeviceInfoView;
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
@@ -68,6 +70,13 @@ async fn register(
     //multi_cli.init_strategy(&pubkey).await.unwrap();
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;
+    let mut device = DeviceInfoView::new_with_specified(
+        &device_id,
+        &device_brand,
+        this_user_id,
+    );
+    device.insert()?;
+
     models::general::transaction_commit()?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand);

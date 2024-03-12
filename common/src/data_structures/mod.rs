@@ -23,13 +23,21 @@ pub enum AccountKey {
 pub enum KeyRole {
     Master(String),
     Servant(String),
+    Newcommer(String),
+}
+
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
+pub enum KeyRole2 {
+    Master,
+    Servant,
+    Undefined,
 }
 
 //never use it
 impl Default for KeyRole {
     fn default() -> Self {
         panic!("never use it ");
-        Self::Master("".to_string())
+        Self::Newcommer("".to_string())
     }
 }
 

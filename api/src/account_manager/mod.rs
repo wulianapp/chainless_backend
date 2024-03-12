@@ -316,6 +316,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
 
         //register
         let payload = r#"
@@ -334,6 +335,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
+
 
         //login
         let payload = r#"
@@ -350,6 +353,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
+
 
         //check contact if is used
         let res: BackendRespond<bool> = test_service_call!(
@@ -360,6 +365,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
+
 
         let payload =
             r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "resetPassword" }"#;
@@ -371,6 +378,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
+
         let payload = r#"
         { "deviceId": "000000",
          "captcha": "000001",
@@ -386,6 +395,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.msg);
+        assert_eq!(res.status_code,0);
+
 
         let payload = r#"
         { "deviceId": "000000",
@@ -401,6 +412,8 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
+        assert_eq!(res.status_code,0);
+
 
         let res: BackendRespond<UserInfoTmp> = test_service_call!(
             service,

@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use common::error_code::AccountManagerError::{
     AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
 };
+use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use tracing::debug;
 
 use crate::account_manager::LoginRequest;
@@ -73,7 +74,19 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect)?;
     }
-    //todo: 如果user的device换了，更新device_info的table
+    //todo: distinguish repeat and not found
+    let find_res = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_at_stored.id)
+    );
+    if find_res.is_err(){
+        let mut device = DeviceInfoView::new_with_specified(
+            &device_id,
+            &device_brand,
+            user_at_stored.id,
+        );
+        device.insert()?;
+    }
+
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);

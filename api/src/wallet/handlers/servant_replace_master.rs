@@ -57,6 +57,7 @@ pub(crate) async fn req(
     );
     master_secret.insert()?;
     //only main_account need to store device info
+    /***
     let device = models::device_info::DeviceInfoView::new_with_specified(
         &device_id,
         &device_brand,
@@ -64,7 +65,9 @@ pub(crate) async fn req(
         &master_pubkey,
         true,
     );
+
     device.insert()?;
+    */
 
     let sub_account_secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,

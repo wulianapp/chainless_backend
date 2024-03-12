@@ -83,6 +83,7 @@ create table device_info
     hold_pubkey text,
     brand text, --huawei,apple
     holder_confirm_saved bool,
+    key_role text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp,
      --一台设备登陆多个账号

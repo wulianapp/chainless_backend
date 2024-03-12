@@ -3,11 +3,11 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::MultiSig;
 
 use crate::utils::token_auth;
-use common::data_structures::SecretKeyType;
+use common::data_structures::{KeyRole2, SecretKeyType};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::DeviceInfoView;
+use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use crate::wallet::AddServantRequest;
@@ -19,7 +19,7 @@ use tracing::error;
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let AddServantRequest {
         main_account,
         servant_pubkey,
@@ -65,14 +65,30 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
 
-    let secret_info = DeviceInfoView::new_with_specified(
-        &holder_device_id,
-        &holder_device_brand,
-        user_id,
-        &servant_pubkey,
-        false,
+    //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
+    let find_res = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_id)
     );
-    secret_info.insert()?;
+    if find_res.is_ok(){
+        DeviceInfoView::update(
+            DeviceInfoUpdater::AddServant(servant_pubkey),
+            DeviceInfoFilter::ByDeviceUser(holder_device_id,user_id)
+        )?;
+    }else {
+        /*** 
+        let mut device = DeviceInfoView::new_with_specified(
+            &holder_device_id,
+            &holder_device_brand,
+            user_id
+        );
+        device.device_info.key_role = KeyRole2::Servant;
+        device.device_info.hold_pubkey = Some(servant_pubkey);
+        device.insert()?;
+        */
+        Err(InternalError("".to_string()))?;
+    }
+
+
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

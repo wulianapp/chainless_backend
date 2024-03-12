@@ -22,7 +22,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
     let device_info = DeviceInfoView::find(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
     if device_info.len() == 1 && !device_info[0].device_info.holder_confirm_saved {
         let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(
-            device_info[0].device_info.hold_pubkey.clone(),
+            device_info[0].device_info.hold_pubkey.clone().unwrap(),
         ))?;
         messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
     }
