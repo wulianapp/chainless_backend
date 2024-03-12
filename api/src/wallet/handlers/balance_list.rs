@@ -16,16 +16,21 @@ use std::sync::Mutex;
 pub async fn req(req: HttpRequest) -> BackendRes<Vec<(String,String)>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+
     let account_id = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();
     let mut balance_list = vec![];
+ 
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone());
-        let balance = coin_cli.
-        get_balance(&account_id)
-        .await
-        .unwrap()
-        .unwrap_or("0".to_string());
+        let balance = if user_info.user_info.secruity_is_seted {
+            coin_cli.
+            get_balance(&account_id)
+            .await?
+            .unwrap_or("0".to_string())
+        }else{
+            "0".to_string()
+        };
         balance_list.push((coin.to_string(),balance));
     }
     Ok(Some(balance_list))

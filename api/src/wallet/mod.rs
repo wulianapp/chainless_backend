@@ -911,6 +911,17 @@ mod tests {
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
         test_register!(service, sender_master);
+        let url = format!("/wallet/balanceList");
+        let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        let sender_strategy = res.data;
+        println!("{:?}", sender_strategy);
+        
         test_create_main_account!(service, sender_master);
 
         //claim
