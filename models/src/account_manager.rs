@@ -1,5 +1,6 @@
 extern crate rustc_serialize;
 
+use common::data_structures::OpStatus;
 use postgres::Row;
 use std::fmt;
 //#[derive(Serialize)]
@@ -27,6 +28,7 @@ pub enum UserUpdater {
     AccountIds(Vec<String>),
     //     * sign_pwd_hash,secruity_is_seted,main_account
     SecruityInfo(String, bool, String),
+    OpStatus(OpStatus),
 }
 impl fmt::Display for UserUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -39,6 +41,9 @@ impl fmt::Display for UserUpdater {
             UserUpdater::SecruityInfo(sign_pwd_hash, secruity_is_seted, main_account) => format!(
                 "sign_pwd_hash='{}',secruity_is_seted={},main_account='{}'",
                 sign_pwd_hash, secruity_is_seted, main_account
+            ),
+            UserUpdater::OpStatus(status) => format!(
+                "op_status='{}'",status.to_string()
             ),
         };
         write!(f, "{}", description)
@@ -75,7 +80,7 @@ impl UserInfoView {
             phone_number: "".to_string(),
             email: "".to_string(),
             login_pwd_hash: login_pwd_hash.to_owned(),
-            sign_pwd_hash: "".to_string(),
+            anwser_indexes: "".to_string(),
             is_frozen: false,
             predecessor: None,
             laste_predecessor_replace_time: 0,
@@ -85,6 +90,11 @@ impl UserInfoView {
             create_subacc_time: vec![],
             //fixme: replace with None
             main_account: "".to_string(),
+            op_status: OpStatus::Idle,
+            reserved_field1: "".to_string(),
+            reserved_field2: "".to_string(),
+            reserved_field3: "".to_string(),
+
         };
         UserInfoView {
             id: 0,
@@ -114,6 +124,10 @@ impl PsqlOp for UserInfoView {
             secruity_is_seted,\
             create_subacc_time,\
             main_account,\
+            op_status,\
+            reserved_field1,\
+            reserved_field2,\
+            reserved_field3,\
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
@@ -128,7 +142,7 @@ impl PsqlOp for UserInfoView {
                 phone_number: row.get(1),
                 email: row.get(2),
                 login_pwd_hash: row.get(3),
-                sign_pwd_hash: row.get(4),
+                anwser_indexes: row.get(4),
                 is_frozen: row.get::<usize, bool>(5),
                 predecessor: row.get::<usize, Option<i32>>(6).map(|id| id as u32),
                 laste_predecessor_replace_time: row.get::<usize, String>(7).parse().unwrap(),
@@ -141,9 +155,13 @@ impl PsqlOp for UserInfoView {
                     .map(|t| t.parse().unwrap())
                     .collect(),
                 main_account: row.get(12),
+                op_status: row.get::<usize, String>(13).parse().unwrap(),
+                reserved_field1: row.get(14),
+                reserved_field2: row.get(15),
+                reserved_field3: row.get(16),
             },
-            updated_at: row.get(13),
-            created_at: row.get(14),
+            updated_at: row.get(17),
+            created_at: row.get(18),
         };
         let users = query_res.iter().map(|x| gen_view(x)).collect();
         Ok(users)
@@ -169,7 +187,7 @@ impl PsqlOp for UserInfoView {
             phone_number,
             email,
             login_pwd_hash,
-            sign_pwd_hash,
+            anwser_indexes: sign_pwd_hash,
             is_frozen,
             predecessor,
             laste_predecessor_replace_time,
@@ -178,6 +196,10 @@ impl PsqlOp for UserInfoView {
             secruity_is_seted,
             create_subacc_time,
             main_account,
+            op_status,
+            reserved_field1,
+            reserved_field2,
+            reserved_field3,
         } = &self.user_info;
 
         let _predecessor_str = predecessor
@@ -200,7 +222,7 @@ impl PsqlOp for UserInfoView {
                 secruity_is_seted,
                 create_subacc_time,
                 main_account
-            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}');",
+            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
             phone_number,
             email,
             login_pwd_hash,
@@ -212,7 +234,11 @@ impl PsqlOp for UserInfoView {
             kyc_is_verified,
             secruity_is_seted,
             create_subacc_time_str,
-            main_account
+            main_account,
+            op_status.to_string(),
+            reserved_field1,
+            reserved_field2,
+            reserved_field3,
         );
         debug!("row sql {} rows", sql);
         let execute_res = crate::execute(sql.as_str())?;

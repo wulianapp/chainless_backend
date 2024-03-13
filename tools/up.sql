@@ -5,7 +5,7 @@ create table if not exists users
     phone_number text collate pg_catalog."default" not null,
     email text collate pg_catalog."default" not null,
     login_pwd_hash text collate pg_catalog."default" not null,
-    sign_pwd_hash text collate pg_catalog."default" not null,
+    answer_indexes text collate pg_catalog."default" not null,
     is_frozen bool,--冻结的账户
     predecessor int,
     laste_predecessor_replace_time text,
@@ -14,6 +14,10 @@ create table if not exists users
     secruity_is_seted bool,
     create_subacc_time text[],
     main_account text not null,
+    op_status text not null,
+    reserved_field1 text not null,
+    reserved_field2 text not null,
+    reserved_field3 text not null,
     constraint users_invite_code_key unique (invite_code),
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp

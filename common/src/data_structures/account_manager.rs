@@ -1,11 +1,13 @@
 use serde_derive::Serialize;
 
+use super::OpStatus;
+
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct UserInfo {
     pub phone_number: String,
     pub email: String,
     pub login_pwd_hash: String,
-    pub sign_pwd_hash: String,
+    pub anwser_indexes: String,
     //if is frozened,cannt operation anymore
     pub is_frozen: bool,
     pub predecessor: Option<u32>,
@@ -18,4 +20,8 @@ pub struct UserInfo {
     pub create_subacc_time: Vec<u64>,
     //todo: convert to Option<String>
     pub main_account: String,
+    pub op_status: OpStatus,
+    pub reserved_field1: String,
+    pub reserved_field2: String,
+    pub reserved_field3: String,
 }

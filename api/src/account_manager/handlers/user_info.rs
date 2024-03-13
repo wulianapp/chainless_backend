@@ -1,4 +1,5 @@
 use actix_web::HttpRequest;
+use common::data_structures::OpStatus;
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoView};
@@ -42,6 +43,7 @@ pub struct UserInfoTmp {
     pub kyc_is_verified: bool,
     pub secruity_is_seted: bool,
     pub main_account: String,
+    pub op_status: OpStatus,
 }
 
 pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
@@ -52,7 +54,7 @@ pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         id: res.id,
         phone_number: res.user_info.phone_number,
         email: res.user_info.email,
-        sign_pwd_hash: res.user_info.sign_pwd_hash,
+        sign_pwd_hash: res.user_info.anwser_indexes,
         is_frozen: res.user_info.is_frozen,
         predecessor: res.user_info.predecessor,
         laste_predecessor_replace_time: res.user_info.laste_predecessor_replace_time,
@@ -60,6 +62,7 @@ pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         kyc_is_verified: res.user_info.kyc_is_verified,
         secruity_is_seted: res.user_info.secruity_is_seted,
         main_account: res.user_info.main_account,
+        op_status: res.user_info.op_status,
     };
     Ok(Some(info))
 }

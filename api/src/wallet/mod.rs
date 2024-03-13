@@ -784,7 +784,7 @@ async fn gen_tx_newcomer_replace_master(
 
 
 /**
- * @api {post} /wallet/genTxServantSwitchMaster 构建从设备和主设备身份互换
+ * @api {post} /wallet/genTxServantSwitchMaster 在从设备上构建从设备和主设备身份互换
  * @apiVersion 0.0.1
  * @apiName GenTxServantSwitchMaster
  * @apiGroup Wallet
@@ -870,7 +870,7 @@ async fn commit_tx_newcomer_replace_master(
 
 
 /**
- * @api {post} /wallet/commitTxServantSwitchMaster 提交
+ * @api {post} /wallet/commitTxServantSwitchMaster 提交在从设备上和主设备换身份
  * @apiVersion 0.0.1
  * @apiName CommitTxServantSwitchMaster
  * @apiGroup Wallet
