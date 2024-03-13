@@ -74,7 +74,7 @@ create table secret_store
     created_at  timestamp with time zone default current_timestamp
 );
 
---储蓄账户的主pubkey和从pubkey，子账户的key不存
+--储蓄账户的主pubkey和从pubkey，子钱包的key不存
 create table device_info
 (
     id text,

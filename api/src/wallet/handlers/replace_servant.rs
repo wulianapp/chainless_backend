@@ -20,8 +20,9 @@ use tracing::error;
 pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
     let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let main_account = user_info.user_info.main_account;
     let ReplaceServantRequest {
-        main_account,
         old_servant_pubkey,
         new_servant_pubkey,
         new_servant_prikey_encryped_by_pwd,

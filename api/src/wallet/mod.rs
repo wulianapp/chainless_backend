@@ -73,9 +73,9 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {string=0,1} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {Object} data                          策略详情.
- * @apiSuccess {String} data.master_pubkey        主账户的maser的公钥
- * @apiSuccess {String[]} data.servant_pubkeys    主账户的servant的公钥组
- * @apiSuccess {String[]} data.subaccounts        子账户的公钥组
+ * @apiSuccess {String} data.master_pubkey        主钱包的maser的公钥
+ * @apiSuccess {String[]} data.servant_pubkeys    主钱包的servant的公钥组
+ * @apiSuccess {String[]} data.subaccounts        子钱包的公钥组
  * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
  * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
@@ -99,12 +99,35 @@ async fn get_strategy(
     gen_extra_respond(handlers::get_strategy::req(request, request_data.into_inner()).await)
 }
 
+
+
+
+/**
+ * @api {get} /wallet/getStrategy 查询钱包的主从签名策略
+ * @apiVersion 0.0.1
+ * @apiName getStrategy
+ * @apiGroup Wallet
+ * @apiQuery {String} pubkey              想要备份密钥所属的公钥
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
+ * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+ * @apiSuccess {string=0,1} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {Object} data                                    备份加密密钥信息.
+ * @apiSuccess {String} data.pubkey                             对应的公钥
+ * @apiSuccess {Number} data.user_id                            所属用户ID
+ * @apiSuccess {String} data.encrypted_prikey_by_password       被安全密码加密后的文本
+ * @apiSuccess {String} data.encrypted_prikey_by_answer         被安全问答加密后的文本
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
+ */
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GetSecretRequest {
     pubkey: String
 }
-//todo: 删掉account_id，从数据库去拿
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getSecret")]
 async fn get_secret(
@@ -116,7 +139,7 @@ async fn get_secret(
 }
 
 /**
- * @api {post} /wallet/preSendMoney 主公钥发起预交易
+ * @api {post} /wallet/preSendMoney 主钱包发起预交易
  * @apiVersion 0.0.1
  * @apiName preSendMoney
  * @apiGroup Wallet
@@ -301,11 +324,11 @@ async fn upload_servant_sig(
 }
 
 /**
- * @api {post} /wallet/addServant 主设备添加从公钥匙
+ * @api {post} /wallet/addServant 主设备添加从公钥
  * @apiVersion 0.0.1
  * @apiName addServant
  * @apiGroup Wallet
- * @apiBody {String} mainAccount    主账户Id
+ * @apiBody {String} mainAccount    主钱包Id
  * @apiBody {String} servantPubkey   从公钥
  * @apiBody {String} servantPrikeyEncrypedByPwd   经密码加密后的从私钥
  * @apiBody {String} servantPrikeyEncrypedByAnswer   经问答加密后的从私钥
@@ -353,10 +376,32 @@ async fn add_servant(
 }
 
 
+/**
+ * @api {post} /wallet/replaceServant 在主设备上选择新设备替换从设备
+ * @apiVersion 0.0.1
+ * @apiName ReplaceServant
+ * @apiGroup Wallet
+ * @apiBody {String} oldServantPubkey   要被替换的从公钥
+ * @apiBody {String} newServantPubkey   新晋从公钥
+ * @apiBody {String} newServantPprikeyEncrypedByPwd   新晋从公钥对应的密钥被密码加密
+ * @apiBody {String} newServantPrikeyEncrypedByAnswer   新晋从公钥对应的密钥被问答加密
+ * @apiBody {String} newDeviceId   新晋持有从公钥的设备ID
+
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/replaceServant
+   -d ' {"“}'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/replaceServant
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceServantRequest {
-    main_account: String,
     old_servant_pubkey: String,
     new_servant_pubkey: String,
     new_servant_prikey_encryped_by_pwd: String,
@@ -375,6 +420,25 @@ async fn replace_servant(
 
 
 
+/**
+ * @api {post} /wallet/removeServant 在主设备上删除从设备
+ * @apiVersion 0.0.1
+ * @apiName RemoveServant
+ * @apiGroup Wallet
+ * @apiBody {String} servantPubkey   待删除从公钥
+
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/removeServant
+   -d ' {"“}'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveServantRequest {
@@ -391,7 +455,7 @@ async fn remove_servant(
 }
 
 /***
-* @api {post} /wallet/servantSavedSecret 从设备通知服务端已经本地保存好
+* @api {post} /wallet/servantSavedSecret 从设备告知服务端密钥已保存
 * @apiVersion 0.0.1
 * @apiName servantSavedSecret
 * @apiGroup Wallet
@@ -431,11 +495,11 @@ async fn servant_saved_secret(
 }
 
 /**
- * @api {post} /wallet/addSubaccount 添加子账户
+ * @api {post} /wallet/addSubaccount 添加子钱包
  * @apiVersion 0.0.1
  * @apiName addSubaccount
  * @apiGroup Wallet 
- * @apiBody {String} mainAccount                        主账户id
+ * @apiBody {String} mainAccount                        主钱包id
  * @apiBody {String} subaccountPubkey                   从公钥
  * @apiBody {String} subaccountPrikeyEncrypedByPwd      密码加密后的从私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer   问答加密后的从私钥
@@ -483,7 +547,7 @@ pub struct MultiSigRankExternal {
 }
 
 /**
- * @api {post} /wallet/updateStrategy 更新主账户多签梯度
+ * @api {post} /wallet/updateStrategy 更新主钱包多签梯度
  * @apiVersion 0.0.1
  * @apiName updateStrategy
  * @apiGroup Wallet
@@ -528,14 +592,14 @@ async fn update_strategy(
 /**
  * @api {post} /wallet/createMainAccount 创建主钱包
  * @apiVersion 0.0.1
- * @apiName createMainAccount
+ * @apiName CreateMainAccount
  * @apiGroup Wallet
- * @apiBody {String} masterPubkey                 主账户master公钥  
+ * @apiBody {String} masterPubkey                 主钱包master公钥  
  * @apiBody {String} masterPrikeyEncryptedByPwd   密码加密的master私钥
  * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
- * @apiBody {String} subaccountPubkey              子账户
- * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子账户私钥
- * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子账户私钥
+ * @apiBody {String} subaccountPubkey              子钱包
+ * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子钱包私钥
+ * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子钱包私钥
  * @apiBody {String} signPwdHash               密码和问答拼接后的hash结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -550,7 +614,7 @@ async fn update_strategy(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/newMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/createMainAccount
 */
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -602,7 +666,7 @@ async fn faucet_claim(
 }
 
 /**
- * @api {get} /wallet/balanceList 返回支持的五种资产的余额信息
+ * @api {get} /wallet/balanceList 返回支持的资产的余额信息
  * @apiVersion 0.0.1
  * @apiName balanceList
  * @apiGroup Wallet
@@ -641,7 +705,7 @@ async fn balance_list(req: HttpRequest) -> impl Responder {
 * @apiSuccess {string} data.user_id           设备当前所属用户id.
 * @apiSuccess {string} data.state             （不关注）.
 * @apiSuccess {string} data.brand             设备品牌.
-* @apiSuccess {string} data.holder_confirm_saved   设备主账户持有的master或者servant的pubkey.
+* @apiSuccess {string} data.holder_confirm_saved   设备主钱包持有的master或者servant的pubkey.
 * @apiSuccess {string=Master,Servant,Undefined} data.key_role           当前设备持有的key的类型
 
 * @apiSampleRequest http://120.232.251.101:8066/wallet/deviceList
@@ -654,6 +718,31 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 
 
 
+/**
+ * @api {post} /wallet/genTxNewcomerReplaceMaster 构建新设备成为主设备的交互
+ * @apiVersion 0.0.1
+ * @apiName GenTxNewcomerReplaceMaster
+ * @apiGroup Wallet
+ * @apiBody {String} newcomerPubkey                 新晋主公钥  
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/genTxNewcomerReplaceMaster
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSuccess {string} data.add_key_txid                增加主公钥对应的tx_id
+* @apiSuccess {string} data.add_key_raw                 增加主公钥对应的tx_raw.
+* @apiSuccess {string} data.delete_key_txid             删除主公钥对应的tx_id.
+* @apiSuccess {string} data.delete_key_raw              删除主公钥对应的tx_raw.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genTxNewcomerReplaceMaster
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GenTxNewcomerReplaceMasterRequest {
@@ -671,6 +760,33 @@ async fn gen_tx_newcomer_replace_master(
 
 
 
+/**
+ * @api {post} /wallet/commitTxNewcomerReplaceMaster 提交新设备成为主设备的交互
+ * @apiVersion 0.0.1
+ * @apiName CommitTxNewcomerReplaceMaster
+ * @apiGroup Wallet
+ * @apiBody {String} newcomerPubkey                            新晋主公钥  
+ * @apiBody {String} addKeyRaw                                  增加主公钥对应的tx_raw  
+ * @apiBody {String} deleteKeyRaw                               删除主公钥对应的tx_raw  
+ * @apiBody {String} addKeySig                                   增加主公钥对应的签名  
+ * @apiBody {String} deleteKeySig                                删除主公钥对应的签名  
+ * @apiBody {String} newcomerPrikeyEncryptedByPwd                 新晋主公钥对应的密钥的被安全密码加密的结果 
+ * @apiBody {String} newcomerPrikeyEncryptedByAnswer             新晋主公钥对应的密钥的被安全问答加密的结果  
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/commitTxNewcomerReplaceMaster
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxNewcomerReplaceMaster
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CommitNewcomerReplaceMasterRequest {
@@ -945,7 +1061,6 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         let payload = json!({
-            "mainAccount": sender_master.wallet.main_account,
             "oldServantPubkey": sender_servant.wallet.pubkey.unwrap(),
             "newServantPubkey": sender_new_device.wallet.pubkey.unwrap(),
             "newServantPrikeyEncrypedByPwd": sender_new_device.wallet.prikey.clone().unwrap(),
