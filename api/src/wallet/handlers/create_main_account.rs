@@ -49,11 +49,6 @@ pub(crate) async fn req(
         &master_prikey_encrypted_by_answer,
     );
     master_secret.insert()?;
-    //only main_account need to store device info
-    DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeMaster(master_pubkey.clone()),
-        DeviceInfoFilter::ByDeviceUser(device_id,user_id)
-    )?;
 
     let sub_account_secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,
@@ -62,6 +57,11 @@ pub(crate) async fn req(
         &subaccount_prikey_encryped_by_answer,
     );
     sub_account_secret.insert()?;
+
+    DeviceInfoView::update(
+        DeviceInfoUpdater::BecomeMaster(master_pubkey.clone()),
+        DeviceInfoFilter::ByDeviceUser(device_id,user_id)
+    )?;
 
     let multi_cli = ContractClient::<MultiSig>::new();
 

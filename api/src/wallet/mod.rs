@@ -103,14 +103,13 @@ async fn get_strategy(
 
 
 /**
- * @api {get} /wallet/getStrategy 查询钱包的主从签名策略
+ * @api {get} /wallet/getDeviceSecret 获取当前设备的备份密钥信息
  * @apiVersion 0.0.1
- * @apiName getStrategy
+ * @apiName GetDeviceSecret
  * @apiGroup Wallet
- * @apiQuery {String} pubkey              想要备份密钥所属的公钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
+ *   curl -X POST http://120.232.251.101:8066/wallet/getDeviceSecret
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
@@ -118,25 +117,50 @@ async fn get_strategy(
  * @apiSuccess {string=Successfully,InternalError} msg
  * @apiSuccess {Object} data                                    备份加密密钥信息.
  * @apiSuccess {String} data.pubkey                             对应的公钥
+ * @apiSuccess {String} data.state                              不关注
  * @apiSuccess {Number} data.user_id                            所属用户ID
  * @apiSuccess {String} data.encrypted_prikey_by_password       被安全密码加密后的文本
  * @apiSuccess {String} data.encrypted_prikey_by_answer         被安全问答加密后的文本
- * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/getDeviceSecret
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GetSecretRequest {
-    pubkey: String
-}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[get("/wallet/getSecret")]
-async fn get_secret(
-    request: HttpRequest,
-    request_data: web::Query<GetSecretRequest>,
+#[get("/wallet/getDeviceSecret")]
+async fn get_device_secret(
+    request: HttpRequest
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_secret::req(request, request_data.into_inner()).await)
+    gen_extra_respond(handlers::get_device_secret::req(request).await)
 }
+
+
+/**
+ * @api {get} /wallet/getMasterSecret 获取主设备的备份密钥信息
+ * @apiVersion 0.0.1
+ * @apiName GetMasterSecret
+ * @apiGroup Wallet
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/getMasterSecret
+ * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+ * @apiSuccess {string=0,1} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {Object} data                                    备份加密密钥信息.
+ * @apiSuccess {String} data.pubkey                             对应的公钥
+ * @apiSuccess {String} data.state                              不关注
+ * @apiSuccess {Number} data.user_id                            所属用户ID
+ * @apiSuccess {String} data.encrypted_prikey_by_password       被安全密码加密后的文本
+ * @apiSuccess {String} data.encrypted_prikey_by_answer         被安全问答加密后的文本
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/getMasterSecret
+ */
+
+ #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+ #[get("/wallet/getMasterSecret")]
+ async fn get_master_secret(
+     request: HttpRequest,
+ ) -> impl Responder {
+     gen_extra_respond(handlers::get_master_secret::req(request).await)
+ }
 
 /**
  * @api {post} /wallet/preSendMoney 主钱包发起预交易
@@ -759,6 +783,39 @@ async fn gen_tx_newcomer_replace_master(
 }
 
 
+/**
+ * @api {post} /wallet/genTxServantSwitchMaster 构建从设备和主设备身份互换
+ * @apiVersion 0.0.1
+ * @apiName GenTxServantSwitchMaster
+ * @apiGroup Wallet
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/genTxServantSwitchMaster
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSuccess {string} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
+* @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
+* @apiSuccess {string} data.delete_key_txid             删除旧主公钥对应的tx_id.
+* @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genTxServantSwitchMaster
+*/
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/genTxServantSwitchMaster")]
+async fn gen_tx_servant_switch_master(
+    req: HttpRequest,
+) -> impl Responder {
+    gen_extra_respond(handlers::gen_servant_switch_master::req(req).await)
+}
+
+
 
 /**
  * @api {post} /wallet/commitTxNewcomerReplaceMaster 提交新设备成为主设备的交互
@@ -768,8 +825,8 @@ async fn gen_tx_newcomer_replace_master(
  * @apiBody {String} newcomerPubkey                            新晋主公钥  
  * @apiBody {String} addKeyRaw                                  增加主公钥对应的tx_raw  
  * @apiBody {String} deleteKeyRaw                               删除主公钥对应的tx_raw  
- * @apiBody {String} addKeySig                                   增加主公钥对应的签名  
- * @apiBody {String} deleteKeySig                                删除主公钥对应的签名  
+ * @apiBody {String} addKeySig                                   旧的主私钥签名增加主公钥的结果  
+ * @apiBody {String} deleteKeySig                                新私钥签名删除主公钥的结果  
  * @apiBody {String} newcomerPrikeyEncryptedByPwd                 新晋主公钥对应的密钥的被安全密码加密的结果 
  * @apiBody {String} newcomerPrikeyEncryptedByAnswer             新晋主公钥对应的密钥的被安全问答加密的结果  
  * @apiHeader {String} Authorization  user's access token
@@ -800,7 +857,7 @@ pub struct CommitNewcomerReplaceMasterRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/commitTxNewcomerReplaceMaster")]
-async fn commit_newcomer_replace_master(
+async fn commit_tx_newcomer_replace_master(
     req: HttpRequest,
     request_data: web::Json<CommitNewcomerReplaceMasterRequest>,
 ) -> impl Responder {
@@ -808,11 +865,58 @@ async fn commit_newcomer_replace_master(
     gen_extra_respond(handlers::commit_newcomer_replace_master::req(req, request_data.into_inner()).await)
 }
 
+
+
+
+
+/**
+ * @api {post} /wallet/commitTxServantSwitchMaster 提交
+ * @apiVersion 0.0.1
+ * @apiName CommitTxServantSwitchMaster
+ * @apiGroup Wallet
+ * @apiBody {String} addKeyRaw                                  增加主公钥对应的tx_raw  
+ * @apiBody {String} deleteKeyRaw                               删除主公钥对应的tx_raw  
+ * @apiBody {String} addKeySig                                   旧主私钥签名增加主公钥对应的结果
+ * @apiBody {String} deleteKeySig                                旧从私钥签名删除主公钥对应的结果  
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/commitTxServantSwitchMaster
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxServantSwitchMaster
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitTxServantSwitchMasterRequest {
+    add_key_raw: String,
+    delete_key_raw: String,
+    add_key_sig: String,
+    delete_key_sig: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/commitTxServantSwitchMaster")]
+async fn commit_tx_servant_switch_master(
+    req: HttpRequest,
+    request_data: web::Json<CommitTxServantSwitchMasterRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::commit_servant_switch_master::req(req, request_data.into_inner()).await)
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
         .service(get_strategy)
-        .service(get_secret)
+        .service(get_device_secret)
+        .service(get_master_secret)
         .service(pre_send_money)
         .service(direct_send_money)
         .service(react_pre_send_money)
@@ -827,7 +931,9 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(device_list)
         .service(balance_list)
         .service(gen_tx_newcomer_replace_master)
-        .service(commit_newcomer_replace_master)
+        .service(commit_tx_newcomer_replace_master)
+        .service(gen_tx_servant_switch_master)
+        .service(commit_tx_servant_switch_master)
         .service(replace_servant)
         .service(faucet_claim);
     //.service(remove_subaccount);
@@ -1082,15 +1188,12 @@ mod tests {
 
 
     
-
     #[actix_web::test]
-    async fn test_new_commer_replace_master() {
-        //let newcommer_pubkey = "4b8837f83d6b25118275149cb3cf6c57407cb0f1cb0953b0b6faf3a1f171f15b".to_string();
-        let newcommer_pubkey = ed25519_key_gen().1;
-        println!("newcommer_pubkey {} ",newcommer_pubkey);
+    async fn test_servant_switch_master() {
         let app = init().await;
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
+        let mut sender_servant = simulate_sender_servant();
         let sender_sub_secret = ed25519_key_gen();
         let sender_master_secret = ed25519_key_gen();
 
@@ -1102,19 +1205,19 @@ mod tests {
              sub_prikey: Some(vec![sender_sub_secret.0.clone()])
         };
         test_register!(service, sender_master);
+        test_login!(service, sender_servant);
         test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_add_servant!(service,sender_master,sender_servant);
 
-        let payload = json!({
-            "newcomerPubkey":  newcommer_pubkey
-        });
-        //claim
-        let url = format!("/wallet/genTxNewcomerReplaceMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
+
+        let url = format!("/wallet/genTxServantSwitchMaster");
+        let res: BackendRespond<super::handlers::gen_servant_switch_master::GenReplaceKeyInfo> = test_service_call!(
             service,
             "post",
             &url,
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
+            None::<String>,
+            Some(sender_servant.user.token.as_ref().unwrap())
         );
 
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
@@ -1127,7 +1230,76 @@ mod tests {
             &res.data.delete_key_txid
         );
         let payload = json!({
-            "newcomerPubkey":  newcommer_pubkey.to_string(),
+            "addKeyRaw":  res.data.add_key_raw,
+            "deleteKeyRaw":  res.data.delete_key_raw,
+            "addKeySig":  add_key_sig,
+            "deleteKeySig": delete_key_sig,
+        });
+
+        //claim
+        println!("{:?}",payload.to_string());
+        let url = format!("/wallet/commitTxServantSwitchMaster");
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_servant.user.token.as_ref().unwrap())
+        );
+        println!("{:?}", res.data);
+    }
+
+
+
+    #[actix_web::test]
+    async fn test_newcommer_replace_master() {
+        //let newcommer_pubkey = "4b8837f83d6b25118275149cb3cf6c57407cb0f1cb0953b0b6faf3a1f171f15b".to_string();
+        //let newcommer_pubkey = ed25519_key_gen().1;
+        //println!("newcommer_pubkey {} ",newcommer_pubkey);
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let mut sender_servant = simulate_sender_servant();
+
+        let sender_sub_secret = ed25519_key_gen();
+        let sender_master_secret = ed25519_key_gen();
+
+        sender_master.wallet = TestWallet{ 
+            main_account: sender_master_secret.1.clone(),
+             pubkey: Some(sender_master_secret.1.clone()), 
+             prikey: Some(sender_master_secret.0.clone()), 
+             subaccount: vec![sender_sub_secret.1.clone()], 
+             sub_prikey: Some(vec![sender_sub_secret.0.clone()])
+        };
+        test_register!(service, sender_master);
+        //todo：当前例子中不注册也能跑通，要加限制条件，必须已经注册
+        test_login!(service, sender_servant);
+        test_create_main_account!(service, sender_master);
+        
+        let payload = json!({
+            "newcomerPubkey":  sender_servant.wallet.pubkey.clone().unwrap()
+        });
+        //claim
+        let url = format!("/wallet/genTxNewcomerReplaceMaster");
+        let res: BackendRespond<super::handlers::gen_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
+            service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some(sender_servant.user.token.as_ref().unwrap())
+        );
+
+        let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+            sender_master.wallet.prikey.as_ref().unwrap(),
+            &res.data.add_key_txid
+        );
+
+        let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+            &sender_master.wallet.prikey.as_ref().unwrap(),
+            &res.data.delete_key_txid
+        );
+        let payload = json!({
+            "newcomerPubkey":  sender_servant.wallet.pubkey.unwrap(),
             "addKeyRaw":  res.data.add_key_raw,
             "deleteKeyRaw":  res.data.delete_key_raw,
             "addKeySig":  add_key_sig,
@@ -1144,7 +1316,7 @@ mod tests {
             "post",
             &url,
             Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
+            Some(sender_servant.user.token.as_ref().unwrap())
         );
         println!("{:?}", res.data);
     }

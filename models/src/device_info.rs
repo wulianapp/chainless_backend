@@ -38,10 +38,10 @@ impl fmt::Display for DeviceInfoUpdater {
                 format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Master') ", key)
             },
             DeviceInfoUpdater::BecomeServant(key) => {
-                format!("(hold_pubkey,key_role)=('{}','Servant') ", key)
+                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}','true','Servant') ", key)
             },
             DeviceInfoUpdater::BecomeUndefined(key) => {
-                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',false,'Undefined') ", key)
+                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Undefined') ", key)
             },
         };
         write!(f, "{}", description)

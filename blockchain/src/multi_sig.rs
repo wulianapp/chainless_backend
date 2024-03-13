@@ -111,6 +111,9 @@ impl ContractClient<MultiSig> {
         .await
     }
 
+    //fixme：删除的这个理论上应该用新增加的key来签名，保证确实增加进去了，但是这样需要等待增加key执行完才行
+    //为了减少前端的工作量，这里删除也用原有主私钥，也就是自己删自己
+    //后期可以在链底层增加一个直接替换的接口
     pub async fn delete_key(&self, main_account: &str,delete_key: &str) -> BackendRes<(String, String)> {
         let master_pubkey = self.get_master_pubkey(main_account).await;
         let master_pubkey = pubkey_from_hex_str(&master_pubkey);
