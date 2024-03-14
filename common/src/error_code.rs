@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::data_structures::KeyRole2;
+
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 
 #[derive(Error, Debug)]
@@ -103,6 +105,8 @@ pub enum WalletError {
     MainAccountNotExist(String),
     #[error("have uncomplete transaction,cann't excute operate device")]
     HaveUncompleteTx,
+    #[error("Current role is {0},but only {1} is allowed")]
+    UneligiableRole(KeyRole2,KeyRole2),
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -114,6 +118,7 @@ impl ErrorCode for WalletError {
             Self::PubkeyAlreadyExist => 3005,
             Self::MainAccountNotExist(_) => 3006,
             Self::HaveUncompleteTx => 3007,
+            Self::UneligiableRole(_,_) => 3008
         }
     }
 }

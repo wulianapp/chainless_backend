@@ -5,6 +5,8 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::KeyRole2;
+use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendRes, WalletError};
@@ -17,7 +19,7 @@ use crate::wallet::PreSendMoneyRequest;
 
 pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<String> {
     //todo: allow master only
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let PreSendMoneyRequest {
         from,
@@ -28,6 +30,11 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         memo,
     } = request_data;
     let coin_type = CoinType::from_str(&coin).unwrap();
+    
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new();

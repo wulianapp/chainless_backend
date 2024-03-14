@@ -23,6 +23,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: RemoveServantRequest) ->
     let RemoveServantRequest {
         servant_pubkey,
     } = request_data;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
 
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
 

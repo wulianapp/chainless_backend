@@ -1,20 +1,26 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
+use common::data_structures::KeyRole2;
+use models::{device_info::{DeviceInfoFilter, DeviceInfoView}, PsqlOp};
 
 use crate::utils::token_auth;
 use crate::wallet::UpdateStrategy;
 use blockchain::ContractClient;
-use common::error_code::BackendRes;
+use common::error_code::{BackendRes, WalletError};
 
 pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> BackendRes<String> {
     //todo: must be called by main device
-    let _user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let UpdateStrategy {
         account_id,
         strategy,
     } = request_data.0;
     super::have_no_uncompleted_tx(&account_id)?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
 
 
     //fixme:

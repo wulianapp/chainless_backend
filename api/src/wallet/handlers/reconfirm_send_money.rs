@@ -1,10 +1,12 @@
 use actix_web::{web, HttpRequest};
 
 use common::data_structures::wallet::CoinTxStatus;
+use common::data_structures::KeyRole2;
+use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
 use crate::wallet::ReconfirmSendMoneyRequest;
-use common::error_code::BackendRes;
+use common::error_code::{BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
@@ -13,7 +15,11 @@ pub async fn req(
     request_data: web::Json<ReconfirmSendMoneyRequest>,
 ) -> BackendRes<String> {
     //todo:check user_id if valid
-    let _user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
 
     //todo: check must be main device
     let ReconfirmSendMoneyRequest {

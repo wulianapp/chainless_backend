@@ -29,6 +29,11 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_brand,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
+
 
     models::general::transaction_begin()?;
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份

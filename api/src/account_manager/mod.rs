@@ -240,7 +240,6 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPasswordRequest {
-    device_id: String,
     contact: String,
     captcha: String,
     new_password: String,
@@ -248,9 +247,11 @@ pub struct ResetPasswordRequest {
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
-async fn reset_password(request_data: web::Json<ResetPasswordRequest>) -> impl Responder {
+async fn reset_password(req: HttpRequest,
+    request_data: web::Json<ResetPasswordRequest>
+) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::reset_password::req(request_data).await)
+    gen_extra_respond(handlers::reset_password::req(req,request_data).await)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -359,15 +360,15 @@ mod tests {
             "contact": "test000001@gmail.com",
              "password": "123456789"
             }"#;
-        let res: BackendRespond<String> = test_service_call!(
+        let login_res: BackendRespond<String> = test_service_call!(
             service,
             "post",
             "/accountManager/login",
             Some(payload),
             None::<String>
         );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
+        println!("{:?}", login_res.data);
+        assert_eq!(login_res.status_code,0);
 
 
         //check contact if is used
@@ -406,7 +407,7 @@ mod tests {
             "post",
             "/accountManager/resetPassword",
             Some(payload),
-            None::<String>
+            Some(login_res.data)
         );
         println!("{:?}", res.msg);
         assert_eq!(res.status_code,0);

@@ -1,6 +1,6 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
-use common::data_structures::SecretKeyState;
+use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
@@ -37,8 +37,12 @@ pub(crate) async fn req(
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Servant{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Servant))?;
+    }
 
-    
+
     let servant_pubkey  = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id)
     )?

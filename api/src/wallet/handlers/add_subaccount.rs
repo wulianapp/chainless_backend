@@ -1,5 +1,6 @@
 use actix_web::{web, HttpRequest};
-use common::data_structures::SecretKeyType;
+use common::data_structures::{KeyRole2, SecretKeyType};
+use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 //use log::info;
 use crate::utils::token_auth;
 use blockchain::multi_sig::MultiSig;
@@ -9,7 +10,7 @@ use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
-use common::error_code::BackendRes;
+use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PsqlOp};
@@ -18,7 +19,7 @@ use tracing::info;
 use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest};
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let AddSubaccountRequest {
         main_account,
         subaccount_pubkey,
@@ -26,6 +27,11 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         subaccount_prikey_encryped_by_answer,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    if device.device_info.key_role != KeyRole2::Master{
+        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    }
+
 
     //todo: check if is master
 
