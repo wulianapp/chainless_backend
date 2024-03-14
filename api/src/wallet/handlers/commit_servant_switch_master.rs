@@ -20,7 +20,7 @@ use models::{account_manager, secret_store, PsqlOp};
 use tracing::{error, info};
 use serde::{Deserialize,Serialize};
 
-
+//todo：这里后边加上channel的异步处理，再加一张表用来记录所有非交易的交互的状态，先pending，再更新状态
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitTxServantSwitchMasterRequest,

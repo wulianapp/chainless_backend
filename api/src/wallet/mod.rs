@@ -743,7 +743,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 
 
 /**
- * @api {post} /wallet/genTxNewcomerReplaceMaster 构建新设备成为主设备的交互
+ * @api {post} /wallet/genTxNewcomerReplaceMaster 构建在新设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
  * @apiName GenTxNewcomerReplaceMaster
  * @apiGroup Wallet
@@ -784,7 +784,7 @@ async fn gen_tx_newcomer_replace_master(
 
 
 /**
- * @api {post} /wallet/genTxServantSwitchMaster 在从设备上构建从设备和主设备身份互换
+ * @api {post} /wallet/genTxServantSwitchMaster 构建在从设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
  * @apiName GenTxServantSwitchMaster
  * @apiGroup Wallet
@@ -818,7 +818,7 @@ async fn gen_tx_servant_switch_master(
 
 
 /**
- * @api {post} /wallet/commitTxNewcomerReplaceMaster 提交新设备成为主设备的交互
+ * @api {post} /wallet/commitTxNewcomerReplaceMaster 提交在新设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
  * @apiName CommitTxNewcomerReplaceMaster
  * @apiGroup Wallet
@@ -870,7 +870,7 @@ async fn commit_tx_newcomer_replace_master(
 
 
 /**
- * @api {post} /wallet/commitTxServantSwitchMaster 提交在从设备上和主设备换身份
+ * @api {post} /wallet/commitTxServantSwitchMaster 提交在从设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
  * @apiName CommitTxServantSwitchMaster
  * @apiGroup Wallet

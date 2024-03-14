@@ -80,9 +80,23 @@ async fn contact_is_used(
  * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
- * @apiSuccess {string} data                nothing.
+ * @apiSuccess {object} data                user_info
+ * @apiSuccess {number} data.id                    用户id
+ * @apiSuccess {string} data.phone_number         用户手机号
+ * @apiSuccess {string} data.email                用户邮箱
+ * @apiSuccess {string} data.anwser_indexes            安全问题的序列信息
+ * @apiSuccess {bool} data.is_frozen                是否冻结 
+ * @apiSuccess {number} data.predecessor              邀请者ID
+ * @apiSuccess {number} data.laste_predecessor_replace_time     上次更换邀请者的时间
+ * @apiSuccess {string} data.invite_code              用户自己的邀请码
+ * @apiSuccess {bool} data.kyc_is_verified          是否kyc
+ * @apiSuccess {bool} data.secruity_is_seted        是否进行安全设置
+ * @apiSuccess {string} data.main_account             主钱包id
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
+
+
+
 type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/userInfo")]
