@@ -177,14 +177,34 @@ macro_rules! test_get_secret {
 
 #[macro_export]
 macro_rules! test_get_balance_list {
-    ($service:expr, $app:expr,$type:expr) => {{
+    ($service:expr, $app:expr) => {{
 
         let url = format!("/wallet/balanceList");
         let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
-            service,
+            $service,
             "get",
             &url,
             None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_update_security {
+    ($service:expr, $app:expr, $secrets:expr) => {{
+        let payload = json!({
+            "secrets": $secrets,
+            "anwserIndexes": "1,2,3"
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/updateSecurity",
+            Some(payload.to_string()),
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);

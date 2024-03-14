@@ -170,6 +170,7 @@ impl PsqlOp for CoinTxView {
         );
         info!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
+        assert_ne!(execute_res,0);
         info!("success update orders {} rows", execute_res);
         Ok(())
     }

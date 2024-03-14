@@ -5,6 +5,7 @@ mod transaction;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use common::data_structures::secret_store::SecretStore;
 use serde::{Deserialize, Serialize};
 
 use crate::utils::respond::gen_extra_respond;
@@ -596,6 +597,23 @@ async fn update_strategy(
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSecurityRequest {
+    anwser_indexes: String,
+    secrets: Vec<SecretStore>,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/updateSecurity")]
+async fn update_security(
+    req: HttpRequest,
+    request_data: web::Json<UpdateSecurityRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::update_security::req(req, request_data.into_inner()).await)
+}
+
 /**
  * @api {post} /wallet/createMainAccount 创建主钱包
  * @apiVersion 0.0.1
@@ -919,6 +937,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(commit_tx_servant_switch_master)
         .service(replace_servant)
         .service(get_secret)
+        .service(update_security)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -927,7 +946,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::{
-        test_add_servant, test_create_main_account, test_get_strategy, test_login, test_register, test_search_message, test_service_call
+        test_add_servant, test_create_main_account, test_get_balance_list, test_get_secret, test_get_strategy, test_login, test_register, test_search_message, test_service_call, test_update_security
     };
 
     use super::*;
@@ -1233,6 +1252,38 @@ mod tests {
         println!("{:?}", res.data);
     }
 
+    #[actix_web::test]
+    async fn test_change_security() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let mut sender_servant = simulate_sender_servant();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_login!(service, sender_servant);
+        test_add_servant!(service,sender_master,sender_servant);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+
+        let mut secrets = test_get_secret!(service,sender_master,"all");
+        println!("res {:?}",secrets);
+
+        //re-encrypt prikey 
+        secrets
+        .iter_mut()
+        .map(|s| {
+            s.encrypted_prikey_by_answer += "re-encrypp"; 
+            s.encrypted_prikey_by_password += "re-encrypp";
+        });
+    
+        //claim
+        let res = test_update_security!(service,sender_master,secrets);
+        println!("{:?}", res);
+    }
+
+
 
 
     #[actix_web::test]
@@ -1315,26 +1366,11 @@ mod tests {
 
         //balance
         let url = format!("/wallet/balanceList");
-        let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        let sender_strategy = res.data;
-        println!("{:?}", sender_strategy);
+        let list = test_get_balance_list!(service,sender_master);
+        println!("{:?}", list);
 
-
-        let url = format!("/wallet/getSecret?type=all");
-        let res: BackendRespond<Vec<SecretStore>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        println!("res {:?}",res.data);
+        let secrets = test_get_secret!(service,sender_master,"all");
+        println!("res {:?}",secrets);
     }
 
 

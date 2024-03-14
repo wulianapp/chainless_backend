@@ -182,6 +182,7 @@ impl PsqlOp for UserInfoView {
         );
         debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
+        assert_ne!(execute_res,0);
         debug!("success update users {} rows", execute_res);
         Ok(())
     }

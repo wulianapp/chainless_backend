@@ -17,17 +17,16 @@ use common::error_code::BackendError;
 #[derive(Debug)]
 pub enum SecretUpdater {
     //todo:
-    EncrypedPrikey((String, String)),
+    EncrypedPrikey(String, String),
     State(SecretKeyState),
 }
 
 impl fmt::Display for SecretUpdater {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            SecretUpdater::EncrypedPrikey((by_password, by_answer)) => {
+            SecretUpdater::EncrypedPrikey(by_password, by_answer) => {
                 format!(
-                    "encrypted_prikey_by_password={},
-                encrypted_prikey_by_answer={}",
+                    "(encrypted_prikey_by_password,encrypted_prikey_by_answer)=('{}','{}')",
                     by_password, by_answer
                 )
             }
@@ -127,6 +126,7 @@ impl PsqlOp for SecretStoreView {
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
+        assert_ne!(execute_res,0);
         debug!("success update orders {} rows", execute_res);
         Ok(())
     }
