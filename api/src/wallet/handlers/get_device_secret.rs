@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::wallet::GetStrategyRequest;
 
+/*** 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
     pub multi_sig_ranks: Vec<MultiSigRank>,
@@ -33,3 +34,4 @@ pub(crate) async fn req(
      SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey))?;
     Ok(Some(secret.secret_store))
 }
+*/

@@ -157,3 +157,37 @@ macro_rules! test_add_servant {
         res
     }};
 }
+
+#[macro_export]
+macro_rules! test_get_secret {
+    ($service:expr, $app:expr,$type:expr) => {{
+
+        let url = format!("/wallet/getSecret?type={}",$type);
+        let res: BackendRespond<Vec<SecretStore>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_get_balance_list {
+    ($service:expr, $app:expr,$type:expr) => {{
+
+        let url = format!("/wallet/balanceList");
+        let res: BackendRespond<Vec<(String,String)>> = test_service_call!(
+            service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}

@@ -30,7 +30,7 @@ pub(crate) async fn req(
         subaccount_pubkey,
         subaccount_prikey_encryped_by_pwd,
         subaccount_prikey_encryped_by_answer,
-        anwser_indexes: sign_pwd_hash,
+        anwser_indexes,
     } = request_data;
 
     //store user info
@@ -38,7 +38,7 @@ pub(crate) async fn req(
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(
-        UserUpdater::SecruityInfo(sign_pwd_hash, true, master_pubkey.clone()),
+        UserUpdater::SecruityInfo(anwser_indexes, true, master_pubkey.clone()),
         UserFilter::ById(user_id),
     )?;
 

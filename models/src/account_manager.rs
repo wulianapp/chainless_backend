@@ -28,6 +28,7 @@ pub enum UserUpdater {
     AccountIds(Vec<String>),
     //     * anwser_indexes,secruity_is_seted,main_account
     SecruityInfo(String, bool, String),
+    AnwserIndexes(String),
     OpStatus(OpStatus),
 }
 impl fmt::Display for UserUpdater {
@@ -44,6 +45,9 @@ impl fmt::Display for UserUpdater {
             ),
             UserUpdater::OpStatus(status) => format!(
                 "op_status='{}'",status.to_string()
+            ),
+            UserUpdater::AnwserIndexes(anwser) => format!(
+                "anwser_indexes='{}' ",anwser
             ),
         };
         write!(f, "{}", description)

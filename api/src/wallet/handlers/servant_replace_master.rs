@@ -28,24 +28,15 @@ pub(crate) async fn req(
         subaccount_pubkey,
         subaccount_prikey_encryped_by_pwd,
         subaccount_prikey_encryped_by_answer,
-        anwser_indexes: sign_pwd_hash,
+        anwser_indexes,
     } = request_data;
-
-    /***
-     * user
-     * sign_pwd_hash,secruity_is_seted,main_account
-     * secret_store
-     * master_prikey && sub_prikey
-     * blockchain:
-     * init_with_subaccount
-     */
 
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(
-        UserUpdater::SecruityInfo(sign_pwd_hash, true, master_pubkey.clone()),
+        UserUpdater::SecruityInfo(anwser_indexes, true, master_pubkey.clone()),
         UserFilter::ById(user_id),
     )?;
 
