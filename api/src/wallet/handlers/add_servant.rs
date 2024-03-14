@@ -65,7 +65,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeServant(servant_pubkey),
+        DeviceInfoUpdater::AddServant(servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(holder_device_id,user_id)
     )?;
     

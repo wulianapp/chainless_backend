@@ -194,8 +194,8 @@ mod tests {
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());
-        let _send_res = coin_cli.send_coin(receiver, 123u128).await.unwrap();
-        sleep(Duration::from_secs(3)).await;
+        let _send_res = coin_cli.send_coin(receiver, 0u128).await.unwrap();
+       // sleep(Duration::from_secs(3)).await;
         let balance2 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance2 {}", balance2.unwrap());
     }

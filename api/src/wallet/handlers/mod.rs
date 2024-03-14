@@ -23,3 +23,4 @@ pub mod replace_servant;
 pub mod gen_servant_switch_master;
 pub mod get_master_secret;
 pub mod get_device_secret;
+pub mod get_secret;

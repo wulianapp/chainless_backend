@@ -30,7 +30,7 @@ pub(crate) async fn req(
         subaccount_pubkey,
         subaccount_prikey_encryped_by_pwd,
         subaccount_prikey_encryped_by_answer,
-        sign_pwd_hash,
+        anwser_indexes: sign_pwd_hash,
     } = request_data;
 
     //store user info

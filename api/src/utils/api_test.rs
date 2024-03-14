@@ -94,7 +94,7 @@ macro_rules! test_create_main_account{
             "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPwd": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
-            "signPwdHash": ""
+            "anwserIndexes": ""
         });
         let _res: BackendRespond<String> = test_service_call!(
             $service,

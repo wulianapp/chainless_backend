@@ -26,7 +26,7 @@ pub enum UserFilter {
 pub enum UserUpdater {
     LoginPwdHash(String),
     AccountIds(Vec<String>),
-    //     * sign_pwd_hash,secruity_is_seted,main_account
+    //     * anwser_indexes,secruity_is_seted,main_account
     SecruityInfo(String, bool, String),
     OpStatus(OpStatus),
 }
@@ -38,9 +38,9 @@ impl fmt::Display for UserUpdater {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
             }
-            UserUpdater::SecruityInfo(sign_pwd_hash, secruity_is_seted, main_account) => format!(
-                "sign_pwd_hash='{}',secruity_is_seted={},main_account='{}'",
-                sign_pwd_hash, secruity_is_seted, main_account
+            UserUpdater::SecruityInfo(anwser_indexes, secruity_is_seted, main_account) => format!(
+                "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
+                anwser_indexes, secruity_is_seted, main_account
             ),
             UserUpdater::OpStatus(status) => format!(
                 "op_status='{}'",status.to_string()
@@ -115,7 +115,7 @@ impl PsqlOp for UserInfoView {
             phone_number,\
             email,\
             login_pwd_hash,\
-            sign_pwd_hash,\
+            anwser_indexes,\
             is_frozen,\
             predecessor,\
             laste_predecessor_replace_time,\
@@ -187,7 +187,7 @@ impl PsqlOp for UserInfoView {
             phone_number,
             email,
             login_pwd_hash,
-            anwser_indexes: sign_pwd_hash,
+            anwser_indexes,
             is_frozen,
             predecessor,
             laste_predecessor_replace_time,
@@ -213,7 +213,7 @@ impl PsqlOp for UserInfoView {
             "insert into users (phone_number,
                 email,
                 login_pwd_hash,\
-                sign_pwd_hash,
+                anwser_indexes,
                 is_frozen,
                 predecessor,
                 laste_predecessor_replace_time,
@@ -221,12 +221,16 @@ impl PsqlOp for UserInfoView {
                 kyc_is_verified,
                 secruity_is_seted,
                 create_subacc_time,
-                main_account
+                main_account,
+                op_status,
+                reserved_field1,
+                reserved_field2,
+                reserved_field3
             ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
             phone_number,
             email,
             login_pwd_hash,
-            sign_pwd_hash,
+            anwser_indexes,
             is_frozen,
             PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
             laste_predecessor_replace_time,

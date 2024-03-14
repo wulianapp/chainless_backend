@@ -99,44 +99,12 @@ async fn get_strategy(
     gen_extra_respond(handlers::get_strategy::req(request, request_data.into_inner()).await)
 }
 
-
-
-
-/**
- * @api {get} /wallet/getDeviceSecret 获取当前设备的备份密钥信息
+ /**
+ * @api {get} /wallet/getSecret 获取主设备的备份密钥信息
  * @apiVersion 0.0.1
- * @apiName GetDeviceSecret
+ * @apiName GetSecret
  * @apiGroup Wallet
- * @apiHeader {String} Authorization  user's access token
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/getDeviceSecret
- * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
-    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
-    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1} status_code         status code.
- * @apiSuccess {string=Successfully,InternalError} msg
- * @apiSuccess {Object} data                                    备份加密密钥信息.
- * @apiSuccess {String} data.pubkey                             对应的公钥
- * @apiSuccess {String} data.state                              不关注
- * @apiSuccess {Number} data.user_id                            所属用户ID
- * @apiSuccess {String} data.encrypted_prikey_by_password       被安全密码加密后的文本
- * @apiSuccess {String} data.encrypted_prikey_by_answer         被安全问答加密后的文本
- * @apiSampleRequest http://120.232.251.101:8066/wallet/getDeviceSecret
- */
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[get("/wallet/getDeviceSecret")]
-async fn get_device_secret(
-    request: HttpRequest
-) -> impl Responder {
-    gen_extra_respond(handlers::get_device_secret::req(request).await)
-}
-
-
-/**
- * @api {get} /wallet/getMasterSecret 获取主设备的备份密钥信息
- * @apiVersion 0.0.1
- * @apiName GetMasterSecret
- * @apiGroup Wallet
+ * @apiQuery {String=currentDevice,master,all}  type  想获取的密钥类型
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/getMasterSecret
@@ -154,12 +122,27 @@ async fn get_device_secret(
  * @apiSampleRequest http://120.232.251.101:8066/wallet/getMasterSecret
  */
 
+ #[derive(Deserialize, Serialize, Debug, Clone)]
+ #[serde(rename_all = "camelCase")]
+pub enum SecretType {
+    CurrentDevice,
+    Master,
+    All
+}
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSecretRequest {
+    pub r#type: SecretType
+}
+
  #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
- #[get("/wallet/getMasterSecret")]
- async fn get_master_secret(
+ #[get("/wallet/getSecret")]
+ async fn get_secret(
      request: HttpRequest,
+     request_data: web::Query<GetSecretRequest>,
  ) -> impl Responder {
-     gen_extra_respond(handlers::get_master_secret::req(request).await)
+     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+     gen_extra_respond(handlers::get_secret::req(request,request_data.into_inner()).await)
  }
 
 /**
@@ -624,7 +607,7 @@ async fn update_strategy(
  * @apiBody {String} subaccountPubkey              子钱包
  * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子钱包私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子钱包私钥
- * @apiBody {String} signPwdHash               密码和问答拼接后的hash结果
+ * @apiBody {String} anwserIndexes               密码和问答拼接后的hash结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/createMainAccount
@@ -650,7 +633,7 @@ pub struct CreateMainAccountRequest {
     subaccount_pubkey: String,
     subaccount_prikey_encryped_by_pwd: String,
     subaccount_prikey_encryped_by_answer: String,
-    sign_pwd_hash: String,
+    anwser_indexes: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/createMainAccount")]
@@ -915,8 +898,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
         .service(get_strategy)
-        .service(get_device_secret)
-        .service(get_master_secret)
+        //.service(get_device_secret)
+        //.service(get_master_secret)
         .service(pre_send_money)
         .service(direct_send_money)
         .service(react_pre_send_money)
@@ -935,6 +918,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(gen_tx_servant_switch_master)
         .service(commit_tx_servant_switch_master)
         .service(replace_servant)
+        .service(get_secret)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1342,8 +1326,8 @@ mod tests {
         println!("{:?}", sender_strategy);
 
 
-        let url = format!("/wallet/getSecret?pubkey={}",sender_master.wallet.pubkey.unwrap());
-        let res: BackendRespond<SecretStore> = test_service_call!(
+        let url = format!("/wallet/getSecret?type=all");
+        let res: BackendRespond<Vec<SecretStore>> = test_service_call!(
             service,
             "get",
             &url,
@@ -1473,7 +1457,7 @@ mod tests {
             "subaccountPubkey":  sender_master.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPwd": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": sender_master.wallet.sub_prikey.unwrap().first().unwrap(),
-            "signPwdHash": ""
+            "anwserIndexes": ""
         });
         let res: BackendRespond<String> = test_service_call!(
             service,

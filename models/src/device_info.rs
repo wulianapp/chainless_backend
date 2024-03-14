@@ -22,6 +22,7 @@ pub enum DeviceInfoUpdater {
     HolderSaved(bool),
     BecomeMaster(String),
     BecomeServant(String),
+    AddServant(String),
     BecomeUndefined(String),
 }
 
@@ -39,6 +40,9 @@ impl fmt::Display for DeviceInfoUpdater {
             },
             DeviceInfoUpdater::BecomeServant(key) => {
                 format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}','true','Servant') ", key)
+            },
+            DeviceInfoUpdater::AddServant(key) => {
+                format!("(hold_pubkey,key_role)=('{}','Servant') ", key)
             },
             DeviceInfoUpdater::BecomeUndefined(key) => {
                 format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Undefined') ", key)

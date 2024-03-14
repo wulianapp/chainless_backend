@@ -5,7 +5,7 @@ create table if not exists users
     phone_number text collate pg_catalog."default" not null,
     email text collate pg_catalog."default" not null,
     login_pwd_hash text collate pg_catalog."default" not null,
-    answer_indexes text collate pg_catalog."default" not null,
+    anwser_indexes text collate pg_catalog."default" not null,
     is_frozen bool,--冻结的账户
     predecessor int,
     laste_predecessor_replace_time text,
