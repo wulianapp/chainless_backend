@@ -13,25 +13,25 @@ use common::error_code::BackendError;
 use serde::Serialize;
 
 #[derive(Clone, Debug)]
-pub enum UserFilter {
+pub enum UserFilter<'b> {
     ById(u32),
-    ByPhone(String),
-    ByEmail(String),
-    ByPhoneOrEmail(String),
-    ByInviteCode(String),
-    ByAccountId(String),
+    ByPhone(&'b str),
+    ByEmail(&'b str),
+    ByPhoneOrEmail(&'b str),
+    ByInviteCode(&'b str),
+    ByAccountId(&'b str),
 }
 
 #[derive(Clone, Debug)]
-pub enum UserUpdater {
-    LoginPwdHash(String),
+pub enum UserUpdater<'a> {
+    LoginPwdHash(&'a str),
     AccountIds(Vec<String>),
     //     * anwser_indexes,secruity_is_seted,main_account
-    SecruityInfo(String, bool, String),
-    AnwserIndexes(String),
-    OpStatus(OpStatus),
+    SecruityInfo(&'a str, bool, &'a str),
+    AnwserIndexes(&'a str),
+    OpStatus(&'a str),
 }
-impl fmt::Display for UserUpdater {
+impl fmt::Display for UserUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             UserUpdater::LoginPwdHash(pwd) => format!("login_pwd_hash='{}'", pwd),
@@ -54,7 +54,7 @@ impl fmt::Display for UserUpdater {
     }
 }
 
-impl fmt::Display for UserFilter {
+impl fmt::Display for UserFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             UserFilter::ById(id) => format!("id='{}'", id),
@@ -110,10 +110,10 @@ impl UserInfoView {
 }
 
 impl PsqlOp for UserInfoView {
-    type UpdateContent = UserUpdater;
-    type FilterContent = UserFilter;
+    type UpdateContent<'a> = UserUpdater<'a>;
+    type FilterContent<'b> = UserFilter<'b>;
 
-    fn find(filter: Self::FilterContent) -> Result<Vec<Self>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -172,8 +172,8 @@ impl PsqlOp for UserInfoView {
     }
 
     fn update(
-        new_value: Self::UpdateContent,
-        filter: Self::FilterContent,
+        new_value: Self::UpdateContent<'_>,
+        filter: Self::FilterContent<'_>,
     ) -> Result<(), BackendError> {
         let sql = format!(
             "UPDATE users SET {} where {}",
@@ -299,7 +299,7 @@ mod tests {
         assert_eq!(user_by_find.user_info, user.user_info);
 
         UserInfoView::update(
-            UserUpdater::LoginPwdHash("0123".to_string()),
+            UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),
         )
         .unwrap();

@@ -28,7 +28,7 @@ pub(crate) async fn req(
     let _servant_pubkey = request_data.servant_pubkey;
     DeviceInfoView::update(
         DeviceInfoUpdater::HolderSaved(true),
-        DeviceInfoFilter::ByDeviceUser(device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;
     Ok(None::<String>)
 }

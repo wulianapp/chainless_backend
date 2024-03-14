@@ -17,16 +17,16 @@ use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use common::error_code::BackendError;
 
 #[derive(Debug)]
-pub enum DeviceInfoUpdater {
+pub enum DeviceInfoUpdater<'a> {
     State(SecretKeyState),
     HolderSaved(bool),
-    BecomeMaster(String),
-    BecomeServant(String),
-    AddServant(String),
-    BecomeUndefined(String),
+    BecomeMaster(&'a str),
+    BecomeServant(&'a str),
+    AddServant(&'a str),
+    BecomeUndefined(&'a str),
 }
 
-impl fmt::Display for DeviceInfoUpdater {
+impl fmt::Display for DeviceInfoUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             DeviceInfoUpdater::State(new_state) => {
@@ -53,14 +53,14 @@ impl fmt::Display for DeviceInfoUpdater {
 }
 
 #[derive(Clone, Debug)]
-pub enum DeviceInfoFilter {
+pub enum DeviceInfoFilter<'b> {
     ByUser(u32),
-    ByDeviceUser(String, u32),
-    ByUserDeviceHoldSecret(u32, String, bool),
-    ByHoldKey(String),
+    ByDeviceUser(&'b str, u32),
+    ByUserDeviceHoldSecret(u32, &'b str, bool),
+    ByHoldKey(&'b str),
 }
 
-impl fmt::Display for DeviceInfoFilter {
+impl fmt::Display for DeviceInfoFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             DeviceInfoFilter::ByUser(user_id) => format!("user_id={} ", user_id),
@@ -109,10 +109,10 @@ impl DeviceInfoView {
 }
 
 impl PsqlOp for DeviceInfoView {
-    type UpdateContent = DeviceInfoUpdater;
-    type FilterContent = DeviceInfoFilter;
+    type UpdateContent<'a> = DeviceInfoUpdater<'a>;
+    type FilterContent<'b> = DeviceInfoFilter<'b>;
 
-    fn find(filter: Self::FilterContent) -> Result<Vec<Self>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError> {
         let sql = format!(
             "select 
             id,\
@@ -149,8 +149,8 @@ impl PsqlOp for DeviceInfoView {
             .collect::<Vec<Self>>())
     }
     fn update(
-        new_value: Self::UpdateContent,
-        filter: Self::FilterContent,
+        new_value: Self::UpdateContent<'_>,
+        filter: Self::FilterContent<'_>,
     ) -> Result<(), BackendError> {
         let sql = format!(
             "update device_info set {} where {}",
@@ -218,7 +218,7 @@ mod tests {
             DeviceInfoView::new_with_specified("123", "Huawei", 1);
         device.insert().unwrap();
         let mut device_by_find =
-            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123".to_string(), 1))
+            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123", 1))
                 .unwrap();
         println!("{:?}", device_by_find);
         assert_eq!(device.device_info, device_by_find.device_info);
@@ -226,7 +226,7 @@ mod tests {
         device_by_find.device_info.user_id = 2;
         DeviceInfoView::update(
             DeviceInfoUpdater::State(SecretKeyState::Abandoned),
-            DeviceInfoFilter::ByDeviceUser("123".to_string(), 1),
+            DeviceInfoFilter::ByDeviceUser("123", 1),
         )
         .unwrap();
     }

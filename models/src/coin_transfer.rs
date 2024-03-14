@@ -54,16 +54,16 @@ impl CoinTxView {
 }
 
 #[derive(Clone, Debug)]
-pub enum CoinTxFilter {
+pub enum CoinTxFilter<'b> {
     ByUser(u32),
     BySender(u32),
     ByReceiver(u32),
-    ByAccountPending(String),
+    ByAccountPending(&'b str),
     //todo: replace with u128
     ByTxIndex(u32),
 }
 
-impl fmt::Display for CoinTxFilter {
+impl fmt::Display for CoinTxFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             CoinTxFilter::ByUser(uid) => format!("sender='{}' or receiver='{}'", uid, uid),
@@ -81,13 +81,13 @@ impl fmt::Display for CoinTxFilter {
 }
 
 #[derive(Clone, Debug)]
-pub enum CoinTxUpdater {
+pub enum CoinTxUpdater<'a> {
     Status(CoinTxStatus),
-    ChainTxInfo(String, String, CoinTxStatus),
+    ChainTxInfo(&'a str, &'a str, CoinTxStatus),
     Signature(Vec<String>),
 }
 
-impl fmt::Display for CoinTxUpdater {
+impl fmt::Display for CoinTxUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             CoinTxUpdater::Status(status) => format!("status='{}'", status.to_string()),
@@ -108,10 +108,10 @@ impl fmt::Display for CoinTxUpdater {
 }
 
 impl PsqlOp for CoinTxView {
-    type UpdateContent = CoinTxUpdater;
-    type FilterContent = CoinTxFilter;
+    type UpdateContent<'a> = CoinTxUpdater<'a>;
+    type FilterContent<'b> = CoinTxFilter<'b>;
 
-    fn find(filter: Self::FilterContent) -> Result<Vec<CoinTxView>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<CoinTxView>, BackendError> {
         let sql = format!(
             "select tx_index,\
          tx_id,\

@@ -36,7 +36,7 @@ pub(crate) async fn req(
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(
-        UserUpdater::SecruityInfo(anwser_indexes, true, master_pubkey.clone()),
+        UserUpdater::SecruityInfo(&anwser_indexes, true, &master_pubkey),
         UserFilter::ById(user_id),
     )?;
 

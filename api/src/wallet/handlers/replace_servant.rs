@@ -33,7 +33,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
     models::general::transaction_begin()?;
     //check if stored already
     let origin_secret = SecretStoreView::find(
-        SecretFilter::ByPubkey(new_servant_pubkey.clone())
+        SecretFilter::ByPubkey(&new_servant_pubkey)
     )?;
     if origin_secret.is_empty(){
         let secret_info = SecretStoreView::new_with_specified(
@@ -46,23 +46,23 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
     }else {
         SecretStoreView::update(
             SecretUpdater::State(SecretKeyState::Incumbent), 
-            SecretFilter::ByPubkey(new_servant_pubkey.clone())
+            SecretFilter::ByPubkey(&new_servant_pubkey)
         )?;
     }
 
     SecretStoreView::update(
         SecretUpdater::State(SecretKeyState::Abandoned), 
-        SecretFilter::ByPubkey(old_servant_pubkey.clone())
+        SecretFilter::ByPubkey(&old_servant_pubkey)
     )?;
 
      //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeServant(new_servant_pubkey.clone()),
-        DeviceInfoFilter::ByDeviceUser(new_device_id,user_id)
+        DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
+        DeviceInfoFilter::ByDeviceUser(&new_device_id,user_id)
     )?;
     DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeUndefined(old_servant_pubkey.clone()),
-        DeviceInfoFilter::ByHoldKey(old_servant_pubkey.clone())
+        DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
+        DeviceInfoFilter::ByHoldKey(&old_servant_pubkey)
     )?;
 
     //add wallet info

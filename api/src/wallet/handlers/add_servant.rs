@@ -32,7 +32,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     models::general::transaction_begin()?;
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret = SecretStoreView::find(
-        SecretFilter::ByPubkey(servant_pubkey.clone())
+        SecretFilter::ByPubkey(&servant_pubkey)
     )?;
     if origin_secret.is_empty(){
         let secret_info = SecretStoreView::new_with_specified(
@@ -45,7 +45,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     }else {
         SecretStoreView::update(
             SecretUpdater::State(SecretKeyState::Incumbent), 
-            SecretFilter::ByPubkey(servant_pubkey.clone())
+            SecretFilter::ByPubkey(&servant_pubkey)
         )?;
     }
 
@@ -65,8 +65,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
-        DeviceInfoUpdater::AddServant(servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(holder_device_id,user_id)
+        DeviceInfoUpdater::AddServant(&servant_pubkey),
+        DeviceInfoFilter::ByDeviceUser(&holder_device_id,user_id)
     )?;
     
 

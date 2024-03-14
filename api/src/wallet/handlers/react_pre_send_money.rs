@@ -51,7 +51,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
             .unwrap()
             .unwrap();
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(tx_id, chain_raw_tx, CoinTxStatus::ReceiverApproved),
+            CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinTxStatus::ReceiverApproved),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     } else {

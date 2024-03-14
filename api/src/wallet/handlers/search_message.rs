@@ -19,16 +19,16 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
     let mut messages: Vec<AccountMessage> = vec![];
 
     //if newcomer device not save,notify it to do
-    let device_info = DeviceInfoView::find(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
+    let device_info = DeviceInfoView::find(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device_info.len() == 1 && !device_info[0].device_info.holder_confirm_saved {
         let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(
-            device_info[0].device_info.hold_pubkey.clone().unwrap(),
+            device_info[0].device_info.hold_pubkey.as_ref().unwrap(),
         ))?;
         messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
     }
 
     let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(
-        user.user_info.main_account.clone(),
+        &user.user_info.main_account,
     ))?;
     let mut tx_msg = coin_txs
         .into_iter()

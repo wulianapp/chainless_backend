@@ -23,18 +23,18 @@ pub(crate) async fn req(
     match request_data.r#type {
         crate::wallet::SecretType::CurrentDevice => {
             let pubkey  = DeviceInfoView::find_single(
-                DeviceInfoFilter::ByDeviceUser(device_id, user_id)
+                DeviceInfoFilter::ByDeviceUser(&device_id, user_id)
             )?
             .device_info
             .hold_pubkey
             .ok_or(BackendError::InternalError("this haven't be servant yet".to_string()))?;
         
-            let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey))?;
+            let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey))?;
             Ok(Some(vec![secret.secret_store]))
         },
         crate::wallet::SecretType::Master => {
             let master_key = cli.get_master_pubkey(&main_account).await;
-            let secret =  SecretStoreView::find_single(SecretFilter::ByPubkey(master_key))?;
+            let secret =  SecretStoreView::find_single(SecretFilter::ByPubkey(&master_key))?;
             Ok(Some(vec![secret.secret_store]))
         },
         crate::wallet::SecretType::All => {
@@ -44,7 +44,7 @@ pub(crate) async fn req(
             keys.append(&mut strategy.servant_pubkeys);
             let mut secrets = vec![];
             for key in keys {
-                let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(key))?;
+                let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(&key))?;
                 secrets.push(secrete.secret_store);
             }
             Ok(Some(secrets))

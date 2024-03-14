@@ -53,7 +53,7 @@ pub(crate) async fn req(
  
         //check if stored already ,if not insert sercret_store or update
         let origin_secret = SecretStoreView::find(
-            SecretFilter::ByPubkey(newcomer_pubkey.clone())
+            SecretFilter::ByPubkey(&newcomer_pubkey)
         )?;
         if origin_secret.is_empty(){
             let secret_info = SecretStoreView::new_with_specified(
@@ -66,14 +66,14 @@ pub(crate) async fn req(
         }else {
             SecretStoreView::update(
                 SecretUpdater::State(SecretKeyState::Incumbent), 
-                SecretFilter::ByPubkey(newcomer_pubkey.clone())
+                SecretFilter::ByPubkey(&newcomer_pubkey)
             )?;
         }
 
         //更新设备信息
         DeviceInfoView::update(
-            DeviceInfoUpdater::BecomeMaster(newcomer_pubkey.to_string()),
-            DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_id)
+            DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
+            DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
         )?;
         
     }else{
@@ -87,8 +87,8 @@ pub(crate) async fn req(
             blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw,&delete_key_sig).await;
             //更新设备信息
             DeviceInfoView::update(
-                DeviceInfoUpdater::BecomeUndefined(old_master.clone()),
-                DeviceInfoFilter::ByHoldKey(old_master.clone())
+                DeviceInfoUpdater::BecomeUndefined(&old_master),
+                DeviceInfoFilter::ByHoldKey(&old_master)
             )?;
     }else{
         error!("main account is unnormal");

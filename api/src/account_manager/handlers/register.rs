@@ -28,7 +28,7 @@ async fn register(
 
     //check userinfo form db
     let find_res =
-        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(contact.clone()))?;
+        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -53,7 +53,7 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(code))
+        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code))
             .map_err(|_e| InviteCodeNotExist)?;
         view.user_info.predecessor = Some(predecessor.id);
     }

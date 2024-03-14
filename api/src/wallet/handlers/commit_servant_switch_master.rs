@@ -37,7 +37,7 @@ pub(crate) async fn req(
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
     let servant_pubkey  = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(device_id.clone(), user_id)
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id)
     )?
     .device_info
     .hold_pubkey
@@ -53,12 +53,12 @@ pub(crate) async fn req(
 
 
     //增加之前判断是否有
-    if !master_list.contains(&servant_pubkey.to_string()){
+    if !master_list.contains(&servant_pubkey){
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw,&add_key_sig).await;
          //更新设备信息
          DeviceInfoView::update(
-            DeviceInfoUpdater::BecomeMaster(servant_pubkey.to_string()),
-            DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_id)
+            DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
+            DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
         )?;
     }else{
         error!("newcomer_pubkey<{}> already is master",servant_pubkey);
@@ -70,8 +70,8 @@ pub(crate) async fn req(
             blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw,&delete_key_sig).await;
             //更新设备信息
             DeviceInfoView::update(
-                DeviceInfoUpdater::BecomeServant(master_list[0].clone()),
-                DeviceInfoFilter::ByHoldKey(master_list[0].clone())
+                DeviceInfoUpdater::BecomeServant(&master_list[0]),
+                DeviceInfoFilter::ByHoldKey(&master_list[0])
             )?;
     }else{
         error!("main account is unnormal");

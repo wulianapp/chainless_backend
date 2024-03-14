@@ -128,12 +128,12 @@ pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
 }
 
 pub trait PsqlOp {
-    type UpdateContent: Display;
-    type FilterContent: Display;
-    fn find(filter: Self::FilterContent) -> Result<Vec<Self>, BackendError>
+    type UpdateContent<'a>: Display;
+    type FilterContent<'b>: Display;
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError>
     where
         Self: Sized;
-    fn find_single(filter: Self::FilterContent) -> Result<Self, BackendError>
+    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self, BackendError>
     where
         Self: Sized,
     {
@@ -153,8 +153,8 @@ pub trait PsqlOp {
     }
 
     fn update(
-        new_value: Self::UpdateContent,
-        filter: Self::FilterContent,
+        new_value: Self::UpdateContent<'_>,
+        filter: Self::FilterContent<'_>,
     ) -> Result<(), BackendError>;
 
     fn insert(&self) -> Result<(), BackendError>;

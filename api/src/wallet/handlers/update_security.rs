@@ -17,15 +17,17 @@ pub(crate) async fn req(
     let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let UpdateSecurityRequest{ anwser_indexes, secrets } = request_data; 
     //todo: must be master
-    UserInfoView::update(UserUpdater::AnwserIndexes(anwser_indexes),UserFilter::ById(user_id))?;
+    UserInfoView::update(UserUpdater::AnwserIndexes(&anwser_indexes),UserFilter::ById(user_id))?;
 
     for secret in secrets {
         SecretStoreView::update(
             SecretUpdater::EncrypedPrikey(
-                secret.encrypted_prikey_by_password,secret.encrypted_prikey_by_answer), 
-                SecretFilter::ByPubkey(secret.pubkey.clone())
+                &secret.encrypted_prikey_by_password,
+                &secret.encrypted_prikey_by_answer
+            ), 
+            SecretFilter::ByPubkey(&secret.pubkey)
         )?;
-        DeviceInfoView::update(DeviceInfoUpdater::HolderSaved(false), DeviceInfoFilter::ByHoldKey(secret.pubkey))?;
+        DeviceInfoView::update(DeviceInfoUpdater::HolderSaved(false), DeviceInfoFilter::ByHoldKey(&secret.pubkey))?;
     }
     Ok(None)
 }

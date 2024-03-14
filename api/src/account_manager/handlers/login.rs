@@ -64,7 +64,7 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     } = request_data;
     //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
     let user_at_stored =
-        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(contact))?;
+        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
     if password != user_at_stored.user_info.login_pwd_hash {
         if is_locked(user_at_stored.id) {
@@ -76,7 +76,7 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     }
     //todo: distinguish repeat and not found
     let find_res = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(device_id.clone(),user_at_stored.id)
+        DeviceInfoFilter::ByDeviceUser(&device_id,user_at_stored.id)
     );
     if find_res.is_err(){
         let mut device = DeviceInfoView::new_with_specified(

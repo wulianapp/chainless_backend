@@ -31,7 +31,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: RemoveServantRequest) ->
     //old key_store set abandoned
     SecretStoreView::update(
         SecretUpdater::State(SecretKeyState::Abandoned), 
-        SecretFilter::ByPubkey(servant_pubkey.clone())
+        SecretFilter::ByPubkey(&servant_pubkey)
     )?;
 
 
@@ -52,8 +52,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: RemoveServantRequest) ->
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeUndefined(servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(device_id,user_id)
+        DeviceInfoUpdater::BecomeUndefined(&servant_pubkey),
+        DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
     )?;
 
     models::general::transaction_commit()?;

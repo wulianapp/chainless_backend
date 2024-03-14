@@ -33,7 +33,7 @@ pub(crate) async fn req(
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     
     let servant_pubkey  = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(device_id, user_id)
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id)
     )?
     .device_info
     .hold_pubkey

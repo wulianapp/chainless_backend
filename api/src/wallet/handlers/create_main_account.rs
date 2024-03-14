@@ -38,7 +38,7 @@ pub(crate) async fn req(
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(
-        UserUpdater::SecruityInfo(anwser_indexes, true, master_pubkey.clone()),
+        UserUpdater::SecruityInfo(&anwser_indexes, true, &master_pubkey),
         UserFilter::ById(user_id),
     )?;
 
@@ -59,8 +59,8 @@ pub(crate) async fn req(
     sub_account_secret.insert()?;
 
     DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeMaster(master_pubkey.clone()),
-        DeviceInfoFilter::ByDeviceUser(device_id,user_id)
+        DeviceInfoUpdater::BecomeMaster(&master_pubkey),
+        DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
     )?;
 
     let multi_cli = ContractClient::<MultiSig>::new();

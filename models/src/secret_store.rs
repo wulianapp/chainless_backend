@@ -15,13 +15,13 @@ use crate::{vec_str2array_text, PsqlOp};
 use common::error_code::BackendError;
 
 #[derive(Debug)]
-pub enum SecretUpdater {
+pub enum SecretUpdater<'a> {
     //todo:
-    EncrypedPrikey(String, String),
+    EncrypedPrikey(&'a str, &'a str),
     State(SecretKeyState),
 }
 
-impl fmt::Display for SecretUpdater {
+impl fmt::Display for SecretUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             SecretUpdater::EncrypedPrikey(by_password, by_answer) => {
@@ -39,12 +39,12 @@ impl fmt::Display for SecretUpdater {
 }
 
 #[derive(Clone, Debug)]
-pub enum SecretFilter {
-    ByPubkey(String),
-    BySittingPubkey(String),
+pub enum SecretFilter<'b> {
+    ByPubkey(&'b str),
+    BySittingPubkey(&'b str),
 }
 
-impl fmt::Display for SecretFilter {
+impl fmt::Display for SecretFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             SecretFilter::ByPubkey(key) => format!("pubkey='{}' ", key),
@@ -83,8 +83,8 @@ impl SecretStoreView {
 }
 
 impl PsqlOp for SecretStoreView {
-    type UpdateContent = SecretUpdater;
-    type FilterContent = SecretFilter;
+    type UpdateContent<'a> = SecretUpdater<'a>;
+    type FilterContent<'b> = SecretFilter<'b>;
 
     fn find(filter: SecretFilter) -> Result<Vec<SecretStoreView>, BackendError> {
         let sql = format!(
@@ -158,6 +158,26 @@ impl PsqlOp for SecretStoreView {
         let _execute_res = crate::execute(sql.as_str())?;
         Ok(())
     }
+    
+    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self, BackendError>
+    where
+        Self: Sized,
+    {
+        let mut get_res: Vec<Self> = Self::find(filter)?;
+        let data_len = get_res.len();
+        if data_len == 0 {
+            //todo:return db error type
+            Err(BackendError::InternalError("data isn't existed".to_string()))
+        } else if data_len > 1 {
+            Err(BackendError::InternalError("data is repeated".to_string()))
+        } else {
+            Ok(get_res.pop().unwrap())
+        }
+    }
+    
+    fn delete<T: Display>(_filter: T) -> Result<(), BackendError> {
+        todo!()
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -184,14 +204,14 @@ mod tests {
             SecretStoreView::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
         secret.insert().unwrap();
         let secret_by_find =
-            SecretStoreView::find_single(SecretFilter::BySittingPubkey("0123456789".to_string()))
+            SecretStoreView::find_single(SecretFilter::BySittingPubkey("0123456789"))
                 .unwrap();
         println!("{:?}", secret_by_find);
         assert_eq!(secret_by_find.secret_store, secret.secret_store);
 
         SecretStoreView::update(
             SecretUpdater::State(SecretKeyState::Abandoned),
-            SecretFilter::BySittingPubkey("01".to_string()),
+            SecretFilter::BySittingPubkey("01"),
         )
         .unwrap();
     }
