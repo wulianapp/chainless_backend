@@ -22,10 +22,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
     let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+
+    
     let ReplaceServantRequest {
         old_servant_pubkey,
         new_servant_pubkey,
-        new_servant_prikey_encryped_by_pwd,
+        new_servant_prikey_encryped_by_password,
         new_servant_prikey_encryped_by_answer,
         new_device_id,
     } = request_data;
@@ -39,7 +42,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
         let secret_info = SecretStoreView::new_with_specified(
             &new_servant_pubkey,
             user_id,
-            &new_servant_prikey_encryped_by_pwd,
+            &new_servant_prikey_encryped_by_password,
             &new_servant_prikey_encryped_by_answer,
         );
         secret_info.insert()?;

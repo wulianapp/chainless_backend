@@ -36,6 +36,9 @@ pub(crate) async fn req(
     //get user's main_account 、mater_key、current servant_key
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+
+    
     let servant_pubkey  = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id)
     )?

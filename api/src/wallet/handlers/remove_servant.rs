@@ -26,6 +26,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: RemoveServantRequest) ->
 
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
+    super::have_no_uncompleted_tx(&user.user_info.main_account)?;
+
+
     models::general::transaction_begin()?;
 
     //old key_store set abandoned

@@ -338,7 +338,7 @@ async fn upload_servant_sig(
  * @apiGroup Wallet
  * @apiBody {String} mainAccount    主钱包Id
  * @apiBody {String} servantPubkey   从公钥
- * @apiBody {String} servantPrikeyEncrypedByPwd   经密码加密后的从私钥
+ * @apiBody {String} servantPrikeyEncrypedByPassword   经密码加密后的从私钥
  * @apiBody {String} servantPrikeyEncrypedByAnswer   经问答加密后的从私钥
  * @apiBody {String} holderDeviceId   指定持有从私钥的设备id
  * @apiBody {String} holderDeviceBrand   指定持有从私钥的设备型号
@@ -349,7 +349,7 @@ async fn upload_servant_sig(
    -d ' {
              "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "servantPubkey": "123",
-             "servantPrikeyEncrypedByPwd": "12345",
+             "servantPrikeyEncrypedByPassword": "12345",
              "servantPrikeyEncrypedByAnswer": "12345",
              "holderDeviceId": "123",
              "holderDeviceBrand": "Apple",
@@ -357,8 +357,8 @@ async fn upload_servant_sig(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
@@ -368,7 +368,7 @@ async fn upload_servant_sig(
 pub struct AddServantRequest {
     main_account: String,
     servant_pubkey: String,
-    servant_prikey_encryped_by_pwd: String,
+    servant_prikey_encryped_by_password: String,
     servant_prikey_encryped_by_answer: String,
     holder_device_id: String,
     holder_device_brand: String,
@@ -391,7 +391,7 @@ async fn add_servant(
  * @apiGroup Wallet
  * @apiBody {String} oldServantPubkey   要被替换的从公钥
  * @apiBody {String} newServantPubkey   新晋从公钥
- * @apiBody {String} newServantPprikeyEncrypedByPwd   新晋从公钥对应的密钥被密码加密
+ * @apiBody {String} newServantPprikeyEncrypedByPassword   新晋从公钥对应的密钥被密码加密
  * @apiBody {String} newServantPrikeyEncrypedByAnswer   新晋从公钥对应的密钥被问答加密
  * @apiBody {String} newDeviceId   新晋持有从公钥的设备ID
 
@@ -402,8 +402,8 @@ async fn add_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/replaceServant
 */
@@ -412,7 +412,7 @@ async fn add_servant(
 pub struct ReplaceServantRequest {
     old_servant_pubkey: String,
     new_servant_pubkey: String,
-    new_servant_prikey_encryped_by_pwd: String,
+    new_servant_prikey_encryped_by_password: String,
     new_servant_prikey_encryped_by_answer: String,
     new_device_id: String,
 }
@@ -442,8 +442,8 @@ async fn replace_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
 */
@@ -474,7 +474,7 @@ async fn remove_servant(
   -d ' {
             "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
             "servantPubkey": "123",
-            "servantPrikeyEncrypedByPwd": "12345",
+            "servantPrikeyEncrypedByPassword": "12345",
             "servantPrikeyEncrypedByAnswer": "12345",
             "holderDeviceId": "123",
             "holderDeviceBrand": "Apple",
@@ -509,7 +509,7 @@ async fn servant_saved_secret(
  * @apiGroup Wallet 
  * @apiBody {String} mainAccount                        主钱包id
  * @apiBody {String} subaccountPubkey                   从公钥
- * @apiBody {String} subaccountPrikeyEncrypedByPwd      密码加密后的从私钥
+ * @apiBody {String} subaccountPrikeyEncrypedByPassword      密码加密后的从私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer   问答加密后的从私钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -522,8 +522,8 @@ async fn servant_saved_secret(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
@@ -533,7 +533,7 @@ async fn servant_saved_secret(
 pub struct AddSubaccountRequest {
     main_account: String,
     subaccount_pubkey: String,
-    subaccount_prikey_encryped_by_pwd: String,
+    subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -564,8 +564,6 @@ pub struct MultiSigRankExternal {
  * @apiBody {Number} strategy.min   档位最小值(开区间)
  * @apiBody {Number} strategy.maxEq  档位最大值(闭区间)
  * @apiBody {Number} strategy.sigNum   所需签名数量
-
-
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/updateStrategy
@@ -576,8 +574,8 @@ pub struct MultiSigRankExternal {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
@@ -597,12 +595,48 @@ async fn update_strategy(
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
+/**
+ * @api {post} /wallet/updateStrategy 更新主钱包多签梯度
+ * @apiVersion 0.0.1
+ * @apiName updateStrategy
+ * @apiGroup Wallet
+ * @apiBody {String} anwserIndexes    新的安全问题
+ * @apiBody {Object[]} secrets        重设后的安全数据
+ * @apiBody {String} secrets.pubkey    新的安全问题
+ * @apiBody {String} secrets.encryptedPrikeyByPassword        重设后的安全数据
+ * @apiBody {String} secrets.encryptedPrikeyByAnswer    新的安全问题
+
+
+ * 
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/updateStrategy
+   -d '  {
+             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+             "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
+*/
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SecretStoreTmp1 {
+    pub pubkey: String,
+    pub encrypted_prikey_by_password: String,
+    pub encrypted_prikey_by_answer: String,
+}
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSecurityRequest {
     anwser_indexes: String,
-    secrets: Vec<SecretStore>,
+    secrets: Vec<SecretStoreTmp1>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/updateSecurity")]
@@ -620,10 +654,10 @@ async fn update_security(
  * @apiName CreateMainAccount
  * @apiGroup Wallet
  * @apiBody {String} masterPubkey                 主钱包master公钥  
- * @apiBody {String} masterPrikeyEncryptedByPwd   密码加密的master私钥
+ * @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
  * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
  * @apiBody {String} subaccountPubkey              子钱包
- * @apiBody {String} subaccountPrikeyEncrypedByPwd   密码加密的子钱包私钥
+ * @apiBody {String} subaccountPrikeyEncrypedByPassword   密码加密的子钱包私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子钱包私钥
  * @apiBody {String} anwserIndexes               密码和问答拼接后的hash结果
  * @apiHeader {String} Authorization  user's access token
@@ -646,10 +680,10 @@ async fn update_security(
 #[serde(rename_all = "camelCase")]
 pub struct CreateMainAccountRequest {
     master_pubkey: String,
-    master_prikey_encrypted_by_pwd: String,
+    master_prikey_encrypted_by_password: String,
     master_prikey_encrypted_by_answer: String,
     subaccount_pubkey: String,
-    subaccount_prikey_encryped_by_pwd: String,
+    subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
     anwser_indexes: String,
 }
@@ -759,8 +793,8 @@ async fn device_list(req: HttpRequest) -> impl Responder {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSuccess {string} data.add_key_txid                增加主公钥对应的tx_id
 * @apiSuccess {string} data.add_key_raw                 增加主公钥对应的tx_raw.
@@ -799,8 +833,8 @@ async fn gen_tx_newcomer_replace_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSuccess {string} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
 * @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
@@ -828,7 +862,7 @@ async fn gen_tx_servant_switch_master(
  * @apiBody {String} deleteKeyRaw                               删除主公钥对应的tx_raw  
  * @apiBody {String} addKeySig                                   旧的主私钥签名增加主公钥的结果  
  * @apiBody {String} deleteKeySig                                新私钥签名删除主公钥的结果  
- * @apiBody {String} newcomerPrikeyEncryptedByPwd                 新晋主公钥对应的密钥的被安全密码加密的结果 
+ * @apiBody {String} newcomerPrikeyEncryptedByPassword                 新晋主公钥对应的密钥的被安全密码加密的结果 
  * @apiBody {String} newcomerPrikeyEncryptedByAnswer             新晋主公钥对应的密钥的被安全问答加密的结果  
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -840,8 +874,8 @@ async fn gen_tx_servant_switch_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxNewcomerReplaceMaster
 */
@@ -853,7 +887,7 @@ pub struct CommitNewcomerReplaceMasterRequest {
     delete_key_raw: String,
     add_key_sig: String,
     delete_key_sig: String,
-    newcomer_prikey_encrypted_by_pwd: String,
+    newcomer_prikey_encrypted_by_password: String,
     newcomer_prikey_encrypted_by_answer: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -889,8 +923,8 @@ async fn commit_tx_newcomer_replace_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxServantSwitchMaster
 */
@@ -1172,7 +1206,7 @@ mod tests {
         let payload = json!({
             "oldServantPubkey": sender_servant.wallet.pubkey.unwrap(),
             "newServantPubkey": sender_new_device.wallet.pubkey.unwrap(),
-            "newServantPrikeyEncrypedByPwd": sender_new_device.wallet.prikey.clone().unwrap(),
+            "newServantPrikeyEncrypedByPassword": sender_new_device.wallet.prikey.clone().unwrap(),
             "newServantPrikeyEncrypedByAnswer": sender_new_device.wallet.prikey.unwrap(),
             "newDeviceId": sender_new_device.device.id
         });
@@ -1339,7 +1373,7 @@ mod tests {
             "deleteKeyRaw":  res.data.delete_key_raw,
             "addKeySig":  add_key_sig,
             "deleteKeySig": delete_key_sig,
-            "newcomerPrikeyEncryptedByPwd":  "".to_string(),
+            "newcomerPrikeyEncryptedByPassword":  "".to_string(),
             "newcomerPrikeyEncryptedByAnswer":  "".to_string()
         });
 
@@ -1488,10 +1522,10 @@ mod tests {
         //step1: new sender main_account
         let payload = json!({
             "masterPubkey":  sender_master.wallet.main_account,
-            "masterPrikeyEncryptedByPwd": sender_master.wallet.prikey,
+            "masterPrikeyEncryptedByPassword": sender_master.wallet.prikey,
             "masterPrikeyEncryptedByAnswer": sender_master.wallet.prikey,
             "subaccountPubkey":  sender_master.wallet.subaccount.first().unwrap(),
-            "subaccountPrikeyEncrypedByPwd": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
+            "subaccountPrikeyEncrypedByPassword": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": sender_master.wallet.sub_prikey.unwrap().first().unwrap(),
             "anwserIndexes": ""
         });
@@ -1510,7 +1544,7 @@ mod tests {
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
             "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByPwd":  sender_servant.wallet.prikey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByPassword":  sender_servant.wallet.prikey.as_ref().unwrap(),
             "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.prikey.as_ref().unwrap(),
             "holderDeviceId":  sender_servant.device.id,
             "holderDeviceBrand": sender_servant.device.brand,
@@ -1627,7 +1661,7 @@ mod tests {
         let payload = json!({
             "mainAccount":  sender_master.wallet.main_account,
             "subaccountPubkey": "11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9",
-            "subaccountPrikeyEncrypedByPwd": "by_pwd_ead4cf1",
+            "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
             "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
         });
         let url = format!("/wallet/addSubaccount");

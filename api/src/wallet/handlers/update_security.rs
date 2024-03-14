@@ -15,6 +15,8 @@ pub(crate) async fn req(
     request_data: UpdateSecurityRequest,
 ) -> BackendRes<String> {
     let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    super::have_no_uncompleted_tx(&user_info.user_info.main_account)?;
     let UpdateSecurityRequest{ anwser_indexes, secrets } = request_data; 
     //todo: must be master
     UserInfoView::update(UserUpdater::AnwserIndexes(&anwser_indexes),UserFilter::ById(user_id))?;

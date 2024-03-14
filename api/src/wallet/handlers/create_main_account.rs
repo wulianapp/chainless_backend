@@ -25,10 +25,10 @@ pub(crate) async fn req(
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let CreateMainAccountRequest {
         master_pubkey,
-        master_prikey_encrypted_by_pwd,
+        master_prikey_encrypted_by_password,
         master_prikey_encrypted_by_answer,
         subaccount_pubkey,
-        subaccount_prikey_encryped_by_pwd,
+        subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         anwser_indexes,
     } = request_data;
@@ -45,7 +45,7 @@ pub(crate) async fn req(
     let master_secret = SecretStoreView::new_with_specified(
         &master_pubkey,
         user_info.id,
-        &master_prikey_encrypted_by_pwd,
+        &master_prikey_encrypted_by_password,
         &master_prikey_encrypted_by_answer,
     );
     master_secret.insert()?;
@@ -53,7 +53,7 @@ pub(crate) async fn req(
     let sub_account_secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,
         user_info.id,
-        &subaccount_prikey_encryped_by_pwd,
+        &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
     sub_account_secret.insert()?;

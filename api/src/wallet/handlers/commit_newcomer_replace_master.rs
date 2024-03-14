@@ -32,11 +32,13 @@ pub(crate) async fn req(
         delete_key_raw,
         add_key_sig,
         delete_key_sig,
-        newcomer_prikey_encrypted_by_pwd,
+        newcomer_prikey_encrypted_by_password,
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+
 
     let client = ContractClient::<MultiSig>::new();
     let master_list = client.get_master_pubkey_list(&main_account).await;
@@ -59,7 +61,7 @@ pub(crate) async fn req(
             let secret_info = SecretStoreView::new_with_specified(
                 &newcomer_pubkey,
                 user_id,
-                &newcomer_prikey_encrypted_by_pwd,
+                &newcomer_prikey_encrypted_by_password,
                 &newcomer_prikey_encrypted_by_answer,
             );
             secret_info.insert()?;

@@ -59,6 +59,7 @@ pub enum CoinTxFilter<'b> {
     BySender(u32),
     ByReceiver(u32),
     ByAccountPending(&'b str),
+    BySenderUncompleted(&'b str),
     //todo: replace with u128
     ByTxIndex(u32),
 }
@@ -73,6 +74,10 @@ impl fmt::Display for CoinTxFilter<'_> {
                 "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
                 receiver='{}' and status in ('SenderSigCompleted')",
                 acc_id, acc_id
+            ),
+            CoinTxFilter::BySenderUncompleted(acc_id) => format!(
+                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created')",
+                acc_id
             ),
             CoinTxFilter::ByTxIndex(tx_index) => format!("tx_index='{}' ", tx_index),
         };

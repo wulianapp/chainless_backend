@@ -89,10 +89,10 @@ macro_rules! test_create_main_account{
     ($service:expr, $app:expr) => {{
         let payload = json!({
             "masterPubkey":  $app.wallet.main_account,
-            "masterPrikeyEncryptedByPwd": $app.wallet.prikey,
+            "masterPrikeyEncryptedByPassword": $app.wallet.prikey,
             "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
             "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
-            "subaccountPrikeyEncrypedByPwd": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
+            "subaccountPrikeyEncrypedByPassword": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
             "anwserIndexes": ""
         });
@@ -142,7 +142,7 @@ macro_rules! test_add_servant {
         let payload = json!({
             "mainAccount":  $master.wallet.main_account,
             "servantPubkey":  $servant.wallet.pubkey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByPwd":  $servant.wallet.prikey.as_ref().unwrap(),
+            "servantPrikeyEncrypedByPassword":  $servant.wallet.prikey.as_ref().unwrap(),
             "servantPrikeyEncrypedByAnswer":  $servant.wallet.prikey.as_ref().unwrap(),
             "holderDeviceId":  $servant.device.id,
             "holderDeviceBrand": $servant.device.brand,

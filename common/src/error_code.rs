@@ -101,8 +101,8 @@ pub enum WalletError {
     PubkeyAlreadyExist,
     #[error("main_account {0} is not existent on chain")]
     MainAccountNotExist(String),
-    #[error("main account is busy now")]
-    WalletBusy,
+    #[error("have uncomplete transaction,cann't excute operate device")]
+    HaveUncompleteTx,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -113,7 +113,7 @@ impl ErrorCode for WalletError {
             Self::PubkeyNotExist => 3004,
             Self::PubkeyAlreadyExist => 3005,
             Self::MainAccountNotExist(_) => 3006,
-            Self::WalletBusy => 3007,
+            Self::HaveUncompleteTx => 3007,
         }
     }
 }

@@ -42,6 +42,9 @@ pub(crate) async fn req(
 
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+
+    
     let client = ContractClient::<MultiSig>::new();
     let master_pubkey = client.get_master_pubkey(&main_account).await;
     

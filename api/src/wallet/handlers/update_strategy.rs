@@ -14,6 +14,8 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         account_id,
         strategy,
     } = request_data.0;
+    super::have_no_uncompleted_tx(&account_id)?;
+
 
     //fixme:
     let strategy = strategy

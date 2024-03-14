@@ -22,9 +22,11 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let AddSubaccountRequest {
         main_account,
         subaccount_pubkey,
-        subaccount_prikey_encryped_by_pwd,
+        subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
     } = request_data;
+    super::have_no_uncompleted_tx(&main_account)?;
+
     //todo: check if is master
 
     //store user info
@@ -38,7 +40,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,
         user_id,
-        &subaccount_prikey_encryped_by_pwd,
+        &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
     secret.insert()?;

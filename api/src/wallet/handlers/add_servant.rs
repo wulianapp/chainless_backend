@@ -23,11 +23,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     let AddServantRequest {
         main_account,
         servant_pubkey,
-        servant_prikey_encryped_by_pwd,
+        servant_prikey_encryped_by_password,
         servant_prikey_encryped_by_answer,
         holder_device_id,
         holder_device_brand,
     } = request_data;
+    super::have_no_uncompleted_tx(&main_account)?;
 
     models::general::transaction_begin()?;
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
@@ -38,7 +39,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         let secret_info = SecretStoreView::new_with_specified(
             &servant_pubkey,
             user_id,
-            &servant_prikey_encryped_by_pwd,
+            &servant_prikey_encryped_by_password,
             &servant_prikey_encryped_by_answer,
         );
         secret_info.insert()?;
