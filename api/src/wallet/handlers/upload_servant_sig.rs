@@ -44,7 +44,7 @@ pub async fn req(
 
     //todo: checkout sig if is enough
     //first error deal with in models
-    if tx.transaction.signatures.len() == 0 {
+    if tx.transaction.signatures.is_empty() {
         models::coin_transfer::CoinTxView::update(
             CoinTxUpdater::Status(CoinTxStatus::SenderSigCompleted),
             CoinTxFilter::ByTxIndex(tx_index),

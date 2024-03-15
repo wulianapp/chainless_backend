@@ -25,7 +25,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitNewcomerReplaceMasterRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let CommitNewcomerReplaceMasterRequest {
         newcomer_pubkey,
         add_key_raw,
@@ -89,12 +89,12 @@ pub(crate) async fn req(
 
     //除了同时包含servant_key和旧的master之外的情况全部认为异常不处理
     let master_list = client.get_master_pubkey_list(&main_account).await;
-    if master_list.len() == 2 && master_list.contains(&newcomer_pubkey) && master_list.contains(&old_master){
+    if master_list.len() == 2 && master_list.contains(&newcomer_pubkey) && master_list.contains(old_master){
             blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw,&delete_key_sig).await;
             //更新设备信息
             DeviceInfoView::update(
-                DeviceInfoUpdater::BecomeUndefined(&old_master),
-                DeviceInfoFilter::ByHoldKey(&old_master)
+                DeviceInfoUpdater::BecomeUndefined(old_master),
+                DeviceInfoFilter::ByHoldKey(old_master)
             )?;
     }else{
         error!("main account is unnormal");

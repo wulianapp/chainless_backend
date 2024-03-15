@@ -6,7 +6,7 @@ use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
 
-const PREDECESSOR_SUBFIX: &'static str = ".node0";
+const PREDECESSOR_SUBFIX: &str = ".node0";
 
 //fixme: user_id is obsolate
 /****

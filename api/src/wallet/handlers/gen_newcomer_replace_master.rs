@@ -32,7 +32,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GenTxNewcomerReplaceMasterRequest,
 ) -> BackendRes<GenReplaceKeyInfo> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let GenTxNewcomerReplaceMasterRequest {
         newcomer_pubkey,
     } = request_data;
@@ -55,7 +55,7 @@ pub(crate) async fn req(
     let master = master_list.first().unwrap();
     
     let (add_key_txid,add_key_raw) = client.add_key(&main_account, &newcomer_pubkey).await.unwrap().unwrap();
-    let (delete_key_txid,delete_key_raw) = client.delete_key(&main_account, &master).await.unwrap().unwrap();
+    let (delete_key_txid,delete_key_raw) = client.delete_key(&main_account, master).await.unwrap().unwrap();
     let replace_txids = GenReplaceKeyInfo{
         add_key_txid,
         add_key_raw,

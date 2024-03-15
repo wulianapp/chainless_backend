@@ -62,7 +62,7 @@ impl<T> ContractClient<T> {
         } else if method_name == "add_key"{
             let add_action = Action::AddKey(
                 AddKeyAction{
-                    public_key:  pubkey_from_hex_str(&args),
+                    public_key:  pubkey_from_hex_str(args),
                     access_key: AccessKey{
                         nonce: 0u64,
                         permission: AccessKeyPermission::FullAccess,
@@ -72,7 +72,7 @@ impl<T> ContractClient<T> {
         }else if method_name == "delete_key"{
             let delete_action = Action::DeleteKey(
                 DeleteKeyAction{
-                    public_key:  pubkey_from_hex_str(&args)
+                    public_key:  pubkey_from_hex_str(args)
                 });
             (caller_account_id.to_string(),vec![delete_action],2)  
         }else {
@@ -104,7 +104,7 @@ impl<T> ContractClient<T> {
         let mut transaction = gen_transaction_with_caller(
             self.relayer.account_id.clone(),
             self.relayer.public_key().clone(),
-            &receiver.to_string(),
+            receiver,
         )
         .await;
         transaction.actions = deposit_actions;

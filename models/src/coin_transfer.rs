@@ -222,7 +222,7 @@ impl PsqlOp for CoinTxView {
             status.to_string(),
             coin_tx_raw,
             chain_raw_data.to_psql_str(),
-            vec_str2array_text(signatures.to_owned())
+            vec_str2array_text(signatures)
         );
         println!("row sql {} rows", sql);
 

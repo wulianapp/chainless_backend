@@ -3,7 +3,7 @@ use hex::FromHex;
 
 pub fn bs58_to_hex(bs58_private_key: &str) -> Result<String, base58::FromBase58Error> {
     let bytes = bs58_private_key.from_base58()?;
-    let hex_string = hex::encode(&bytes);
+    let hex_string = hex::encode(bytes);
     Ok(hex_string)
 }
 

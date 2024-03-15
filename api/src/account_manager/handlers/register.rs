@@ -70,7 +70,7 @@ async fn register(
     //multi_cli.init_strategy(&pubkey).await.unwrap();
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;
-    let mut device = DeviceInfoView::new_with_specified(
+    let device = DeviceInfoView::new_with_specified(
         &device_id,
         &device_brand,
         this_user_id,

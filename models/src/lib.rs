@@ -196,7 +196,7 @@ fn assembly_insert_values(lines: Vec<Vec<String>>) -> String {
 pub fn vec_str2array_text(vec: Vec<String>) -> String {
     let array_elements: Vec<String> = vec
         .into_iter()
-        .map(|s| format!("'{}'", s.replace("'", "''")))
+        .map(|s| format!("'{}'", s.replace('\'', "''")))
         .collect();
 
     format!("ARRAY[{}]::text[]", array_elements.join(","))
@@ -214,15 +214,15 @@ impl PsqlType {
         match self {
             PsqlType::VecStr(data) => {
                 let array_elements: Vec<String> = data
-                    .into_iter()
-                    .map(|s| format!("'{}'", s.replace("'", "''")))
+                    .iter()
+                    .map(|s| format!("'{}'", s.replace('\'', "''")))
                     .collect();
 
                 format!("ARRAY[{}]::text[]", array_elements.join(","))
             }
             PsqlType::VecU64(data) => {
                 let array_elements: Vec<String> =
-                    data.into_iter().map(|s| format!("{}", s)).collect();
+                    data.iter().map(|s| format!("{}", s)).collect();
 
                 format!("ARRAY[{}]::int4[]", array_elements.join(","))
             }

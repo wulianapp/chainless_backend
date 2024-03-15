@@ -164,8 +164,8 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn add_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
-        let main_acc = AccountId::from_str(&main_acc).unwrap();
-        let subacc = AccountId::from_str(&subacc).unwrap();
+        let main_acc = AccountId::from_str(main_acc).unwrap();
+        let subacc = AccountId::from_str(subacc).unwrap();
 
         let args_str = json!({
             "main_account_id": main_acc,
@@ -176,8 +176,8 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn remove_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
-        let main_acc = AccountId::from_str(&main_acc).unwrap();
-        let subacc = AccountId::from_str(&subacc).unwrap();
+        let main_acc = AccountId::from_str(main_acc).unwrap();
+        let subacc = AccountId::from_str(subacc).unwrap();
 
         let args_str = json!({
             "main_account_id": main_acc,
@@ -427,13 +427,13 @@ pub fn get_pubkey(pri_key_str: &str) -> String {
 fn pubkey_from_hex(hex_str: &str) -> PublicKey {
     println!("pubkey_from_hex {}", hex_str);
     let sender_id = AccountId::from_str(hex_str).unwrap();
-    let sender_pubkey = PublicKey::from_implicit_account(&sender_id).unwrap();
-    sender_pubkey
+    
+    PublicKey::from_implicit_account(&sender_id).unwrap()
 }
 
 fn ed25519_sign_data(prikey_bytes: &[u8], data: &[u8]) -> String {
     println!("ed25519_secret {:?}", prikey_bytes);
-    let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
+    let secret_key = ed25519_dalek::Keypair::from_bytes(prikey_bytes).unwrap();
     let sig = secret_key.sign(data);
     sig.to_string()
 }
@@ -466,22 +466,22 @@ pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
     let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
     let main_device_pubkey = get_pubkey(&near_secret.to_string());
     let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-    let signer = InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
+    let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
     let signature = signer.sign(&data);
     let near_sig_bytes = signature.try_to_vec().unwrap();
     let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    hex::encode(&ed25519_sig_bytes)
+    hex::encode(ed25519_sig_bytes)
 }
 
 pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> String {
     let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
     let main_device_pubkey = get_pubkey(&near_secret.to_string());
     let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-    let signer = InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
+    let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
     let signature = signer.sign(data);
     let near_sig_bytes = signature.try_to_vec().unwrap();
     let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    hex::encode(&ed25519_sig_bytes)
+    hex::encode(ed25519_sig_bytes)
 }
 
 #[cfg(test)]
@@ -545,7 +545,7 @@ mod tests {
                 master_prikey,
                 &res.0,
             );
-            let test = crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
+            let _test = crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
         }else{
             debug!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
         }
@@ -570,7 +570,7 @@ mod tests {
         let secret_key: SecretKey = pri_key.parse().unwrap();
         let _secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
         //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
-        let main_device_pubkey = get_pubkey(&pri_key);
+        let main_device_pubkey = get_pubkey(pri_key);
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
         let _signer = near_crypto::InMemorySigner::from_secret_key(
             signer_account_id.to_owned(),
@@ -621,7 +621,7 @@ mod tests {
 
         let near_secret_bytes = near_secret.unwrap_as_ed25519().0;
 
-        let ed25519_raw_bytes = near_secret_bytes.clone();
+        let ed25519_raw_bytes = near_secret_bytes;
         let data_str = serde_json::to_string(&data).unwrap();
         let data_bytes = data_str.as_bytes();
 
@@ -630,7 +630,7 @@ mod tests {
         let sig = secret_key.sign(data_bytes);
         println!("ed25519_sig_res_bytes {:?}", sig.to_bytes());
         println!("ed25519_sig_res_hex {}", hex::encode(sig.to_bytes()));
-        let _test2 = secret_key.verify(data_bytes, &sig).unwrap();
+        secret_key.verify(data_bytes, &sig).unwrap();
 
         //near
         let _near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(ed25519_raw_bytes));
@@ -639,8 +639,8 @@ mod tests {
         let main_device_pubkey = get_pubkey(&near_secret.to_string());
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
         let signer =
-            InMemorySigner::from_secret_key(signer_account_id.to_owned(), near_secret.clone());
-        let signature = signer.sign(&data_bytes);
+            InMemorySigner::from_secret_key(signer_account_id, near_secret.clone());
+        let signature = signer.sign(data_bytes);
         let near_sig_bytes = signature.try_to_vec().unwrap();
         let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
         println!("near_sig_res_bytes {:?}", ed25519_sig_bytes);

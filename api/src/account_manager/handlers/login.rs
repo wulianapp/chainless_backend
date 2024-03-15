@@ -79,7 +79,7 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         DeviceInfoFilter::ByDeviceUser(&device_id,user_at_stored.id)
     );
     if find_res.is_err(){
-        let mut device = DeviceInfoView::new_with_specified(
+        let device = DeviceInfoView::new_with_specified(
             &device_id,
             &device_brand,
             user_at_stored.id,

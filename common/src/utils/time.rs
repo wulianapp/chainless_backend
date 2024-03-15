@@ -1,12 +1,12 @@
 use chrono::prelude::*;
 
-pub const MINUTE1: u64 = 1 * 60 * 1000;
+pub const MINUTE1: u64 = 60 * 1000;
 
 pub const MINUTE10: u64 = 10 * MINUTE1;
 
 pub const MINUTE30: u64 = 30 * MINUTE1;
 
-pub const HOUR1: u64 = 1 * 60 * MINUTE1;
+pub const HOUR1: u64 = 60 * MINUTE1;
 
 pub const DAY1: u64 = 24 * HOUR1;
 pub const DAY15: u64 = 15 * DAY1;

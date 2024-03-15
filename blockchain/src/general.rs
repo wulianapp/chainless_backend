@@ -124,11 +124,11 @@ pub async fn get_access_key_list(account_str: &str) -> AccessKeyList {
         .await
         .unwrap();
 
-    let list = match access_key_query_response.kind {
+    
+    match access_key_query_response.kind {
         QueryResponseKind::AccessKeyList(list) => list,
         _ => Err("failed to extract current nonce").unwrap(),
-    };
-    list
+    }
 }
 
 pub async fn safe_gen_transaction(

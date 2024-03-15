@@ -22,7 +22,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,

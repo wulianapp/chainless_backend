@@ -1194,8 +1194,8 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
-        let mut sender_servant = simulate_sender_servant();
-        let mut sender_new_device = simulate_sender_new_device();
+        let sender_servant = simulate_sender_servant();
+        let sender_new_device = simulate_sender_new_device();
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
@@ -1263,7 +1263,7 @@ mod tests {
         );
 
         let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
-            &sender_master.wallet.prikey.as_ref().unwrap(),
+            sender_master.wallet.prikey.as_ref().unwrap(),
             &res.data.delete_key_txid
         );
         let payload = json!({
@@ -1364,7 +1364,7 @@ mod tests {
         );
 
         let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
-            &sender_master.wallet.prikey.as_ref().unwrap(),
+            sender_master.wallet.prikey.as_ref().unwrap(),
             &res.data.delete_key_txid
         );
         let payload = json!({
@@ -1399,7 +1399,7 @@ mod tests {
         test_create_main_account!(service, sender_master);
 
         //balance
-        let url = format!("/wallet/balanceList");
+        let _url = format!("/wallet/balanceList");
         let list = test_get_balance_list!(service,sender_master);
         println!("{:?}", list);
 
@@ -1453,9 +1453,9 @@ mod tests {
 
     #[actix_web::test]
     async fn test_all_braced_wallet_ok_with_fix_key() {
-        let mut sender_master = simulate_sender_master();
-        let mut receiver = simulate_receiver();
-        let mut sender_servant = simulate_sender_servant();
+        let sender_master = simulate_sender_master();
+        let receiver = simulate_receiver();
+        let sender_servant = simulate_sender_servant();
         test_all_braced_wallet_ok(sender_master,receiver,sender_servant).await;
     }
 

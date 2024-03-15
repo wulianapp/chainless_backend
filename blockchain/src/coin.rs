@@ -89,7 +89,7 @@ async fn get_balance(account: &AccountId) -> u128 {
     if let QueryResponseKind::CallResult(result) = rep.kind {
         let amount_str: String = String::from_utf8(result.result)
             .unwrap()
-            .split("\"")
+            .split('\"')
             .collect();
         u128::from_str(&amount_str).unwrap()
     } else {

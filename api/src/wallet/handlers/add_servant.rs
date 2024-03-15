@@ -26,7 +26,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         servant_prikey_encryped_by_password,
         servant_prikey_encryped_by_answer,
         holder_device_id,
-        holder_device_brand,
+        holder_device_brand: _,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;

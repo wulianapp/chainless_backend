@@ -36,11 +36,11 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
 
 pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse {
     debug!("return_error_respond: {}", error.to_string());
-    return HttpResponse::Ok().json(BackendRespond {
+    HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error.code(),
         data: "".to_string(),
-    });
+    })
 }
 
 pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
