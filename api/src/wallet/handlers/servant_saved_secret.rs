@@ -24,8 +24,11 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Servant{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Servant))?;
+    if device.device_info.key_role != KeyRole2::Servant {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Servant,
+        ))?;
     }
     //理论上设备和userid可以锁定唯一的pubkey，不需要再传，
     //但是也要考虑比如从设备成为主设备这种发生pubkey更换的场景，这个场景需要把老pubkey进行删除

@@ -17,18 +17,23 @@ use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
 
-pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -> BackendRes<String> {
+pub(crate) async fn req(
+    req: HttpRequest,
+    request_data: ReplaceServantRequest,
+) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = user_info.user_info.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Undefined{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Undefined))?;
+    if device.device_info.key_role != KeyRole2::Undefined {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Undefined,
+        ))?;
     }
 
-    
     let ReplaceServantRequest {
         old_servant_pubkey,
         new_servant_pubkey,
@@ -39,10 +44,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
 
     models::general::transaction_begin()?;
     //check if stored already
-    let origin_secret = SecretStoreView::find(
-        SecretFilter::ByPubkey(&new_servant_pubkey)
-    )?;
-    if origin_secret.is_empty(){
+    let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&new_servant_pubkey))?;
+    if origin_secret.is_empty() {
         let secret_info = SecretStoreView::new_with_specified(
             &new_servant_pubkey,
             user_id,
@@ -50,26 +53,26 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
             &new_servant_prikey_encryped_by_answer,
         );
         secret_info.insert()?;
-    }else {
+    } else {
         SecretStoreView::update(
-            SecretUpdater::State(SecretKeyState::Incumbent), 
-            SecretFilter::ByPubkey(&new_servant_pubkey)
+            SecretUpdater::State(SecretKeyState::Incumbent),
+            SecretFilter::ByPubkey(&new_servant_pubkey),
         )?;
     }
 
     SecretStoreView::update(
-        SecretUpdater::State(SecretKeyState::Abandoned), 
-        SecretFilter::ByPubkey(&old_servant_pubkey)
+        SecretUpdater::State(SecretKeyState::Abandoned),
+        SecretFilter::ByPubkey(&old_servant_pubkey),
     )?;
 
-     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
+    //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&new_device_id,user_id)
+        DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),
     )?;
     DeviceInfoView::update(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
-        DeviceInfoFilter::ByHoldKey(&old_servant_pubkey)
+        DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
     )?;
 
     //add wallet info
@@ -84,9 +87,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReplaceServantRequest) -
         .servant_pubkeys
         .retain(|x| x != &old_servant_pubkey);
 
-     current_strategy
-        .servant_pubkeys
-        .push(new_servant_pubkey);
+    current_strategy.servant_pubkeys.push(new_servant_pubkey);
 
     multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)

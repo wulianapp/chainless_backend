@@ -1,8 +1,8 @@
 use common::error_code::BackendError;
 use common::error_code::BackendRes;
-use tracing::error;
 use std::fmt::Debug;
 use std::str::FromStr;
+use tracing::error;
 //use ed25519_dalek::Signer;
 use ed25519_dalek::Signer as DalekSigner;
 use hex::ToHex;
@@ -12,9 +12,8 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::{Action, FunctionCallAction, SignedTransaction};
 use near_primitives::types::{BlockReference, Finality, FunctionArgs};
 use near_primitives::views::{FinalExecutionStatus, QueryRequest};
-use serde_json::json;
 use rand::rngs::OsRng;
-
+use serde_json::json;
 
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use lazy_static::lazy_static;
@@ -23,7 +22,7 @@ use near_primitives::account::Account;
 use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
 
-use common::data_structures::wallet::{CoinType};
+use common::data_structures::wallet::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -83,7 +82,7 @@ impl ContractClient<MultiSig> {
     pub async fn get_master_pubkey(&self, account_str: &str) -> String {
         let list = get_access_key_list(account_str).await.keys;
         if list.len() != 1 {
-            error!("account have multi key {:?}",list);
+            error!("account have multi key {:?}", list);
             //panic!("todo");
         }
         //let key = list.first().unwrap().public_key.key_data();
@@ -94,38 +93,35 @@ impl ContractClient<MultiSig> {
 
     pub async fn get_master_pubkey_list(&self, account_str: &str) -> Vec<String> {
         let list = get_access_key_list(account_str).await.keys;
-        list.iter().map(|key|hex::encode(key.public_key.key_data())).collect()
+        list.iter()
+            .map(|key| hex::encode(key.public_key.key_data()))
+            .collect()
     }
 
     //add_master
     //这里先查询如果已经存在就不加了
-    pub async fn add_key(&self, main_account: &str,new_key: &str) -> BackendRes<(String, String)> {
+    pub async fn add_key(&self, main_account: &str, new_key: &str) -> BackendRes<(String, String)> {
         let master_pubkey = self.get_master_pubkey(main_account).await;
         let master_pubkey = pubkey_from_hex_str(&master_pubkey);
         let main_account = AccountId::from_str(main_account).unwrap();
-        self.gen_raw_with_caller(
-            &main_account,
-             &master_pubkey, 
-             "add_key", 
-             new_key)
-        .await
+        self.gen_raw_with_caller(&main_account, &master_pubkey, "add_key", new_key)
+            .await
     }
 
     //fixme：删除的这个理论上应该用新增加的key来签名，保证确实增加进去了，但是这样需要等待增加key执行完才行
     //为了减少前端的工作量，这里删除也用原有主私钥，也就是自己删自己
     //后期可以在链底层增加一个直接替换的接口
-    pub async fn delete_key(&self, main_account: &str,delete_key: &str) -> BackendRes<(String, String)> {
+    pub async fn delete_key(
+        &self,
+        main_account: &str,
+        delete_key: &str,
+    ) -> BackendRes<(String, String)> {
         let master_pubkey = self.get_master_pubkey(main_account).await;
         let master_pubkey = pubkey_from_hex_str(&master_pubkey);
         let main_account = AccountId::from_str(main_account).unwrap();
-        self.gen_raw_with_caller(
-            &main_account,
-             &master_pubkey, 
-             "delete_key", 
-             delete_key)
-        .await
+        self.gen_raw_with_caller(&main_account, &master_pubkey, "delete_key", delete_key)
+            .await
     }
-
 
     pub async fn get_strategy(&self, account_id: &str) -> BackendRes<StrategyData> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
@@ -427,7 +423,7 @@ pub fn get_pubkey(pri_key_str: &str) -> String {
 fn pubkey_from_hex(hex_str: &str) -> PublicKey {
     println!("pubkey_from_hex {}", hex_str);
     let sender_id = AccountId::from_str(hex_str).unwrap();
-    
+
     PublicKey::from_implicit_account(&sender_id).unwrap()
 }
 
@@ -448,14 +444,14 @@ pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
     sig.to_string()
 }
 
-pub fn ed25519_key_gen() -> (String,String) {
-    let mut csprng = OsRng{};
+pub fn ed25519_key_gen() -> (String, String) {
+    let mut csprng = OsRng {};
     let key_pair = ed25519_dalek::Keypair::generate(&mut csprng);
 
-    let prikey:String = key_pair.secret.encode_hex();
-    let pubkey:String = key_pair.public.to_bytes().encode_hex();
-    let prikey = format!("{}{}",prikey,pubkey);
-    (prikey,pubkey)
+    let prikey: String = key_pair.secret.encode_hex();
+    let pubkey: String = key_pair.public.to_bytes().encode_hex();
+    let prikey = format!("{}{}", prikey, pubkey);
+    (prikey, pubkey)
 }
 
 pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
@@ -539,29 +535,33 @@ mod tests {
         let master_list = client.get_master_pubkey_list(main_account).await;
 
         //增加之前判断是否有
-        if !master_list.contains(&newcomer_pubkey.to_string()){
-            let res = client.add_key(main_account, newcomer_pubkey).await.unwrap().unwrap();
-            let signature = crate::multi_sig::ed25519_sign_data2(
-                master_prikey,
-                &res.0,
-            );
-            let _test = crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
-        }else{
-            debug!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
+        if !master_list.contains(&newcomer_pubkey.to_string()) {
+            let res = client
+                .add_key(main_account, newcomer_pubkey)
+                .await
+                .unwrap()
+                .unwrap();
+            let signature = crate::multi_sig::ed25519_sign_data2(master_prikey, &res.0);
+            let _test = crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
+        } else {
+            debug!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
         }
-    
+
         //删除之前判断目标新公钥是否在，在的话就把新公钥之外的全删了
         let mut master_list = client.get_master_pubkey_list(main_account).await;
         master_list.retain(|x| x != master_pubkey);
-        if !master_list.is_empty(){
+        if !master_list.is_empty() {
             //理论上生产环境不会出现3个master并存的场景
-            for master_pubkey  in master_list {
-                let res = client.delete_key(main_account, &master_pubkey).await.unwrap().unwrap();
-                let signature = crate::multi_sig::ed25519_sign_data2(master_prikey,&res.0);
-                crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
+            for master_pubkey in master_list {
+                let res = client
+                    .delete_key(main_account, &master_pubkey)
+                    .await
+                    .unwrap()
+                    .unwrap();
+                let signature = crate::multi_sig::ed25519_sign_data2(master_prikey, &res.0);
+                crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
             }
         }
-
     }
 
     #[tokio::test]
@@ -638,8 +638,7 @@ mod tests {
         let _secret_key_bytes = near_secret.unwrap_as_ed25519().0.as_slice();
         let main_device_pubkey = get_pubkey(&near_secret.to_string());
         let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let signer =
-            InMemorySigner::from_secret_key(signer_account_id, near_secret.clone());
+        let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret.clone());
         let signature = signer.sign(data_bytes);
         let near_sig_bytes = signature.try_to_vec().unwrap();
         let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();

@@ -13,10 +13,13 @@ use models::PsqlOp;
 
 pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> BackendRes<String> {
     //todo:check user_id if valid
-    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    if device.device_info.key_role != KeyRole2::Master {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Master,
+        ))?;
     }
 
     let ReactPreSendMoney {

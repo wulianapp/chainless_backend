@@ -85,7 +85,7 @@ async fn contact_is_used(
  * @apiSuccess {string} data.phone_number         用户手机号
  * @apiSuccess {string} data.email                用户邮箱
  * @apiSuccess {string} data.anwser_indexes            安全问题的序列信息
- * @apiSuccess {bool} data.is_frozen                是否冻结 
+ * @apiSuccess {bool} data.is_frozen                是否冻结
  * @apiSuccess {number} data.predecessor              邀请者ID
  * @apiSuccess {number} data.laste_predecessor_replace_time     上次更换邀请者的时间
  * @apiSuccess {string} data.invite_code              用户自己的邀请码
@@ -94,8 +94,6 @@ async fn contact_is_used(
  * @apiSuccess {string} data.main_account             主钱包id
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
-
-
 
 type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -247,11 +245,12 @@ pub struct ResetPasswordRequest {
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
-async fn reset_password(req: HttpRequest,
-    request_data: web::Json<ResetPasswordRequest>
+async fn reset_password(
+    req: HttpRequest,
+    request_data: web::Json<ResetPasswordRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::reset_password::req(req,request_data).await)
+    gen_extra_respond(handlers::reset_password::req(req, request_data).await)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -273,8 +272,8 @@ mod tests {
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
     use actix_web::{test, App, Error};
-    use tests::handlers::user_info::UserInfoTmp;
     use std::env;
+    use tests::handlers::user_info::UserInfoTmp;
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {
@@ -331,7 +330,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
 
         //register
         let payload = r#"
@@ -350,8 +349,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
-
+        assert_eq!(res.status_code, 0);
 
         //login
         let payload = r#"
@@ -368,8 +366,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", login_res.data);
-        assert_eq!(login_res.status_code,0);
-
+        assert_eq!(login_res.status_code, 0);
 
         //check contact if is used
         let res: BackendRespond<bool> = test_service_call!(
@@ -380,11 +377,9 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
 
-
-        let payload =
-            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "resetPassword" }"#;
+        let payload = r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "resetPassword" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
@@ -393,7 +388,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
 
         let payload = r#"
         { "deviceId": "000000",
@@ -410,8 +405,7 @@ mod tests {
             Some(login_res.data)
         );
         println!("{:?}", res.msg);
-        assert_eq!(res.status_code,0);
-
+        assert_eq!(res.status_code, 0);
 
         let payload = r#"
         { "deviceId": "000000",
@@ -427,8 +421,7 @@ mod tests {
             None::<String>
         );
         println!("{:?}", res.data);
-        assert_eq!(res.status_code,0);
-
+        assert_eq!(res.status_code, 0);
 
         let res: BackendRespond<UserInfoTmp> = test_service_call!(
             service,

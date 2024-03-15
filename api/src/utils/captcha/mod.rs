@@ -7,8 +7,8 @@ use std::str::FromStr;
 use common::error_code::{AccountManagerError, BackendError};
 use common::utils::math::gen_random_verify_code;
 use lazy_static::lazy_static;
-use tracing::debug;
 use std::sync::Mutex;
+use tracing::debug;
 
 use common::env::ServiceMode;
 use regex::Regex;
@@ -24,7 +24,7 @@ lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
 }
 
-#[derive(PartialEq,Debug)]
+#[derive(PartialEq, Debug)]
 pub enum ContactType {
     PhoneNumber,
     Email,
@@ -59,20 +59,20 @@ impl FromStr for Usage {
 
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
-    if input.contains("mail"){
+    if input.contains("mail") {
         let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
-        if email_re.is_match(input){
+        if email_re.is_match(input) {
             Ok(ContactType::Email)
-        }else {
+        } else {
             Err(PhoneOrEmailIncorrect)
         }
-    }else {
+    } else {
         //这里和前端的有效判断不一致先放开
-	    let number = phonenumber::parse(None, input);
+        let number = phonenumber::parse(None, input);
         //if phonenumber::is_valid(&number){
-        if number.is_ok(){    
+        if number.is_ok() {
             Ok(ContactType::PhoneNumber)
-        }else {
+        } else {
             Err(PhoneOrEmailIncorrect)
         }
     }
@@ -100,23 +100,23 @@ pub struct Captcha {
     pub created_at: u64,
     pub expiration_time: u64,
 }
-//手机+852开头的后六位做验证码:  +86 13682470011 
+//手机+852开头的后六位做验证码:  +86 13682470011
 //邮箱test和@中间的字符，且字符长度等于6的作为验证码: test000001@gmail.com
 //其他情况都是真随机验证码
-pub fn distill_code_from_contact(contact:&str) ->  String{
+pub fn distill_code_from_contact(contact: &str) -> String {
     if contact.contains("+86") {
         contact[contact.len() - 6..].to_string()
-    }else {
+    } else {
         let re = Regex::new(r"test(.*?)@").unwrap();
         let mut code = gen_random_verify_code().to_string();
         if let Some(captures) = re.captures(contact) {
             if let Some(matched_text) = captures.get(1) {
                 let filter_str = matched_text.as_str();
                 if filter_str.len() == 6 {
-                    code  = filter_str.to_string();
+                    code = filter_str.to_string();
                 }
-            } 
-        }; 
+            }
+        };
         code
     }
 }

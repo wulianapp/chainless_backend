@@ -195,7 +195,7 @@ mod tests {
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());
         let _send_res = coin_cli.send_coin(receiver, 0u128).await.unwrap();
-       // sleep(Duration::from_secs(3)).await;
+        // sleep(Duration::from_secs(3)).await;
         let balance2 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance2 {}", balance2.unwrap());
     }

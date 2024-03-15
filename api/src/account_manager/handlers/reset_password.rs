@@ -7,12 +7,15 @@ use tracing::debug;
 use crate::account_manager::ResetPasswordRequest;
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::BackendRes;
+use common::error_code::{AccountManagerError::*, WalletError};
 use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PsqlOp};
 
-pub async fn req(req: HttpRequest,request_data: web::Json<ResetPasswordRequest>) -> BackendRes<String> {
+pub async fn req(
+    req: HttpRequest,
+    request_data: web::Json<ResetPasswordRequest>,
+) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
     let ResetPasswordRequest {
@@ -20,8 +23,7 @@ pub async fn req(req: HttpRequest,request_data: web::Json<ResetPasswordRequest>)
         captcha,
         new_password,
     } = request_data.clone();
-    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
-  
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     //check captcha
     Captcha::check_user_code(&contact, &captcha, Usage::ResetPassword)?;
@@ -32,8 +34,12 @@ pub async fn req(req: HttpRequest,request_data: web::Json<ResetPasswordRequest>)
 
     //看是否设置了安全措施，之前是都可以，之后是只有主设备可以
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if user_at_stored.user_info.secruity_is_seted && device.device_info.key_role != KeyRole2::Master{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    if user_at_stored.user_info.secruity_is_seted && device.device_info.key_role != KeyRole2::Master
+    {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Master,
+        ))?;
     }
 
     //modify user's password  at db

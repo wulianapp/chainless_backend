@@ -1,5 +1,5 @@
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest};
+use crate::wallet::CreateMainAccountRequest;
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::ContractClient;
@@ -20,9 +20,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let coin_list = get_support_coin_list_without_cly();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone());
-        let _balance = coin_cli.
-        send_coin(&account_id,100)
-        .await?.unwrap();
+        let _balance = coin_cli.send_coin(&account_id, 100).await?.unwrap();
     }
     Ok(None::<String>)
 }

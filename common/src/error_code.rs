@@ -106,7 +106,7 @@ pub enum WalletError {
     #[error("have uncomplete transaction,cann't excute operate device")]
     HaveUncompleteTx,
     #[error("Current role is {0},but only {1} is allowed")]
-    UneligiableRole(KeyRole2,KeyRole2),
+    UneligiableRole(KeyRole2, KeyRole2),
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -118,7 +118,7 @@ impl ErrorCode for WalletError {
             Self::PubkeyAlreadyExist => 3005,
             Self::MainAccountNotExist(_) => 3006,
             Self::HaveUncompleteTx => 3007,
-            Self::UneligiableRole(_,_) => 3008
+            Self::UneligiableRole(_, _) => 3008,
         }
     }
 }

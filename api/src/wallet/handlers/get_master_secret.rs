@@ -1,9 +1,13 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
-use models::{account_manager::{UserFilter, UserInfoView}, secret_store::{SecretFilter, SecretStoreView}, PsqlOp};
+use models::{
+    account_manager::{UserFilter, UserInfoView},
+    secret_store::{SecretFilter, SecretStoreView},
+    PsqlOp,
+};
 
-use crate::{utils::token_auth};
+use crate::utils::token_auth;
 use common::{data_structures::secret_store::SecretStore, error_code::BackendRes};
 use serde::{Deserialize, Serialize};
 

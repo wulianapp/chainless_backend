@@ -1,15 +1,22 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
-use models::{device_info::{DeviceInfoFilter, DeviceInfoView}, secret_store::{SecretFilter, SecretStoreView}, PsqlOp};
+use models::{
+    device_info::{DeviceInfoFilter, DeviceInfoView},
+    secret_store::{SecretFilter, SecretStoreView},
+    PsqlOp,
+};
 
-use crate::{utils::token_auth};
-use common::{data_structures::secret_store::SecretStore, error_code::{BackendError, BackendRes}};
+use crate::utils::token_auth;
+use common::{
+    data_structures::secret_store::SecretStore,
+    error_code::{BackendError, BackendRes},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::wallet::GetStrategyRequest;
 
-/*** 
+/***
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
     pub multi_sig_ranks: Vec<MultiSigRank>,

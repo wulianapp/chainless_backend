@@ -27,9 +27,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
         messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
     }
 
-    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(
-        &user.user_info.main_account,
-    ))?;
+    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account))?;
     let mut tx_msg = coin_txs
         .into_iter()
         .map(|tx| AccountMessage::CoinTx(tx.tx_index, tx.transaction))

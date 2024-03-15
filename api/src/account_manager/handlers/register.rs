@@ -27,8 +27,7 @@ async fn register(
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
     //check userinfo form db
-    let find_res =
-        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
+    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -70,11 +69,7 @@ async fn register(
     //multi_cli.init_strategy(&pubkey).await.unwrap();
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;
-    let device = DeviceInfoView::new_with_specified(
-        &device_id,
-        &device_brand,
-        this_user_id,
-    );
+    let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
     device.insert()?;
 
     models::general::transaction_commit()?;

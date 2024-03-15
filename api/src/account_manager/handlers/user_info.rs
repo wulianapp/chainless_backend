@@ -9,8 +9,7 @@ use serde::{Deserialize, Serialize};
 use crate::account_manager::UserInfoRequest;
 use crate::utils::token_auth;
 
-
-#[derive(Serialize,Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfoTmp {
     pub id: u32,
     pub phone_number: String,

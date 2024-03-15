@@ -34,19 +34,28 @@ impl fmt::Display for DeviceInfoUpdater<'_> {
             }
             DeviceInfoUpdater::HolderSaved(saved) => {
                 format!("holder_confirm_saved={} ", saved)
-            },
+            }
             DeviceInfoUpdater::BecomeMaster(key) => {
-                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Master') ", key)
-            },
+                format!(
+                    "(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Master') ",
+                    key
+                )
+            }
             DeviceInfoUpdater::BecomeServant(key) => {
-                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}','true','Servant') ", key)
-            },
+                format!(
+                    "(hold_pubkey,holder_confirm_saved,key_role)=('{}','true','Servant') ",
+                    key
+                )
+            }
             DeviceInfoUpdater::AddServant(key) => {
                 format!("(hold_pubkey,key_role)=('{}','Servant') ", key)
-            },
+            }
             DeviceInfoUpdater::BecomeUndefined(key) => {
-                format!("(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Undefined') ", key)
-            },
+                format!(
+                    "(hold_pubkey,holder_confirm_saved,key_role)=('{}',true,'Undefined') ",
+                    key
+                )
+            }
         };
         write!(f, "{}", description)
     }
@@ -66,7 +75,7 @@ impl fmt::Display for DeviceInfoFilter<'_> {
             DeviceInfoFilter::ByUser(user_id) => format!("user_id={} ", user_id),
             DeviceInfoFilter::ByDeviceUser(device_id, user_id) => {
                 format!("id='{}' and user_id={} ", device_id, user_id)
-            },
+            }
             DeviceInfoFilter::ByUserDeviceHoldSecret(user_id, device_id, saved) => format!(
                 "user_id={} and id='{}' and holder_confirm_saved={} ",
                 user_id, device_id, saved
@@ -87,11 +96,7 @@ pub struct DeviceInfoView {
 }
 
 impl DeviceInfoView {
-    pub fn new_with_specified(
-        id: &str,
-        brand: &str,
-        user_id: u32,
-    ) -> Self {
+    pub fn new_with_specified(id: &str, brand: &str, user_id: u32) -> Self {
         DeviceInfoView {
             device_info: DeviceInfo {
                 id: id.to_owned(),
@@ -100,7 +105,7 @@ impl DeviceInfoView {
                 hold_pubkey: None,
                 brand: brand.to_owned(),
                 holder_confirm_saved: false,
-                key_role: KeyRole2::Undefined
+                key_role: KeyRole2::Undefined,
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -159,7 +164,7 @@ impl PsqlOp for DeviceInfoView {
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res,0);
+        assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(())
     }
@@ -214,12 +219,10 @@ mod tests {
 
         crate::general::table_all_clear();
 
-        let device =
-            DeviceInfoView::new_with_specified("123", "Huawei", 1);
+        let device = DeviceInfoView::new_with_specified("123", "Huawei", 1);
         device.insert().unwrap();
         let mut device_by_find =
-            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123", 1))
-                .unwrap();
+            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123", 1)).unwrap();
         println!("{:?}", device_by_find);
         assert_eq!(device.device_info, device_by_find.device_info);
 

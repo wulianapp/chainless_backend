@@ -72,7 +72,6 @@ pub async fn gen_transaction_with_caller(
     }
 }
 
-
 pub async fn gen_transaction_with_caller_with_nonce(
     caller_account_id: AccountId,
     caller_pubkey: PublicKey,
@@ -124,7 +123,6 @@ pub async fn get_access_key_list(account_str: &str) -> AccessKeyList {
         .await
         .unwrap();
 
-    
     match access_key_query_response.kind {
         QueryResponseKind::AccessKeyList(list) => list,
         _ => Err("failed to extract current nonce").unwrap(),

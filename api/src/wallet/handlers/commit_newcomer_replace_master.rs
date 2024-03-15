@@ -7,7 +7,10 @@ use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
-use crate::wallet::{CommitNewcomerReplaceMasterRequest, CreateMainAccountRequest, GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest};
+use crate::wallet::{
+    CommitNewcomerReplaceMasterRequest, CreateMainAccountRequest,
+    GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest,
+};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -17,9 +20,8 @@ use common::error_code::AccountManagerError::{
 };
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
+use serde::{Deserialize, Serialize};
 use tracing::{error, info};
-use serde::{Deserialize,Serialize};
-
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -39,29 +41,31 @@ pub(crate) async fn req(
     let main_account = user_info.user_info.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Undefined{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Undefined))?;
+    if device.device_info.key_role != KeyRole2::Undefined {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Undefined,
+        ))?;
     }
-
 
     let client = ContractClient::<MultiSig>::new();
     let master_list = client.get_master_pubkey_list(&main_account).await;
 
     if master_list.len() != 1 {
         error!("unnormal account， it's account have more than 1 master");
-        return Err(common::error_code::BackendError::InternalError("".to_string()));
+        return Err(common::error_code::BackendError::InternalError(
+            "".to_string(),
+        ));
     }
     let old_master = master_list.first().unwrap();
 
     //增加之前判断是否有
-    if !master_list.contains(&newcomer_pubkey.to_string()){
-        blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw,&add_key_sig).await;
- 
+    if !master_list.contains(&newcomer_pubkey.to_string()) {
+        blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
+
         //check if stored already ,if not insert sercret_store or update
-        let origin_secret = SecretStoreView::find(
-            SecretFilter::ByPubkey(&newcomer_pubkey)
-        )?;
-        if origin_secret.is_empty(){
+        let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey))?;
+        if origin_secret.is_empty() {
             let secret_info = SecretStoreView::new_with_specified(
                 &newcomer_pubkey,
                 user_id,
@@ -69,39 +73,43 @@ pub(crate) async fn req(
                 &newcomer_prikey_encrypted_by_answer,
             );
             secret_info.insert()?;
-        }else {
+        } else {
             SecretStoreView::update(
-                SecretUpdater::State(SecretKeyState::Incumbent), 
-                SecretFilter::ByPubkey(&newcomer_pubkey)
+                SecretUpdater::State(SecretKeyState::Incumbent),
+                SecretFilter::ByPubkey(&newcomer_pubkey),
             )?;
         }
 
         //更新设备信息
         DeviceInfoView::update(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
-            DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
+            DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         )?;
-        
-    }else{
-        error!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
-        Err(BackendError::InternalError("newcomer_pubkey already is master".to_string()))?;
+    } else {
+        error!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
+        Err(BackendError::InternalError(
+            "newcomer_pubkey already is master".to_string(),
+        ))?;
     }
 
     //除了同时包含servant_key和旧的master之外的情况全部认为异常不处理
     let master_list = client.get_master_pubkey_list(&main_account).await;
-    if master_list.len() == 2 && master_list.contains(&newcomer_pubkey) && master_list.contains(old_master){
-            blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw,&delete_key_sig).await;
-            //更新设备信息
-            DeviceInfoView::update(
-                DeviceInfoUpdater::BecomeUndefined(old_master),
-                DeviceInfoFilter::ByHoldKey(old_master)
-            )?;
-    }else{
+    if master_list.len() == 2
+        && master_list.contains(&newcomer_pubkey)
+        && master_list.contains(old_master)
+    {
+        blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
+        //更新设备信息
+        DeviceInfoView::update(
+            DeviceInfoUpdater::BecomeUndefined(old_master),
+            DeviceInfoFilter::ByHoldKey(old_master),
+        )?;
+    } else {
         error!("main account is unnormal");
-        Err(BackendError::InternalError("main account is unnormal".to_string()))?;
+        Err(BackendError::InternalError(
+            "main account is unnormal".to_string(),
+        ))?;
     }
 
-     
-    
     Ok(None::<String>)
 }

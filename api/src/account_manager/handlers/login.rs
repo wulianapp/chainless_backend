@@ -75,18 +75,15 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         Err(PasswordIncorrect)?;
     }
     //todo: distinguish repeat and not found
-    let find_res = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id,user_at_stored.id)
-    );
-    if find_res.is_err(){
-        let device = DeviceInfoView::new_with_specified(
-            &device_id,
-            &device_brand,
-            user_at_stored.id,
-        );
+    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
+        &device_id,
+        user_at_stored.id,
+    ));
+    if find_res.is_err() {
+        let device =
+            DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
         device.insert()?;
     }
-
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);

@@ -19,7 +19,7 @@ use tracing::error;
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let AddServantRequest {
         main_account,
         servant_pubkey,
@@ -30,17 +30,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master{
-        Err(WalletError::UneligiableRole(device.device_info.key_role, KeyRole2::Master))?;
+    if device.device_info.key_role != KeyRole2::Master {
+        Err(WalletError::UneligiableRole(
+            device.device_info.key_role,
+            KeyRole2::Master,
+        ))?;
     }
-
 
     models::general::transaction_begin()?;
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
-    let origin_secret = SecretStoreView::find(
-        SecretFilter::ByPubkey(&servant_pubkey)
-    )?;
-    if origin_secret.is_empty(){
+    let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey))?;
+    if origin_secret.is_empty() {
         let secret_info = SecretStoreView::new_with_specified(
             &servant_pubkey,
             user_id,
@@ -48,10 +48,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
             &servant_prikey_encryped_by_answer,
         );
         secret_info.insert()?;
-    }else {
+    } else {
         SecretStoreView::update(
-            SecretUpdater::State(SecretKeyState::Incumbent), 
-            SecretFilter::ByPubkey(&servant_pubkey)
+            SecretUpdater::State(SecretKeyState::Incumbent),
+            SecretFilter::ByPubkey(&servant_pubkey),
         )?;
     }
 
@@ -72,11 +72,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&holder_device_id,user_id)
+        DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
     )?;
-    
-
-
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

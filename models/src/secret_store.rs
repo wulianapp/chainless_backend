@@ -126,7 +126,7 @@ impl PsqlOp for SecretStoreView {
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res,0);
+        assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(())
     }
@@ -158,7 +158,7 @@ impl PsqlOp for SecretStoreView {
         let _execute_res = crate::execute(sql.as_str())?;
         Ok(())
     }
-    
+
     fn find_single(filter: Self::FilterContent<'_>) -> Result<Self, BackendError>
     where
         Self: Sized,
@@ -167,14 +167,16 @@ impl PsqlOp for SecretStoreView {
         let data_len = get_res.len();
         if data_len == 0 {
             //todo:return db error type
-            Err(BackendError::InternalError("data isn't existed".to_string()))
+            Err(BackendError::InternalError(
+                "data isn't existed".to_string(),
+            ))
         } else if data_len > 1 {
             Err(BackendError::InternalError("data is repeated".to_string()))
         } else {
             Ok(get_res.pop().unwrap())
         }
     }
-    
+
     fn delete<T: Display>(_filter: T) -> Result<(), BackendError> {
         todo!()
     }
@@ -204,8 +206,7 @@ mod tests {
             SecretStoreView::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
         secret.insert().unwrap();
         let secret_by_find =
-            SecretStoreView::find_single(SecretFilter::BySittingPubkey("0123456789"))
-                .unwrap();
+            SecretStoreView::find_single(SecretFilter::BySittingPubkey("0123456789")).unwrap();
         println!("{:?}", secret_by_find);
         assert_eq!(secret_by_find.secret_store, secret.secret_store);
 

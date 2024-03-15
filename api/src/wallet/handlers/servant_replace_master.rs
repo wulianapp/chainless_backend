@@ -15,7 +15,7 @@ use common::error_code::AccountManagerError::{
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
-/*** 
+/***
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,

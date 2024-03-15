@@ -21,9 +21,14 @@ use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::Tra
 use common::error_code;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
-    account::{AccessKey, AccessKeyPermission}, borsh::BorshSerialize, transaction::{
-        Action, AddKeyAction, CreateAccountAction, DeleteKeyAction, FunctionCallAction, SignedTransaction, Transaction, TransferAction
-    }, types::{AccountId, BlockReference, Finality, FunctionArgs}, views::{FinalExecutionStatus, QueryRequest}
+    account::{AccessKey, AccessKeyPermission},
+    borsh::BorshSerialize,
+    transaction::{
+        Action, AddKeyAction, CreateAccountAction, DeleteKeyAction, FunctionCallAction,
+        SignedTransaction, Transaction, TransferAction,
+    },
+    types::{AccountId, BlockReference, Finality, FunctionArgs},
+    views::{FinalExecutionStatus, QueryRequest},
 };
 use serde::{de::DeserializeOwned, Deserialize};
 use serde_json::json;
@@ -53,39 +58,39 @@ impl<T> ContractClient<T> {
         args: &str,
     ) -> Transaction {
         //todo: when mainnet deposit is zero，now is 100 * cost
-        let (receiver_str, actions,nonce) = if method_name == "register_account" {
+        let (receiver_str, actions, nonce) = if method_name == "register_account" {
             (
                 args.to_string(),
-                vec![Action::Transfer(TransferAction { deposit: 18927320303528646025800000u128 })],
+                vec![Action::Transfer(TransferAction {
+                    deposit: 18927320303528646025800000u128,
+                })],
                 1,
             )
-        } else if method_name == "add_key"{
-            let add_action = Action::AddKey(
-                AddKeyAction{
-                    public_key:  pubkey_from_hex_str(args),
-                    access_key: AccessKey{
-                        nonce: 0u64,
-                        permission: AccessKeyPermission::FullAccess,
-                    }
-                });
-            (caller_account_id.to_string(),vec![add_action],1)  
-        }else if method_name == "delete_key"{
-            let delete_action = Action::DeleteKey(
-                DeleteKeyAction{
-                    public_key:  pubkey_from_hex_str(args)
-                });
-            (caller_account_id.to_string(),vec![delete_action],2)  
-        }else {
+        } else if method_name == "add_key" {
+            let add_action = Action::AddKey(AddKeyAction {
+                public_key: pubkey_from_hex_str(args),
+                access_key: AccessKey {
+                    nonce: 0u64,
+                    permission: AccessKeyPermission::FullAccess,
+                },
+            });
+            (caller_account_id.to_string(), vec![add_action], 1)
+        } else if method_name == "delete_key" {
+            let delete_action = Action::DeleteKey(DeleteKeyAction {
+                public_key: pubkey_from_hex_str(args),
+            });
+            (caller_account_id.to_string(), vec![delete_action], 2)
+        } else {
             let call_action = Action::FunctionCall(*Box::new(FunctionCallAction {
                 method_name: method_name.to_string(),
                 args: args.as_bytes().to_vec(),
                 gas: 300000000000000, // 100 TeraGas
                 deposit: 0,
             }));
-            (self.deployed_at.to_string(), vec![call_action],1)
+            (self.deployed_at.to_string(), vec![call_action], 1)
         };
 
-        debug!("{}---{:?}",receiver_str, actions);
+        debug!("{}---{:?}", receiver_str, actions);
         let mut transaction = gen_transaction_with_caller_with_nonce(
             caller_account_id.to_owned(),
             caller_pubkey.to_owned(),

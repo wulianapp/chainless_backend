@@ -62,14 +62,13 @@ pub enum DeviceState {
     Inactive,
 }
 
-
 /***
  当进行一个操作的时候判断状态再看是否放行
  Idle 状态可以执行任何操作
  TransferBusy 只允许转账操作
  KeyManageBusy 不允许发起任何新的流程，
 */
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq,Clone)]
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum OpStatus {
     KeyManageBusy,
     TransferBusy,

@@ -221,8 +221,7 @@ impl PsqlType {
                 format!("ARRAY[{}]::text[]", array_elements.join(","))
             }
             PsqlType::VecU64(data) => {
-                let array_elements: Vec<String> =
-                    data.iter().map(|s| format!("{}", s)).collect();
+                let array_elements: Vec<String> = data.iter().map(|s| format!("{}", s)).collect();
 
                 format!("ARRAY[{}]::int4[]", array_elements.join(","))
             }

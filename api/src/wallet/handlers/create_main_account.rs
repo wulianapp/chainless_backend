@@ -60,7 +60,7 @@ pub(crate) async fn req(
 
     DeviceInfoView::update(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&device_id,user_id)
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;
 
     let multi_cli = ContractClient::<MultiSig>::new();

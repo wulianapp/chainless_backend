@@ -38,7 +38,7 @@ pub enum AccountMessage {
     CoinTx(u32, CoinTransaction),
 }
 
-pub fn get_support_coin_list() -> Vec<CoinType>{
+pub fn get_support_coin_list() -> Vec<CoinType> {
     vec![
         CoinType::BTC,
         CoinType::ETH,
@@ -49,7 +49,7 @@ pub fn get_support_coin_list() -> Vec<CoinType>{
     ]
 }
 
-pub fn get_support_coin_list_without_cly() -> Vec<CoinType>{
+pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     vec![
         CoinType::BTC,
         CoinType::ETH,
@@ -59,7 +59,7 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType>{
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone,EnumString, Display)]
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display)]
 pub enum CoinType {
     BTC,
     ETH,
@@ -80,12 +80,12 @@ impl CoinType {
             CoinType::DW20 => AccountId::from_str("dw20.node0").unwrap(),
         }
     }
-    pub fn to_account_str(&self) -> String{
+    pub fn to_account_str(&self) -> String {
         self.to_account_id().to_string()
     }
 }
 
-/**** 
+/****
 impl AddressConvert for AccountId {
     fn to_account_str(&self) -> String {
         self.to_string()

@@ -43,12 +43,8 @@ impl fmt::Display for UserUpdater<'_> {
                 "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
                 anwser_indexes, secruity_is_seted, main_account
             ),
-            UserUpdater::OpStatus(status) => format!(
-                "op_status='{}'",status.to_string()
-            ),
-            UserUpdater::AnwserIndexes(anwser) => format!(
-                "anwser_indexes='{}' ",anwser
-            ),
+            UserUpdater::OpStatus(status) => format!("op_status='{}'", status.to_string()),
+            UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
         };
         write!(f, "{}", description)
     }
@@ -98,7 +94,6 @@ impl UserInfoView {
             reserved_field1: "".to_string(),
             reserved_field2: "".to_string(),
             reserved_field3: "".to_string(),
-
         };
         UserInfoView {
             id: 0,
@@ -182,7 +177,7 @@ impl PsqlOp for UserInfoView {
         );
         debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res,0);
+        assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
         Ok(())
     }
@@ -298,10 +293,6 @@ mod tests {
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
 
-        UserInfoView::update(
-            UserUpdater::LoginPwdHash("0123"),
-            UserFilter::ById(1),
-        )
-        .unwrap();
+        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
     }
 }

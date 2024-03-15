@@ -24,9 +24,9 @@ pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
             let remain_time = MINUTE1 - past_time;
             let remain_secs = (remain_time / 1000) as u8;
             Err(CaptchaRequestTooFrequently(remain_secs))?;
-        } else if past_time  <=  MINUTE10 {
+        } else if past_time <= MINUTE10 {
             debug!("send new code cover former code");
-        }else {
+        } else {
             //delete and regenerate new captcha
             let _ = data.delete();
         }
