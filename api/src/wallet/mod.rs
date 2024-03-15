@@ -504,10 +504,10 @@ async fn servant_saved_secret(
  * @apiVersion 0.0.1
  * @apiName addSubaccount
  * @apiGroup Wallet
- * @apiBody {String} mainAccount                        主钱包id
  * @apiBody {String} subaccountPubkey                   从公钥
  * @apiBody {String} subaccountPrikeyEncrypedByPassword      密码加密后的从私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer   问答加密后的从私钥
+ * @apiBody {number} holdValueLimit   持仓上限
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -528,10 +528,10 @@ async fn servant_saved_secret(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AddSubaccountRequest {
-    main_account: String,
     subaccount_pubkey: String,
     subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
+    hold_value_limit: u128,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/addSubaccount")]
@@ -1376,6 +1376,7 @@ mod tests {
             "subaccountPubkey": "11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9",
             "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
             "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
+            "holdValueLimit": 10000,
         });
         let url = format!("/wallet/addSubaccount");
         let res: BackendRespond<String> = test_service_call!(

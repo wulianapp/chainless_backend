@@ -1,5 +1,6 @@
 use common::error_code::BackendError;
 use common::error_code::BackendRes;
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
 use tracing::error;
@@ -40,6 +41,11 @@ pub struct MultiSigRank {
     pub sig_num: u8,
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct SubAccConf {
+    pub hold_value_limit: u128,
+}
+
 impl Default for MultiSigRank {
     fn default() -> Self {
         MultiSigRank {
@@ -55,7 +61,7 @@ impl Default for MultiSigRank {
 pub struct StrategyData {
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub servant_pubkeys: Vec<String>,
-    pub subaccounts: Vec<AccountId>,
+    pub sub_confs: HashMap<String,SubAccConf>,
 }
 
 impl ContractClient<MultiSig> {
@@ -70,7 +76,7 @@ impl ContractClient<MultiSig> {
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "multi_sig6.node0".parse().unwrap(),
+            deployed_at: "multi_sig7.node0".parse().unwrap(),
             relayer: signer,
             phantom: Default::default(),
         }
@@ -144,11 +150,12 @@ impl ContractClient<MultiSig> {
         debug!("register_main_tx_id {}", register_main_tx_id);
         let register_tx_id = self.register_account(subaccount_id).await?.unwrap();
         debug!("register_tx_id {}", register_tx_id);
-
+        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 10000 })]);
         self.set_strategy(
             main_account_id,
+            main_account_id,
             vec![],
-            vec![subaccount_id.to_owned()],
+            sub_confs,
             vec![MultiSigRank::default()],
         )
         .await
@@ -159,19 +166,23 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("remove_tx_index", &args_str).await
     }
 
-    pub async fn add_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
+    pub async fn add_subaccount(&self, main_acc: &str, subacc: HashMap<&str,SubAccConf>) -> BackendRes<String> {
         let main_acc = AccountId::from_str(main_acc).unwrap();
-        let subacc = AccountId::from_str(subacc).unwrap();
+        //let subacc = AccountId::from_str(subacc).unwrap();
+        let sub_confs = subacc
+        .into_iter()
+        .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
+        .collect::<HashMap<AccountId,SubAccConf>>();
 
         let args_str = json!({
             "main_account_id": main_acc,
-            "accounts": vec![subacc]
+            "new_sub": sub_confs
         })
         .to_string();
         self.commit_by_relayer("add_subaccounts", &args_str).await
     }
 
-    pub async fn remove_subaccount(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
+    pub async fn remove_subaccounts(&self, main_acc: &str, subacc: &str) -> BackendRes<String> {
         let main_acc = AccountId::from_str(main_acc).unwrap();
         let subacc = AccountId::from_str(subacc).unwrap();
 
@@ -180,7 +191,8 @@ impl ContractClient<MultiSig> {
             "accounts": vec![subacc]
         })
         .to_string();
-        self.commit_by_relayer("remove_tx_index", &args_str).await
+        self.commit_by_relayer("remove_subaccounts", &args_str).await;
+        todo!()
     }
 
     pub async fn remove_account_strategy(&self, acc: String) -> BackendRes<String> {
@@ -193,19 +205,21 @@ impl ContractClient<MultiSig> {
     pub async fn set_strategy(
         &self,
         account_id: &str,
+        master_pubkey: &str,
         servant_pubkeys: Vec<String>,
-        subaccounts: Vec<String>,
+        sub_confs: HashMap<&str,SubAccConf>,
         rank_arr: Vec<MultiSigRank>,
     ) -> BackendRes<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id).unwrap();
-        let subaccounts = subaccounts
-            .iter()
-            .map(|acc_str| AccountId::from_str(acc_str).unwrap())
-            .collect::<Vec<AccountId>>();
+        let sub_confs = sub_confs
+            .into_iter()
+            .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
+            .collect::<HashMap<AccountId,SubAccConf>>();
         let args_str = json!({
             "user_account_id": user_account_id,
+            "master_pubkey": master_pubkey,
             "servant_pubkeys": servant_pubkeys,
-            "subaccounts": subaccounts,
+            "sub_confs": sub_confs,
             "rank_arr": rank_arr
         })
         .to_string();
@@ -245,6 +259,40 @@ impl ContractClient<MultiSig> {
             .await
     }
 
+    pub async fn update_servant_pubkey_and_master(
+        &self,
+        account_id: &str,
+        servant_pubkey: Vec<String>,
+        master_pubkey: String,
+    ) -> BackendRes<String> {
+        let user_account_id: AccountId = AccountId::from_str(account_id).unwrap();
+        let args_str = json!({
+            "user_account_id": user_account_id,
+            "servant_device_pubkey": servant_pubkey,
+            "master_pubkey": master_pubkey,
+        })
+        .to_string();
+        self.commit_by_relayer("update_servant_pubkey", &args_str)
+            .await
+    }
+
+
+    pub async fn update_master(
+        &self,
+        account_id: &str,
+        master_pubkey: String,
+    ) -> BackendRes<String> {
+        let user_account_id: AccountId = AccountId::from_str(account_id).unwrap();
+        let args_str = json!({
+            "user_account_id": user_account_id,
+            "master_pubkey": master_pubkey,
+        })
+        .to_string();
+        self.commit_by_relayer("update_master", &args_str)
+            .await
+    }
+
+    //todo: 检查持仓限制
     pub async fn internal_transfer_main_to_sub(
         &self,
         master_sig: SignInfo,
@@ -604,7 +652,7 @@ mod tests {
         println!("strategy_str2 {:#?}", strategy_str);
 
         let set_strategy_res = client
-            .set_strategy(&sender_id, servant_pubkey, vec![], ranks)
+            .set_strategy(&sender_id,&sender_id,servant_pubkey, HashMap::new(), ranks)
             .await
             .unwrap();
         println!("call set strategy txid {}", set_strategy_res.unwrap());

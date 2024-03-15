@@ -298,13 +298,14 @@ macro_rules! test_create_main_account{
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
             "anwserIndexes": ""
         });
-        let _res: BackendRespond<String> = test_service_call!(
+        let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             "/wallet/createMainAccount",
             Some(payload.to_string()),
             Some($app.user.token.as_ref().unwrap())
         );
+        assert_eq!(res.status_code,0);
     }};
 }
 
@@ -319,6 +320,7 @@ macro_rules! test_search_message {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
+        assert_eq!(res.status_code,0);
         res
     }};
 }

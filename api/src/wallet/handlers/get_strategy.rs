@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
+use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
 
 use crate::utils::token_auth;
 use common::error_code::BackendRes;
@@ -13,7 +15,7 @@ pub struct StrategyDataTmp {
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub master_pubkey: String,
     pub servant_pubkeys: Vec<String>,
-    pub subaccounts: Vec<String>,
+    pub subaccounts: HashMap<String,SubAccConf>,
 }
 
 pub(crate) async fn req(
@@ -27,12 +29,12 @@ pub(crate) async fn req(
     let strategy = multi_cli.get_strategy(&request_data.account_id).await?;
     let master_pubkey: String = multi_cli.get_master_pubkey(&request_data.account_id).await;
     Ok(strategy.map(|data| {
-        let subaccounts = data.subaccounts.iter().map(|x| x.to_string()).collect();
+        //let subaccounts = data.subaccounts.iter().map(|x| x.to_string()).collect();
         StrategyDataTmp {
             multi_sig_ranks: data.multi_sig_ranks,
             master_pubkey,
             servant_pubkeys: data.servant_pubkeys,
-            subaccounts,
+            subaccounts:data.sub_confs,
         }
     }))
 }

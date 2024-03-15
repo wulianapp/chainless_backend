@@ -110,7 +110,7 @@ pub(crate) async fn req(
         .push(old_master.to_string());
 
     multi_sig_cli
-        .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
+        .update_servant_pubkey_and_master(&main_account, current_strategy.servant_pubkeys,servant_pubkey)
         .await?;
 
     Ok(None::<String>)

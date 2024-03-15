@@ -48,8 +48,8 @@ pub(crate) async fn req(
         ))?;
     }
 
-    let client = ContractClient::<MultiSig>::new();
-    let master_list = client.get_master_pubkey_list(&main_account).await;
+    let multi_sig_cli = ContractClient::<MultiSig>::new();
+    let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await;
 
     if master_list.len() != 1 {
         error!("unnormal account， it's account have more than 1 master");
@@ -93,7 +93,7 @@ pub(crate) async fn req(
     }
 
     //除了同时包含servant_key和旧的master之外的情况全部认为异常不处理
-    let master_list = client.get_master_pubkey_list(&main_account).await;
+    let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await;
     if master_list.len() == 2
         && master_list.contains(&newcomer_pubkey)
         && master_list.contains(old_master)
@@ -110,6 +110,9 @@ pub(crate) async fn req(
             "main account is unnormal".to_string(),
         ))?;
     }
+    multi_sig_cli
+    .update_master(&main_account,newcomer_pubkey)
+    .await?;
 
     Ok(None::<String>)
 }
