@@ -968,12 +968,9 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 
 #[cfg(test)]
 mod tests {
+    use crate::*;
     use crate::utils::respond::BackendRespond;
-    use crate::{
-        test_add_servant, test_create_main_account, test_get_balance_list, test_get_secret,
-        test_get_strategy, test_login, test_register, test_search_message, test_service_call,
-        test_update_security,
-    };
+    use crate::utils::api_test::*;
 
     use super::*;
     use std::default::Default;
@@ -1005,179 +1002,6 @@ mod tests {
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
-
-    struct TestWallet {
-        main_account: String,
-        pubkey: Option<String>,
-        prikey: Option<String>,
-        subaccount: Vec<String>,
-        sub_prikey: Option<Vec<String>>,
-    }
-
-    struct TestDevice {
-        id: String,
-        brand: String,
-    }
-
-    struct TestUser {
-        contact: String,
-        password: String,
-        captcha: String,
-        token: Option<String>,
-    }
-
-    struct TestWulianApp2 {
-        user: TestUser,
-        device: TestDevice,
-        wallet: TestWallet,
-    }
-
-    struct TestWulianApp {
-        user_id: u32,
-        token: String,
-        contact: String,
-        password: String,
-        wallets: Vec<TestWallet>,
-    }
-
-    async fn init() -> App<
-        impl ServiceFactory<
-            ServiceRequest,
-            Config = (),
-            Response = ServiceResponse,
-            Error = Error,
-            InitError = (),
-        >,
-    > {
-        env::set_var("SERVICE_MODE", "test");
-        common::log::init_logger();
-        models::general::table_all_clear();
-        clear_contract().await;
-        App::new()
-            .configure(configure_routes)
-            .configure(crate::account_manager::configure_routes)
-    }
-
-    fn simulate_sender_master() -> TestWulianApp2 {
-        TestWulianApp2{
-            user: TestUser {
-                contact: "test000001@gmail.com".to_string(),
-                password: "123456789".to_string(),
-                captcha: "000001".to_string(),
-                token: None,
-            },
-            device: TestDevice{
-                id: "1".to_string(),
-                brand: "Apple".to_string(),
-            },
-            wallet: TestWallet {
-                main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
-                pubkey: Some("2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()),
-                prikey: Some("8eeb94ead4cf1ebb68a9083c221064d2f7313cd5a70c1ebb44ec31c126f09bc62fa7\
-                  ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string()),
-                subaccount:vec!["0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()], 
-                sub_prikey:Some(vec!["2e1eee23ac76477ff1f9e9ae05829b0de3b89072d104c9de6daf0b1c38eddede0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string()]),
-            },
-        }
-    }
-
-    fn simulate_sender_servant() -> TestWulianApp2 {
-        TestWulianApp2 {
-            user: TestUser {
-                contact: "test000001@gmail.com".to_string(),
-                password: "123456789".to_string(),
-                captcha: "000001".to_string(),
-                token: None,
-            },
-            device: TestDevice {
-                id: "2".to_string(),
-                brand: "Apple".to_string(),
-            },
-            wallet: TestWallet {
-                main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
-                    .to_string(),
-                subaccount: vec![
-                    "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string(),
-                ],
-                sub_prikey: None,
-                pubkey: Some(
-                    "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e".to_string(),
-                ),
-                prikey: Some(
-                    "2b2193968a4e6ff5c6b8b51f8aed0ee41306c57d225885fca19bbc828a91d1a07d2e\
-                7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"
-                        .to_string(),
-                ),
-            },
-        }
-    }
-
-    fn simulate_sender_new_device() -> TestWulianApp2 {
-        TestWulianApp2 {
-            user: TestUser {
-                contact: "test000001@gmail.com".to_string(),
-                password: "123456789".to_string(),
-                captcha: "000001".to_string(),
-                token: None,
-            },
-            device: TestDevice {
-                id: "4".to_string(),
-                brand: "Apple".to_string(),
-            },
-            wallet: TestWallet {
-                main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
-                    .to_string(),
-                subaccount: vec![
-                    "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9".to_string(),
-                ],
-                sub_prikey: None,
-                pubkey: Some(
-                    "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849".to_string(),
-                ),
-                prikey: Some(
-                    "e6913a533e66bbb52ca1f9d773154e608a6a9eacb998b61c0a7592b4b0a130c4\
-                    e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849"
-                        .to_string(),
-                ),
-            },
-        }
-    }
-
-    fn simulate_receiver() -> TestWulianApp2 {
-        TestWulianApp2{
-            user: TestUser {
-                contact: "test000002@gmail.com".to_string(),
-                password: "123456789".to_string(),
-                captcha: "000002".to_string(),
-                token: None,
-            },
-            device: TestDevice{
-                id: "3".to_string(),
-                brand: "Huawei".to_string(),
-            },
-            wallet: TestWallet {
-                main_account: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
-                pubkey: Some("535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string()),
-                prikey: Some("119bef4d830c134a13b2a9661dbcf39fbd628bf216aea43a4b651085df521d525\
-                35ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string()),
-                subaccount:vec!["19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()], 
-                sub_prikey:Some(vec!["a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()]),
-            },
-        }
-    }
-
-    async fn clear_contract() {
-        let cli = blockchain::ContractClient::<MultiSig>::new();
-        cli.clear_all().await.unwrap();
-        //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
-        //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
-        //cli.remove_tx_index(1u64).await.unwrap();
-    }
-
-    async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
-        let cli = blockchain::ContractClient::<MultiSig>::new();
-        cli.get_tx_state(txs_index).await.unwrap().unwrap()
-    }
 
     #[actix_web::test]
     async fn test_replace_servant() {
@@ -1379,13 +1203,11 @@ mod tests {
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
 
-        //balance
-        let _url = format!("/wallet/balanceList");
-        let list = test_get_balance_list!(service, sender_master);
-        println!("{:?}", list);
+        let balances = test_get_balance_list!(service, sender_master);
+        println!("list {:?}", balances);
 
         let secrets = test_get_secret!(service, sender_master, "all");
-        println!("res {:?}", secrets);
+        println!("secrets {:?}", secrets);
     }
 
     #[actix_web::test]
@@ -1394,41 +1216,18 @@ mod tests {
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
         test_register!(service, sender_master);
-        let url = format!("/wallet/balanceList");
-        let res: BackendRespond<Vec<(String, String)>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        let sender_strategy = res.data;
-        println!("{:?}", sender_strategy);
+
+        let balances1 = test_get_balance_list!(service, sender_master);
+        println!("list {:?}", balances1);
 
         test_create_main_account!(service, sender_master);
 
         //claim
-        let url = format!("/wallet/faucetClaim");
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        println!("{}", res.data);
+        test_faucet_claim!(service, sender_master);
 
         //balance
-        let url = format!("/wallet/balanceList");
-        let res: BackendRespond<Vec<(String, String)>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        let sender_strategy = res.data;
-        println!("{:?}", sender_strategy);
+        let balances2 = test_get_balance_list!(service, sender_master);
+        println!("list {:?}", balances2);
     }
 
     #[actix_web::test]
@@ -1490,56 +1289,22 @@ mod tests {
     ) {
         let app = init().await;
         let service = test::init_service(app).await;
-        //let mut sender_master = simulate_sender_master();
-        //let mut receiver = simulate_receiver();
-        //let mut sender_servant = simulate_sender_servant();
         //init: get token by register or login
         test_register!(service, sender_master);
         test_register!(service, receiver);
         test_login!(service, sender_servant);
         test_create_main_account!(service, receiver);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let get_res = test_get_strategy!(service, receiver);
-        let receiver_strategy = get_res.data;
+        let receiver_strategy = test_get_strategy!(service, receiver);
+        println!("receiver strategy {:?}",receiver_strategy);
 
-        //step1: new sender main_account
-        let payload = json!({
-            "masterPubkey":  sender_master.wallet.main_account,
-            "masterPrikeyEncryptedByPassword": sender_master.wallet.prikey,
-            "masterPrikeyEncryptedByAnswer": sender_master.wallet.prikey,
-            "subaccountPubkey":  sender_master.wallet.subaccount.first().unwrap(),
-            "subaccountPrikeyEncrypedByPassword": sender_master.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
-            "subaccountPrikeyEncrypedByAnswer": sender_master.wallet.sub_prikey.unwrap().first().unwrap(),
-            "anwserIndexes": ""
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/createMainAccount",
-            Some(payload.to_string()),
-            Some(&sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
+        test_create_main_account!(service, sender_master);
+
 
         //给链上确认一些时间
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        //step2: generate servent_key in device which hold master_prikey,and send to server after encrypted
-        let payload = json!({
-            "mainAccount":  sender_master.wallet.main_account,
-            "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByPassword":  sender_servant.wallet.prikey.as_ref().unwrap(),
-            "servantPrikeyEncrypedByAnswer":  sender_servant.wallet.prikey.as_ref().unwrap(),
-            "holderDeviceId":  sender_servant.device.id,
-            "holderDeviceBrand": sender_servant.device.brand,
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/addServant",
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
+        test_add_servant!(service, sender_master, sender_servant);
+
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         /***
@@ -1547,20 +1312,8 @@ mod tests {
         let res = test_get_strategy!(service, sender_master);
         let sender_strategy = res.data;
         println!("{},,,{:?}", line!(), sender_strategy);
-
-        let payload = json!({
-            "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/removeServant",
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
+        test_remove_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
         let res = test_get_strategy!(service, sender_master);
         let sender_strategy = res.data;
         println!("{},,,{:?}", line!(), sender_strategy);
@@ -1568,36 +1321,13 @@ mod tests {
         ***/
 
         //给链上确认一些时间
-        //step2.1: sender main_account update strategy
-        let payload = json!({
-            "accountId":  sender_master.wallet.main_account,
-            "deviceId": "1",
-            "strategy": [{"min": 1, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200u64, "sigNum": 1}]
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/updateStrategy",
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
+        //step2.1: 
+        test_update_strategy!(service,sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         //step2.2: check sender's new strategy
-        let url = format!(
-            "/wallet/getStrategy?accountId={}",
-            sender_master.wallet.main_account
-        );
-        let res: BackendRespond<StrategyData> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        let sender_strategy = res.data;
-        println!("{:?}", sender_strategy);
+        let sender_strategy = test_get_strategy!(service, sender_master);
+        println!("{},,,{:?}", line!(), sender_strategy);
 
         //step2.3: get message of becoming servant,and save encrypted prikey
         let url = format!("/wallet/searchMessage");
@@ -1657,8 +1387,7 @@ mod tests {
         );
         assert_eq!(res.status_code, 0);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let res = test_get_strategy!(service, sender_master);
-        let sender_strategy = res.data;
+        let sender_strategy = test_get_strategy!(service, sender_master);
         println!("{},,,{:?}", line!(), sender_strategy);
 
         //step3: master: pre_send_money
