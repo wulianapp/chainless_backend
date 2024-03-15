@@ -107,6 +107,8 @@ pub enum WalletError {
     HaveUncompleteTx,
     #[error("Current role is {0},but only {1} is allowed")]
     UneligiableRole(KeyRole2, KeyRole2),
+    #[error("receiver is subaccount and trasfer value add balance value will exceed limit")]
+    ExceedSubAccountHoldLimit,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -119,6 +121,7 @@ impl ErrorCode for WalletError {
             Self::MainAccountNotExist(_) => 3006,
             Self::HaveUncompleteTx => 3007,
             Self::UneligiableRole(_, _) => 3008,
+            Self::ExceedSubAccountHoldLimit => 3009,
         }
     }
 }

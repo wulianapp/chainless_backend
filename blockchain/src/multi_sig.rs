@@ -1,3 +1,4 @@
+use common::data_structures::wallet::get_support_coin_list;
 use common::error_code::BackendError;
 use common::error_code::BackendRes;
 use std::collections::HashMap;
@@ -27,6 +28,7 @@ use common::data_structures::wallet::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
+use crate::coin::Coin;
 use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
@@ -80,6 +82,20 @@ impl ContractClient<MultiSig> {
             relayer: signer,
             phantom: Default::default(),
         }
+    }
+
+    pub async fn get_total_value(&self, account_str: &str) -> u128{
+        let coins = get_support_coin_list();
+        let mut total_value = 0;
+        for coin in coins {
+            let coin_cli = ContractClient::<Coin>::new(coin);
+            let balance = coin_cli.get_balance(account_str).await.unwrap();
+            let balance:u128 = balance.unwrap_or("0".to_string()).parse().unwrap();
+            //todo: get price from contract
+            let coin_price = 1;
+            total_value +=  balance * coin_price;
+        }
+        total_value
     }
 
     //fixeme:
@@ -150,7 +166,7 @@ impl ContractClient<MultiSig> {
         debug!("register_main_tx_id {}", register_main_tx_id);
         let register_tx_id = self.register_account(subaccount_id).await?.unwrap();
         debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 10000 })]);
+        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 100 })]);
         self.set_strategy(
             main_account_id,
             main_account_id,

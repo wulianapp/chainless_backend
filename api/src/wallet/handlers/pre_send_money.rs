@@ -7,6 +7,7 @@ use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use tracing::debug;
 
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendRes, WalletError};
@@ -45,6 +46,15 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         .get_strategy(&user_info.user_info.main_account)
         .await?
         .ok_or(WalletError::SenderNotFound)?;
+    if let Some(sub_conf) = strategy.sub_confs.get(&to){
+        debug!("to[{}] is subaccount of from[{}]",to,from);
+        let coin_price = 1;
+        let balance_value = cli.get_total_value(&to).await;
+        if  amount * coin_price + balance_value > sub_conf.hold_value_limit {
+            Err(WalletError::ExceedSubAccountHoldLimit)?;
+        }
+    }
+
     let tx_status = if strategy.servant_pubkeys.is_empty() {
         CoinTxStatus::SenderSigCompleted
     } else {

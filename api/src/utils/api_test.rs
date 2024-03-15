@@ -321,7 +321,7 @@ macro_rules! test_search_message {
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res
+        res.data
     }};
 }
 
@@ -364,6 +364,30 @@ macro_rules! test_add_servant {
         res.data
     }};
 }
+
+#[macro_export]
+macro_rules! test_add_subaccount {
+    ($service:expr, $master:expr) => {{
+        let payload = json!({
+            "mainAccount":  $master.wallet.main_account,
+            "subaccountPubkey":  $master.wallet.subaccount.first().unwrap(),
+            "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
+            "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
+            "holdValueLimit": 10000,
+        });
+        let url = format!("/wallet/addSubaccount");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
 
 
 #[macro_export]
@@ -426,6 +450,53 @@ macro_rules! test_update_security {
     }};
 }
 
+
+
+#[macro_export]
+macro_rules! test_pre_send_money {
+    ($service:expr, $sender_master:expr, $receiver:expr) => {{
+        let payload = json!({
+            "from": &$sender_master.wallet.main_account,
+            "to": &$receiver.wallet.main_account,
+            "coin":"DW20",
+            "amount": 12,
+            "expireAt": 1808015513000u64
+       });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/preSendMoney",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_upload_servant_sig {
+    ($service:expr, $sender_servant:expr,$tx_index:expr,$signature:expr) => {{
+        let payload = json!({
+            "txIndex": $tx_index,
+            "signature": $signature,
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/uploadServantSig",
+            Some(payload.to_string()),
+            Some($sender_servant.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+
+
 #[macro_export]
 macro_rules! test_faucet_claim {
     ($service:expr, $app:expr) => {{
@@ -476,5 +547,22 @@ macro_rules! test_get_balance_list {
         res.data
     }};
 }
+
+#[macro_export]
+macro_rules! test_get_device_list {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/wallet/deviceList");
+        let res: BackendRespond<Vec<DeviceInfo>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
 
 

@@ -510,7 +510,7 @@ async fn servant_saved_secret(
  * @apiBody {number} holdValueLimit   持仓上限
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+ *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
    -d ' {
              "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "deviceId": "1",
@@ -1098,6 +1098,40 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_main_send_money_to_sub() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let mut sender_servant = simulate_sender_servant();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_login!(service, sender_servant);
+        test_add_servant!(service, sender_master, sender_servant);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+            //step3: master: pre_send_money
+        let payload = json!({
+            "from": &sender_master.wallet.main_account,
+            "to": &sender_master.wallet.subaccount.first().unwrap(),
+            "coin":"DW20",
+            "amount": 12,
+            "expireAt": 1808015513000u64
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            service,
+            "post",
+            "/wallet/preSendMoney",
+            Some(payload.to_string()),
+            Some(sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        println!("{:?}", res.data);
+    }
+
+
+    #[actix_web::test]
     async fn test_change_security() {
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1307,19 +1341,6 @@ mod tests {
 
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        /***
-         test removeServant
-        let res = test_get_strategy!(service, sender_master);
-        let sender_strategy = res.data;
-        println!("{},,,{:?}", line!(), sender_strategy);
-        test_remove_servant!(service, sender_master, sender_servant);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let res = test_get_strategy!(service, sender_master);
-        let sender_strategy = res.data;
-        println!("{},,,{:?}", line!(), sender_strategy);
-        return;
-        ***/
-
         //给链上确认一些时间
         //step2.1: 
         test_update_strategy!(service,sender_master);
@@ -1330,15 +1351,8 @@ mod tests {
         println!("{},,,{:?}", line!(), sender_strategy);
 
         //step2.3: get message of becoming servant,and save encrypted prikey
-        let url = format!("/wallet/searchMessage");
-        let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
-        if let AccountMessage::NewcomerBecameSevant(secret) = res.data.first().unwrap() {
+        let res = test_search_message!(service, sender_servant);
+        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
             println!(
                 "encrypted_prikey_by_password {:?}",
                 secret.encrypted_prikey_by_password
@@ -1360,57 +1374,15 @@ mod tests {
         }
 
         //step2.4: get device list
-        let url = format!("/wallet/deviceList");
-        let res: BackendRespond<Vec<DeviceInfo>> = test_service_call!(
-            service,
-            "get",
-            &url,
-            None::<String>,
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
-        println!("{},,,{:?}", line!(), res.data);
+        let device_lists: Vec<DeviceInfo> = test_get_device_list!(service,sender_servant);
+        println!("{},,,{:?}", line!(), device_lists);
 
-        //step2.5: add subaccount
-        let payload = json!({
-            "mainAccount":  sender_master.wallet.main_account,
-            "subaccountPubkey": "11111142a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9",
-            "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
-            "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
-            "holdValueLimit": 10000,
-        });
-        let url = format!("/wallet/addSubaccount");
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let sender_strategy = test_get_strategy!(service, sender_master);
-        println!("{},,,{:?}", line!(), sender_strategy);
 
         //step3: master: pre_send_money
-        let payload = json!({
-             "from": &sender_master.wallet.main_account,
-             "to": &receiver.wallet.main_account,
-             "coin":"DW20",
-             "amount": 12,
-             "expireAt": 1808015513000u64
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/wallet/preSendMoney",
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-
+        test_pre_send_money!(service,sender_master,receiver);
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master);
-        if let AccountMessage::CoinTx(_index, tx) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
@@ -1419,7 +1391,7 @@ mod tests {
             );
         }
         let res = test_search_message!(service, sender_servant);
-        if let AccountMessage::CoinTx(index, tx) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
@@ -1440,23 +1412,12 @@ mod tests {
             );
 
             //upload_servant_sig
-            let payload = json!({
-                "txIndex": index,
-                "signature": signature,
-            });
-            let res: BackendRespond<String> = test_service_call!(
-                service,
-                "post",
-                "/wallet/uploadServantSig",
-                Some(payload.to_string()),
-                Some(sender_servant.user.token.as_ref().unwrap())
-            );
-            assert_eq!(res.status_code, 0);
+           test_upload_servant_sig!(service,sender_servant,index,signature);
         }
 
         //step5: receiver get notice and react it
         let res = test_search_message!(service, receiver);
-        if let AccountMessage::CoinTx(index, tx) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
             assert_eq!(
                 receiver.wallet.pubkey.unwrap(),
@@ -1482,7 +1443,7 @@ mod tests {
         //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
         //超过了就链上过期（非多签业务过期）
         let res = test_search_message!(service, sender_master);
-        if let AccountMessage::CoinTx(index, tx) = res.data.first().unwrap() {
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),

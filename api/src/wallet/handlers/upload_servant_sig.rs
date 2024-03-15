@@ -1,6 +1,7 @@
 use actix_web::{web, HttpRequest};
 
-use common::data_structures::wallet::CoinTxStatus;
+use blockchain::multi_sig::{MultiSig, MultiSigRank};
+use common::data_structures::wallet::{CoinTxStatus, CoinType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -10,6 +11,22 @@ use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
 use crate::wallet::uploadTxSignatureRequest;
+
+async fn get_servant_need(
+    strategy: &Vec<MultiSigRank>,
+    _coin: CoinType,
+    amount: u128,
+) -> Option<u8> {
+    //todo: get price by oracle
+    //let coin_price = get_coin_price(coin_account_id);
+    let coin_price = 1;
+    let transfer_value = amount * coin_price;
+    strategy
+        .iter()
+        .find(|&rank| transfer_value >= rank.min && transfer_value < rank.max_eq)
+        .map(|rank| rank.sig_num)
+}
+
 
 pub async fn req(
     req: HttpRequest,
@@ -47,11 +64,26 @@ pub async fn req(
 
     //todo: checkout sig if is enough
     //first error deal with in models
-    if tx.transaction.signatures.is_empty() {
-        models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::Status(CoinTxStatus::SenderSigCompleted),
-            CoinTxFilter::ByTxIndex(tx_index),
-        )?;
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new();
+    let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
+    let need = get_servant_need(
+        &strategy.multi_sig_ranks,
+        tx.transaction.coin_type,
+        tx.transaction.amount
+    ).await.unwrap();
+    if tx.transaction.signatures.len() as u8 >= need {
+        if let Some(_) = strategy.sub_confs.get(&tx.transaction.to){
+            models::coin_transfer::CoinTxView::update(
+                CoinTxUpdater::Status(CoinTxStatus::ReceiverApproved),
+                CoinTxFilter::ByTxIndex(tx_index),
+            )?;
+        }else{                
+            models::coin_transfer::CoinTxView::update(
+                CoinTxUpdater::Status(CoinTxStatus::SenderSigCompleted),
+                CoinTxFilter::ByTxIndex(tx_index),
+            )?;
+        }
+
     }
     Ok(None::<String>)
 }
