@@ -1108,26 +1108,49 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_login!(service, sender_servant);
-        test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-            //step3: master: pre_send_money
-        let payload = json!({
-            "from": &sender_master.wallet.main_account,
-            "to": &sender_master.wallet.subaccount.first().unwrap(),
-            "coin":"DW20",
-            "amount": 12,
-            "expireAt": 1808015513000u64
-        });
-        let res: BackendRespond<String> = test_service_call!(
+
+
+        //step3: master: pre_send_money
+        test_pre_send_money!(
             service,
-            "post",
-            "/wallet/preSendMoney",
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
+            sender_master,
+            sender_master.wallet.subaccount.first().unwrap(),
+            "DW20",
+            12
         );
-        assert_eq!(res.status_code, 0);
-        println!("{:?}", res.data);
+
+        let res = test_search_message!(service, sender_master);
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
+
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                //区别于普通转账，给子账户的签coin_tx_raw
+                &tx.coin_tx_raw,
+            );
+            let signature = format!(
+                "{}{}",
+                sender_master.wallet.pubkey.as_ref().unwrap(),
+                signature
+            );
+
+            let payload = json!({
+                "txIndex": index,
+                "confirmedSig": signature
+            });
+
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                "/wallet/reconfirmSendMoney",
+                Some(payload.to_string()),
+                Some(sender_master.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code, 0);
+        }
     }
 
 
@@ -1379,7 +1402,7 @@ mod tests {
 
 
         //step3: master: pre_send_money
-        test_pre_send_money!(service,sender_master,receiver);
+        test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12);
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master);
         if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {

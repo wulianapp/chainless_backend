@@ -71,7 +71,7 @@ impl fmt::Display for CoinTxFilter<'_> {
             CoinTxFilter::BySender(uid) => format!("sender='{}'", uid),
             CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),
             CoinTxFilter::ByAccountPending(acc_id) => format!(
-                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created') or \
+                "sender='{}' and status in ('SenderSigCompletedAndReceiverIsSub','ReceiverApproved','ReceiverRejected','Created') or \
                 receiver='{}' and status in ('SenderSigCompleted')",
                 acc_id, acc_id
             ),

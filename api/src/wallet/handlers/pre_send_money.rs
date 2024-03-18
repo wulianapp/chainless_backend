@@ -56,10 +56,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     }
 
     let tx_status = if strategy.servant_pubkeys.is_empty() {
-        CoinTxStatus::SenderSigCompleted
+        if let Some(_) = strategy.sub_confs.get(&to){
+            CoinTxStatus::SenderSigCompletedAndReceiverIsSub
+        }else{                
+            CoinTxStatus::SenderSigCompleted
+        }
     } else {
         CoinTxStatus::Created
     };
+
+    
+
 
     let coin_tx_raw = cli
         .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)

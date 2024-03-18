@@ -72,9 +72,10 @@ pub async fn req(
         tx.transaction.amount
     ).await.unwrap();
     if tx.transaction.signatures.len() as u8 >= need {
+        //区分receiver是否是子账户
         if let Some(_) = strategy.sub_confs.get(&tx.transaction.to){
             models::coin_transfer::CoinTxView::update(
-                CoinTxUpdater::Status(CoinTxStatus::ReceiverApproved),
+                CoinTxUpdater::Status(CoinTxStatus::SenderSigCompletedAndReceiverIsSub),
                 CoinTxFilter::ByTxIndex(tx_index),
             )?;
         }else{                

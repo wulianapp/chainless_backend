@@ -100,6 +100,8 @@ impl AddressConvert for AccountId {
 pub enum CoinTxStatus {
     Created,
     SenderSigCompleted,
+    //子账户是接收者需要特殊对待
+    SenderSigCompletedAndReceiverIsSub,
     ReceiverApproved,
     ReceiverRejected,
     SenderCanceled,

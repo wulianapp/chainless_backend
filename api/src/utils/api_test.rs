@@ -454,12 +454,12 @@ macro_rules! test_update_security {
 
 #[macro_export]
 macro_rules! test_pre_send_money {
-    ($service:expr, $sender_master:expr, $receiver:expr) => {{
+    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr) => {{
         let payload = json!({
             "from": &$sender_master.wallet.main_account,
-            "to": &$receiver.wallet.main_account,
-            "coin":"DW20",
-            "amount": 12,
+            "to": &$receiver_account,
+            "coin":$coin,
+            "amount": $amount,
             "expireAt": 1808015513000u64
        });
         let res: BackendRespond<String> = test_service_call!(

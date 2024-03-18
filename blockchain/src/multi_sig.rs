@@ -457,6 +457,18 @@ pub struct SignInfo {
     pub pubkey: String,
     pub signature: String,
 }
+impl FromStr for SignInfo{
+    type Err = BackendError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.len() != 192{
+            Err(BackendError::RequestParamInvalid(s.to_string()))?;
+        }
+        Ok( SignInfo{
+            pubkey: s[..64].to_string(),
+            signature: s[64..].to_string(),
+        })
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CoinTx {
