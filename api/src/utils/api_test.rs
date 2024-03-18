@@ -34,6 +34,7 @@ use models::secret_store::SecretStoreView;
 use common::data_structures::wallet::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
+use crate::wallet::handlers::balance_list::AccountBalance;
 
 pub struct TestWallet {
     pub main_account: String,
@@ -534,9 +535,9 @@ macro_rules! test_get_secret {
 
 #[macro_export]
 macro_rules! test_get_balance_list {
-    ($service:expr, $app:expr) => {{
-        let url = format!("/wallet/balanceList");
-        let res: BackendRespond<Vec<(String, String)>> = test_service_call!(
+    ($service:expr, $app:expr,$kind:expr) => {{
+        let url = format!("/wallet/balanceList?kind={}",$kind);
+        let res: BackendRespond<Vec<(String,Vec<crate::wallet::handlers::balance_list::AccountBalance>)>> = test_service_call!(
             $service,
             "get",
             &url,

@@ -59,7 +59,7 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display)]
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
 pub enum CoinType {
     BTC,
     ETH,
@@ -96,7 +96,7 @@ impl AddressConvert for AccountId {
 }
 */
 
-#[derive(Deserialize, Debug, PartialEq, Serialize, Clone, EnumString, Display)]
+#[derive(Deserialize, Debug, PartialEq, Serialize, Clone, EnumString, Display,Eq)]
 pub enum CoinTxStatus {
     Created,
     SenderSigCompleted,
@@ -142,7 +142,7 @@ impl FromStr for SecretKeyType {
 }
 */
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct CoinTransaction {
     pub tx_id: Option<String>,
     pub coin_type: CoinType,

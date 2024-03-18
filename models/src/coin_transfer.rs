@@ -76,7 +76,7 @@ impl fmt::Display for CoinTxFilter<'_> {
                 acc_id, acc_id
             ),
             CoinTxFilter::BySenderUncompleted(acc_id) => format!(
-                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created')",
+                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created','SenderSigCompleted','SenderSigCompletedAndReceiverIsSub')",
                 acc_id
             ),
             CoinTxFilter::ByTxIndex(tx_index) => format!("tx_index='{}' ", tx_index),

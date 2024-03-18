@@ -1,6 +1,6 @@
 //! account manager http service
 
-mod handlers;
+pub mod handlers;
 mod transaction;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
@@ -15,6 +15,8 @@ use crate::account_manager::{
     contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password,
 };
 use tracing::{debug, span, Level};
+
+use self::handlers::balance_list::AccountType;
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -744,21 +746,35 @@ async fn faucet_claim(req: HttpRequest) -> impl Responder {
  * @apiVersion 0.0.1
  * @apiName balanceList
  * @apiGroup Wallet
+ * @apiQuery {String=Main,AllSub,Single(1234)} kind 
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/balanceList
+ *   curl -X POST http://120.232.251.101:8066/wallet/balanceList?kind=Main
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string[]} data                币种和余额列表.
+* @apiSuccess {object[]} data                币种和余额列表.
+* @apiSuccess {string} data.0                钱包id.
+* @apiSuccess {object[]} data.1              钱包的各币种余额 .
+* @apiSuccess {string} data.1.account_id                钱包id和data.0一致.
+* @apiSuccess {string=BTC,ETH,USDT,USDC,CLY,DW20} data.1.coin             币种名称.
+* @apiSuccess {string} data.1.total_balance                      总余额.
+* @apiSuccess {string} data.1.available_balance                  可用余额.
+* @apiSuccess {string} data.1.freezn_amount                      冻结数量.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BalanceListRequest {
+    kind: AccountType,
+}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/balanceList")]
-async fn balance_list(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(handlers::balance_list::req(req).await)
+async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListRequest>) -> impl Responder {
+    gen_extra_respond(handlers::balance_list::req(req,request_data.0).await)
 }
 
 /**
@@ -1330,8 +1346,9 @@ mod tests {
         let mut sender_master = simulate_sender_master();
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let balances = test_get_balance_list!(service, sender_master);
+        let balances = test_get_balance_list!(service, sender_master,"Main");
         println!("list {:?}", balances);
 
         let secrets = test_get_secret!(service, sender_master, "all");
@@ -1345,7 +1362,7 @@ mod tests {
         let mut sender_master = simulate_sender_master();
         test_register!(service, sender_master);
 
-        let balances1 = test_get_balance_list!(service, sender_master);
+        let balances1 = test_get_balance_list!(service, sender_master,"Main");
         println!("list {:?}", balances1);
 
         test_create_main_account!(service, sender_master);
@@ -1354,7 +1371,7 @@ mod tests {
         test_faucet_claim!(service, sender_master);
 
         //balance
-        let balances2 = test_get_balance_list!(service, sender_master);
+        let balances2 = test_get_balance_list!(service, sender_master,"Main");
         println!("list {:?}", balances2);
     }
 
