@@ -39,7 +39,11 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
             KeyRole2::Master,
         ))?;
     }
-
+    let available_balance = super::get_available_amount(&from,&coin_type).await?;
+    let available_balance = available_balance.unwrap_or(0);
+    if amount > available_balance {
+        Err(WalletError::InsufficientAvailableBalance)?;
+    }
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new();
     let strategy = cli

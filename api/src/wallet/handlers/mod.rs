@@ -39,6 +39,7 @@ pub mod update_security;
 pub mod update_strategy;
 pub mod upload_servant_sig;
 pub mod sub_send_to_main;
+pub mod tx_list;
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>, BackendError> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))

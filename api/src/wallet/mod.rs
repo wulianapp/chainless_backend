@@ -777,6 +777,52 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
     gen_extra_respond(handlers::balance_list::req(req,request_data.0).await)
 }
 
+
+
+/**
+ * @api {get} /wallet/txList 账单详情
+ * @apiVersion 0.0.1
+ * @apiName txList
+ * @apiGroup Wallet
+ * @apiQuery {String=Sender,Receiver} TransferRole  交易中的角色，对应ui的转出和收款栏
+ * @apiQuery {String}                 [counterParty]   交易对手方
+ * @apiQuery {number}                 perPage           每页的数量
+ * @apiQuery {number}                 page            页数的序列号
+
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/txList?
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {object[]} data                币种和余额列表.
+* @apiSuccess {string} data.0                钱包id.
+* @apiSuccess {object[]} data.1              钱包的各币种余额 .
+* @apiSuccess {string} data.1.account_id                钱包id和data.0一致.
+* @apiSuccess {string=BTC,ETH,USDT,USDC,CLY,DW20} data.1.coin             币种名称.
+* @apiSuccess {string} data.1.total_balance                      总余额.
+* @apiSuccess {string} data.1.available_balance                  可用余额.
+* @apiSuccess {string} data.1.freezn_amount                      冻结数量.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
+*/
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TxListRequest {
+    tx_role: String,
+    counterparty: Option<String>,
+    per_page: u32,
+    page: u32,
+
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/txList")]
+async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> impl Responder {
+    gen_extra_respond(handlers::tx_list::req(req,request_data.0).await)
+}
+
 /**
  * @api {get} /wallet/deviceList 返回设备信息列表
  * @apiVersion 0.0.1
@@ -999,6 +1045,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(get_secret)
         .service(update_security)
         .service(sub_send_to_main)
+        .service(tx_list)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1353,6 +1400,9 @@ mod tests {
 
         let secrets = test_get_secret!(service, sender_master, "all");
         println!("secrets {:?}", secrets);
+
+        let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1);
+        println!("txs__ {:?}", txs);
     }
 
     #[actix_web::test]

@@ -3,13 +3,14 @@ extern crate rustc_serialize;
 use std::fmt;
 use std::str::FromStr;
 
+use jsonrpc_http_server::jsonrpc_core::futures::future::OrElse;
 use postgres::Row;
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxRole};
 use common::error_code::{BackendError, TxStatus};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -62,6 +63,7 @@ pub enum CoinTxFilter<'b> {
     BySenderUncompleted(&'b str),
     //todo: replace with u128
     ByTxIndex(u32),
+    ByTxRolePage(TxRole,&'b str,Option<&'b str>,u32,u32),
 }
 
 impl fmt::Display for CoinTxFilter<'_> {
@@ -80,6 +82,25 @@ impl fmt::Display for CoinTxFilter<'_> {
                 acc_id
             ),
             CoinTxFilter::ByTxIndex(tx_index) => format!("tx_index='{}' ", tx_index),
+            CoinTxFilter::ByTxRolePage(role,account,counterparty,per_page,page) => {
+                
+                let offset = if *page == 1u32 {
+                    0
+                }else{
+                    (page - 1u32) * per_page - 1u32
+                };
+                //过滤自己和交易对手方
+                match  counterparty {
+                    Some(account) => format!(
+                        "{}='{}' and {}='{}' order by updated_at desc limit {} offset {}",
+                        role.to_string(),account,role.counterparty(),account,per_page,offset
+                    ),
+                    None => format!(
+                        "{}='{}' order by updated_at desc limit {} offset {}",
+                        role.to_string(),account,per_page,offset
+                    ),
+                }
+            }
         };
         write!(f, "{}", description)
     }

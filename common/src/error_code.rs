@@ -109,6 +109,8 @@ pub enum WalletError {
     UneligiableRole(KeyRole2, KeyRole2),
     #[error("receiver is subaccount and trasfer value add balance value will exceed limit")]
     ExceedSubAccountHoldLimit,
+    #[error("transfer amount big than available balance")]
+    InsufficientAvailableBalance,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -122,6 +124,7 @@ impl ErrorCode for WalletError {
             Self::HaveUncompleteTx => 3007,
             Self::UneligiableRole(_, _) => 3008,
             Self::ExceedSubAccountHoldLimit => 3009,
+            Self::InsufficientAvailableBalance => 3010,
         }
     }
 }

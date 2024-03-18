@@ -8,6 +8,8 @@ use strum_macros::{Display, EnumString, ToString};
 
 const PREDECESSOR_SUBFIX: &str = ".node0";
 
+
+
 //fixme: user_id is obsolate
 /****
 pub trait AddressConvert: Sized {
@@ -155,4 +157,21 @@ pub struct CoinTransaction {
     pub coin_tx_raw: String,
     pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
+}
+
+
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum TxRole {
+    sender,
+    receiver
+}
+
+impl TxRole {
+    pub fn counterparty(&self) -> Self{
+        match self {
+            TxRole::sender => TxRole::receiver,
+            TxRole::receiver => TxRole::sender,
+        }
+    }
 }

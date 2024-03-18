@@ -342,6 +342,32 @@ macro_rules! test_get_strategy {
     }};
 }
 
+
+#[macro_export]
+macro_rules! test_tx_list {
+    ($service:expr, $app:expr,$role:expr,$counterparty:expr,$per_page:expr,$page:expr) => {{
+        let url = match $counterparty {
+            Some(acc) => {
+                format!("/wallet/txList?txRole={}&counterparty={}&perPage={}&page={}",
+                $role.to_string(),acc,$per_page,$page)
+            },
+            None =>{
+                format!("/wallet/txList?txRole={}&perPage={}&page={}",
+                $role,$per_page,$page)            
+            }
+        };
+        let res: BackendRespond<Vec<crate::wallet::handlers::tx_list::CoinTxViewTmp>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
 //generate servent_key in device which hold master_prikey,and send to server after encrypted
 #[macro_export]
 macro_rules! test_add_servant {
