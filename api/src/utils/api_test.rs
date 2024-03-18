@@ -295,7 +295,7 @@ macro_rules! test_create_main_account{
             "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
             "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPassword": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
-            "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.unwrap().first().unwrap(),
+            "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "anwserIndexes": ""
         });
         let res: BackendRespond<String> = test_service_call!(

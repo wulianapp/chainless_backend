@@ -291,6 +291,26 @@ async fn reconfirm_send_money(
     gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data).await)
 }
 
+
+//todo:增加子账户转主的交易记录，但是不通知
+//pre
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SubSendToMainRequest {
+    sub_sig: String,
+    coin: String,
+    amount: u128,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/subSendToMain")]
+async fn sub_send_to_main(
+    request: HttpRequest,
+    request_data: web::Json<SubSendToMainRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::sub_send_to_main::req(request, request_data).await)
+}
+
 /**
  * @api {post} /wallet/uploadServantSig 上传从密钥的多签签名
  * @apiVersion 0.0.1
@@ -962,6 +982,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(replace_servant)
         .service(get_secret)
         .service(update_security)
+        .service(sub_send_to_main)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1151,6 +1172,56 @@ mod tests {
             );
             assert_eq!(res.status_code, 0);
         }
+    }
+    use std::str::FromStr;
+    #[derive(Serialize, Deserialize, Clone, Debug)]
+    pub struct SubAccCoinTx {
+        pub coin_id: String,
+        pub amount: u128,
+    }
+    
+    #[actix_web::test]
+    async fn test_sub_send_money_to_main() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+
+            //sub to main
+            let coin_tx = SubAccCoinTx{
+                amount: 11,
+                coin_id: "dw20.node0".to_string(),
+            };
+            let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
+
+            let coin_tx_hex_str = hex::encode(coin_tx_str.as_bytes());    
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                sender_master.wallet.sub_prikey.clone().unwrap().first().unwrap(),
+                &coin_tx_hex_str,
+            );
+
+            let signature = format!(
+                "{}{}",
+                sender_master.wallet.subaccount.first().unwrap(),
+                signature
+            );
+
+            let payload = json!({
+                "subSig": signature,
+                "coin": "DW20",
+                "amount": 11
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                "/wallet/subSendToMain",
+                Some(payload.to_string()),
+                Some(sender_master.user.token.as_ref().unwrap())
+            );
     }
 
 

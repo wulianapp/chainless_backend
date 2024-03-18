@@ -35,6 +35,7 @@ pub mod servant_saved_secret;
 pub mod update_security;
 pub mod update_strategy;
 pub mod upload_servant_sig;
+pub mod sub_send_to_main;
 
 pub fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
     let tx = CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))?;

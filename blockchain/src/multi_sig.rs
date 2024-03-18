@@ -328,6 +328,14 @@ impl ContractClient<MultiSig> {
             memo: None,
         };
 
+        /****
+        let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
+        let public_key_bytes: Vec<u8> = hex::decode(master_sig.pubkey).unwrap();
+        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes).unwrap();
+        let signature = ed25519_dalek::Signature::from_str(&master_sig.signature).unwrap();
+        public_key.verify_strict(coin_tx_str.as_bytes(), &signature).unwrap();
+        **/
+
         let args_str = json!({
             "master_sig": master_sig,
             "servant_sigs": servant_sigs,
@@ -341,7 +349,7 @@ impl ContractClient<MultiSig> {
     pub async fn internal_transfer_sub_to_main(
         &self,
         main_account: &str,
-        servant_sig: SignInfo,
+        sub_sig: SignInfo,
         coin: CoinType,
         transfer_amount: u128,
     ) -> BackendRes<String> {
@@ -351,13 +359,23 @@ impl ContractClient<MultiSig> {
             amount: transfer_amount,
         };
 
+        /*** 
+         //todo: checkout and return error
+        let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
+        let public_key_bytes: Vec<u8> = hex::decode(sub_sig.pubkey).unwrap();
+        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes).unwrap();
+        let signature = ed25519_dalek::Signature::from_str(&sub_sig.signature).unwrap();
+        println!("0002__coin_tx_str({}),signature({})",coin_tx_str,signature);
+        public_key.verify_strict(coin_tx_str.as_bytes(), &signature).unwrap();
+        ***/
         let args_str = json!({
             "main_account_id": main_account_id,
-            "sub_sig": servant_sig,
+            "sub_sig": sub_sig,
             "coin_tx": coin_tx,
         })
         .to_string();
-        self.commit_by_relayer("internal_transfer_main_to_sub", &args_str)
+
+        self.commit_by_relayer("internal_transfer_sub_to_main", &args_str)
             .await
     }
 
@@ -460,7 +478,8 @@ pub struct SignInfo {
 impl FromStr for SignInfo{
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() != 192{
+        //todo
+        if s.len() < 64{
             Err(BackendError::RequestParamInvalid(s.to_string()))?;
         }
         Ok( SignInfo{
