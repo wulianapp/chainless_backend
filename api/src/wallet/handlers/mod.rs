@@ -27,6 +27,7 @@ pub mod get_master_secret;
 pub mod get_secret;
 pub mod get_strategy;
 pub mod pre_send_money;
+pub mod pre_send_money_to_sub;
 pub mod react_pre_send_money;
 pub mod reconfirm_send_money;
 pub mod remove_servant;

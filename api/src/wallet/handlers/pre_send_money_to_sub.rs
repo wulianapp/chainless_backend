@@ -10,28 +10,27 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
 
 use crate::utils::token_auth;
-use common::error_code::{AccountManagerError, BackendRes, WalletError};
+use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
 use models::coin_transfer::{get_next_tx_index, CoinTxView};
 use models::PsqlOp;
 
-use crate::wallet::PreSendMoneyRequest;
-//只有发起main-to-sub的时候剥离了，其他从私钥签名和二次确认的都是复用的
-pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,String)> {
-    //todo: allow master only
+use crate::wallet::PreSendMoneyToSubRequest;
+
+//todo: DRY
+pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(u32,String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let PreSendMoneyRequest {
-        from,
+    let PreSendMoneyToSubRequest {
         to,
         coin,
         amount,
         expire_at,
         memo,
-        is_forced
     } = request_data;
     let coin_type = CoinType::from_str(&coin).unwrap();
+    let from = user_info.user_info.main_account.clone();
 
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Master {
@@ -77,67 +76,38 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     };
 
     //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
-    //api不能将转子账户的接口单独剥离出去吗
+    //将转子账户的接口单独剥离出去
     let servant_is_empty =  strategy.servant_pubkeys.is_empty();
     let to_is_sub = strategy.sub_confs.get(&to).is_some();
+    if !to_is_sub {
+        Err(BackendError::InternalError("must be subaccount".to_string()))?;
+    } 
 
-    //转子账户一定是强制转账
-    if servant_is_empty && to_is_sub && is_forced{
-
-    }else if servant_is_empty && to_is_sub && !is_forced{
-        panic!("");
-    }else if servant_is_empty && !to_is_sub && is_forced{
-        
-    }else if servant_is_empty && !to_is_sub && !is_forced{
-        
-    }else if !servant_is_empty && to_is_sub && is_forced{
-        
-    }else if !servant_is_empty && to_is_sub && !is_forced{
-        
-    }else if !servant_is_empty && !to_is_sub && is_forced{
-        
-    }else if !servant_is_empty && !to_is_sub && !is_forced{
-        
+    //转子账户不需要is_forced标志位，本身就是强制的
+    if servant_is_empty {
+        let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
+        let next_tx_index = get_next_tx_index()?;
+        let (tx_id, chain_tx_raw) = cli
+        .gen_send_money_raw(
+            next_tx_index as u64,
+            vec![],
+            &from,
+            &to,
+            coin_type,
+            amount,
+            expire_at,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
+        coin_info.transaction.tx_type = TxType::ToSub;
+        coin_info.insert()?;
+        Ok(Some((next_tx_index,tx_id)))
     }else {
-        panic!("");
-    }
-
-    if strategy.servant_pubkeys.is_empty() {
-        if strategy.sub_confs.get(&to).is_some() {
-            let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved);
-            //todo： get_index after insert at external transaction
-            let next_tx_index = get_next_tx_index()?;
-            coin_info.transaction.tx_type = TxType::ToSub;
-            coin_info.insert()?;
-            Ok(Some((next_tx_index,coin_info.transaction.coin_tx_raw)))
-        }else if is_forced{
-            let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved);
-            let next_tx_index = get_next_tx_index()?;
-            let (tx_id, chain_tx_raw) = cli
-            .gen_send_money_raw(
-                next_tx_index as u64,
-                vec![],
-                &from,
-                &to,
-                coin_type,
-                amount,
-                expire_at,
-            )
-            .await
-            .unwrap()
-            .unwrap();
-            coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
-            coin_info.transaction.tx_type = TxType::Forced;
-            coin_info.insert()?;
-            Ok(Some((next_tx_index,tx_id)))
-        }else{                
-            let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted);
-            coin_info.insert()?;
-            Ok(None)
-        }
-    } else {
-        let coin_info = gen_tx_with_status(CoinTxStatus::Created);
-        //todo: fored
+        //todo:
+        let mut coin_info = gen_tx_with_status(CoinTxStatus::Created);
+        coin_info.transaction.tx_type = TxType::ToSub;
         coin_info.insert()?;
         Ok(None)
     }

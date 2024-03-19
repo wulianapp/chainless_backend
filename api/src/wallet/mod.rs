@@ -180,7 +180,6 @@ async fn get_secret(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreSendMoneyRequest {
-    from: String,
     to: String,
     coin: String,
     amount: u128,
@@ -197,6 +196,56 @@ async fn pre_send_money(
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pre_send_money::req(request, request_data.0).await)
+}
+
+
+/**
+ * @api {post} /wallet/preSendMoney 主钱包发起预交易
+ * @apiVersion 0.0.1
+ * @apiName preSendMoney
+ * @apiGroup Wallet
+ * @apiBody {String} from    发起方多签钱包ID
+ * @apiBody {String} to      收款方ID
+ * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
+ * @apiBody {Number} amount      转账数量
+ * @apiBody {Number} expireAt      有效截止时间戳
+ * @apiBody {String} [memo]      交易备注
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+            "from": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+            "to": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb",
+            "coin":"dw20",
+            "amount": 123,
+            "expireAt": 1708015513000
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreSendMoneyToSubRequest {
+    to: String,
+    coin: String,
+    amount: u128,
+    expire_at: u64,
+    memo: Option<String>,
+}
+
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/preSendMoneyToSub")]
+async fn pre_send_money_to_sub(
+    request: HttpRequest,
+    request_data: web::Json<PreSendMoneyToSubRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::pre_send_money_to_sub::req(request, request_data.0).await)
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -1047,6 +1096,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(update_security)
         .service(sub_send_to_main)
         .service(tx_list)
+        .service(pre_send_money_to_sub)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1257,43 +1307,28 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
-        let mut receiver = simulate_receiver();
-
-
         test_register!(service, sender_master);
-        test_register!(service, receiver);
         test_create_main_account!(service, sender_master);
-        test_create_main_account!(service, receiver);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-
-
         //step3: master: pre_send_money
-        test_pre_send_money!(
+        test_pre_send_money_to_sub!(
             service,
             sender_master,
             sender_master.wallet.subaccount.first().unwrap(),
             "DW20",
-            12,
-            false
+            12
         );
 
         let res = test_search_message!(service, sender_master).unwrap();
         if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
-
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = blockchain::multi_sig::ed25519_sign_data3(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 //区别于普通转账，给子账户的签coin_tx_raw
                 &tx.coin_tx_raw,
             );
-            let signature = format!(
-                "{}{}",
-                sender_master.wallet.pubkey.as_ref().unwrap(),
-                signature
-            );
-
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
     }

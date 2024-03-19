@@ -23,7 +23,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let PreSendMoneyRequest {
-        from,
         to,
         coin,
         amount,
@@ -31,6 +30,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         memo,
         is_forced
     } = request_data;
+    let from  = user_info.user_info.main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
 
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;

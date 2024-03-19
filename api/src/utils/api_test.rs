@@ -496,7 +496,6 @@ macro_rules! test_update_security {
 macro_rules! test_pre_send_money {
     ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr,$is_forced:expr) => {{
         let payload = json!({
-            "from": &$sender_master.wallet.main_account,
             "to": &$receiver_account,
             "coin":$coin,
             "amount": $amount,
@@ -507,6 +506,27 @@ macro_rules! test_pre_send_money {
             $service,
             "post",
             "/wallet/preSendMoney",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_pre_send_money_to_sub {
+    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr) => {{
+        let payload = json!({
+            "to": &$receiver_account,
+            "coin":$coin,
+            "amount": $amount,
+            "expireAt": 1808015513000u64,
+       });
+        let res: BackendRespond<(u32,String)> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/preSendMoneyToSub",
             Some(payload.to_string()),
             Some($sender_master.user.token.as_ref().unwrap())
         );
