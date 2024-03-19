@@ -3,7 +3,7 @@ use std::str::FromStr;
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, SignInfo};
-use common::data_structures::wallet::{CoinTxStatus, CoinType};
+use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -63,10 +63,8 @@ pub async fn req(
             u64::MAX,
             CoinTxStatus::SenderSigCompleted,
         );
+        coin_info.transaction.tx_type = TxType::FromSub;
         coin_info.transaction.tx_id = tx_id;
         coin_info.insert()?;
-
-
-
-    Ok(None::<String>)
+    Ok(None)
 }

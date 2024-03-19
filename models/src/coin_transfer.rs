@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxRole};
-use common::error_code::{BackendError, TxStatus};
+use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxRole, TxType};
+use common::error_code::{BackendError};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
@@ -44,6 +44,10 @@ impl CoinTxView {
             signatures: vec![],
             memo,
             expire_at,
+            tx_type: TxType::Normal,
+            reserved_field1: "".to_string(),
+            reserved_field2: "".to_string(),
+            reserved_field3: "".to_string(),
         };
         CoinTxView {
             tx_index: 0,
@@ -151,6 +155,10 @@ impl PsqlOp for CoinTxView {
          coin_tx_raw,\
          chain_tx_raw,\
          signatures,\
+         tx_type,\
+         reserved_field1,\
+         reserved_field2,\
+         reserved_field3,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from coin_transaction where {}",
@@ -174,13 +182,17 @@ impl PsqlOp for CoinTxView {
                 amount: u128::from_str(row.get::<usize, &str>(5)).unwrap(),
                 expire_at: row.get::<usize, String>(6).parse().unwrap(),
                 memo: row.get(7),
-                status: CoinTxStatus::from_str(row.get::<usize, &str>(8)).unwrap(),
+                status: row.get::<usize, &str>(8).parse().unwrap(),
                 coin_tx_raw: row.get(9),
                 chain_tx_raw: row.get(10),
                 signatures: row.get::<usize, Vec<String>>(11),
+                tx_type: row.get::<usize, &str>(12).parse().unwrap(),
+                reserved_field1: row.get(13),
+                reserved_field2: row.get(14),
+                reserved_field3: row.get(15),
             },
-            updated_at: row.get(12),
-            created_at: row.get(13),
+            updated_at: row.get(16),
+            created_at: row.get(17),
         };
         Ok(execute_res
             .iter()
@@ -214,6 +226,10 @@ impl PsqlOp for CoinTxView {
             coin_tx_raw,
             chain_tx_raw,
             signatures,
+            tx_type,
+            reserved_field1,
+            reserved_field2,
+            reserved_field3,
         } = self.transaction.clone();
         let tx_id: PsqlType = tx_id.into();
         let chain_raw_data: PsqlType = chain_tx_raw.into();
@@ -231,8 +247,12 @@ impl PsqlOp for CoinTxView {
          status,\
         coin_tx_raw,\
          chain_tx_raw,\
-         signatures\
-         ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{});",
+         signatures,\
+         tx_type,\
+         reserved_field1,\
+         reserved_field2,\
+         reserved_field3\
+         ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}','{}','{}');",
             tx_id.to_psql_str(),
             coin_type.to_string(),
             sender,
@@ -243,7 +263,11 @@ impl PsqlOp for CoinTxView {
             status.to_string(),
             coin_tx_raw,
             chain_raw_data.to_psql_str(),
-            vec_str2array_text(signatures)
+            vec_str2array_text(signatures),
+            tx_type.to_string(),
+            reserved_field1,
+            reserved_field1,
+            reserved_field1,
         );
         println!("row sql {} rows", sql);
 

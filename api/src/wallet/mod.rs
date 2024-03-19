@@ -1079,7 +1079,7 @@ mod tests {
     use blockchain::multi_sig::{CoinTx, MultiSig};
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
-    use common::data_structures::wallet::{AccountMessage, CoinTxStatus};
+    use common::data_structures::wallet::{AccountMessage, CoinTxStatus, TxType};
     use common::utils::math;
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
@@ -1088,16 +1088,76 @@ mod tests {
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
 
-    
-    #[derive(Deserialize, Serialize,Debug)]
-    pub struct BackendRespond2 {
-        pub status_code: u16,
-        pub msg: String,
-        //200 default success
-        pub data: Option<(u32,String)>,
-    }
     #[actix_web::test]
-    async fn test_force_transfer() {
+    async fn test_force_transfer_with_servant() {
+        //todo: cureent is single, add multi_sig testcase
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        let mut receiver = simulate_receiver();
+        let mut sender_servant = simulate_sender_servant();
+
+        let sender_new_device = simulate_sender_new_device();
+
+        test_register!(service, sender_master);
+        test_register!(service, receiver);
+        test_login!(service, sender_servant);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_add_servant!(service, sender_master, sender_servant);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let res = test_search_message!(service, sender_servant).unwrap();
+        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
+            println!(
+                "encrypted_prikey_by_password {:?}",
+                secret.encrypted_prikey_by_password
+            );
+            sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
+            //todo: confirm prikey save
+            let payload = json!({
+                "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
+            });
+            let url = format!("/wallet/servantSavedSecret");
+            let res: BackendRespond<String> = test_service_call!(
+                service,
+                "post",
+                &url,
+                Some(payload.to_string()),
+                Some(sender_servant.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code, 0);
+        }
+
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
+        assert!(pre_send_res.is_none());
+        
+        let res = test_search_message!(service, sender_servant).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(tx.tx_type, TxType::Forced);
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data3(
+                &sender_servant.wallet.prikey.unwrap(),
+                &tx.coin_tx_raw,
+            );
+           test_upload_servant_sig!(service,sender_servant,index,signature);
+        }
+
+        let res = test_search_message!(service, sender_master).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+            assert_eq!(tx.tx_type, TxType::Forced);
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                tx.tx_id.as_ref().unwrap(),
+            );
+            test_reconfirm_send_money!(service,sender_master,index,signature);
+        }
+    }
+    
+    #[actix_web::test]
+    async fn test_force_transfer_without_servant() {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1115,7 +1175,6 @@ mod tests {
             &txid,
         );
         test_reconfirm_send_money!(service,sender_master,index,signature);
-        
     }
 
     #[actix_web::test]
@@ -1421,7 +1480,7 @@ mod tests {
         let secrets = test_get_secret!(service, sender_master, "all").unwrap();
         println!("secrets {:?}", secrets);
 
-        let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
+        let txs = test_tx_list!(service, sender_master,"Sender",None::<String>,100,1).unwrap();
         println!("txs__ {:?}", txs);
     }
 

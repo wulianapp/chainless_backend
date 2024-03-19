@@ -157,21 +157,33 @@ pub struct CoinTransaction {
     pub coin_tx_raw: String,
     pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
+    pub tx_type: TxType,
+    pub reserved_field1: String,
+    pub reserved_field2: String,
+    pub reserved_field3: String,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
+pub enum TxRole {
+    #[strum(serialize = "Sender",to_string = "sender")]
+    Sender,
+    #[strum(serialize = "Receiver",to_string = "receiver")]
+    Receiver
+}
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum TxRole {
-    sender,
-    receiver
+pub enum TxType {
+    Normal,
+    Forced,
+    ToSub,
+    FromSub
 }
 
 impl TxRole {
     pub fn counterparty(&self) -> Self{
         match self {
-            TxRole::sender => TxRole::receiver,
-            TxRole::receiver => TxRole::sender,
+            TxRole::Sender => TxRole::Receiver,
+            TxRole::Receiver => TxRole::Sender,
         }
     }
 }

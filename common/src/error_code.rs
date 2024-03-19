@@ -83,12 +83,6 @@ impl ErrorCode for AccountManagerError {
     }
 }
 
-#[derive(Debug)]
-pub enum TxStatus {
-    Success,
-    Failed(String),
-}
-
 #[derive(Error, Debug)]
 pub enum WalletError {
     #[error("tx's from is not equal to user_id decoded from auth token")]

@@ -60,6 +60,10 @@ create table coin_transaction(
      coin_tx_raw  text,
      chain_tx_raw  text,
      signatures text[],
+     tx_type text not null, --Forced,ToSub,FromSub
+     reserved_field1 text not null,
+     reserved_field2 text not null,
+     reserved_field3 text not null,
      updated_at  timestamp with time zone default current_timestamp,
      created_at  timestamp with time zone default current_timestamp
 );

@@ -4,7 +4,7 @@ use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::wallet::{get_support_coin_list, CoinTransaction, CoinTxStatus, CoinType};
+use common::data_structures::wallet::{get_support_coin_list, CoinTransaction, CoinTxStatus, CoinType, TxType};
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -32,6 +32,7 @@ pub struct CoinTxViewTmp {
     pub coin_tx_raw: String,
     pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
+    pub tx_type: TxType,
     pub updated_at: String,
     pub created_at: String,
 }
@@ -58,6 +59,7 @@ pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec
             coin_tx_raw: tx.transaction.coin_tx_raw,
             chain_tx_raw: tx.transaction.chain_tx_raw,
             signatures: tx.transaction.signatures,
+            tx_type: tx.transaction.tx_type,
             updated_at: tx.updated_at,
             created_at: tx.created_at,
         }

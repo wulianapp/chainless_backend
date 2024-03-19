@@ -52,7 +52,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
                 servant_sigs,
                 &coin_tx.transaction.from,
                 &coin_tx.transaction.to,
-                CoinType::DW20,
+                coin_tx.transaction.coin_type,
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,
             )

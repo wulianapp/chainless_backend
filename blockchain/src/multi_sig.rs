@@ -539,6 +539,17 @@ pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
     sig.to_string()
 }
 
+pub fn ed25519_sign_data3(prikey_bytes_hex: &str, data_hex: &str) -> String {
+    let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
+    let data = hex::decode(data_hex).unwrap();
+
+    println!("ed25519_secret {:?}", prikey_bytes);
+    let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
+    let sig = secret_key.sign(&data);
+    let pubkey = hex::encode(secret_key.public.as_bytes());
+    format!("{}{}",pubkey,sig.to_string())
+}
+
 pub fn ed25519_key_gen() -> (String, String) {
     let mut csprng = OsRng {};
     let key_pair = ed25519_dalek::Keypair::generate(&mut csprng);

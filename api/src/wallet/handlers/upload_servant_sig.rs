@@ -1,7 +1,8 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::data_structures::wallet::{CoinTxStatus, CoinType};
+use blockchain::multi_sig::{MultiSig, MultiSigRank, SignInfo};
+use blockchain::ContractClient;
+use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -49,33 +50,56 @@ pub async fn req(
         signature,
     } = request_data.0;
 
-    //todo: validate signature
-
-    let tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
-    let mut signatures = tx.transaction.signatures.clone();
-    signatures.push(signature);
+    //todo: two update action is unnecessary
+    let mut tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+    tx.transaction.signatures.push(signature);
     models::coin_transfer::CoinTxView::update(
-        CoinTxUpdater::Signature(signatures),
+        CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByTxIndex(tx_index),
     )?;
-    //todo: collect enough signatures
-    //let wallet_info = get_wallet(WalletFilter::ByUserId(user_id))?;
-    //let wallet_info = &wallet_info.first().unwrap().wallet;
 
-    //todo: checkout sig if is enough
-    //first error deal with in models
+    //collect enough signatures
     let multi_cli = blockchain::ContractClient::<MultiSig>::new();
     let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
     let need = get_servant_need(
         &strategy.multi_sig_ranks,
-        tx.transaction.coin_type,
+        tx.transaction.coin_type.clone(),
         tx.transaction.amount
     ).await.unwrap();
     if tx.transaction.signatures.len() as u8 >= need {
         //区分receiver是否是子账户
-        if let Some(_) = strategy.sub_confs.get(&tx.transaction.to){
+        if tx.transaction.tx_type == TxType::ToSub{
             models::coin_transfer::CoinTxView::update(
                 CoinTxUpdater::Status(CoinTxStatus::SenderSigCompletedAndReceiverIsSub),
+                CoinTxFilter::ByTxIndex(tx_index),
+            )?;
+        }else if tx.transaction.tx_type == TxType::Forced{
+            let cli = ContractClient::<MultiSig>::new();
+            let servant_sigs = tx
+            .transaction
+            .signatures
+            .iter()
+            .map(|data| SignInfo {
+                pubkey: data[..64].to_string(),
+                signature: data[64..].to_string(),
+            })
+            .collect();
+            let (tx_id, chain_tx_raw) = cli
+            .gen_send_money_raw(
+                tx.tx_index as u64,
+                servant_sigs,
+                &tx.transaction.from,
+                &tx.transaction.to,
+                tx.transaction.coin_type,
+                tx.transaction.amount,
+                tx.transaction.expire_at,
+            )
+            .await
+            .unwrap()
+            .unwrap();
+
+            models::coin_transfer::CoinTxView::update(
+                CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinTxStatus::ReceiverApproved),
                 CoinTxFilter::ByTxIndex(tx_index),
             )?;
         }else{                
@@ -86,5 +110,5 @@ pub async fn req(
         }
 
     }
-    Ok(None::<String>)
+    Ok(None)
 }
