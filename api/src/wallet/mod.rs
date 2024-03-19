@@ -1097,8 +1097,6 @@ mod tests {
         let mut receiver = simulate_receiver();
         let mut sender_servant = simulate_sender_servant();
 
-        let sender_new_device = simulate_sender_new_device();
-
         test_register!(service, sender_master);
         test_register!(service, receiver);
         test_login!(service, sender_servant);
@@ -1108,25 +1106,8 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let res = test_search_message!(service, sender_servant).unwrap();
         if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
-            println!(
-                "encrypted_prikey_by_password {:?}",
-                secret.encrypted_prikey_by_password
-            );
-            sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
-            //todo: confirm prikey save
-            let payload = json!({
-                "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
-            });
-            let url = format!("/wallet/servantSavedSecret");
-            let res: BackendRespond<String> = test_service_call!(
-                service,
-                "post",
-                &url,
-                Some(payload.to_string()),
-                Some(sender_servant.user.token.as_ref().unwrap())
-            );
-            assert_eq!(res.status_code, 0);
-        }
+            test_servant_save_secret!(service,sender_servant);
+        }   
 
         let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
         assert!(pre_send_res.is_none());
@@ -1593,24 +1574,8 @@ mod tests {
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
         if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
-            println!(
-                "encrypted_prikey_by_password {:?}",
-                secret.encrypted_prikey_by_password
-            );
             sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
-            //todo: confirm prikey save
-            let payload = json!({
-                "servantPubkey":  sender_servant.wallet.pubkey.as_ref().unwrap(),
-            });
-            let url = format!("/wallet/servantSavedSecret");
-            let res: BackendRespond<String> = test_service_call!(
-                service,
-                "post",
-                &url,
-                Some(payload.to_string()),
-                Some(sender_servant.user.token.as_ref().unwrap())
-            );
-            assert_eq!(res.status_code, 0);
+            test_servant_save_secret!(service,sender_servant);
         }
 
         //step2.4: get device list

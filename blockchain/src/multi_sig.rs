@@ -539,6 +539,7 @@ pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
     sig.to_string()
 }
 
+//pubkey+real_sig
 pub fn ed25519_sign_data3(prikey_bytes_hex: &str, data_hex: &str) -> String {
     let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
     let data = hex::decode(data_hex).unwrap();

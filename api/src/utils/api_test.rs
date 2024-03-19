@@ -392,6 +392,24 @@ macro_rules! test_add_servant {
 }
 
 #[macro_export]
+macro_rules! test_servant_save_secret {
+    ($service:expr,$servant:expr) => {{
+        let payload = json!({
+            "servantPubkey":  $servant.wallet.pubkey.as_ref().unwrap(),
+        });
+        let url = format!("/wallet/servantSavedSecret");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($servant.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+    }};
+}
+
+#[macro_export]
 macro_rules! test_add_subaccount {
     ($service:expr, $master:expr) => {{
         let payload = json!({
