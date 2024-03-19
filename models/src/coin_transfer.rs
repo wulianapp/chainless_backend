@@ -253,6 +253,22 @@ impl PsqlOp for CoinTxView {
         Ok(())
     }
 }
+
+pub fn get_next_tx_index() -> Result<u32, BackendError> {
+    let execute_res = crate::query(
+        "select last_value,is_called from coin_transaction_tx_index_seq order by last_value desc limit 1",
+    )?;
+    let row = execute_res.first().unwrap();
+    let current_user_id = row.get::<usize, i64>(0) as u32;
+    let is_called = row.get::<usize, bool>(1);
+    //auto index is always 1 when no user or insert one
+    if is_called {
+        Ok(current_user_id + 1)
+    } else {
+        Ok(1)
+    }
+}
+
 #[cfg(test)]
 mod tests {
 

@@ -11,7 +11,7 @@ pub struct BackendRespond<T: Serialize> {
     pub status_code: u16,
     pub msg: String,
     //200 default success
-    pub data: T,
+    pub data: Option<T>,
 }
 
 pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
@@ -19,19 +19,11 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
         "generate_ok_respond: {}",
         serde_json::to_string(&info).unwrap()
     );
-    if let Some(data) = info {
-        HttpResponse::Ok().json(BackendRespond {
-            msg: "successfully".to_string(),
-            status_code: 0u16,
-            data,
-        })
-    } else {
-        HttpResponse::Ok().json(BackendRespond {
-            msg: "successfully".to_string(),
-            status_code: 0u16,
-            data: "null".to_string(),
-        })
-    }
+    HttpResponse::Ok().json(BackendRespond {
+        msg: "successfully".to_string(),
+        status_code: 0u16,
+        data: info,
+    })
 }
 
 pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse {
@@ -39,7 +31,7 @@ pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse 
     HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error.code(),
-        data: "".to_string(),
+        data: None::<String>,
     })
 }
 

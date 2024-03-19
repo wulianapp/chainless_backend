@@ -11,14 +11,14 @@ use tracing::debug;
 
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendRes, WalletError};
-use models::account_manager::{UserFilter, UserInfoView};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::CoinTxView;
+use models::coin_transfer::{get_next_tx_index, CoinTxView};
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyRequest;
 
-pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<String> {
+pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,String)> {
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
@@ -29,6 +29,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         amount,
         expire_at,
         memo,
+        is_forced
     } = request_data;
     let coin_type = CoinType::from_str(&coin).unwrap();
 
@@ -62,6 +63,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let tx_status = if strategy.servant_pubkeys.is_empty() {
         if let Some(_) = strategy.sub_confs.get(&to){
             CoinTxStatus::SenderSigCompletedAndReceiverIsSub
+        }else if is_forced{
+            CoinTxStatus::ReceiverApproved
         }else{                
             CoinTxStatus::SenderSigCompleted
         }
@@ -75,16 +78,37 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let coin_tx_raw = cli
         .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
         .unwrap();
-    let coin_info = CoinTxView::new_with_specified(
-        coin_type,
-        from,
-        to,
+    let mut coin_info = CoinTxView::new_with_specified(
+        coin_type.clone(),
+        from.clone(),
+        to.clone(),
         amount,
         coin_tx_raw,
         memo,
         expire_at,
         tx_status,
     );
-    coin_info.insert()?;
-    Ok(None::<String>)
+    if is_forced {
+        let next_tx_index = get_next_tx_index()?;
+        let (tx_id, chain_tx_raw) = cli
+        .gen_send_money_raw(
+            next_tx_index as u64,
+            vec![],
+            &from,
+            &to,
+            coin_type,
+            amount,
+            expire_at,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
+        coin_info.insert()?;
+        Ok(Some((next_tx_index,tx_id)))
+    }else {
+        coin_info.insert()?;
+        Ok(None)
+    }
+
 }

@@ -231,7 +231,7 @@ macro_rules! test_service_call {
         serde_json::from_str::<_>(&body_str).unwrap()
     }};
 }
-
+//data值都放上次处理进行unwrap，因为确实有null的场景，没有需要数据返回的直接不返回数据
 #[macro_export]
 macro_rules! test_register {
     ( $service:expr,$app:expr) => {{
@@ -263,7 +263,7 @@ macro_rules! test_register {
                 Some(payload.to_string()),
                 None::<String>
             );
-            $app.user.token = Some(res.data);
+            $app.user.token = Some(res.data.unwrap());
     }};
 }
 
@@ -283,7 +283,7 @@ macro_rules! test_login {
                 Some(payload.to_string()),
                 None::<String>
             );
-            $app.user.token = Some(res.data);
+            $app.user.token = Some(res.data.unwrap());
     }};
 }
 
@@ -388,7 +388,6 @@ macro_rules! test_add_servant {
             Some($master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 
@@ -411,7 +410,6 @@ macro_rules! test_add_subaccount {
             Some($master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code, 0);
-        res.data
     }};
 }
 
@@ -431,7 +429,6 @@ macro_rules! test_remove_servant {
             Some($master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 
@@ -452,7 +449,6 @@ macro_rules! test_update_strategy {
             Some($master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 
@@ -473,7 +469,6 @@ macro_rules! test_update_security {
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 
@@ -481,15 +476,16 @@ macro_rules! test_update_security {
 
 #[macro_export]
 macro_rules! test_pre_send_money {
-    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr) => {{
+    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr,$is_forced:expr) => {{
         let payload = json!({
             "from": &$sender_master.wallet.main_account,
             "to": &$receiver_account,
             "coin":$coin,
             "amount": $amount,
-            "expireAt": 1808015513000u64
+            "expireAt": 1808015513000u64,
+            "isForced": $is_forced
        });
-        let res: BackendRespond<String> = test_service_call!(
+        let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoney",
@@ -501,6 +497,23 @@ macro_rules! test_pre_send_money {
     }};
 }
 
+#[macro_export]
+macro_rules! test_reconfirm_send_money {
+    ($service:expr, $sender_master:expr, $index:expr,$signature:expr) => {{
+        let payload = json!({
+            "txIndex": $index,
+            "confirmedSig": $signature,
+       });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/reconfirmSendMoney",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+    }};
+}
 
 #[macro_export]
 macro_rules! test_upload_servant_sig {
@@ -517,7 +530,6 @@ macro_rules! test_upload_servant_sig {
             Some($sender_servant.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 
@@ -536,7 +548,6 @@ macro_rules! test_faucet_claim {
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-        res.data
     }};
 }
 

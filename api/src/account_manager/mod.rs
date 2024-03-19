@@ -402,7 +402,7 @@ mod tests {
             "post",
             "/accountManager/resetPassword",
             Some(payload),
-            Some(login_res.data)
+            Some(login_res.data.unwrap())
         );
         println!("{:?}", res.msg);
         assert_eq!(res.status_code, 0);
@@ -428,7 +428,7 @@ mod tests {
             "get",
             "/accountManager/userInfo",
             None::<String>,
-            Some(res.data)
+            Some(res.data.unwrap())
         );
         println!("{:?}", res.data);
     }
