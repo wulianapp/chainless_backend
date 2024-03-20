@@ -32,9 +32,8 @@ pub(crate) async fn req(
         ))?;
     }
 
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
-
-    super::have_no_uncompleted_tx(&user.user_info.main_account)?;
+    let main_account = super::get_main_account(user_id)?;
+    super::have_no_uncompleted_tx(&main_account)?;
 
     models::general::transaction_begin()?;
 
@@ -48,17 +47,17 @@ pub(crate) async fn req(
     let multi_sig_cli = ContractClient::<MultiSig>::new();
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli
-        .get_strategy(&user.user_info.main_account)
+        .get_strategy(&main_account)
         .await?
         .ok_or(WalletError::MainAccountNotExist(
-            user.user_info.main_account.clone(),
+            main_account.clone(),
         ))?;
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);
     multi_sig_cli
         .update_servant_pubkey(
-            &user.user_info.main_account,
+            &main_account,
             current_strategy.servant_pubkeys,
         )
         .await?;

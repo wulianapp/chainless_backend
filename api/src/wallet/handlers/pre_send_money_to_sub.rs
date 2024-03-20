@@ -21,7 +21,8 @@ use crate::wallet::PreSendMoneyToSubRequest;
 //todo: DRY
 pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(u32,String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let main_account = super::get_main_account(user_id)?;
+
     let PreSendMoneyToSubRequest {
         to,
         coin,
@@ -30,7 +31,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         memo,
     } = request_data;
     let coin_type = CoinType::from_str(&coin).unwrap();
-    let from = user_info.user_info.main_account.clone();
+    let from = main_account.clone();
 
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Master {
@@ -47,7 +48,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new();
     let strategy = cli
-        .get_strategy(&user_info.user_info.main_account)
+        .get_strategy(&main_account)
         .await?
         .ok_or(WalletError::SenderNotFound)?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to){

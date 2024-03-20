@@ -16,10 +16,10 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let UpdateStrategy {
-        account_id,
         strategy,
     } = request_data.0;
-    super::have_no_uncompleted_tx(&account_id)?;
+    let main_account = super::get_main_account(user_id)?;
+    super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Master {
         Err(WalletError::UneligiableRole(
@@ -40,7 +40,7 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
 
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new();
-    multi_sig_cli.update_rank(&account_id, strategy).await?;
+    multi_sig_cli.update_rank(&main_account, strategy).await?;
 
     Ok(None::<String>)
 }

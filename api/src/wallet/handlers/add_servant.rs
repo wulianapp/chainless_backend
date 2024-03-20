@@ -21,13 +21,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let AddServantRequest {
-        main_account,
         servant_pubkey,
         servant_prikey_encryped_by_password,
         servant_prikey_encryped_by_answer,
         holder_device_id,
         holder_device_brand: _,
     } = request_data;
+    let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Master {

@@ -15,17 +15,13 @@ use common::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::wallet::GetStrategyRequest;
-
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
 ) -> BackendRes<Vec<SecretStore>> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let cli = blockchain::ContractClient::<MultiSig>::new();
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let main_account = user_info.user_info.main_account;
-
+    let main_account = super::get_main_account(user_id)?;
     //
     match request_data.r#type {
         crate::wallet::SecretType::CurrentDevice => {

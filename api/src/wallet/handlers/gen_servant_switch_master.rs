@@ -40,8 +40,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<GenReplaceKeyInfo> {
                 "this haven't be servant yet".to_string(),
             ))?;
 
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let main_account = user_info.user_info.main_account;
+    let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Servant {

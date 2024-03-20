@@ -15,12 +15,11 @@ use std::sync::Mutex;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let account_id = user_info.user_info.main_account;
+    let main_account = super::get_main_account(user_id)?;
     let coin_list = get_support_coin_list_without_cly();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone());
-        let _balance = coin_cli.send_coin(&account_id, 100).await?.unwrap();
+        let _balance = coin_cli.send_coin(&main_account, 100).await?.unwrap();
     }
     Ok(None::<String>)
 }

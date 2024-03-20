@@ -40,10 +40,9 @@ pub struct CoinTxViewTmp {
 
 pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let main_account = super::get_main_account(user_id)?;
     let TxListRequest{ tx_role, counterparty, per_page, page } = request_data;
     let tx_role = tx_role.parse().unwrap();
-    let main_account = user_info.user_info.main_account;
     let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(tx_role,&main_account,counterparty.as_deref(),per_page,page))?;
     let txs = txs.into_iter().map(|tx|{
         CoinTxViewTmp{

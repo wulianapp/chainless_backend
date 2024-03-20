@@ -329,7 +329,7 @@ macro_rules! test_search_message {
 #[macro_export]
 macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
-        let url = format!("/wallet/getStrategy?accountId={}", $app.wallet.main_account);
+        let url = format!("/wallet/getStrategy?accountId={}");
         let res: BackendRespond<StrategyDataTmp> = test_service_call!(
             $service,
             "get",
@@ -373,7 +373,6 @@ macro_rules! test_tx_list {
 macro_rules! test_add_servant {
     ($service:expr, $master:expr, $servant:expr) => {{
         let payload = json!({
-            "mainAccount":  $master.wallet.main_account,
             "servantPubkey":  $servant.wallet.pubkey.as_ref().unwrap(),
             "servantPrikeyEncrypedByPassword":  $servant.wallet.prikey.as_ref().unwrap(),
             "servantPrikeyEncrypedByAnswer":  $servant.wallet.prikey.as_ref().unwrap(),
@@ -392,17 +391,14 @@ macro_rules! test_add_servant {
 }
 
 #[macro_export]
-macro_rules! test_servant_save_secret {
+macro_rules! test_servant_saved_secret {
     ($service:expr,$servant:expr) => {{
-        let payload = json!({
-            "servantPubkey":  $servant.wallet.pubkey.as_ref().unwrap(),
-        });
         let url = format!("/wallet/servantSavedSecret");
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             &url,
-            Some(payload.to_string()),
+            None::<String>,
             Some($servant.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
@@ -413,7 +409,6 @@ macro_rules! test_servant_save_secret {
 macro_rules! test_add_subaccount {
     ($service:expr, $master:expr) => {{
         let payload = json!({
-            "mainAccount":  $master.wallet.main_account,
             "subaccountPubkey":  $master.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
             "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
@@ -455,7 +450,6 @@ macro_rules! test_remove_servant {
 macro_rules! test_update_strategy {
     ($service:expr, $master:expr) => {{
         let payload = json!({
-            "accountId":  $master.wallet.main_account,
             "deviceId": "1",
             "strategy": [{"min": 1, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200u64, "sigNum": 1}]
         });

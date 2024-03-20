@@ -52,6 +52,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String}  data.CoinTx.transaction.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.CoinTx.transaction.chain_tx_raw]          链上交互的原始数据
 * @apiSuccess {String[]} data.CoinTx.transaction.signatures         从设备对业务数据的签名
+* @apiSuccess {String=Normal,Forced,ToSub,FromSub} data.CoinTx.transaction.tx_type         从设备对业务数据的签名
 * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -65,11 +66,9 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiVersion 0.0.1
  * @apiName getStrategy
  * @apiGroup Wallet
- * @apiQuery {String} accountId 钱包ID
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/searchMessageByAccountId?accounId
-=2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0
+ *   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
@@ -78,51 +77,42 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {Object} data                          策略详情.
  * @apiSuccess {String} data.master_pubkey        主钱包的maser的公钥
  * @apiSuccess {String[]} data.servant_pubkeys    主钱包的servant的公钥组
- * @apiSuccess {String[]} data.subaccounts        子钱包的公钥组
+ * @apiSuccess {Object[]} data.subaccounts        子钱包的配置
+ * @apiSuccess {String} data.subaccounts.0        子钱包的公钥组
+ * @apiSuccess {number} data.subaccounts.hold_value_limit   子钱包持仓限制
  * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
  * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
  * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
  * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
  */
-
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GetStrategyRequest {
-    account_id: String,
-}
-//todo: 删掉account_id，从数据库去拿
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getStrategy")]
-async fn get_strategy(
-    request: HttpRequest,
-    request_data: web::Query<GetStrategyRequest>,
-) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_strategy::req(request, request_data.into_inner()).await)
+async fn get_strategy(request: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::get_strategy::req(request).await)
 }
 
 /**
-* @api {get} /wallet/getSecret 获取主设备的备份密钥信息
+* @api {get} /wallet/getSecret 获取备份密钥信息
 * @apiVersion 0.0.1
 * @apiName GetSecret
 * @apiGroup Wallet
 * @apiQuery {String=currentDevice,master,all}  type  想获取的密钥类型
 * @apiHeader {String} Authorization  user's access token
 * @apiExample {curl} Example usage:
-*   curl -X POST http://120.232.251.101:8066/wallet/getMasterSecret
+*   curl -X POST http://120.232.251.101:8066/wallet/getSecret
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {Object} data                                    备份加密密钥信息.
+* @apiSuccess {Object[]} data                                    备份加密密钥信息.
 * @apiSuccess {String} data.pubkey                             对应的公钥
 * @apiSuccess {String} data.state                              不关注
 * @apiSuccess {Number} data.user_id                            所属用户ID
 * @apiSuccess {String} data.encrypted_prikey_by_password       被安全密码加密后的文本
 * @apiSuccess {String} data.encrypted_prikey_by_answer         被安全问答加密后的文本
-* @apiSampleRequest http://120.232.251.101:8066/wallet/getMasterSecret
+* @apiSampleRequest http://120.232.251.101:8066/wallet/getSecret
 */
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -174,7 +164,9 @@ async fn get_secret(
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {object} data                非**强制转账+单签**返回null.
+* @apiSuccess {number} data.0                交易序列号.
+* @apiSuccess {string} data.1                待签名数据(txid).
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -204,7 +196,6 @@ async fn pre_send_money(
  * @apiVersion 0.0.1
  * @apiName preSendMoney
  * @apiGroup Wallet
- * @apiBody {String} from    发起方多签钱包ID
  * @apiBody {String} to      收款方ID
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
  * @apiBody {Number} amount      转账数量
@@ -246,22 +237,6 @@ async fn pre_send_money_to_sub(
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pre_send_money_to_sub::req(request, request_data.0).await)
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct DirectSendMoneyRequest {
-    tx_raw: String,
-    signature: String,
-}
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/directSendMoney")]
-async fn direct_send_money(
-    request: HttpRequest,
-    request_data: web::Json<DirectSendMoneyRequest>,
-) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::direct_send_money::req(request, request_data).await)
 }
 
 /**
@@ -408,7 +383,6 @@ async fn upload_servant_sig(
  * @apiVersion 0.0.1
  * @apiName addServant
  * @apiGroup Wallet
- * @apiBody {String} mainAccount    主钱包Id
  * @apiBody {String} servantPubkey   从公钥
  * @apiBody {String} servantPrikeyEncrypedByPassword   经密码加密后的从私钥
  * @apiBody {String} servantPrikeyEncrypedByAnswer   经问答加密后的从私钥
@@ -419,7 +393,6 @@ async fn upload_servant_sig(
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
    -d ' {
-             "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "servantPubkey": "123",
              "servantPrikeyEncrypedByPassword": "12345",
              "servantPrikeyEncrypedByAnswer": "12345",
@@ -438,7 +411,6 @@ async fn upload_servant_sig(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AddServantRequest {
-    main_account: String,
     servant_pubkey: String,
     servant_prikey_encryped_by_password: String,
     servant_prikey_encryped_by_answer: String,
@@ -534,41 +506,26 @@ async fn remove_servant(
 /***
 * @api {post} /wallet/servantSavedSecret 从设备告知服务端密钥已保存
 * @apiVersion 0.0.1
-* @apiName servantSavedSecret
+* @apiName ServantSavedSecret
 * @apiGroup Wallet
 * @apiBody {String} servantPubkey   从公钥
 * @apiHeader {String} Authorization  user's access token
 * @apiExample {curl} Example usage:
-*   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
-  -d ' {
-            "mainAccount": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
-            "servantPubkey": "123",
-            "servantPrikeyEncrypedByPassword": "12345",
-            "servantPrikeyEncrypedByAnswer": "12345",
-            "holderDeviceId": "123",
-            "holderDeviceBrand": "Apple",
-          }'
+*   curl -X POST http://120.232.251.101:8066/wallet/servantSavedSecret
   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
+* @apiSampleRequest http://120.232.251.101:8066/wallet/servantSavedSecret
 */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ServantSavedSecretRequest {
-    servant_pubkey: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/servantSavedSecret")]
 async fn servant_saved_secret(
     request: HttpRequest,
-    request_data: web::Json<ServantSavedSecretRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::servant_saved_secret::req(request, request_data.0).await)
+    gen_extra_respond(handlers::servant_saved_secret::req(request).await)
 }
 
 /**
@@ -584,7 +541,6 @@ async fn servant_saved_secret(
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
    -d ' {
-             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "deviceId": "1",
              "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
            }'
@@ -628,7 +584,6 @@ pub struct MultiSigRankExternal {
  * @apiVersion 0.0.1
  * @apiName updateStrategy
  * @apiGroup Wallet
- * @apiBody {String} accountId    主钱包Id
  * @apiBody {Object[]} strategy   策略内容
  * @apiBody {Number} strategy.min   档位最小值(开区间)
  * @apiBody {Number} strategy.maxEq  档位最大值(闭区间)
@@ -637,7 +592,6 @@ pub struct MultiSigRankExternal {
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/updateStrategy
    -d '  {
-             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
             }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
@@ -651,7 +605,6 @@ pub struct MultiSigRankExternal {
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateStrategy {
-    account_id: String,
     strategy: Vec<MultiSigRankExternal>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -665,23 +618,19 @@ async fn update_strategy(
 }
 
 /**
- * @api {post} /wallet/updateStrategy 更新主钱包多签梯度
+ * @api {post} /wallet/updateSecurity 更新安全密码
  * @apiVersion 0.0.1
- * @apiName updateStrategy
+ * @apiName UpdateSecurity
  * @apiGroup Wallet
  * @apiBody {String} anwserIndexes    新的安全问题
  * @apiBody {Object[]} secrets        重设后的安全数据
- * @apiBody {String} secrets.pubkey    新的安全问题
- * @apiBody {String} secrets.encryptedPrikeyByPassword        重设后的安全数据
- * @apiBody {String} secrets.encryptedPrikeyByAnswer    新的安全问题
-
-
- *
+ * @apiBody {String} secrets.pubkey    更新的钱包公钥
+ * @apiBody {String} secrets.encryptedPrikeyByPassword  重设后被密码加密的私钥
+ * @apiBody {String} secrets.encryptedPrikeyByAnswer    重设后被问答加密的私钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/updateStrategy
    -d '  {
-             "accountId": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
              "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
             }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
@@ -728,7 +677,7 @@ async fn update_security(
  * @apiBody {String} subaccountPubkey              子钱包
  * @apiBody {String} subaccountPrikeyEncrypedByPassword   密码加密的子钱包私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子钱包私钥
- * @apiBody {String} anwserIndexes               密码和问答拼接后的hash结果
+ * @apiBody {String} anwserIndexes               安全问答的序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/createMainAccount
@@ -1072,10 +1021,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     //            .service(account_manager::get_captcha)
     cfg.service(search_message)
         .service(get_strategy)
-        //.service(get_device_secret)
-        //.service(get_master_secret)
         .service(pre_send_money)
-        .service(direct_send_money)
         .service(react_pre_send_money)
         .service(reconfirm_send_money)
         .service(upload_servant_sig)
@@ -1156,7 +1102,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let res = test_search_message!(service, sender_servant).unwrap();
         if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
-            test_servant_save_secret!(service,sender_servant);
+            test_servant_saved_secret!(service,sender_servant);
         }   
 
         let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
@@ -1610,7 +1556,7 @@ mod tests {
         let res = test_search_message!(service, sender_servant).unwrap();
         if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
             sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
-            test_servant_save_secret!(service,sender_servant);
+            test_servant_saved_secret!(service,sender_servant);
         }
 
         //step2.4: get device list

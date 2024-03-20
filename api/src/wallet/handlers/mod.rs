@@ -4,8 +4,7 @@ use common::{
     error_code::{BackendError, BackendRes, WalletError},
 };
 use models::{
-    coin_transfer::{CoinTxFilter, CoinTxView},
-    PsqlOp,
+    account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, PsqlOp
 };
 use std::result::Result;
 
@@ -18,12 +17,9 @@ pub mod commit_newcomer_replace_master;
 pub mod commit_servant_switch_master;
 pub mod create_main_account;
 pub mod device_list;
-pub mod direct_send_money;
 pub mod faucet_claim;
 pub mod gen_newcomer_replace_master;
 pub mod gen_servant_switch_master;
-pub mod get_device_secret;
-pub mod get_master_secret;
 pub mod get_secret;
 pub mod get_strategy;
 pub mod pre_send_money;
@@ -33,8 +29,6 @@ pub mod reconfirm_send_money;
 pub mod remove_servant;
 pub mod replace_servant;
 pub mod search_message;
-pub mod send_money;
-pub mod servant_replace_master;
 pub mod servant_saved_secret;
 pub mod update_security;
 pub mod update_strategy;
@@ -72,4 +66,9 @@ pub async fn get_available_amount(account_id: &str,coin:&CoinType) -> BackendRes
     }else {
         Ok(Some(total - freezn_amount))
     }
+}
+
+pub fn get_main_account(user_id:u32) -> Result<String,BackendError>{
+    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    Ok(user.user_info.main_account)
 }

@@ -37,8 +37,7 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_password,
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let main_account = user_info.user_info.main_account;
+    let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     if device.device_info.key_role != KeyRole2::Undefined {

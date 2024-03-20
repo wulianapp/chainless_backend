@@ -21,8 +21,7 @@ use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSen
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let main_account = user_info.user_info.main_account;
+    let main_account = super::get_main_account(user_id)?;    
     let AddSubaccountRequest {
         subaccount_pubkey,
         subaccount_prikey_encryped_by_password,

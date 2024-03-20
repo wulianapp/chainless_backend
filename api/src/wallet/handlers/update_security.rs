@@ -18,8 +18,6 @@ use common::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::wallet::GetStrategyRequest;
-
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: UpdateSecurityRequest,

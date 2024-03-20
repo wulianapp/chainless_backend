@@ -27,8 +27,8 @@ pub async fn req(
             KeyRole2::Master,
         ))?;
     }
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    let main_account = user_info.user_info.main_account;
+    let main_account = super::get_main_account(user_id)?;
+
 
     //todo: check must be main device
     let SubSendToMainRequest {
