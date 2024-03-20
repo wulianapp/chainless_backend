@@ -10,7 +10,7 @@ use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
-use crate::wallet::{AddServantRequest, ReplaceServantRequest};
+use crate::wallet::{AddServantRequest, NewcommerSwitchServantRequest};
 use blockchain::ContractClient;
 use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
@@ -19,21 +19,21 @@ use tracing::error;
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: ReplaceServantRequest,
+    request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Undefined {
+    if device.device_info.key_role != KeyRole2::Master {
         Err(WalletError::UneligiableRole(
             device.device_info.key_role,
-            KeyRole2::Undefined,
+            KeyRole2::Master,
         ))?;
     }
 
-    let ReplaceServantRequest {
+    let NewcommerSwitchServantRequest {
         old_servant_pubkey,
         new_servant_pubkey,
         new_servant_prikey_encryped_by_password,

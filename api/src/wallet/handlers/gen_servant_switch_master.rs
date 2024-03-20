@@ -8,7 +8,7 @@ use models::secret_store::SecretStoreView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CreateMainAccountRequest, GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest,
+    CreateMainAccountRequest, ReconfirmSendMoneyRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;

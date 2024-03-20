@@ -8,8 +8,8 @@ use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CommitNewcomerReplaceMasterRequest, CommitTxServantSwitchMasterRequest,
-    CreateMainAccountRequest, GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest,
+    CommitNewcomerSwitchMasterRequest, CommitServantSwitchMasterRequest,
+    CreateMainAccountRequest, ReconfirmSendMoneyRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -26,10 +26,10 @@ use tracing::{error, info};
 //todo：这里后边加上channel的异步处理，再加一张表用来记录所有非交易的交互的状态，先pending，再更新状态
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: CommitTxServantSwitchMasterRequest,
+    request_data: CommitServantSwitchMasterRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let CommitTxServantSwitchMasterRequest {
+    let CommitServantSwitchMasterRequest {
         add_key_raw,
         delete_key_raw,
         add_key_sig,

@@ -8,7 +8,7 @@ use models::secret_store::SecretStoreView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CreateMainAccountRequest, GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest,
+    CreateMainAccountRequest, GenNewcomerSwitchMasterRequest, ReconfirmSendMoneyRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -31,10 +31,10 @@ pub struct GenReplaceKeyInfo {
 }
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: GenTxNewcomerReplaceMasterRequest,
+    request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyInfo> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let GenTxNewcomerReplaceMasterRequest { newcomer_pubkey } = request_data;
+    let GenNewcomerSwitchMasterRequest { newcomer_pubkey } = request_data;
     let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;

@@ -11,7 +11,7 @@ use common::error_code::{BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
-use crate::wallet::uploadTxSignatureRequest;
+use crate::wallet::UploadTxSignatureRequest;
 
 async fn get_servant_need(
     strategy: &Vec<MultiSigRank>,
@@ -31,7 +31,7 @@ async fn get_servant_need(
 
 pub async fn req(
     req: HttpRequest,
-    request_data: web::Json<uploadTxSignatureRequest>,
+    request_data: web::Json<UploadTxSignatureRequest>,
 ) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
@@ -45,7 +45,7 @@ pub async fn req(
     }
 
     //todo: check must be main device
-    let uploadTxSignatureRequest {
+    let UploadTxSignatureRequest {
         tx_index,
         signature,
     } = request_data.0;

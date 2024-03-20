@@ -329,7 +329,7 @@ macro_rules! test_search_message {
 #[macro_export]
 macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
-        let url = format!("/wallet/getStrategy?accountId={}");
+        let url = format!("/wallet/getStrategy");
         let res: BackendRespond<StrategyDataTmp> = test_service_call!(
             $service,
             "get",
@@ -565,6 +565,163 @@ macro_rules! test_upload_servant_sig {
     }};
 }
 
+
+
+#[macro_export]
+macro_rules! test_newcommer_switch_servant {
+    ($service:expr, $sender_master:expr,$sender_servant:expr,$sender_new_device:expr) => {{
+        let payload = json!({
+            "oldServantPubkey": $sender_servant.wallet.pubkey.unwrap(),
+            "newServantPubkey": $sender_new_device.wallet.pubkey.unwrap(),
+            "newServantPrikeyEncrypedByPassword": $sender_new_device.wallet.prikey.clone().unwrap(),
+            "newServantPrikeyEncrypedByAnswer": $sender_new_device.wallet.prikey.unwrap(),
+            "newDeviceId": $sender_new_device.device.id
+        });
+        let res: BackendRespond<(u32,String)> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/newcommerSwitchServant",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_gen_newcommer_switch_master {
+
+    ($service:expr, $sender_newcommer:expr) => {{
+        let payload = json!({
+            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.clone().unwrap()
+        });
+        let url = format!("/wallet/genNewcomerSwitchMaster");
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($sender_newcommer.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+
+#[macro_export]
+macro_rules! test_gen_servant_switch_master {
+    ($service:expr,$sender_servant:expr) => {{
+        let url = format!("/wallet/genServantSwitchMaster");
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            None::<String>,
+            Some($sender_servant.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_sub_send_to_master {
+    ($service:expr,$sender_master:expr,$signature:expr,$coin:expr,$amount:expr) => {{
+        let payload = json!({
+            "subSig": $signature,
+            "coin":   $coin,
+            "amount": $amount
+        });
+        let url = format!("/wallet/subSendToMain");
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_react_pre_send_money {
+    ($service:expr,$receiver:expr,$index:expr,$is_agreed:expr) => {{
+        let payload = json!({
+            "txIndex": $index,
+            "isAgreed": $is_agreed,
+        });
+        let url = format!("/wallet/reactPreSendMoney");
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($receiver.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_commit_newcommer_switch_master {
+    ($service:expr, $sender_newcommer:expr,$gen_res:expr,$add_key_sig:expr,$delete_key_sig:expr) => {{
+        let payload = json!({
+            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.unwrap(),
+            "addKeyRaw":  $gen_res.as_ref().unwrap().add_key_raw,
+            "deleteKeyRaw":  $gen_res.as_ref().unwrap().delete_key_raw,
+            "addKeySig":  $add_key_sig,
+            "deleteKeySig": $delete_key_sig,
+            "newcomerPrikeyEncryptedByPassword":  "".to_string(),
+            "newcomerPrikeyEncryptedByAnswer":  "".to_string()
+        });
+
+        println!("{:?}", payload.to_string());
+        let url = format!("/wallet/commitNewcomerSwitchMaster");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($sender_newcommer.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_commit_servant_switch_master {
+    ($service:expr, $sender_servant:expr,$gen_res:expr,$add_key_sig:expr,$delete_key_sig:expr) => {{
+        let payload = json!({
+            "addKeyRaw":  $gen_res.as_ref().unwrap().add_key_raw,
+            "deleteKeyRaw":  $gen_res.as_ref().unwrap().delete_key_raw,
+            "addKeySig":  $add_key_sig,
+            "deleteKeySig": $delete_key_sig,
+        });
+
+        //claim
+        println!("{:?}", payload.to_string());
+        let url = format!("/wallet/commitServantSwitchMaster");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($sender_servant.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
 
 
 

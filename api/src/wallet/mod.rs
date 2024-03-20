@@ -192,9 +192,9 @@ async fn pre_send_money(
 
 
 /**
- * @api {post} /wallet/preSendMoney 主钱包发起预交易
+ * @api {post} /wallet/preSendMoneyToSub 主钱包发起给子账户的预交易
  * @apiVersion 0.0.1
- * @apiName preSendMoney
+ * @apiName PreSendMoneyToSub
  * @apiGroup Wallet
  * @apiBody {String} to      收款方ID
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
@@ -217,7 +217,7 @@ async fn pre_send_money(
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
+* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToSub
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -319,8 +319,32 @@ async fn reconfirm_send_money(
 }
 
 
-//todo:增加子账户转主的交易记录，但是不通知
-//pre
+/**
+ * @api {post} /wallet/subSendToMain 发起方打款二次确认
+ * @apiVersion 0.0.1
+ * @apiName SubSendToMain
+ * @apiGroup Wallet
+ * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
+ * @apiBody {String} coin       交易币种
+ * @apiBody {number} amount     交易数量
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
+   -d ' {
+        "coin":  dw20,
+        "amount": 1,
+        "sub_sig": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e6
+                     83ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4e4c12e677ce
+                35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600"
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SubSendToMainRequest {
@@ -341,7 +365,7 @@ async fn sub_send_to_main(
 /**
  * @api {post} /wallet/uploadServantSig 上传从密钥的多签签名
  * @apiVersion 0.0.1
- * @apiName uploadServantSig
+ * @apiName UsploadServantSig
  * @apiGroup Wallet
  * @apiBody {Number} txIndex    交易序列号
  * @apiBody {String} signature  pubkey和签名结果的拼接
@@ -364,7 +388,7 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
  */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct uploadTxSignatureRequest {
+pub struct UploadTxSignatureRequest {
     tx_index: u32,
     signature: String,
 }
@@ -372,7 +396,7 @@ pub struct uploadTxSignatureRequest {
 #[post("/wallet/uploadServantSig")]
 async fn upload_servant_sig(
     request: HttpRequest,
-    request_data: web::Json<uploadTxSignatureRequest>,
+    request_data: web::Json<UploadTxSignatureRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::upload_servant_sig::req(request, request_data).await)
@@ -452,7 +476,7 @@ async fn add_servant(
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ReplaceServantRequest {
+pub struct NewcommerSwitchServantRequest {
     old_servant_pubkey: String,
     new_servant_pubkey: String,
     new_servant_prikey_encryped_by_password: String,
@@ -460,13 +484,13 @@ pub struct ReplaceServantRequest {
     new_device_id: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/replaceServant")]
-async fn replace_servant(
+#[post("/wallet/newcommerSwitchServant")]
+async fn newcommer_switch_servant(
     req: HttpRequest,
-    request_data: web::Json<ReplaceServantRequest>,
+    request_data: web::Json<NewcommerSwitchServantRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::replace_servant::req(req, request_data.0).await)
+    gen_extra_respond(handlers::newcommer_switch_servant::req(req, request_data.0).await)
 }
 
 /**
@@ -787,7 +811,6 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
  * @apiQuery {String}                 [counterParty]   交易对手方
  * @apiQuery {number}                 perPage           每页的数量
  * @apiQuery {number}                 page            页数的序列号
-
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/txList?
@@ -814,7 +837,6 @@ pub struct TxListRequest {
     counterparty: Option<String>,
     per_page: u32,
     page: u32,
-
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/txList")]
@@ -878,29 +900,29 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct GenTxNewcomerReplaceMasterRequest {
+pub struct GenNewcomerSwitchMasterRequest {
     newcomer_pubkey: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/genTxNewcomerReplaceMaster")]
-async fn gen_tx_newcomer_replace_master(
+#[post("/wallet/genNewcomerSwitchMaster")]
+async fn gen_newcomer_switch_master(
     req: HttpRequest,
-    request_data: web::Json<GenTxNewcomerReplaceMasterRequest>,
+    request_data: web::Json<GenNewcomerSwitchMasterRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
-        handlers::gen_newcomer_replace_master::req(req, request_data.into_inner()).await,
+        handlers::gen_newcomer_switch_master::req(req, request_data.into_inner()).await,
     )
 }
 
 /**
- * @api {post} /wallet/genTxServantSwitchMaster 构建在从设备上和主设备身份互换的任务
+ * @api {post} /wallet/genServantSwitchMaster 构建在从设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
- * @apiName GenTxServantSwitchMaster
+ * @apiName GenServantSwitchMaster
  * @apiGroup Wallet
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/genTxServantSwitchMaster
+ *   curl -X POST http://120.232.251.101:8066/wallet/genServantSwitchMaster
    -d '  {
              "encryptedPrikey": "",
              "pubkey": "",
@@ -915,18 +937,18 @@ async fn gen_tx_newcomer_replace_master(
 * @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
 * @apiSuccess {string} data.delete_key_txid             删除旧主公钥对应的tx_id.
 * @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/genTxServantSwitchMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/genTxServantSwitchMaster")]
-async fn gen_tx_servant_switch_master(req: HttpRequest) -> impl Responder {
+#[post("/wallet/genServantSwitchMaster")]
+async fn gen_servant_switch_master(req: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::gen_servant_switch_master::req(req).await)
 }
 
 /**
- * @api {post} /wallet/commitTxNewcomerReplaceMaster 提交在新设备上和主设备身份互换的任务
+ * @api {post} /wallet/commitNewcomerSwitchMaster 提交在新设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
- * @apiName CommitTxNewcomerReplaceMaster
+ * @apiName commitNewcomerSwitchMaster
  * @apiGroup Wallet
  * @apiBody {String} newcomerPubkey                            新晋主公钥
  * @apiBody {String} addKeyRaw                                  增加主公钥对应的tx_raw
@@ -937,7 +959,7 @@ async fn gen_tx_servant_switch_master(req: HttpRequest) -> impl Responder {
  * @apiBody {String} newcomerPrikeyEncryptedByAnswer             新晋主公钥对应的密钥的被安全问答加密的结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/commitTxNewcomerReplaceMaster
+ *   curl -X POST http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
    -d '  {
              "encryptedPrikey": "",
              "pubkey": "",
@@ -948,11 +970,11 @@ async fn gen_tx_servant_switch_master(req: HttpRequest) -> impl Responder {
 * @apiSuccess {string=0,1,3007} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxNewcomerReplaceMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CommitNewcomerReplaceMasterRequest {
+pub struct CommitNewcomerSwitchMasterRequest {
     newcomer_pubkey: String,
     add_key_raw: String,
     delete_key_raw: String,
@@ -962,10 +984,10 @@ pub struct CommitNewcomerReplaceMasterRequest {
     newcomer_prikey_encrypted_by_answer: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/commitTxNewcomerReplaceMaster")]
-async fn commit_tx_newcomer_replace_master(
+#[post("/wallet/commitNewcomerSwitchMaster")]
+async fn commit_newcomer_switch_master(
     req: HttpRequest,
-    request_data: web::Json<CommitNewcomerReplaceMasterRequest>,
+    request_data: web::Json<CommitNewcomerSwitchMasterRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
@@ -974,9 +996,9 @@ async fn commit_tx_newcomer_replace_master(
 }
 
 /**
- * @api {post} /wallet/commitTxServantSwitchMaster 提交在从设备上和主设备身份互换的任务
+ * @api {post} /wallet/commitServantSwitchMaster 提交在从设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
- * @apiName CommitTxServantSwitchMaster
+ * @apiName commitServantSwitchMaster
  * @apiGroup Wallet
  * @apiBody {String} addKeyRaw                                  增加主公钥对应的tx_raw
  * @apiBody {String} deleteKeyRaw                               删除主公钥对应的tx_raw
@@ -984,7 +1006,7 @@ async fn commit_tx_newcomer_replace_master(
  * @apiBody {String} deleteKeySig                                旧从私钥签名删除主公钥对应的结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/commitTxServantSwitchMaster
+ *   curl -X POST http://120.232.251.101:8066/wallet/commitServantSwitchMaster
    -d '  {
              "encryptedPrikey": "",
              "pubkey": "",
@@ -995,21 +1017,21 @@ async fn commit_tx_newcomer_replace_master(
 * @apiSuccess {string=0,1,3007} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/commitTxServantSwitchMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/commitServantSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CommitTxServantSwitchMasterRequest {
+pub struct CommitServantSwitchMasterRequest {
     add_key_raw: String,
     delete_key_raw: String,
     add_key_sig: String,
     delete_key_sig: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/commitTxServantSwitchMaster")]
-async fn commit_tx_servant_switch_master(
+#[post("/wallet/commitServantSwitchMaster")]
+async fn commit_servant_switch_master(
     req: HttpRequest,
-    request_data: web::Json<CommitTxServantSwitchMasterRequest>,
+    request_data: web::Json<CommitServantSwitchMasterRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
@@ -1018,7 +1040,6 @@ async fn commit_tx_servant_switch_master(
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    //            .service(account_manager::get_captcha)
     cfg.service(search_message)
         .service(get_strategy)
         .service(pre_send_money)
@@ -1033,11 +1054,11 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(servant_saved_secret)
         .service(device_list)
         .service(balance_list)
-        .service(gen_tx_newcomer_replace_master)
-        .service(commit_tx_newcomer_replace_master)
-        .service(gen_tx_servant_switch_master)
-        .service(commit_tx_servant_switch_master)
-        .service(replace_servant)
+        .service(gen_newcomer_switch_master)
+        .service(commit_newcomer_switch_master)
+        .service(gen_servant_switch_master)
+        .service(commit_servant_switch_master)
+        .service(newcommer_switch_servant)
         .service(get_secret)
         .service(update_security)
         .service(sub_send_to_main)
@@ -1168,24 +1189,8 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let payload = json!({
-            "oldServantPubkey": sender_servant.wallet.pubkey.unwrap(),
-            "newServantPubkey": sender_new_device.wallet.pubkey.unwrap(),
-            "newServantPrikeyEncrypedByPassword": sender_new_device.wallet.prikey.clone().unwrap(),
-            "newServantPrikeyEncrypedByAnswer": sender_new_device.wallet.prikey.unwrap(),
-            "newDeviceId": sender_new_device.device.id
-        });
-        //claim
-        let url = format!("/wallet/replaceServant");
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some(sender_master.user.token.as_ref().unwrap())
-        );
+        test_newcommer_switch_servant!(service, sender_master, sender_servant,sender_new_device);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        println!("{:?}", res.data);
     }
 
     #[actix_web::test]
@@ -1210,42 +1215,17 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
 
-        let url = format!("/wallet/genTxServantSwitchMaster");
-        let res: BackendRespond<super::handlers::gen_servant_switch_master::GenReplaceKeyInfo> = test_service_call!(
-            service,
-            "post",
-            &url,
-            None::<String>,
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
-
+        let gen_res = test_gen_servant_switch_master!(service,sender_servant);
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),
-            &res.data.as_ref().unwrap().add_key_txid,
+            &gen_res.as_ref().unwrap().add_key_txid,
         );
 
         let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),
-            &res.data.as_ref().unwrap().delete_key_txid,
+            &gen_res.as_ref().unwrap().delete_key_txid,
         );
-        let payload = json!({
-            "addKeyRaw":  res.data.as_ref().unwrap().add_key_raw,
-            "deleteKeyRaw":  res.data.as_ref().unwrap().delete_key_raw,
-            "addKeySig":  add_key_sig,
-            "deleteKeySig": delete_key_sig,
-        });
-
-        //claim
-        println!("{:?}", payload.to_string());
-        let url = format!("/wallet/commitTxServantSwitchMaster");
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
-        println!("{:?}", res.data);
+        test_commit_servant_switch_master!(service,sender_servant,gen_res,add_key_sig,delete_key_sig);
     }
 
     #[actix_web::test]
@@ -1299,6 +1279,7 @@ mod tests {
             //sub to main
             let coin_tx = SubAccCoinTx{
                 amount: 11,
+                //todo: 
                 coin_id: "dw20.node0".to_string(),
             };
             let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
@@ -1314,19 +1295,7 @@ mod tests {
                 sender_master.wallet.subaccount.first().unwrap(),
                 signature
             );
-
-            let payload = json!({
-                "subSig": signature,
-                "coin": "DW20",
-                "amount": 11
-            });
-            let res: BackendRespond<String> = test_service_call!(
-                service,
-                "post",
-                "/wallet/subSendToMain",
-                Some(payload.to_string()),
-                Some(sender_master.user.token.as_ref().unwrap())
-            );
+            test_sub_send_to_master!(service,sender_master,signature,"DW20",11);
     }
 
 
@@ -1359,13 +1328,11 @@ mod tests {
 
     #[actix_web::test]
     async fn test_newcommer_replace_master() {
-        //let newcommer_pubkey = "4b8837f83d6b25118275149cb3cf6c57407cb0f1cb0953b0b6faf3a1f171f15b".to_string();
-        //let newcommer_pubkey = ed25519_key_gen().1;
-        //println!("newcommer_pubkey {} ",newcommer_pubkey);
         let app = init().await;
         let service = test::init_service(app).await;
         let mut sender_master = simulate_sender_master();
-        let mut sender_servant = simulate_sender_servant();
+        //in this testcase,servant is newacommer rather than servant
+        let mut sender_newcommer = simulate_sender_servant();
 
         let sender_sub_secret = ed25519_key_gen();
         let sender_master_secret = ed25519_key_gen();
@@ -1379,52 +1346,21 @@ mod tests {
         };
         test_register!(service, sender_master);
         //todo：当前例子中不注册也能跑通，要加限制条件，必须已经注册
-        test_login!(service, sender_servant);
+        test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
 
-        let payload = json!({
-            "newcomerPubkey":  sender_servant.wallet.pubkey.clone().unwrap()
-        });
-        //claim
-        let url = format!("/wallet/genTxNewcomerReplaceMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_replace_master::GenReplaceKeyInfo> = test_service_call!(
-            service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
+        let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
 
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),
-            &res.data.as_ref().unwrap().add_key_txid,
+            &gen_res.as_ref().unwrap().add_key_txid,
         );
 
         let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),
-            &res.data.as_ref().unwrap().delete_key_txid,
+            &gen_res.as_ref().unwrap().delete_key_txid,
         );
-        let payload = json!({
-            "newcomerPubkey":  sender_servant.wallet.pubkey.unwrap(),
-            "addKeyRaw":  res.data.as_ref().unwrap().add_key_raw,
-            "deleteKeyRaw":  res.data.as_ref().unwrap().delete_key_raw,
-            "addKeySig":  add_key_sig,
-            "deleteKeySig": delete_key_sig,
-            "newcomerPrikeyEncryptedByPassword":  "".to_string(),
-            "newcomerPrikeyEncryptedByAnswer":  "".to_string()
-        });
-
-        //claim
-        println!("{:?}", payload.to_string());
-        let url = format!("/wallet/commitTxNewcomerReplaceMaster");
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some(sender_servant.user.token.as_ref().unwrap())
-        );
-        println!("{:?}", res.data);
+        test_commit_newcommer_switch_master!(service,sender_newcommer,gen_res,add_key_sig,delete_key_sig);
     }
 
     #[actix_web::test]
@@ -1610,19 +1546,7 @@ mod tests {
                 receiver_strategy.master_pubkey,
                 "only master_key can ratify or refuse it"
             );
-
-            let payload = json!({
-                "txIndex": index,
-                "isAgreed": true,
-            });
-            let res: BackendRespond<String> = test_service_call!(
-                service,
-                "post",
-                "/wallet/reactPreSendMoney",
-                Some(payload.to_string()),
-                Some(receiver.user.token.as_ref().unwrap())
-            );
-            assert_eq!(res.status_code, 0);
+            test_react_pre_send_money!(service,receiver,index,true);
         }
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();

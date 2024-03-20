@@ -8,8 +8,7 @@ use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CommitNewcomerReplaceMasterRequest, CreateMainAccountRequest,
-    GenTxNewcomerReplaceMasterRequest, ReconfirmSendMoneyRequest,
+    CommitNewcomerSwitchMasterRequest, CreateMainAccountRequest,ReconfirmSendMoneyRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -25,10 +24,10 @@ use tracing::{error, info};
 
 pub(crate) async fn req(
     req: HttpRequest,
-    request_data: CommitNewcomerReplaceMasterRequest,
+    request_data: CommitNewcomerSwitchMasterRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let CommitNewcomerReplaceMasterRequest {
+    let CommitNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         add_key_raw,
         delete_key_raw,
