@@ -69,16 +69,16 @@ pub struct StrategyData {
 impl ContractClient<MultiSig> {
     //fixme: gen once object
     pub fn new() -> Self {
-        let pri_key: SecretKey = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE"
-            .parse()
-            .unwrap();
-        //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
+        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
+        let contract = &common::env::CONF.multi_sig_contract;
+        println!("___{}",prikey_str);
+        let pri_key: SecretKey = prikey_str.parse().unwrap();
         let pubkey = get_pubkey(&pri_key.to_string());
         let account_id = AccountId::from_str(&pubkey).unwrap();
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Self {
-            deployed_at: "multi_sig7.node0".parse().unwrap(),
+            deployed_at: contract.parse().unwrap(),
             relayer: signer,
             phantom: Default::default(),
         }

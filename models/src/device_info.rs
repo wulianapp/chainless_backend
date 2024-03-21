@@ -133,7 +133,7 @@ impl PsqlOp for DeviceInfoView {
             filter.to_string()
         );
         let execute_res = crate::query(sql.as_str())?;
-        debug!("get_secret: raw sql {}", sql);
+        debug!("get device: raw sql {}", sql);
         let gen_view = |row: &Row| DeviceInfoView {
             device_info: DeviceInfo {
                 id: row.get(0),

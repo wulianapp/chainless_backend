@@ -21,9 +21,7 @@ use actix_web::{http, middleware, App, HttpServer};
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     common::log::init_logger();
-    let _global_conf = &common::env::CONF;
-    //let service: String = format!("0.0.0.0:{}", global_conf.account_manage_api_port);
-    let service: String = format!("0.0.0.0:{}", 8066);
+    let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
 
     HttpServer::new(move || {
         //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);

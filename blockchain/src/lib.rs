@@ -38,8 +38,11 @@ use tracing::{debug, info};
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
 
 lazy_static! {
-    //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://120.232.251.101:8061");
-    static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");
+    //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");
+    static ref CHAIN_CLIENT: JsonRpcClient = {
+        println!("+++__{}",common::env::CONF.chain_rpc);
+        JsonRpcClient::connect(&common::env::CONF.chain_rpc)
+    };
 }
 
 #[derive(Clone)]

@@ -78,6 +78,11 @@ pub async fn gen_transaction_with_caller_with_nonce(
     contract_addr: &str,
     add_nonce: u8,
 ) -> Transaction {
+    debug!("{},{},{},{}",caller_account_id.to_string(),
+    caller_pubkey.to_string(),
+    contract_addr.to_string(),
+    add_nonce.to_string()
+);
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
