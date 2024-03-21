@@ -36,6 +36,7 @@ use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 use crate::wallet::handlers::balance_list::AccountBalance;
 
+#[derive(Debug)]
 pub struct TestWallet {
     pub main_account: String,
     pub pubkey: Option<String>,
@@ -43,12 +44,12 @@ pub struct TestWallet {
     pub subaccount: Vec<String>,
     pub sub_prikey: Option<Vec<String>>,
 }
-
+#[derive(Debug)]
 pub struct TestDevice {
     pub id: String,
     pub brand: String,
 }
-
+#[derive(Debug)]
 pub struct TestUser {
     pub contact: String,
     pub password: String,
@@ -56,6 +57,7 @@ pub struct TestUser {
     pub token: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct TestWulianApp2 {
     pub user: TestUser,
     pub device: TestDevice,
@@ -90,7 +92,7 @@ pub fn simulate_sender_master() -> TestWulianApp2 {
         },
         device: TestDevice{
             id: "1".to_string(),
-            brand: "Apple".to_string(),
+            brand: "Apple_Master".to_string(),
         },
         wallet: TestWallet {
             main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0".to_string(),
@@ -113,7 +115,7 @@ pub fn simulate_sender_servant() -> TestWulianApp2 {
         },
         device: TestDevice {
             id: "2".to_string(),
-            brand: "Apple".to_string(),
+            brand: "Apple_Servant".to_string(),
         },
         wallet: TestWallet {
             main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
@@ -144,7 +146,7 @@ pub fn simulate_sender_new_device() -> TestWulianApp2 {
         },
         device: TestDevice {
             id: "4".to_string(),
-            brand: "Apple".to_string(),
+            brand: "Apple_Newcommer".to_string(),
         },
         wallet: TestWallet {
             main_account: "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0"
@@ -175,7 +177,7 @@ pub fn simulate_receiver() -> TestWulianApp2 {
         },
         device: TestDevice{
             id: "3".to_string(),
-            brand: "Huawei".to_string(),
+            brand: "Huawei_Receiver".to_string(),
         },
         wallet: TestWallet {
             main_account: "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb".to_string(),
@@ -186,6 +188,55 @@ pub fn simulate_receiver() -> TestWulianApp2 {
             sub_prikey:Some(vec!["a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89".to_string()]),
         },
     }
+}
+
+
+pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWulianApp2,TestWulianApp2){
+    let sender_master_secret = ed25519_key_gen();
+    let sender_sub_secret = ed25519_key_gen();
+    let sender_servant_secret = ed25519_key_gen();
+    let sender_newcommer_secret = ed25519_key_gen();
+    let receiver_master_secret = ed25519_key_gen();
+    let receiver_sub_secret = ed25519_key_gen();
+ 
+    let mut sender_master = simulate_sender_master();
+    sender_master.wallet = TestWallet {
+        main_account: sender_master_secret.1.clone(),
+        pubkey: Some(sender_master_secret.1.clone()),
+        prikey: Some(sender_master_secret.0.clone()),
+        subaccount: vec![sender_sub_secret.1.clone()],
+        sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
+    };
+
+    let mut receiver = simulate_receiver();
+    receiver.wallet = TestWallet {
+        main_account: receiver_master_secret.1.clone(),
+        pubkey: Some(receiver_master_secret.1),
+        prikey: Some(receiver_master_secret.0),
+        subaccount: vec![receiver_sub_secret.1],
+        sub_prikey: Some(vec![receiver_sub_secret.0]),
+    };
+
+    let mut sender_servant = simulate_sender_servant();
+    sender_servant.wallet = TestWallet {
+        main_account: sender_master_secret.1.clone(),
+        pubkey: Some(sender_servant_secret.1.clone()),
+        prikey: Some(sender_servant_secret.0.clone()),
+        subaccount: vec![sender_sub_secret.1.clone()],
+        sub_prikey: None,
+    };
+
+    let mut sender_newcommer = simulate_sender_new_device();
+    sender_newcommer.wallet = TestWallet {
+        main_account: "".to_string(),
+        pubkey: Some(sender_newcommer_secret.1.clone()),
+        prikey: Some(sender_newcommer_secret.0.clone()),
+        subaccount: vec![],
+        sub_prikey: None,
+    };
+    let all_accounts = (sender_master,sender_servant,sender_newcommer,receiver);
+    println!("{:#?}",all_accounts);
+    all_accounts
 }
 
 pub async fn clear_contract() {

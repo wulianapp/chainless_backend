@@ -47,7 +47,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String} data.CoinTx.transaction.to                接收方
 * @apiSuccess {Number} data.CoinTx.transaction.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
-* @apiSuccess {String} [data.CoinTx.transaction[memo]]                交易备注
+* @apiSuccess {String} [data.CoinTx.transaction.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
 * @apiSuccess {String}  data.CoinTx.transaction.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.CoinTx.transaction.chain_tx_raw]          链上交互的原始数据
@@ -642,6 +642,26 @@ async fn update_strategy(
 }
 
 
+/**
+ * @api {post} /wallet/updateSubaccountHoldLimit 更新子钱包的持仓额度
+ * @apiVersion 0.0.1
+ * @apiName UpdateSubaccountHoldLimit
+ * @apiGroup Wallet
+ * @apiBody {String} subaccount   待修改的子钱包id
+ * @apiBody {Number} limit         待更新的额度
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
+   -d '  {
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
+*/
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSubaccountHoldLimitRequest {
@@ -1128,14 +1148,17 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
+        let (mut sender_master,_,_,_) = gen_some_accounts_with_new_key();
+
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        test_update_subaccount_hold_limit!(service,sender_master,sender_master.wallet.subaccount.first().unwrap(),12);
+        let subacc = sender_master.wallet.subaccount.first().unwrap();
+        test_update_subaccount_hold_limit!(service,sender_master,subacc,12);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let strategy = test_get_strategy!(service,sender_master);
+        let strategy = test_get_strategy!(service,sender_master).unwrap();
         println!("___{:?}",strategy);
+        assert_eq!(strategy.subaccounts.get(subacc).unwrap().hold_value_limit,12);
     }
 
     #[actix_web::test]
@@ -1143,9 +1166,10 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        let mut receiver = simulate_receiver();
-        let mut sender_servant = simulate_sender_servant();
+        let (mut sender_master,mut sender_servant,_,mut receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         test_register!(service, sender_master);
         test_register!(service, receiver);
@@ -1155,7 +1179,7 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
+        if let AccountMessage::NewcomerBecameSevant(_secret) = res.first().unwrap() {
             test_servant_saved_secret!(service,sender_servant);
         }   
 
@@ -1192,10 +1216,10 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        let mut receiver = simulate_receiver();
-        let sender_new_device = simulate_sender_new_device();
-
+        let (mut sender_master,_,_,mut receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -1212,17 +1236,16 @@ mod tests {
     async fn test_replace_servant() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        let sender_servant = simulate_sender_servant();
-        let sender_new_device = simulate_sender_new_device();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
+        test_login!(service, sender_servant);
+        test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
-        test_newcommer_switch_servant!(service, sender_master, sender_servant,sender_new_device);
+        test_newcommer_switch_servant!(service, sender_master, sender_servant,sender_newcommer);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     }
 
@@ -1230,18 +1253,8 @@ mod tests {
     async fn test_servant_switch_master() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        let mut sender_servant = simulate_sender_servant();
-        let sender_sub_secret = ed25519_key_gen();
-        let sender_master_secret = ed25519_key_gen();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
 
-        sender_master.wallet = TestWallet {
-            main_account: sender_master_secret.1.clone(),
-            pubkey: Some(sender_master_secret.1.clone()),
-            prikey: Some(sender_master_secret.0.clone()),
-            subaccount: vec![sender_sub_secret.1.clone()],
-            sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
-        };
         test_register!(service, sender_master);
         test_login!(service, sender_servant);
         test_create_main_account!(service, sender_master);
@@ -1265,7 +1278,10 @@ mod tests {
     async fn test_main_send_money_to_sub() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -1302,7 +1318,9 @@ mod tests {
     async fn test_sub_send_money_to_main() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
@@ -1336,8 +1354,9 @@ mod tests {
     async fn test_change_security() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        let mut sender_servant = simulate_sender_servant();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
