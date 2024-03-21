@@ -641,6 +641,23 @@ async fn update_strategy(
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSubaccountHoldLimitRequest {
+    subaccount: String,
+    limit: u128,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/updateSubaccountHoldLimit")]
+async fn update_subaccount_hold_limit(
+    req: HttpRequest,
+    request_data: web::Json<UpdateSubaccountHoldLimitRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::update_subaccount_hold_limit::req(req, request_data.into_inner()).await)
+}
+
 /**
  * @api {post} /wallet/updateSecurity 更新安全密码
  * @apiVersion 0.0.1
@@ -1064,6 +1081,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(sub_send_to_main)
         .service(tx_list)
         .service(pre_send_money_to_sub)
+        .service(update_subaccount_hold_limit)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1104,6 +1122,21 @@ mod tests {
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
+
+    #[actix_web::test]
+    async fn test_update_subaccount_hold_limit_ok() {
+        //todo: cureent is single, add multi_sig testcase
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let mut sender_master = simulate_sender_master();
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_update_subaccount_hold_limit!(service,sender_master,sender_master.wallet.subaccount.first().unwrap(),12);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let strategy = test_get_strategy!(service,sender_master);
+        println!("___{:?}",strategy);
+    }
 
     #[actix_web::test]
     async fn test_force_transfer_with_servant() {

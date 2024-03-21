@@ -256,6 +256,24 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("update_rank", &args_str).await
     }
 
+
+    pub async fn update_subaccount_hold_limit(
+        &self,
+        main_account: &str,
+        subaccount: &str,
+        hold_limit: u128
+    ) -> BackendRes<String> {
+        let main_account: AccountId = AccountId::from_str(main_account).unwrap();
+        let subaccount: AccountId = AccountId::from_str(subaccount).unwrap();
+        let args_str = json!({
+            "user_account_id": main_account,
+            "subaccount": subaccount,
+            "hold_limit": hold_limit
+        })
+        .to_string();
+        self.commit_by_relayer("update_subaccount_hold_limit", &args_str).await
+    }
+
     async fn register_account(&self, account_id: &str) -> BackendRes<String> {
         self.commit_by_relayer("register_account", account_id).await
     }

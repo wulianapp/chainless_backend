@@ -651,6 +651,27 @@ macro_rules! test_sub_send_to_master {
 
 
 #[macro_export]
+macro_rules! test_update_subaccount_hold_limit {
+    ($service:expr,$sender_master:expr,$subaccount:expr,$limit:expr) => {{
+        let payload = json!({
+            "subaccount": $subaccount,
+            "limit": $limit
+        });
+        let url = format!("/wallet/updateSubaccountHoldLimit");
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+
+#[macro_export]
 macro_rules! test_react_pre_send_money {
     ($service:expr,$receiver:expr,$index:expr,$is_agreed:expr) => {{
         let payload = json!({
