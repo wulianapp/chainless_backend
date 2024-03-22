@@ -26,7 +26,7 @@ pub async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     //check captcha
-    Captcha::check_user_code(&contact, &captcha, Usage::ResetPassword)?;
+    Captcha::check_user_code(&contact, &captcha, Usage::ResetLoginPassword)?;
 
     let user_at_stored =
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))

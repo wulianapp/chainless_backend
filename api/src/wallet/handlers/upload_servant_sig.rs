@@ -13,22 +13,6 @@ use models::PsqlOp;
 
 use crate::wallet::UploadTxSignatureRequest;
 
-async fn get_servant_need(
-    strategy: &Vec<MultiSigRank>,
-    _coin: CoinType,
-    amount: u128,
-) -> Option<u8> {
-    //todo: get price by oracle
-    //let coin_price = get_coin_price(coin_account_id);
-    let coin_price = 1;
-    let transfer_value = amount * coin_price;
-    strategy
-        .iter()
-        .find(|&rank| transfer_value >= rank.min && transfer_value < rank.max_eq)
-        .map(|rank| rank.sig_num)
-}
-
-
 pub async fn req(
     req: HttpRequest,
     request_data: web::Json<UploadTxSignatureRequest>,
@@ -61,18 +45,20 @@ pub async fn req(
     //collect enough signatures
     let multi_cli = blockchain::ContractClient::<MultiSig>::new();
     let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
-    let need = get_servant_need(
+    let need_sig_num = super::get_servant_need(
         &strategy.multi_sig_ranks,
-        tx.transaction.coin_type.clone(),
+        &tx.transaction.coin_type,
         tx.transaction.amount
-    ).await.unwrap();
-    if tx.transaction.signatures.len() as u8 >= need {
+    ).await;
+    if tx.transaction.signatures.len() as u8 >= need_sig_num {
         //区分receiver是否是子账户
+        //给子账户转是relayer进行签名，不需要生成tx_raw
         if tx.transaction.tx_type == TxType::ToSub{
             models::coin_transfer::CoinTxView::update(
                 CoinTxUpdater::Status(CoinTxStatus::SenderSigCompletedAndReceiverIsSub),
                 CoinTxFilter::ByTxIndex(tx_index),
             )?;
+        //给其他主账户转是用户自己签名，需要生成tx_raw    
         }else if tx.transaction.tx_type == TxType::Forced{
             let cli = ContractClient::<MultiSig>::new();
             let servant_sigs = tx
@@ -102,6 +88,7 @@ pub async fn req(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinTxStatus::ReceiverApproved),
                 CoinTxFilter::ByTxIndex(tx_index),
             )?;
+        //非子账户非强制的话，签名收集够了则需要收款方进行确认        
         }else{                
             models::coin_transfer::CoinTxView::update(
                 CoinTxUpdater::Status(CoinTxStatus::SenderSigCompleted),

@@ -9,6 +9,7 @@ use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
 
+use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
@@ -23,12 +24,15 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let main_account = super::get_main_account(user_id)?;
 
+    let user_email = super::get_email(user_id)?;
+
     let PreSendMoneyToSubRequest {
         to,
         coin,
         amount,
         expire_at,
         memo,
+        captcha
     } = request_data;
     let coin_type = CoinType::from_str(&coin).unwrap();
     let from = main_account.clone();
@@ -78,14 +82,21 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
 
     //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
     //将转子账户的接口单独剥离出去
-    let servant_is_empty =  strategy.servant_pubkeys.is_empty();
     let to_is_sub = strategy.sub_confs.get(&to).is_some();
     if !to_is_sub {
         Err(BackendError::InternalError("must be subaccount".to_string()))?;
     } 
+    let need_sig_num = super::get_servant_need(
+        &strategy.multi_sig_ranks,
+        &coin_type,
+        amount
+    ).await; 
 
     //转子账户不需要is_forced标志位，本身就是强制的
-    if servant_is_empty {
+    if need_sig_num == 0 {
+
+        Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
+
         let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
         let next_tx_index = get_next_tx_index()?;
         let (tx_id, chain_tx_raw) = cli

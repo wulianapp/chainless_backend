@@ -63,6 +63,8 @@ pub enum AccountManagerError {
     InviteCodeNotExist,
     #[error("user_id is not exist")]
     UserIdNotExist,
+    #[error("CaptchaUsageNotAllowed")]
+    CaptchaUsageNotAllowed,
 }
 
 impl ErrorCode for AccountManagerError {
@@ -79,6 +81,7 @@ impl ErrorCode for AccountManagerError {
             Self::AccountLocked => 2012,
             Self::InviteCodeNotExist => 2013,
             Self::UserIdNotExist => 2014,
+            Self::CaptchaUsageNotAllowed => 2015,
         }
     }
 }

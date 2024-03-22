@@ -289,7 +289,7 @@ macro_rules! test_register {
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "contact": $app.user.contact,
-                "kind": "register"
+                "kind": "Register"
             });
             let _res: BackendRespond<String> = test_service_call!(
                 $service,
@@ -315,6 +315,25 @@ macro_rules! test_register {
                 None::<String>
             );
             $app.user.token = Some(res.data.unwrap());
+    }};
+}
+
+
+#[macro_export]
+macro_rules! test_get_captcha_with_token {
+    ( $service:expr,$app:expr,$kind:expr) => {{
+            let payload = json!({
+                "contact":$app.user.contact,
+                "kind": $kind
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/getCaptchaWithToken",
+                Some(payload.to_string()),
+                Some($app.user.token.as_ref().unwrap())
+            );
+            assert_eq!(res.status_code,0);
     }};
 }
 
@@ -545,7 +564,8 @@ macro_rules! test_pre_send_money {
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
-            "isForced": $is_forced
+            "isForced": $is_forced,
+            "captcha": "000001",
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,
@@ -567,6 +587,7 @@ macro_rules! test_pre_send_money_to_sub {
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
+            "captcha": "000001",
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,

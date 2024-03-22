@@ -1,4 +1,4 @@
-use blockchain::{coin::Coin, ContractClient};
+use blockchain::{coin::Coin, multi_sig::MultiSigRank, ContractClient};
 use common::{
     data_structures::{wallet::CoinType, KeyRole2},
     error_code::{BackendError, BackendRes, WalletError},
@@ -72,4 +72,27 @@ pub async fn get_available_amount(account_id: &str,coin:&CoinType) -> BackendRes
 pub fn get_main_account(user_id:u32) -> Result<String,BackendError>{
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
     Ok(user.user_info.main_account)
+}
+
+
+pub fn get_email(user_id:u32) -> Result<String,BackendError>{
+    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    Ok(user.user_info.email)
+}
+
+
+pub async fn get_servant_need(
+    strategy: &Vec<MultiSigRank>,
+    _coin: &CoinType,
+    amount: u128,
+) -> u8 {
+    //todo: get price by oracle
+    //let coin_price = get_coin_price(coin_account_id);
+    let coin_price = 1;
+    let transfer_value = amount * coin_price;
+    strategy
+        .iter()
+        .find(|&rank| transfer_value >= rank.min && transfer_value < rank.max_eq)
+        .map(|rank| rank.sig_num)
+        .unwrap_or(0)    
 }

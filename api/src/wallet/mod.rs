@@ -149,6 +149,7 @@ async fn get_secret(
  * @apiBody {Number} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
+ * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -178,6 +179,7 @@ pub struct PreSendMoneyRequest {
     expire_at: u64,
     memo: Option<String>,
     is_forced: bool,
+    captcha: Option<String>
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -201,6 +203,7 @@ async fn pre_send_money(
  * @apiBody {Number} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
+ * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -227,6 +230,7 @@ pub struct PreSendMoneyToSubRequest {
     amount: u128,
     expire_at: u64,
     memo: Option<String>,
+    captcha: Option<String>
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -911,14 +915,14 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 }
 
 /**
- * @api {post} /wallet/genTxNewcomerReplaceMaster 构建在新设备上和主设备身份互换的任务
+ * @api {post} /wallet/genNewcomerSwitchMaster 构建在新设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
- * @apiName GenTxNewcomerReplaceMaster
+ * @apiName GenNewcomerSwitchMaster
  * @apiGroup Wallet
  * @apiBody {String} newcomerPubkey                 新晋主公钥
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/genTxNewcomerReplaceMaster
+ *   curl -X POST http://120.232.251.101:8066/wallet/genNewcomerSwitchMaster
    -d '  {
              "encryptedPrikey": "",
              "pubkey": "",
@@ -933,7 +937,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 * @apiSuccess {string} data.add_key_raw                 增加主公钥对应的tx_raw.
 * @apiSuccess {string} data.delete_key_txid             删除主公钥对应的tx_id.
 * @apiSuccess {string} data.delete_key_raw              删除主公钥对应的tx_raw.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/genTxNewcomerReplaceMaster
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genNewcomerSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1286,6 +1290,7 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         //step3: master: pre_send_money
         test_pre_send_money_to_sub!(
             service,
@@ -1471,7 +1476,7 @@ mod tests {
             mut sender_newcommer,
             mut receiver) 
         = gen_some_accounts_with_new_key();
-        
+
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;

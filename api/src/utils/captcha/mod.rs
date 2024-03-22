@@ -19,6 +19,8 @@ use common::error_code::BackendError::*;
 
 use common::utils::time::{now_millis, MINUTE10};
 use phonenumber::Mode;
+use strum_macros::{Display, EnumString, ToString};
+
 
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
@@ -30,32 +32,34 @@ pub enum ContactType {
     Email,
 }
 
-#[derive(PartialEq, Clone, Debug, Eq, Hash)]
+#[derive(PartialEq, Clone, Debug, Eq, Hash,EnumString,ToString)]
 pub enum Usage {
     Register,
-    ResetPassword,
+    ResetLoginPassword,
     //验证码有效期内只能发起一次转账
-    //preSendMoney,
-    SetSecurity,
-    AddServant,
-    ServantReplaceMaster,
-    NewcomerBecomeMaster,
+    PreSendMoney,
+    //SetSecurity,
+    //AddServant,
+    ServantSwitchMaster,
+    NewcomerSwitchMaster,
 }
 
+/*** 
 impl FromStr for Usage {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "register" => Ok(Self::Register),
-            "resetPassword" => Ok(Self::ResetPassword),
+            "resetPassword" => Ok(Self::ResetLoginPassword),
             "setSecurity" => Ok(Self::SetSecurity),
             "addServant" => Ok(Self::AddServant),
-            "servantReplaceMaster" => Ok(Self::ServantReplaceMaster),
-            "newcomerBecomeMaster" => Ok(Self::NewcomerBecomeMaster),
+            "servantReplaceMaster" => Ok(Self::ServantSwitchMaster),
+            "newcomerBecomeMaster" => Ok(Self::NewcomerSwitchMaster),
             _ => Err(RequestParamInvalid(s.to_string())),
         }
     }
 }
+*/
 
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
@@ -83,6 +87,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
 
+        debug!("_eddy_{:?}",code_storage);
     let value = code_storage
         .get(&(user, kind.to_owned()))
         .as_ref()
@@ -150,6 +155,8 @@ impl Captcha {
             .lock()
             .map_err(|e| InternalError(e.to_string()))?;
         code_storage.insert((self.owner.to_string(), self.kind.clone()), self.clone());
+        debug!("_eddy_store_{:?}",code_storage);
+
         Ok(())
     }
 

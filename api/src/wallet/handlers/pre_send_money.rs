@@ -9,6 +9,7 @@ use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
 
+use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
@@ -22,13 +23,16 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let main_account = super::get_main_account(user_id)?;
+    let user_email = super::get_email(user_id)?;
+
     let PreSendMoneyRequest {
         to,
         coin,
         amount,
         expire_at,
         memo,
-        is_forced
+        is_forced,
+        captcha
     } = request_data;
     let from  = main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
@@ -78,14 +82,21 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
 
     //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
     //将转子账户的接口单独剥离出去
-    let servant_is_empty =  strategy.servant_pubkeys.is_empty();
+    //let servant_is_empty =  strategy.servant_pubkeys.is_empty();
     let to_is_sub = strategy.sub_confs.get(&to).is_some();
     if to_is_sub {
         Err(BackendError::InternalError("to cannt be subaccount".to_string()))?;
-    } 
+    }
+
+     let need_sig_num = super::get_servant_need(
+        &strategy.multi_sig_ranks,
+        &coin_type,
+        amount
+    ).await; 
 
     //没有从公钥且强制转账的话，直接返回待签名数据
-    if servant_is_empty && is_forced{
+    if need_sig_num == 0 && is_forced{
+        Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
         let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved);
         let next_tx_index = get_next_tx_index()?;
         let (tx_id, chain_tx_raw) = cli
@@ -105,16 +116,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
         Ok(Some((next_tx_index,tx_id)))
-    }else if servant_is_empty  && !is_forced{
+    }else if need_sig_num == 0  && !is_forced{
+        Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
         let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted);
         coin_info.insert()?;
         Ok(None)
-    }else if !servant_is_empty  && is_forced{
+    }else if need_sig_num != 0  && is_forced{
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created);
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
         Ok(None)
-    }else if !servant_is_empty  && !is_forced{
+    }else if need_sig_num != 0  && !is_forced{
         let coin_info = gen_tx_with_status(CoinTxStatus::Created);
         coin_info.insert()?;
         Ok(None)

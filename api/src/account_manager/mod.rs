@@ -13,6 +13,7 @@ use tracing::{debug, Level};
 use crate::utils::respond::gen_extra_respond;
 
 /**
+ * @apiDeprecated use now (#accountManager:getCaptchaWithoutToken).
  * @api {post} /accountManager/getCaptcha 获取验证码
  * @apiVersion 0.0.1
  * @apiName getCaptcha
@@ -40,6 +41,70 @@ pub struct GetCaptchaRequest {
 async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_captcha::req(request_data.into_inner()).await)
+}
+
+
+
+
+
+/**
+ * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码
+ * @apiVersion 0.0.1
+ * @apiName GetCaptchaWithoutToken
+ * @apiGroup AccountManager
+ * @apiBody {String} deviceId   用户设备ID,也是测试服务的验证码返回值
+ * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test000001@gmail.com
+ * @apiBody {String="Register","ResetLoginPassword"} kind 验证码类型
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
+ *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
+ * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {string} data                nothing.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
+ */
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetCaptchaWithoutTokenRequest {
+    device_id: String,
+    contact: String,
+    kind: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/accountManager/getCaptchaWithoutToken")]
+async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutTokenRequest>) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::get_captcha::without_token_req(request_data.into_inner()))
+}
+
+
+/**
+ * @api {post} /accountManager/getCaptchaWithToken 登陆后申请验证码
+ * @apiVersion 0.0.1
+ * @apiName GetCaptchaWithToken
+ * @apiGroup AccountManager
+ * @apiBody {String="ResetLoginPassword","PreSendMoney","ServantSwitchMaster","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
+ *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
+ * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {string} data                nothing.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
+ */
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetCaptchaWithTokenRequest {
+    contact:String,
+    kind: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/accountManager/getCaptchaWithToken")]
+async fn get_captcha_with_token(request: HttpRequest,
+    request_data: web::Json<GetCaptchaWithTokenRequest>) 
+-> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::get_captcha::with_token_req(request,request_data.into_inner()))
 }
 
 /**
@@ -260,6 +325,8 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(register_by_phone)
         .service(login)
         .service(user_info)
+        .service(get_captcha_with_token)
+        .service(get_captcha_without_token)
         .service(reset_password);
 }
 
@@ -321,7 +388,7 @@ mod tests {
 
         //getCaptcha
         let payload =
-            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "register" }"#;
+            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "Register" }"#;
         let res: BackendRespond<String> = test_service_call!(
             service,
             "post",
