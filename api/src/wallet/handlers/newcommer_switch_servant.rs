@@ -41,6 +41,16 @@ pub(crate) async fn req(
         new_device_id,
     } = request_data;
 
+    let undefined_device = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id
+        ))?;
+    if undefined_device.device_info.key_role !=  KeyRole2::Undefined{
+        Err(BackendError::InternalError(
+            format!("your new_device_id's role  is {},and should be undefined",
+            undefined_device.device_info.key_role)
+        ))?;
+    }   
+
     models::general::transaction_begin()?;
     //check if stored already
     let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&new_servant_pubkey))?;

@@ -452,19 +452,19 @@ async fn add_servant(
 }
 
 /**
- * @api {post} /wallet/replaceServant 在主设备上选择新设备替换从设备
+ * @api {post} /wallet/newcommerSwitchServant 在主设备上选择新设备替换从设备
  * @apiVersion 0.0.1
- * @apiName ReplaceServant
+ * @apiName NewcommerSwitchServant
  * @apiGroup Wallet
  * @apiBody {String} oldServantPubkey   要被替换的从公钥
  * @apiBody {String} newServantPubkey   新晋从公钥
- * @apiBody {String} newServantPprikeyEncrypedByPassword   新晋从公钥对应的密钥被密码加密
+ * @apiBody {String} newServantPrikeyEncrypedByPassword   新晋从公钥对应的密钥被密码加密
  * @apiBody {String} newServantPrikeyEncrypedByAnswer   新晋从公钥对应的密钥被问答加密
  * @apiBody {String} newDeviceId   新晋持有从公钥的设备ID
 
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/replaceServant
+ *   curl -X POST http://120.232.251.101:8066/wallet/newcommerSwitchServant
    -d ' {"“}'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
@@ -472,7 +472,7 @@ async fn add_servant(
 * @apiSuccess {string=0,1,3007} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/replaceServant
+* @apiSampleRequest http://120.232.251.101:8066/wallet/newcommerSwitchServant
 */
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -1382,20 +1382,12 @@ mod tests {
     async fn test_newcommer_replace_master() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
-        //in this testcase,servant is newacommer rather than servant
-        let mut sender_newcommer = simulate_sender_servant();
+        let (mut sender_master,
+            mut sender_servant,
+            mut sender_newcommer,
+            mut receiver) 
+        = gen_some_accounts_with_new_key();
 
-        let sender_sub_secret = ed25519_key_gen();
-        let sender_master_secret = ed25519_key_gen();
-
-        sender_master.wallet = TestWallet {
-            main_account: sender_master_secret.1.clone(),
-            pubkey: Some(sender_master_secret.1.clone()),
-            prikey: Some(sender_master_secret.0.clone()),
-            subaccount: vec![sender_sub_secret.1.clone()],
-            sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
-        };
         test_register!(service, sender_master);
         //todo：当前例子中不注册也能跑通，要加限制条件，必须已经注册
         test_login!(service, sender_newcommer);
@@ -1419,7 +1411,12 @@ mod tests {
     async fn test_get_all() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
+        let (mut sender_master,
+            mut sender_servant,
+            mut sender_newcommer,
+            mut receiver) 
+        = gen_some_accounts_with_new_key();
+    
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -1438,7 +1435,12 @@ mod tests {
     async fn test_faucet_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let mut sender_master = simulate_sender_master();
+        let (mut sender_master,
+            mut sender_servant,
+            mut sender_newcommer,
+            mut receiver) 
+        = gen_some_accounts_with_new_key();
+
         test_register!(service, sender_master);
 
         let balances1 = test_get_balance_list!(service, sender_master,"Main").unwrap();
@@ -1464,44 +1466,16 @@ mod tests {
 
     #[actix_web::test]
     async fn test_all_braced_wallet_ok_with_new_key() {
-        let sender_master_secret = ed25519_key_gen();
-        println!("{:?}", sender_master_secret);
-        let sender_sub_secret = ed25519_key_gen();
-        let sender_servant_secret = ed25519_key_gen();
-        let receiver_master_secret = ed25519_key_gen();
-        let receiver_sub_secret = ed25519_key_gen();
+         let (mut sender_master,
+            mut sender_servant,
+            mut sender_newcommer,
+            mut receiver) 
+        = gen_some_accounts_with_new_key();
+        
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
-        coin_cli
-            .send_coin(&sender_master_secret.1, 13u128)
-            .await
-            .unwrap();
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let mut sender_master = simulate_sender_master();
-        sender_master.wallet = TestWallet {
-            main_account: sender_master_secret.1.clone(),
-            pubkey: Some(sender_master_secret.1.clone()),
-            prikey: Some(sender_master_secret.0.clone()),
-            subaccount: vec![sender_sub_secret.1.clone()],
-            sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
-        };
-
-        let mut receiver = simulate_receiver();
-        receiver.wallet = TestWallet {
-            main_account: receiver_master_secret.1.clone(),
-            pubkey: Some(receiver_master_secret.1),
-            prikey: Some(receiver_master_secret.0),
-            subaccount: vec![receiver_sub_secret.1],
-            sub_prikey: Some(vec![receiver_sub_secret.0]),
-        };
-
-        let mut sender_servant = simulate_sender_servant();
-        sender_servant.wallet = TestWallet {
-            main_account: sender_master_secret.1.clone(),
-            pubkey: Some(sender_servant_secret.1.clone()),
-            prikey: Some(sender_servant_secret.0.clone()),
-            subaccount: vec![sender_sub_secret.1.clone()],
-            sub_prikey: None,
-        };
         test_all_braced_wallet_ok(sender_master, receiver, sender_servant).await;
     }
 
