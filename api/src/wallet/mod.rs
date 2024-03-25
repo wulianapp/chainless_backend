@@ -920,6 +920,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
  * @apiName GenNewcomerSwitchMaster
  * @apiGroup Wallet
  * @apiBody {String} newcomerPubkey                 新晋主公钥
+ * @apiBody {String}     captcha                 验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/genNewcomerSwitchMaster
@@ -943,6 +944,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 #[serde(rename_all = "camelCase")]
 pub struct GenNewcomerSwitchMasterRequest {
     newcomer_pubkey: String,
+    captcha:String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/genNewcomerSwitchMaster")]
@@ -961,6 +963,7 @@ async fn gen_newcomer_switch_master(
  * @apiVersion 0.0.1
  * @apiName GenServantSwitchMaster
  * @apiGroup Wallet
+ * @apiBody {String}     captcha                 验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/genServantSwitchMaster
@@ -980,10 +983,17 @@ async fn gen_newcomer_switch_master(
 * @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenServantSwitchMasterRequest {
+    captcha: String,
+}
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/genServantSwitchMaster")]
-async fn gen_servant_switch_master(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(handlers::gen_servant_switch_master::req(req).await)
+async fn gen_servant_switch_master(req: HttpRequest,
+    request_data: web::Json<GenServantSwitchMasterRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::gen_servant_switch_master::req(req,request_data.into_inner()).await)
 }
 
 /**
@@ -1265,6 +1275,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
 
+        test_get_captcha_with_token!(service,sender_master,"ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service,sender_servant);
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),
@@ -1398,6 +1409,7 @@ mod tests {
         test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
 
+        test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
         let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
 
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(

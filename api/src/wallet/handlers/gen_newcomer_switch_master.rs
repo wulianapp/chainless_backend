@@ -34,7 +34,11 @@ pub(crate) async fn req(
     request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyInfo> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let GenNewcomerSwitchMasterRequest { newcomer_pubkey } = request_data;
+    let GenNewcomerSwitchMasterRequest { newcomer_pubkey,captcha } = request_data;
+
+    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
+
+
     let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;

@@ -15,6 +15,7 @@ use common::error_code::{BackendError, BackendRes, WalletError};
 use common::utils::time::{now_millis, MINUTE1, MINUTE10};
 use crate::utils::captcha::Usage::*;
 
+//老的接口暂时不动它
 pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
     let GetCaptchaRequest {
         device_id,
@@ -55,7 +56,7 @@ pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
 
 
 
-fn get(device_id:String,contact:String,kind:Usage) -> BackendRes<String> {
+fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> BackendRes<String> {
    
     //todo: only master device can reset password
 
@@ -72,31 +73,19 @@ fn get(device_id:String,contact:String,kind:Usage) -> BackendRes<String> {
             //delete and regenerate new captcha
             let _ = data.delete();
         }
-    }else{
-        //如果一个用户的手机已经请求过验证码了，不允许其用邮箱绕过这个限制
-        let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
-        match contract_type {
-            ContactType::PhoneNumber => {
-                debug!("___0001_{}",user.user_info.email);
-                if captcha::get_captcha(user.user_info.email, &kind)?.is_some(){
-                    Err(BackendError::InternalError("already1 get".to_string()))?;
-                }
-            },
-            ContactType::Email => {
-                debug!("___0002_{}__",user.user_info.phone_number);
-                if captcha::get_captcha(user.user_info.phone_number, &kind)?.is_some(){
-                    Err(BackendError::InternalError("already2 get".to_string()))?;
-                }
-            },
-        }
     }
 
-    let code = Captcha::new(contact, device_id, kind);
     if contract_type == ContactType::PhoneNumber {
         //phone::send_sms(&code).unwrap()
     } else {
         //email::send_email(&code).unwrap()
     };
+
+    let contact = match user_id{
+        Some(id) => id.to_string(),
+        None => contact,
+    };
+    let code = Captcha::new(contact, device_id, kind);
     code.store()?;
 
     //todo: delete expired captcha，so as to avoid use too much memory
@@ -135,7 +124,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
         }
     }
-    get(device_id,contact,kind)
+    get(device_id,contact,kind,None)
 }
 
 
@@ -164,7 +153,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
             }
         },
         NewcomerSwitchMaster => {
-            if device.device_info.key_role != KeyRole2::Master {
+            if device.device_info.key_role != KeyRole2::Undefined {
                 Err(WalletError::UneligiableRole(
                     device.device_info.key_role,
                     KeyRole2::Undefined,
@@ -173,6 +162,6 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
         }
     }
 
-    get(device_id,contact,kind)
+    get(device_id,contact,kind,Some(user_id))
 }
 

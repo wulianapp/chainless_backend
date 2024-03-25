@@ -87,7 +87,7 @@ pub fn simulate_sender_master() -> TestWulianApp2 {
         user: TestUser {
             contact: "test000001@gmail.com".to_string(),
             password: "123456789".to_string(),
-            captcha: "000001".to_string(),
+            captcha: "000000".to_string(),
             token: None,
         },
         device: TestDevice{
@@ -110,7 +110,7 @@ pub fn simulate_sender_servant() -> TestWulianApp2 {
         user: TestUser {
             contact: "test000001@gmail.com".to_string(),
             password: "123456789".to_string(),
-            captcha: "000001".to_string(),
+            captcha: "000000".to_string(),
             token: None,
         },
         device: TestDevice {
@@ -141,7 +141,7 @@ pub fn simulate_sender_new_device() -> TestWulianApp2 {
         user: TestUser {
             contact: "test000001@gmail.com".to_string(),
             password: "123456789".to_string(),
-            captcha: "000001".to_string(),
+            captcha: "000000".to_string(),
             token: None,
         },
         device: TestDevice {
@@ -172,7 +172,7 @@ pub fn simulate_receiver() -> TestWulianApp2 {
         user: TestUser {
             contact: "test000002@gmail.com".to_string(),
             password: "123456789".to_string(),
-            captcha: "000002".to_string(),
+            captcha: "000000".to_string(),
             token: None,
         },
         device: TestDevice{
@@ -303,7 +303,8 @@ macro_rules! test_register {
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
                 "email": $app.user.contact,
-                "captcha": $app.user.captcha,
+                //"captcha": $app.user.captcha,
+                "captcha": "000000",
                 "password": $app.user.password
             });
 
@@ -610,7 +611,7 @@ macro_rules! test_pre_send_money_to_sub {
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
-            "captcha": "000001",
+            "captcha": "000000",
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,
@@ -690,7 +691,8 @@ macro_rules! test_gen_newcommer_switch_master {
 
     ($service:expr, $sender_newcommer:expr) => {{
         let payload = json!({
-            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.clone().unwrap()
+            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.clone().unwrap(),
+            "captcha":"000000"
         });
         let url = format!("/wallet/genNewcomerSwitchMaster");
         let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
@@ -710,12 +712,15 @@ macro_rules! test_gen_newcommer_switch_master {
 #[macro_export]
 macro_rules! test_gen_servant_switch_master {
     ($service:expr,$sender_servant:expr) => {{
+        let payload = json!({
+            "captcha": "000000",
+        });
         let url = format!("/wallet/genServantSwitchMaster");
         let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
             $service,
             "post",
             &url,
-            None::<String>,
+            Some(payload.to_string()),
             Some($sender_servant.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);

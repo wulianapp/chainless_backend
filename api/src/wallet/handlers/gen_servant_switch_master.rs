@@ -8,7 +8,7 @@ use models::secret_store::SecretStoreView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CreateMainAccountRequest, ReconfirmSendMoneyRequest,
+    CreateMainAccountRequest, GenServantSwitchMasterRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -29,8 +29,10 @@ pub struct GenReplaceKeyInfo {
     pub delete_key_txid: String,
     pub delete_key_raw: String,
 }
-pub(crate) async fn req(req: HttpRequest) -> BackendRes<GenReplaceKeyInfo> {
+pub(crate) async fn req(req: HttpRequest,data:GenServantSwitchMasterRequest) -> BackendRes<GenReplaceKeyInfo> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let GenServantSwitchMasterRequest{captcha} = data;
+    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
     let servant_pubkey =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?
@@ -49,7 +51,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<GenReplaceKeyInfo> {
             KeyRole2::Servant,
         ))?;
     }
-
+    
     let client = ContractClient::<MultiSig>::new();
     let master_pubkey = client.get_master_pubkey(&main_account).await;
 

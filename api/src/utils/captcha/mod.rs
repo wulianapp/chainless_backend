@@ -71,7 +71,7 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
         } else {
             Err(PhoneOrEmailIncorrect)
         }
-    } else {
+    }else {
         //这里和前端的有效判断不一致先放开
         let number = phonenumber::parse(None, input);
         //if phonenumber::is_valid(&number){
@@ -84,11 +84,13 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
 }
 
 pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, BackendError> {
+    debug!("get_captcha_find_{}_{}",user,kind.to_string());
+
     let code_storage = &CODE_STORAGE
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
 
-        debug!("_eddy_{:?}",code_storage);
+        debug!("get_captcha_eddy_{:?}",code_storage);
     let value = code_storage
         .get(&(user, kind.to_owned()))
         .as_ref()
@@ -112,7 +114,10 @@ pub struct Captcha {
 pub fn distill_code_from_contact(contact: &str) -> String {
     if contact.contains("+86") {
         contact[contact.len() - 6..].to_string()
-    } else {
+    } else if contact.parse::<u32>().is_ok(){
+        //contact.to_string()
+        "000000".to_string()
+    }else {
         let re = Regex::new(r"test(.*?)@").unwrap();
         let mut code = gen_random_verify_code().to_string();
         if let Some(captures) = re.captures(contact) {
@@ -132,7 +137,8 @@ impl Captcha {
         let code = if common::env::CONF.service_mode != ServiceMode::Product
             && common::env::CONF.service_mode != ServiceMode::Dev
         {
-            distill_code_from_contact(&user)
+            //distill_code_from_contact(&user)
+            "000000".to_string()
         } else {
             gen_random_verify_code().to_string()
         };

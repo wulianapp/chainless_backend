@@ -23,7 +23,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let main_account = super::get_main_account(user_id)?;
-    let user_email = super::get_email(user_id)?;
 
     let PreSendMoneyRequest {
         to,
@@ -100,7 +99,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         if captcha.is_none(){
             Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
         } 
-        Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
+        Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoney)?;
         let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved);
         let next_tx_index = get_next_tx_index()?;
         let (tx_id, chain_tx_raw) = cli
@@ -125,7 +124,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         if captcha.is_none(){
             Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
         } 
-        Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
+        Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoney)?;
         let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted);
         coin_info.insert()?;
         Ok(None)

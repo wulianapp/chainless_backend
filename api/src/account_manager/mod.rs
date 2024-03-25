@@ -48,7 +48,7 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
 
 
 /**
- * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码
+ * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,测试网为000000
  * @apiVersion 0.0.1
  * @apiName GetCaptchaWithoutToken
  * @apiGroup AccountManager
@@ -79,7 +79,7 @@ async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutToke
 
 
 /**
- * @api {post} /accountManager/getCaptchaWithToken 登陆后申请验证码
+ * @api {post} /accountManager/getCaptchaWithToken 登陆后申请验证码，测试网为000000
  * @apiVersion 0.0.1
  * @apiName GetCaptchaWithToken
  * @apiGroup AccountManager
