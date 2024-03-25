@@ -29,6 +29,17 @@ pub fn table_clear(table_name: &str) -> Result<(), BackendError> {
     Ok(())
 }
 
+fn select_db(db_name: &str) -> Result<(), BackendError> {
+    //fixme: 数据会丢,另外切数据库失败
+    let sql = format!("\\c {}", db_name);
+    crate::CLIENTDB
+        .lock()
+        .map_err(|e| InternalError(e.to_string()))?
+        .execute(sql.as_str(), &[])
+        .map_err(|e| DBError(e.to_string()))?;
+    Ok(())
+}
+
 pub fn table_all_clear() {
     //table_clear("accounts").unwrap();
     table_clear("users").unwrap();

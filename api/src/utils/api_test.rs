@@ -521,7 +521,7 @@ macro_rules! test_update_strategy {
     ($service:expr, $master:expr) => {{
         let payload = json!({
             "deviceId": "1",
-            "strategy": [{"min": 1, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200u64, "sigNum": 1}]
+            "strategy": [{"min": 1, "maxEq": 10, "sigNum": 0},{"min": 10, "maxEq": 1844674407370955200u64, "sigNum": 1}]
         });
         let res: BackendRespond<String> = test_service_call!(
             $service,
@@ -565,7 +565,30 @@ macro_rules! test_pre_send_money {
             "amount": $amount,
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
-            "captcha": "000001",
+            //"captcha": $captcha,
+       });
+        let res: BackendRespond<(u32,String)> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/preSendMoney",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_pre_send_money2 {
+    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr,$is_forced:expr) => {{
+        let payload = json!({
+            "to": &$receiver_account,
+            "coin":$coin,
+            "amount": $amount,
+            "expireAt": 1808015513000u64,
+            "isForced": $is_forced,
+            //"captcha": $captcha,
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,

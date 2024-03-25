@@ -1290,7 +1290,7 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToSub");
         //step3: master: pre_send_money
         test_pre_send_money_to_sub!(
             service,
@@ -1531,7 +1531,132 @@ mod tests {
         println!("{},,,{:?}", line!(), device_lists);
 
         //step3: master: pre_send_money
-        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,false);
+        let res = test_pre_send_money2!(service,sender_master,receiver.wallet.main_account,"DW20",12,false);
+        assert!(res.is_none());
+        //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
+        let res = test_search_message!(service, sender_master).unwrap();
+        if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(
+                sender_master.wallet.pubkey.as_ref().unwrap(),
+                &sender_strategy.master_pubkey,
+                "this device hold  master key,and do nothing for 'Created' tx"
+            );
+        }
+        let res = test_search_message!(service, sender_servant).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(
+                sender_servant.wallet.pubkey.as_ref().unwrap(),
+                sender_strategy.servant_pubkeys.first().unwrap(),
+                "this device hold  servant key,need to sig for 'Created' tx"
+            );
+
+            //step4: upload sender servant sign
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                &sender_servant.wallet.prikey.unwrap(),
+                &tx.coin_tx_raw,
+            );
+            let signature = format!(
+                "{}{}",
+                sender_servant.wallet.pubkey.as_ref().unwrap(),
+                signature
+            );
+
+            //upload_servant_sig
+           test_upload_servant_sig!(service,sender_servant,index,signature);
+        }
+
+        //step5: receiver get notice and react it
+        let res = test_search_message!(service, receiver).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
+            assert_eq!(
+                receiver.wallet.pubkey.unwrap(),
+                receiver_strategy.master_pubkey,
+                "only master_key can ratify or refuse it"
+            );
+            test_react_pre_send_money!(service,receiver,index,true);
+        }
+
+        let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
+        println!("txs_0003__ {:?}", txs);
+
+        //step6: sender_master get notice and react it
+        //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
+        //超过了就链上过期（非多签业务过期）
+        let res = test_search_message!(service, sender_master).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+            assert_eq!(
+                sender_master.wallet.pubkey.as_ref().unwrap(),
+                &sender_strategy.master_pubkey,
+                "only sender_master_key can reconfirm or refuse it"
+            );
+
+            //local sign
+            let signature = blockchain::multi_sig::ed25519_sign_data2(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                tx.tx_id.as_ref().unwrap(),
+            );
+            test_reconfirm_send_money!(service,sender_master,index,signature);
+        }
+
+        let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;
+        println!("txs_success {:?}", txs_success);
+    }
+
+
+
+    async fn test_all_braced_wallet_ok_force(
+        mut sender_master: TestWulianApp2,
+        mut receiver: TestWulianApp2,
+        mut sender_servant: TestWulianApp2,
+    ) {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        //init: get token by register or login
+        test_register!(service, sender_master);
+        test_register!(service, receiver);
+        test_login!(service, sender_servant);
+        test_create_main_account!(service, receiver);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let receiver_strategy = test_get_strategy!(service, receiver).unwrap();
+        println!("receiver strategy {:?}",receiver_strategy);
+
+        test_create_main_account!(service, sender_master);
+
+
+        //给链上确认一些时间
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_add_servant!(service, sender_master, sender_servant);
+
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        //给链上确认一些时间
+        //step2.1: 
+        test_update_strategy!(service,sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        //step2.2: check sender's new strategy
+        let sender_strategy = test_get_strategy!(service, sender_master).unwrap();
+        println!("{},,,{:?}", line!(), sender_strategy);
+
+        //step2.3: get message of becoming servant,and save encrypted prikey
+        let res = test_search_message!(service, sender_servant).unwrap();
+        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
+            sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
+            test_servant_saved_secret!(service,sender_servant);
+        }
+
+        //step2.4: get device list
+        let device_lists: Vec<DeviceInfo> = test_get_device_list!(service,sender_servant).unwrap();
+        println!("{},,,{:?}", line!(), device_lists);
+
+        //step3: master: pre_send_money
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
+        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
         assert!(res.is_none());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();

@@ -131,7 +131,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
         Register => {
             debug!("");
         },
-        PreSendMoney | ServantSwitchMaster | NewcomerSwitchMaster => {
+        PreSendMoney |PreSendMoneyToSub| ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
         }
     }
@@ -155,7 +155,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
         },
         //验证码有效期内只能发起一次转账
-        PreSendMoney | ServantSwitchMaster  => {
+        PreSendMoney | PreSendMoneyToSub | ServantSwitchMaster  => {
             if device.device_info.key_role != KeyRole2::Master {
                 Err(WalletError::UneligiableRole(
                     device.device_info.key_role,

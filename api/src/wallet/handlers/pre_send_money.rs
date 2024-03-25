@@ -96,6 +96,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
 
     //没有从公钥且强制转账的话，直接返回待签名数据
     if need_sig_num == 0 && is_forced{
+        debug!("_0000_");
+        if captcha.is_none(){
+            Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
+        } 
         Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
         let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved);
         let next_tx_index = get_next_tx_index()?;
@@ -117,16 +121,28 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         coin_info.insert()?;
         Ok(Some((next_tx_index,tx_id)))
     }else if need_sig_num == 0  && !is_forced{
+        debug!("_0001_");
+        if captcha.is_none(){
+            Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
+        } 
         Captcha::check_user_code(&user_email, &captcha.unwrap(), Usage::PreSendMoney)?;
         let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted);
         coin_info.insert()?;
         Ok(None)
     }else if need_sig_num != 0  && is_forced{
+        debug!("_0002_");
+        if captcha.is_some(){
+            Err(BackendError::InternalError("For sulti-sig tx,need not captcha".to_string()))?;
+        }
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created);
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
         Ok(None)
     }else if need_sig_num != 0  && !is_forced{
+        debug!("_0003_");
+        if captcha.is_some(){
+            Err(BackendError::InternalError("For multi-sig tx,need not  captcha".to_string()))?;
+        }
         let coin_info = gen_tx_with_status(CoinTxStatus::Created);
         coin_info.insert()?;
         Ok(None)

@@ -38,6 +38,7 @@ pub enum Usage {
     ResetLoginPassword,
     //验证码有效期内只能发起一次转账
     PreSendMoney,
+    PreSendMoneyToSub,
     //SetSecurity,
     //AddServant,
     ServantSwitchMaster,
@@ -175,6 +176,11 @@ impl Captcha {
             } else if data.code == code && data.is_expired() {
                 Err(CaptchaExpired)?
             } else {
+                //delete worn captcha
+                let code_storage = &mut CODE_STORAGE
+                .lock()
+                .map_err(|e| InternalError(e.to_string()))?;
+                code_storage.remove(&(user.to_string(), kind.clone()));
                 Ok(())
             }
         } else {
