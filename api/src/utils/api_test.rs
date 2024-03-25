@@ -73,7 +73,7 @@ pub async fn init() -> App<
         InitError = (),
     >,
 > {
-    env::set_var("SERVICE_MODE", "test");
+    env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
     models::general::table_all_clear();
     clear_contract().await;
