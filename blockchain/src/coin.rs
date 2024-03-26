@@ -100,7 +100,9 @@ async fn get_balance(account: &AccountId) -> u128 {
 impl ContractClient<Coin> {
     //fixme: gen once object
     pub fn new(coin: CoinType) -> Self {
-        let pri_key: SecretKey = "ed25519:22GxjZNCaqqnCph62YUrhm5y2QAebLvjc8NuBEVmciXSYkpebJt2SPYMqQ4G4ERNDAbeFmWjKPFWWTA2psR8e11K"
+        //multi_sig7_test
+        //relayer_test=b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7
+        let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
             .parse()
             .unwrap();
         let pubkey = get_pubkey(&pri_key.to_string());

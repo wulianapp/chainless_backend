@@ -1483,6 +1483,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_all_braced_wallet_ok_with_new_key() {
+        //fixme: currently used service mode is from environment ,not init's value
          let (mut sender_master,
             mut sender_servant,
             mut sender_newcommer,

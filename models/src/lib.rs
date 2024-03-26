@@ -61,7 +61,7 @@ lazy_static! {
 }
 fn connect_db() -> Result<Client, BackendError> {
     let global_conf = &common::env::CONF;
-    info!("{}: start postgresql", common::utils::time::current_date());
+    info!("{}: start postgresql,mode {}", common::utils::time::current_date(),global_conf.service_mode.to_string());
     let url = format!(
         "host=localhost user=postgres port=8068 password=postgres dbname=backend_{}",
         global_conf.service_mode.to_string()
