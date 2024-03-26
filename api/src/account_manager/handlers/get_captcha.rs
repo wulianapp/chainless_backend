@@ -182,7 +182,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
             if device.device_info.key_role != KeyRole2::Servant {
                 Err(WalletError::UneligiableRole(
                     device.device_info.key_role,
-                    KeyRole2::Undefined,
+                    KeyRole2::Servant,
                 ))?;
             }
         }

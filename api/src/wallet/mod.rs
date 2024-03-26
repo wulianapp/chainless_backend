@@ -1279,7 +1279,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
 
-        test_get_captcha_with_token!(service,sender_master,"ServantSwitchMaster");
+        test_get_captcha_with_token!(service,sender_servant,"ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service,sender_servant);
         let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
             sender_master.wallet.prikey.as_ref().unwrap(),

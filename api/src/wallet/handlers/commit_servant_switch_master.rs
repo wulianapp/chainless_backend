@@ -64,6 +64,16 @@ pub(crate) async fn req(
     }
     let old_master = master_list.first().unwrap();
 
+    models::general::transaction_begin()?;
+    DeviceInfoView::update(
+        DeviceInfoUpdater::BecomeServant(&old_master),
+        DeviceInfoFilter::ByHoldKey(&old_master),
+    )?;
+    DeviceInfoView::update(
+        DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+    )?;
+
     //增加之前判断是否有
     if !master_list.contains(&servant_pubkey) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
@@ -111,6 +121,6 @@ pub(crate) async fn req(
     multi_sig_cli
         .update_servant_pubkey_and_master(&main_account, current_strategy.servant_pubkeys,servant_pubkey)
         .await?;
-
+    models::general::transaction_commit()?;
     Ok(None::<String>)
 }
