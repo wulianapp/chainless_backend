@@ -23,7 +23,8 @@ use models::{account_manager, secret_store, PsqlOp};
 use serde_json::json;
 
 use actix_web::Error;
-use blockchain::multi_sig::{ed25519_key_gen, StrategyData};
+use blockchain::multi_sig::{StrategyData};
+use common::encrypt::{ed25519_key_gen};
 use blockchain::multi_sig::{CoinTx, MultiSig};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
@@ -588,14 +589,14 @@ macro_rules! test_update_security {
 
 #[macro_export]
 macro_rules! test_pre_send_money {
-    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr,$is_forced:expr) => {{
+    ($service:expr, $sender_master:expr, $receiver_account:expr,$coin:expr,$amount:expr,$is_forced:expr,$captcha:expr) => {{
         let payload = json!({
             "to": &$receiver_account,
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
-            //"captcha": $captcha,
+            "captcha": $captcha,
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,

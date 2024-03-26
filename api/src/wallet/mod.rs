@@ -1148,7 +1148,8 @@ mod tests {
     use serde_json::json;
 
     use actix_web::Error;
-    use blockchain::multi_sig::{ed25519_key_gen, StrategyData};
+    use blockchain::multi_sig::{StrategyData};
+    use common::encrypt::{ed25519_key_gen};
     use blockchain::multi_sig::{CoinTx, MultiSig};
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
@@ -1162,7 +1163,7 @@ mod tests {
     use tracing::{debug, error, info};
 
     #[actix_web::test]
-    async fn test_update_subaccount_hold_limit_ok() {
+    async fn test_wallet_update_subaccount_hold_limit_ok() {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1180,7 +1181,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_force_transfer_with_servant() {
+    async fn test_wallet_force_transfer_with_servant() {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1201,7 +1202,7 @@ mod tests {
             test_servant_saved_secret!(service,sender_servant);
         }   
 
-        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
         assert!(pre_send_res.is_none());
         
         let res = test_search_message!(service, sender_servant).unwrap();
@@ -1209,10 +1210,10 @@ mod tests {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(tx.tx_type, TxType::Forced);
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data3(
+            let signature = common::encrypt::ed25519_gen_pubkey_sign(
                 &sender_servant.wallet.prikey.unwrap(),
                 &tx.coin_tx_raw,
-            );
+            ).unwrap();
            test_upload_servant_sig!(service,sender_servant,index,signature);
         }
 
@@ -1221,16 +1222,16 @@ mod tests {
             assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
             assert_eq!(tx.tx_type, TxType::Forced);
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
-            );
+            ).unwrap();
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
     }
     
     #[actix_web::test]
-    async fn test_force_transfer_without_servant() {
+    async fn test_wallet_force_transfer_without_servant() {
         //todo: cureent is single, add multi_sig testcase
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1241,17 +1242,23 @@ mod tests {
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let (index,txid) = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true).unwrap();
+
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
+        let (index,txid) = test_pre_send_money!(
+            service,sender_master,
+            receiver.wallet.main_account,"DW20",12,true,Some("000000".to_string())
+        ).unwrap();
+
         println!("txid {}",txid);
-        let signature = blockchain::multi_sig::ed25519_sign_data2(
+        let signature = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             &txid,
-        );
+        ).unwrap();
         test_reconfirm_send_money!(service,sender_master,index,signature);
     }
 
     #[actix_web::test]
-    async fn test_replace_servant() {
+    async fn test_wallet_replace_servant() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
@@ -1268,7 +1275,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_servant_switch_master() {
+    async fn test_wallet_servant_switch_master() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
@@ -1281,20 +1288,22 @@ mod tests {
 
         test_get_captcha_with_token!(service,sender_servant,"ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service,sender_servant);
-        let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+        let add_key_sig = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             &gen_res.as_ref().unwrap().add_key_txid,
-        );
+        ).unwrap();
 
-        let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+        let delete_key_sig = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             &gen_res.as_ref().unwrap().delete_key_txid,
-        );
+        ).unwrap();
         test_commit_servant_switch_master!(service,sender_servant,gen_res,add_key_sig,delete_key_sig);
+        let device_lists: Vec<DeviceInfo> = test_get_device_list!(service,sender_servant).unwrap();
+        println!("{},,,{:?}", line!(), device_lists);
     }
 
     #[actix_web::test]
-    async fn test_main_send_money_to_sub() {
+    async fn test_wallet_main_send_money_to_sub() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
@@ -1319,11 +1328,11 @@ mod tests {
         if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data3(
+            let signature = common::encrypt::ed25519_gen_pubkey_sign(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 //区别于普通转账，给子账户的签coin_tx_raw
                 &tx.coin_tx_raw,
-            );
+            ).unwrap();
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
     }
@@ -1335,7 +1344,7 @@ mod tests {
     }
     
     #[actix_web::test]
-    async fn test_sub_send_money_to_main() {
+    async fn test_wallet_sub_send_money_to_main() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
@@ -1356,10 +1365,10 @@ mod tests {
             let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
 
             let coin_tx_hex_str = hex::encode(coin_tx_str.as_bytes());    
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.sub_prikey.clone().unwrap().first().unwrap(),
                 &coin_tx_hex_str,
-            );
+            ).unwrap();
 
             let signature = format!(
                 "{}{}",
@@ -1376,7 +1385,7 @@ mod tests {
         pub encryptedPrikeyByAnswer: String,
     }
     #[actix_web::test]
-    async fn test_change_security() {
+    async fn test_wallet_change_security() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
@@ -1406,7 +1415,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_newcommer_replace_master() {
+    async fn test_wallet_newcommer_replace_master() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
@@ -1423,20 +1432,20 @@ mod tests {
         test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
         let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
 
-        let add_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+        let add_key_sig = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             &gen_res.as_ref().unwrap().add_key_txid,
-        );
+        ).unwrap();
 
-        let delete_key_sig = blockchain::multi_sig::ed25519_sign_data2(
+        let delete_key_sig = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             &gen_res.as_ref().unwrap().delete_key_txid,
-        );
+        ).unwrap();
         test_commit_newcommer_switch_master!(service,sender_newcommer,gen_res,add_key_sig,delete_key_sig);
     }
 
     #[actix_web::test]
-    async fn test_get_all() {
+    async fn test_wallet_get_all() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
@@ -1460,7 +1469,7 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_faucet_ok() {
+    async fn test_wallet_faucet_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
@@ -1485,15 +1494,21 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_all_braced_wallet_ok_with_fix_key() {
+    async fn test_wallet_all_braced_wallet_ok_with_fix_key() {
         let sender_master = simulate_sender_master();
         let receiver = simulate_receiver();
         let sender_servant = simulate_sender_servant();
+
+
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
         test_all_braced_wallet_ok(sender_master, receiver, sender_servant).await;
     }
 
     #[actix_web::test]
-    async fn test_all_braced_wallet_ok_with_new_key() {
+    async fn test_wallet_all_braced_wallet_ok_with_new_key() {
         //fixme: currently used service mode is from environment ,not init's value
          let (mut sender_master,
             mut sender_servant,
@@ -1578,10 +1593,10 @@ mod tests {
 
             //step4: upload sender servant sign
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 &sender_servant.wallet.prikey.unwrap(),
                 &tx.coin_tx_raw,
-            );
+            ).unwrap();
             let signature = format!(
                 "{}{}",
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
@@ -1620,10 +1635,10 @@ mod tests {
             );
 
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
-            );
+            ).unwrap();
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
 
@@ -1633,7 +1648,7 @@ mod tests {
 
 
 
-    async fn test_all_braced_wallet_ok_force(
+    async fn test_wallet_all_braced_wallet_ok_force(
         mut sender_master: TestWulianApp2,
         mut receiver: TestWulianApp2,
         mut sender_servant: TestWulianApp2,
@@ -1680,7 +1695,7 @@ mod tests {
 
         //step3: master: pre_send_money
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
-        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true);
+        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
         assert!(res.is_none());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
@@ -1703,10 +1718,10 @@ mod tests {
 
             //step4: upload sender servant sign
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 &sender_servant.wallet.prikey.unwrap(),
                 &tx.coin_tx_raw,
-            );
+            ).unwrap();
             let signature = format!(
                 "{}{}",
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
@@ -1745,10 +1760,10 @@ mod tests {
             );
 
             //local sign
-            let signature = blockchain::multi_sig::ed25519_sign_data2(
+            let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
-            );
+            ).unwrap();
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
 

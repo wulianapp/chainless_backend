@@ -65,14 +65,6 @@ pub(crate) async fn req(
     let old_master = master_list.first().unwrap();
 
     models::general::transaction_begin()?;
-    DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeServant(&old_master),
-        DeviceInfoFilter::ByHoldKey(&old_master),
-    )?;
-    DeviceInfoView::update(
-        DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-    )?;
 
     //增加之前判断是否有
     if !master_list.contains(&servant_pubkey) {
@@ -95,8 +87,8 @@ pub(crate) async fn req(
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
         DeviceInfoView::update(
-            DeviceInfoUpdater::BecomeServant(&master_list[0]),
-            DeviceInfoFilter::ByHoldKey(&master_list[0]),
+            DeviceInfoUpdater::BecomeServant(&old_master),
+            DeviceInfoFilter::ByHoldKey(&old_master),
         )?;
     } else {
         error!("main account is unnormal");

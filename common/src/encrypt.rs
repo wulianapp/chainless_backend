@@ -40,11 +40,22 @@ fn hex_to_bs58(input: &str) -> Result<String> {
     Ok(bs58::encode(&bytes).into_string())
 }
 
-pub fn ed25519_sign(prikey_hex: &str, data: &str) -> Result<String> {
+fn ed25519_sign_bytes(prikey_hex: &str, data: &[u8]) -> Result<String> {
     let prikey_bytes = hex::decode(prikey_hex)?;
     let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes)?;
-    let sig = secret_key.sign(data.as_bytes());
+    let sig = secret_key.sign(data);
     Ok(sig.to_string())
+}
+
+pub fn ed25519_sign_hex(prikey_hex: &str, data: &str) -> Result<String> {
+    let bytes: Vec<u8> = hex::decode(data)?;
+    ed25519_sign_bytes(prikey_hex,&bytes)
+}
+
+//no case use it now
+pub fn ed25519_sign_raw(prikey_hex: &str, data: &str) -> Result<String> {
+    let bytes: Vec<u8> = data.as_bytes().to_vec();
+    ed25519_sign_bytes(prikey_hex,&bytes)
 }
 
 //pubkey+real_sig
@@ -129,7 +140,7 @@ mod tests {
     fn test_sign(){
         let (prikey,pubkey) = ed25519_key_gen();
         let input_hex = "hello";
-        let sig = ed25519_sign(&prikey, input_hex).unwrap();
+        let sig = ed25519_sign_raw(&prikey, input_hex).unwrap();
         let verify_res = ed25519_verify(input_hex,&pubkey,&sig).unwrap();
         assert_eq!(verify_res,true);
     }

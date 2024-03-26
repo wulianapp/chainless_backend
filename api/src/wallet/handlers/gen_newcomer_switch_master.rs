@@ -77,38 +77,5 @@ pub(crate) async fn req(
         delete_key_raw,
     };
 
-    /***
-    //增加之前判断是否有
-    if !master_list.contains(&newcomer_pubkey.to_string()){
-        let res = client.add_key(&main_account, &newcomer_pubkey).await.unwrap().unwrap();
-        /***
-        let signature = crate::multi_sig::ed25519_sign_data2(
-            master_prikey,
-            &res.0,
-        );
-        let test = crate::general::broadcast_tx_commit_from_raw2(&res.1,&signature).await;
-        */
-    }else{
-        error!("newcomer_pubkey<{}> already is master",newcomer_pubkey);
-    }
-
-    //删除之前判断目标新公钥是否在，在的话就把新公钥之外的全删了
-    let mut master_list = client.get_master_pubkey_list(&main_account).await;
-    master_list.retain(|x| x != &newcomer_pubkey);
-    if !master_list.is_empty(){
-        //理论上生产环境other_master不会超过1
-        if master_list.len() == 1 {
-            let other_master = master_list.first().unwrap();
-            let res = client.delete_key(&main_account, &other_master).await.unwrap().unwrap();
-        }else {
-            error!("other master more than 1");
-        }
-    }else{
-        error!("main account have no other master");
-    }
-
-    info!("new wallet {:?}  successfully", user_info);
-    **/
-
     Ok(Some(replace_txids))
 }

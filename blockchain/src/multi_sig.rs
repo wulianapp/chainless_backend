@@ -540,45 +540,6 @@ fn pubkey_from_hex(hex_str: &str) -> PublicKey {
     PublicKey::from_implicit_account(&sender_id).unwrap()
 }
 
-fn ed25519_sign_data(prikey_bytes: &[u8], data: &[u8]) -> String {
-    println!("ed25519_secret {:?}", prikey_bytes);
-    let secret_key = ed25519_dalek::Keypair::from_bytes(prikey_bytes).unwrap();
-    let sig = secret_key.sign(data);
-    sig.to_string()
-}
-
-pub fn ed25519_sign_data2(prikey_bytes_hex: &str, data_hex: &str) -> String {
-    let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
-    let data = hex::decode(data_hex).unwrap();
-
-    println!("ed25519_secret {:?}", prikey_bytes);
-    let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
-    let sig = secret_key.sign(&data);
-    sig.to_string()
-}
-
-//pubkey+real_sig
-pub fn ed25519_sign_data3(prikey_bytes_hex: &str, data_hex: &str) -> String {
-    let prikey_bytes = hex::decode(prikey_bytes_hex).unwrap();
-    let data = hex::decode(data_hex).unwrap();
-
-    println!("ed25519_secret {:?}", prikey_bytes);
-    let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes).unwrap();
-    let sig = secret_key.sign(&data);
-    let pubkey = hex::encode(secret_key.public.as_bytes());
-    format!("{}{}",pubkey,sig.to_string())
-}
-
-pub fn ed25519_key_gen() -> (String, String) {
-    let mut csprng = OsRng {};
-    let key_pair = ed25519_dalek::Keypair::generate(&mut csprng);
-
-    let prikey: String = key_pair.secret.encode_hex();
-    let pubkey: String = key_pair.public.to_bytes().encode_hex();
-    let prikey = format!("{}{}", prikey, pubkey);
-    (prikey, pubkey)
-}
-
 pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
     let prikey: SecretKey = prikey_str.parse().unwrap();
     let prikey_bytes = prikey.unwrap_as_ed25519().0;
@@ -666,7 +627,7 @@ mod tests {
                 .await
                 .unwrap()
                 .unwrap();
-            let signature = crate::multi_sig::ed25519_sign_data2(master_prikey, &res.0);
+            let signature = common::encrypt::ed25519_sign_hex(master_prikey, &res.0).unwrap();
             let _test = crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
         } else {
             debug!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
@@ -683,7 +644,7 @@ mod tests {
                     .await
                     .unwrap()
                     .unwrap();
-                let signature = crate::multi_sig::ed25519_sign_data2(master_prikey, &res.0);
+                let signature = common::encrypt::ed25519_sign_hex(master_prikey, &res.0).unwrap();
                 crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
             }
         }
