@@ -83,7 +83,7 @@ async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutToke
  * @apiVersion 0.0.1
  * @apiName GetCaptchaWithToken
  * @apiGroup AccountManager
- * @apiBody {String="ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
+ * @apiBody {String="SetSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
@@ -319,7 +319,7 @@ async fn reset_password(
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-    cfg.service(get_captcha)
+        cfg.service(get_captcha)
         .service(contact_is_used)
         .service(register_by_email)
         .service(register_by_phone)

@@ -362,13 +362,27 @@ macro_rules! test_login {
 macro_rules! test_create_main_account{
     ($service:expr, $app:expr) => {{
         let payload = json!({
+            "contact": $app.user.contact,
+            "kind": "SetSecurity"
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/accountManager/getCaptchaWithToken",
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+
+        let payload = json!({
             "masterPubkey":  $app.wallet.main_account,
             "masterPrikeyEncryptedByPassword": $app.wallet.prikey,
             "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
             "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
             "subaccountPrikeyEncrypedByPassword": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
             "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
-            "anwserIndexes": ""
+            "anwserIndexes": "",
+            "captcha": "000000"
         });
         let res: BackendRespond<String> = test_service_call!(
             $service,
@@ -541,8 +555,23 @@ macro_rules! test_update_strategy {
 macro_rules! test_update_security {
     ($service:expr, $app:expr, $secrets:expr) => {{
         let payload = json!({
+            "contact": $app.user.contact,
+            "kind": "SetSecurity"
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/accountManager/getCaptchaWithToken",
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+
+
+        let payload = json!({
             "secrets": $secrets,
-            "anwserIndexes": "1,2,3"
+            "anwserIndexes": "1,2,3",
+            "captcha": "000000"
         });
         let res: BackendRespond<String> = test_service_call!(
             $service,

@@ -31,7 +31,11 @@ pub(crate) async fn req(
         subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         anwser_indexes,
+        captcha
     } = request_data;
+
+    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
+
 
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;

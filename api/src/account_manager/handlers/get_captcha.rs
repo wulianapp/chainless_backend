@@ -120,7 +120,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
         Register => {
             debug!("");
         },
-        PreSendMoney |PreSendMoneyToSub| ServantSwitchMaster | NewcomerSwitchMaster => {
+        SetSecurity| PreSendMoney |PreSendMoneyToSub| ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
         }
     }
@@ -136,7 +136,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
     } = request_data;
     let kind: Usage = kind.parse().map_err(
         |err| BackendError::RequestParamInvalid("".to_string()))?;
-   
+    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     
     match kind {
@@ -150,6 +150,24 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
                     device.device_info.key_role,
                     KeyRole2::Master,
                 ))?;
+            }
+        },
+        SetSecurity => {
+            if user.user_info.secruity_is_seted {
+                if device.device_info.key_role != KeyRole2::Master {
+                    Err(WalletError::UneligiableRole(
+                        device.device_info.key_role,
+                        KeyRole2::Master,
+                    ))?;
+                }
+            }else {
+                //may be unnecessary
+                if device.device_info.key_role != KeyRole2::Undefined {
+                    Err(WalletError::UneligiableRole(
+                        device.device_info.key_role,
+                        KeyRole2::Undefined,
+                    ))?;
+                }
             }
         },
         NewcomerSwitchMaster => {

@@ -9,7 +9,7 @@ use models::{
 };
 
 use crate::{
-    utils::token_auth,
+    utils::{captcha::{Captcha, Usage}, token_auth},
     wallet::{GetSecretRequest, UpdateSecurityRequest},
 };
 use common::{
@@ -36,7 +36,10 @@ pub(crate) async fn req(
     let UpdateSecurityRequest {
         anwser_indexes,
         secrets,
+        captcha,
     } = request_data;
+    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
+
     //todo: must be master
     UserInfoView::update(
         UserUpdater::AnwserIndexes(&anwser_indexes),

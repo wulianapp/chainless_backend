@@ -688,6 +688,7 @@ async fn update_subaccount_hold_limit(
  * @apiName UpdateSecurity
  * @apiGroup Wallet
  * @apiBody {String} anwserIndexes    新的安全问题
+ * @apiBody {String} captcha        重设后的安全数据
  * @apiBody {Object[]} secrets        重设后的安全数据
  * @apiBody {String} secrets.pubkey    更新的钱包公钥
  * @apiBody {String} secrets.encryptedPrikeyByPassword  重设后被密码加密的私钥
@@ -720,6 +721,7 @@ pub struct SecretStoreTmp1 {
 pub struct UpdateSecurityRequest {
     anwser_indexes: String,
     secrets: Vec<SecretStoreTmp1>,
+    captcha:String
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/updateSecurity")]
@@ -743,6 +745,7 @@ async fn update_security(
  * @apiBody {String} subaccountPrikeyEncrypedByPassword   密码加密的子钱包私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer  问答加密的子钱包私钥
  * @apiBody {String} anwserIndexes               安全问答的序列号
+ * @apiBody {String} captcha                 验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/createMainAccount
@@ -769,6 +772,7 @@ pub struct CreateMainAccountRequest {
     subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
     anwser_indexes: String,
+    captcha: String
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/createMainAccount")]
@@ -1365,7 +1369,12 @@ mod tests {
             test_sub_send_to_master!(service,sender_master,signature,"DW20",11);
     }
 
-
+    #[derive(Deserialize, Serialize, Clone)]
+    pub struct SecretStoreTmp2 {
+        pub pubkey: String,
+        pub encryptedPrikeyByPassword: String,
+        pub encryptedPrikeyByAnswer: String,
+    }
     #[actix_web::test]
     async fn test_change_security() {
         let app = init().await;
@@ -1381,15 +1390,17 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let mut secrets = test_get_secret!(service, sender_master, "all").unwrap();
+        let secrets = test_get_secret!(service, sender_master, "all").unwrap();
         println!("res {:?}", secrets);
 
         //re-encrypt prikey
-        secrets.iter_mut().map(|s| {
-            s.encrypted_prikey_by_answer += "re-encrypp";
-            s.encrypted_prikey_by_password += "re-encrypp";
-        });
-
+        let secrets:Vec<SecretStoreTmp2> = secrets.iter().map(|s| {
+            SecretStoreTmp2{
+                pubkey: s.pubkey.clone(),
+                encryptedPrikeyByPassword:"updated_encrypted".to_string(),
+                encryptedPrikeyByAnswer:"updated_encrypted".to_string()
+            }
+        }).collect();
         //claim
         test_update_security!(service, sender_master, secrets);
     }

@@ -36,6 +36,7 @@ pub enum ContactType {
 pub enum Usage {
     Register,
     ResetLoginPassword,
+    SetSecurity,
     //验证码有效期内只能发起一次转账
     PreSendMoney,
     PreSendMoneyToSub,
