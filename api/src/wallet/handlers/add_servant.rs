@@ -16,6 +16,8 @@ use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
+use common::error_code::BackendError::ChainError;
+
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -56,7 +58,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     }
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new();
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli
         .get_strategy(&main_account)

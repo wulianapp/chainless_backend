@@ -43,8 +43,12 @@ pub async fn req(
     )?;
 
     //collect enough signatures
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new();
-    let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
+
+    let strategy = multi_cli.get_strategy(&tx.transaction.from)
+    .await?
+    .unwrap();
+;
     let need_sig_num = super::get_servant_need(
         &strategy.multi_sig_ranks,
         &tx.transaction.coin_type,
@@ -60,7 +64,8 @@ pub async fn req(
             )?;
         //给其他主账户转是用户自己签名，需要生成tx_raw    
         }else if tx.transaction.tx_type == TxType::Forced{
-            let cli = ContractClient::<MultiSig>::new();
+            let cli = ContractClient::<MultiSig>::new()?;
+    
             let servant_sigs = tx
             .transaction
             .signatures
@@ -80,10 +85,7 @@ pub async fn req(
                 tx.transaction.amount,
                 tx.transaction.expire_at,
             )
-            .await
-            .unwrap()
-            .unwrap();
-
+            .await?;
             models::coin_transfer::CoinTxView::update(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinTxStatus::ReceiverApproved),
                 CoinTxFilter::ByTxIndex(tx_index),

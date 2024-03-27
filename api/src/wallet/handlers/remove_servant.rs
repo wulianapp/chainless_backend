@@ -17,6 +17,7 @@ use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
 
+
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: RemoveServantRequest,
@@ -44,19 +45,17 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new();
-    //it is impossible to get none
-    let mut current_strategy = multi_sig_cli
+    let cli = ContractClient::<MultiSig>::new()?;    //it is impossible to get none
+    let mut current_strategy = cli
         .get_strategy(&main_account)
         .await?
-        .ok_or(WalletError::MainAccountNotExist(
-            main_account.clone(),
-        ))?;
+        .ok_or(
+            WalletError::MainAccountNotExist(main_account.clone())
+        )?;
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);
-    multi_sig_cli
-        .update_servant_pubkey(
+    cli.update_servant_pubkey(
             &main_account,
             current_strategy.servant_pubkeys,
         )

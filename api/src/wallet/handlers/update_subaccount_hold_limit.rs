@@ -29,8 +29,9 @@ pub async fn req(req: HttpRequest, request_data: UpdateSubaccountHoldLimitReques
     }
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new();
-    multi_sig_cli.update_subaccount_hold_limit(&main_account, &subaccount,limit).await?;
+    let cli = ContractClient::<MultiSig>::new()?;    
+
+    cli.update_subaccount_hold_limit(&main_account, &subaccount,limit).await?;
 
     Ok(None::<String>)
 }

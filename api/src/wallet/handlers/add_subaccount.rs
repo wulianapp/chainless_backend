@@ -18,6 +18,7 @@ use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
 use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest};
+use common::error_code::BackendError::ChainError;
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
@@ -54,7 +55,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_answer,
     );
     secret.insert()?;
-    let multi_cli = ContractClient::<MultiSig>::new();
+    let multi_cli = ContractClient::<MultiSig>::new()?;
     let sub_confs = HashMap::from([(subaccount_pubkey.as_str(),SubAccConf{ hold_value_limit})]);
     multi_cli
         .add_subaccount(&main_account, sub_confs)

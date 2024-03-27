@@ -4,3 +4,4 @@ target
 .idea
 .openzeppelin
 .vscode
+.DS_Store

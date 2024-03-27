@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxRole, TxType};
-use common::error_code::{BackendError};
+use anyhow::{Ok, Result};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
@@ -141,7 +141,7 @@ impl PsqlOp for CoinTxView {
     type UpdateContent<'a> = CoinTxUpdater<'a>;
     type FilterContent<'b> = CoinTxFilter<'b>;
 
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<CoinTxView>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<CoinTxView>> {
         let sql = format!(
             "select tx_index,\
          tx_id,\
@@ -172,35 +172,37 @@ impl PsqlOp for CoinTxView {
         }
         //let user_info_raw = execute_res.first().unwrap();
 
-        let gen_view = |row: &Row| CoinTxView {
-            tx_index: row.get::<usize, i32>(0) as u32,
-            transaction: CoinTransaction {
-                tx_id: row.get(1),
-                coin_type: CoinType::from_str(row.get::<usize, &str>(2)).unwrap(),
-                from: row.get(3),
-                to: row.get(4),
-                amount: u128::from_str(row.get::<usize, &str>(5)).unwrap(),
-                expire_at: row.get::<usize, String>(6).parse().unwrap(),
-                memo: row.get(7),
-                status: row.get::<usize, &str>(8).parse().unwrap(),
-                coin_tx_raw: row.get(9),
-                chain_tx_raw: row.get(10),
-                signatures: row.get::<usize, Vec<String>>(11),
-                tx_type: row.get::<usize, &str>(12).parse().unwrap(),
-                reserved_field1: row.get(13),
-                reserved_field2: row.get(14),
-                reserved_field3: row.get(15),
-            },
-            updated_at: row.get(16),
-            created_at: row.get(17),
+        let gen_view = |row: &Row| -> Result<CoinTxView> {
+            Ok(CoinTxView{
+                tx_index: row.get::<usize, i32>(0) as u32,
+                transaction: CoinTransaction {
+                    tx_id: row.get(1),
+                    coin_type: CoinType::from_str(row.get::<usize, &str>(2))?,
+                    from: row.get(3),
+                    to: row.get(4),
+                    amount: u128::from_str(row.get::<usize, &str>(5))?,
+                    expire_at: row.get::<usize, String>(6).parse()?,
+                    memo: row.get(7),
+                    status: row.get::<usize, &str>(8).parse()?,
+                    coin_tx_raw: row.get(9),
+                    chain_tx_raw: row.get(10),
+                    signatures: row.get::<usize, Vec<String>>(11),
+                    tx_type: row.get::<usize, &str>(12).parse()?,
+                    reserved_field1: row.get(13),
+                    reserved_field2: row.get(14),
+                    reserved_field3: row.get(15),
+                },
+                updated_at: row.get(16),
+                created_at: row.get(17),
+            })
         };
-        Ok(execute_res
+        execute_res
             .iter()
             .map(|x| gen_view(x))
-            .collect::<Vec<CoinTxView>>())
+            .collect()
     }
 
-    fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<(), BackendError> {
+    fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<()> {
         let sql = format!(
             "UPDATE coin_transaction SET {} where {}",
             update_data.to_string(),
@@ -213,7 +215,7 @@ impl PsqlOp for CoinTxView {
         Ok(())
     }
 
-    fn insert(&self) -> Result<(), BackendError> {
+    fn insert(&self) -> Result<()> {
         let CoinTransaction {
             tx_id,
             coin_type,
@@ -278,7 +280,7 @@ impl PsqlOp for CoinTxView {
     }
 }
 
-pub fn get_next_tx_index() -> Result<u32, BackendError> {
+pub fn get_next_tx_index() -> Result<u32> {
     let execute_res = crate::query(
         "select last_value,is_called from coin_transaction_tx_index_seq order by last_value desc limit 1",
     )?;

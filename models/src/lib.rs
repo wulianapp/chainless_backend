@@ -28,12 +28,12 @@ extern crate rustc_serialize;
 
 use postgres::{Client, NoTls, Row};
 
-use common::error_code::BackendError;
-use common::error_code::BackendError::{DBError, InternalError};
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt::{Debug, Display};
 use std::sync::Mutex;
+use anyhow::Result;
+use anyhow::anyhow;
 
 static TRY_TIMES: u8 = 5;
 
@@ -59,7 +59,7 @@ impl TimeScope {
 lazy_static! {
     static ref CLIENTDB: Mutex<postgres::Client> = Mutex::new(connect_db().unwrap());
 }
-fn connect_db() -> Result<Client, BackendError> {
+fn connect_db() -> Result<Client> {
     let global_conf = &common::env::CONF;
     info!("{}: start postgresql,mode {}", common::utils::time::current_date(),global_conf.service_mode.to_string());
     let url = format!(
@@ -68,16 +68,16 @@ fn connect_db() -> Result<Client, BackendError> {
     );
     let cli = Client::connect(&url, NoTls).map_err(|error| {
         error!("connect postgresql failed,{:?}", error);
-        DBError(error.to_string())
+        error
     })?;
     Ok(cli)
 }
 
-pub fn query(raw_sql: &str) -> Result<Vec<Row>, BackendError> {
+pub fn query(raw_sql: &str) -> Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB
-        .lock()
-        .map_err(|e| InternalError(e.to_string()))?;
+    //todo:
+    let mut client = crate::CLIENTDB.lock()
+    .map_err(|e|  anyhow!(e.to_string()))?;
     loop {
         debug!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
@@ -88,7 +88,7 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>, BackendError> {
                 if try_times == 0 {
                     let error_info = format!("erro:{:?}, query still failed after retry", error);
                     error!("{}", error_info);
-                    Err(DBError(error_info))?;
+                    Err(anyhow!(error_info))?;
                 } else {
                     error!("error {:?}", error);
                     *client = connect_db()?;
@@ -100,11 +100,10 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>, BackendError> {
     }
 }
 
-pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
+pub fn execute(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
     let mut client = crate::CLIENTDB
-        .lock()
-        .map_err(|e| InternalError(e.to_string()))?;
+        .lock().map_err(|e| anyhow!(e.to_string()))?;
     loop {
         debug!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
@@ -115,7 +114,7 @@ pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
                 if try_times == 0 {
                     let error_info = format!("erro:{:?}, query still failed after retry", error);
                     error!("{}", error_info);
-                    Err(DBError(error_info))?;
+                    Err(anyhow!(error_info))?;
                 } else {
                     error!("error {:?}", error);
                     *client = connect_db()?;
@@ -130,10 +129,10 @@ pub fn execute(raw_sql: &str) -> Result<u64, BackendError> {
 pub trait PsqlOp {
     type UpdateContent<'a>: Display;
     type FilterContent<'b>: Display;
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError>
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>>
     where
         Self: Sized;
-    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self, BackendError>
+    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self>
     where
         Self: Sized,
     {
@@ -141,23 +140,23 @@ pub trait PsqlOp {
         let data_len = get_res.len();
         if data_len == 0 {
             //todo:return db error type
-            Err(InternalError("data isn't existed".to_string()))
+            Err(anyhow!("data isn't existed".to_string()))
         } else if data_len > 1 {
-            Err(InternalError("data is repeated".to_string()))
+            Err(anyhow!("data is repeated".to_string()))
         } else {
             Ok(get_res.pop().unwrap())
         }
     }
-    fn delete<T: Display>(_filter: T) -> Result<(), BackendError> {
+    fn delete<T: Display>(_filter: T) -> Result<()> {
         todo!()
     }
 
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<(), BackendError>;
+    ) -> Result<()>;
 
-    fn insert(&self) -> Result<(), BackendError>;
+    fn insert(&self) -> Result<()>;
 }
 
 pub trait FormatSql {

@@ -16,6 +16,8 @@ use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
+use common::error_code::BackendError::ChainError;
+
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -85,11 +87,11 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new();
+    let multi_sig_cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli
         .get_strategy(&main_account)
-        .await?
+        .await.map_err(|err| ChainError(err.to_string()))?
         .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
     //delete older and than add new
     current_strategy
@@ -100,7 +102,7 @@ pub(crate) async fn req(
 
     multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
-        .await?;
+        .await.map_err(|err| ChainError(err.to_string()))?;
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

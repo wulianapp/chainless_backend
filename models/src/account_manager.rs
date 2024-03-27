@@ -9,8 +9,8 @@ use common::data_structures::account_manager::UserInfo;
 use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
-use common::error_code::BackendError;
 use serde::Serialize;
+use anyhow::{Ok, Result};
 
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
@@ -108,7 +108,7 @@ impl PsqlOp for UserInfoView {
     type UpdateContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
 
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -135,41 +135,43 @@ impl PsqlOp for UserInfoView {
         let query_res = crate::query(sql.as_str())?;
         debug!("get_snapshot: raw sql {}", sql);
 
-        let gen_view = |row: &Row| UserInfoView {
-            id: row.get::<usize, i32>(0) as u32,
-            user_info: UserInfo {
-                phone_number: row.get(1),
-                email: row.get(2),
-                login_pwd_hash: row.get(3),
-                anwser_indexes: row.get(4),
-                is_frozen: row.get::<usize, bool>(5),
-                predecessor: row.get::<usize, Option<i32>>(6).map(|id| id as u32),
-                laste_predecessor_replace_time: row.get::<usize, String>(7).parse().unwrap(),
-                invite_code: row.get(8),
-                kyc_is_verified: row.get(9),
-                secruity_is_seted: row.get(10),
-                create_subacc_time: row
-                    .get::<usize, Vec<String>>(11)
-                    .iter()
-                    .map(|t| t.parse().unwrap())
-                    .collect(),
-                main_account: row.get(12),
-                op_status: row.get::<usize, String>(13).parse().unwrap(),
-                reserved_field1: row.get(14),
-                reserved_field2: row.get(15),
-                reserved_field3: row.get(16),
-            },
-            updated_at: row.get(17),
-            created_at: row.get(18),
+        let gen_view = |row: &Row| -> Result<UserInfoView> {
+            let view = UserInfoView {
+                id: row.get::<usize, i32>(0) as u32,
+                user_info: UserInfo {
+                    phone_number: row.get(1),
+                    email: row.get(2),
+                    login_pwd_hash: row.get(3),
+                    anwser_indexes: row.get(4),
+                    is_frozen: row.get::<usize, bool>(5),
+                    predecessor: row.get::<usize, Option<i32>>(6).map(|id| id as u32),
+                    laste_predecessor_replace_time: row.get::<usize, String>(7).parse()?,
+                    invite_code: row.get(8),
+                    kyc_is_verified: row.get(9),
+                    secruity_is_seted: row.get(10),
+                    create_subacc_time: row
+                        .get::<usize, Vec<String>>(11)
+                        .iter()
+                        .map(|t| t.parse().unwrap())
+                        .collect(),
+                    main_account: row.get(12),
+                    op_status: row.get::<usize, String>(13).parse()?,
+                    reserved_field1: row.get(14),
+                    reserved_field2: row.get(15),
+                    reserved_field3: row.get(16),
+                },
+                updated_at: row.get(17),
+                created_at: row.get(18),
+            };
+            Ok(view)
         };
-        let users = query_res.iter().map(|x| gen_view(x)).collect();
-        Ok(users)
+        query_res.iter().map(|x| gen_view(x)).collect()
     }
 
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<()> {
         let sql = format!(
             "UPDATE users SET {} where {}",
             new_value.to_string(),
@@ -182,7 +184,7 @@ impl PsqlOp for UserInfoView {
         Ok(())
     }
 
-    fn insert(&self) -> Result<(), BackendError> {
+    fn insert(&self) -> Result<()> {
         let UserInfo {
             phone_number,
             email,
@@ -251,14 +253,14 @@ impl PsqlOp for UserInfoView {
     }
 }
 
-pub fn get_current_user_num() -> Result<u64, BackendError> {
+pub fn get_current_user_num() -> Result<u64> {
     let execute_res = crate::query("select count(1) from users")?;
     let user_info_raw = execute_res.first().unwrap();
     let user_num = user_info_raw.get::<usize, i64>(0) as u64;
     Ok(user_num)
 }
 
-pub fn get_next_uid() -> Result<u32, BackendError> {
+pub fn get_next_uid() -> Result<u32> {
     let execute_res = crate::query(
         "select last_value,is_called from users_id_seq order by last_value desc limit 1",
     )?;

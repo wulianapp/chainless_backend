@@ -3,6 +3,7 @@ use std::str::FromStr;
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, SignInfo};
+use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
 use models::account_manager::{UserFilter, UserInfoView};
@@ -38,19 +39,19 @@ pub async fn req(
     } = request_data.0;
 
         //from必须是用户的子账户
-        let multi_cli = blockchain::ContractClient::<MultiSig>::new();
+        let cli = ContractClient::<MultiSig>::new()?;
+
         let sub_sig : SignInfo= sub_sig.as_str().parse().unwrap();
         let coin_type: CoinType = coin.parse().unwrap();
 
 
-         let tx_id =  multi_cli
+         let tx_id =  cli
             .internal_transfer_sub_to_main(
                 &main_account, 
                 sub_sig.clone(),
                 coin_type.clone(),
                 amount,
-            )
-            .await?;
+            ).await?;
         //todo:
         let coin_tx_raw = "".to_string();
         let mut coin_info = CoinTxView::new_with_specified(
@@ -64,7 +65,7 @@ pub async fn req(
             CoinTxStatus::SenderSigCompleted,
         );
         coin_info.transaction.tx_type = TxType::FromSub;
-        coin_info.transaction.tx_id = tx_id;
+        coin_info.transaction.tx_id = Some(tx_id);
         coin_info.insert()?;
     Ok(None)
 }

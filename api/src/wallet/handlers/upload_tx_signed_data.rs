@@ -43,5 +43,5 @@ pub async fn req(
         //broadcast(signatures)
         models::coin_transfer::update_status(CoinTxStatus::Broadcast, CoinTxFilter::ByTxId(tx_id))?;
     }
-    Ok(None::<String>)
+    Ok(None)
 }

@@ -39,8 +39,9 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         .collect();
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new();
-    multi_sig_cli.update_rank(&main_account, strategy).await?;
+    let cli = ContractClient::<MultiSig>::new()?;
+
+    cli.update_rank(&main_account, strategy).await?;
 
     Ok(None::<String>)
 }

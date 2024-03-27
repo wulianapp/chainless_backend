@@ -1186,7 +1186,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,_,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1236,7 +1236,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_,_,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
@@ -1307,7 +1307,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1348,7 +1348,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1389,7 +1389,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1500,7 +1500,7 @@ mod tests {
         let sender_servant = simulate_sender_servant();
 
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1516,7 +1516,7 @@ mod tests {
             mut receiver) 
         = gen_some_accounts_with_new_key();
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 

@@ -32,7 +32,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         //todo:check user_id's main account_id is receiver
         let coin_tx =
             models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
-        let cli = blockchain::ContractClient::<MultiSig>::new();
+        let cli = blockchain::ContractClient::<MultiSig>::new()?;
         let _strategy = cli.get_strategy(&coin_tx.transaction.from).await.unwrap();
         let servant_sigs = coin_tx
             .transaction
@@ -56,9 +56,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,
             )
-            .await
-            .unwrap()
-            .unwrap();
+            .await?;
         models::coin_transfer::CoinTxView::update(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinTxStatus::ReceiverApproved),
             CoinTxFilter::ByTxIndex(tx_index),

@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Mutex;
 use crate::wallet::BalanceListRequest;
+use common::error_code::BackendError::ChainError;
 
 #[derive(Deserialize, Serialize, Clone,Debug)]
 pub struct AccountBalance {
@@ -38,7 +39,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
 
     let main_account = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();
-    let mul_cli = ContractClient::<MultiSig>::new();
+    let mul_cli = ContractClient::<MultiSig>::new()?;
 
 
     let check_accounts = match request_data.kind {
@@ -59,7 +60,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
     for account in  check_accounts{
         let mut all_coin_balance = vec![];
         for coin in &coin_list {
-            let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone());
+            let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
             let balance_on_chain = if user_info.user_info.secruity_is_seted {
                 coin_cli
                     .get_balance(&account)

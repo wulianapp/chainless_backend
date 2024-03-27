@@ -241,7 +241,7 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
 }
 
 pub async fn clear_contract() {
-    let cli = blockchain::ContractClient::<MultiSig>::new();
+    let cli = blockchain::ContractClient::<MultiSig>::new().unwrap();
     cli.clear_all().await.unwrap();
     //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
     //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
@@ -249,7 +249,7 @@ pub async fn clear_contract() {
 }
 
 pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
-    let cli = blockchain::ContractClient::<MultiSig>::new();
+    let cli = blockchain::ContractClient::<MultiSig>::new().unwrap();
     cli.get_tx_state(txs_index).await.unwrap().unwrap()
 }
 

@@ -203,12 +203,7 @@ impl<T> ContractClient<T> {
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result)?;
             debug!("query_res1 {}", amount_str);
-            //todo: direct throw option
-            if amount_str.eq("null") {
-                Ok(None)
-            } else {
-                Ok(Some(serde_json::from_str::<R>(&amount_str)?))
-            }
+            Ok(serde_json::from_str::<Option<R>>(&amount_str)?)
         } else {
             Err(BackendError::InternalError(
                 "kind must be contract call".to_string(),

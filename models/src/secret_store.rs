@@ -11,8 +11,7 @@ use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
 use crate::{vec_str2array_text, PsqlOp};
-
-use common::error_code::BackendError;
+use anyhow::{Ok, Result};
 
 #[derive(Debug)]
 pub enum SecretUpdater<'a> {
@@ -86,7 +85,7 @@ impl PsqlOp for SecretStoreView {
     type UpdateContent<'a> = SecretUpdater<'a>;
     type FilterContent<'b> = SecretFilter<'b>;
 
-    fn find(filter: SecretFilter) -> Result<Vec<SecretStoreView>, BackendError> {
+    fn find(filter: SecretFilter) -> Result<Vec<SecretStoreView>> {
         let sql = format!(
             "select 
             pubkey,\
@@ -101,24 +100,23 @@ impl PsqlOp for SecretStoreView {
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get_secret: raw sql {}", sql);
-        let gen_view = |row: &Row| SecretStoreView {
-            secret_store: SecretStore {
-                pubkey: row.get(0),
-                state: row.get::<usize, String>(1).parse().unwrap(),
-                user_id: row.get::<usize, i32>(2) as u32,
-                encrypted_prikey_by_password: row.get(3),
-                encrypted_prikey_by_answer: row.get(4),
-            },
-            updated_at: row.get(4),
-            created_at: row.get(5),
+        let gen_view = |row: &Row| {
+            Ok(SecretStoreView {
+                secret_store: SecretStore {
+                    pubkey: row.get(0),
+                    state: row.get::<usize, String>(1).parse()?,
+                    user_id: row.get::<usize, i32>(2) as u32,
+                    encrypted_prikey_by_password: row.get(3),
+                    encrypted_prikey_by_answer: row.get(4),
+                },
+                updated_at: row.get(4),
+                created_at: row.get(5),
+            })
         };
 
-        Ok(execute_res
-            .iter()
-            .map(|x| gen_view(x))
-            .collect::<Vec<SecretStoreView>>())
+        execute_res.iter().map(|x| gen_view(x)).collect()
     }
-    fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<(), BackendError> {
+    fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<()> {
         let sql = format!(
             "update secret_store set {} where {}",
             new_value.to_string(),
@@ -131,7 +129,7 @@ impl PsqlOp for SecretStoreView {
         Ok(())
     }
 
-    fn insert(&self) -> Result<(), BackendError> {
+    fn insert(&self) -> Result<()> {
         let SecretStore {
             pubkey,
             state,
@@ -159,25 +157,7 @@ impl PsqlOp for SecretStoreView {
         Ok(())
     }
 
-    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self, BackendError>
-    where
-        Self: Sized,
-    {
-        let mut get_res: Vec<Self> = Self::find(filter)?;
-        let data_len = get_res.len();
-        if data_len == 0 {
-            //todo:return db error type
-            Err(BackendError::InternalError(
-                "data isn't existed".to_string(),
-            ))
-        } else if data_len > 1 {
-            Err(BackendError::InternalError("data is repeated".to_string()))
-        } else {
-            Ok(get_res.pop().unwrap())
-        }
-    }
-
-    fn delete<T: Display>(_filter: T) -> Result<(), BackendError> {
+    fn delete<T: Display>(_filter: T) -> Result<()> {
         todo!()
     }
 }

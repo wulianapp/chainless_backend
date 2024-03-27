@@ -17,6 +17,7 @@ use common::error_code::AccountManagerError::{
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
+use common::error_code::BackendError::ChainError;
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -67,7 +68,7 @@ pub(crate) async fn req(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;
 
-    let multi_cli = ContractClient::<MultiSig>::new();
+    let multi_cli = ContractClient::<MultiSig>::new()?;
 
     multi_cli
         .init_strategy(&master_pubkey, &subaccount_pubkey)

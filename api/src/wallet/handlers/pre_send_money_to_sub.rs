@@ -18,6 +18,8 @@ use models::coin_transfer::{get_next_tx_index, CoinTxView};
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyToSubRequest;
+use common::error_code::BackendError::ChainError;
+
 
 //todo: DRY
 pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(u32,String)> {
@@ -48,25 +50,25 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         Err(WalletError::InsufficientAvailableBalance)?;
     }
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new();
+    let cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
-        .await?
+        .await.map_err(|err| ChainError(err.to_string()))?
         .ok_or(WalletError::SenderNotFound)?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to){
         debug!("to[{}] is subaccount of from[{}]",to,from);
         let coin_price = 1;
-        let balance_value = cli.get_total_value(&to).await;
+        let balance_value = cli.get_total_value(&to).await.map_err(|err| ChainError(err.to_string()))?;
         if  amount * coin_price + balance_value > sub_conf.hold_value_limit {
             Err(WalletError::ExceedSubAccountHoldLimit)?;
         }
     }
 
-    let gen_tx_with_status = |status: CoinTxStatus|{
+    let gen_tx_with_status = |status: CoinTxStatus| -> std::result::Result<CoinTxView,BackendError>{
         let coin_tx_raw = cli
             .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
-            .unwrap();
-        CoinTxView::new_with_specified(
+            .map_err(|err| ChainError(err.to_string()))?;
+        Ok(CoinTxView::new_with_specified(
             coin_type.clone(),
             from.clone(),
             to.clone(),
@@ -75,7 +77,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
             memo,
             expire_at,
             status,
-        )
+        ))
     };
 
     //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
@@ -97,7 +99,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         } 
         Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoneyToSub)?;
 
-        let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
+        let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub)?;
         let next_tx_index = get_next_tx_index()?;
         let (tx_id, chain_tx_raw) = cli
         .gen_send_money_raw(
@@ -110,8 +112,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
             expire_at,
         )
         .await
-        .unwrap()
-        .unwrap();
+        .map_err(|err| ChainError(err.to_string()))?;
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::ToSub;
         coin_info.insert()?;
@@ -121,7 +122,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         if captcha.is_some(){
             Err(BackendError::InternalError("For multi-sig tx,need not  captcha".to_string()))?;
         }
-        let mut coin_info = gen_tx_with_status(CoinTxStatus::Created);
+        let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
         coin_info.transaction.tx_type = TxType::ToSub;
         coin_info.insert()?;
         Ok(None)

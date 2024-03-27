@@ -3,6 +3,8 @@ use thiserror::Error;
 use crate::data_structures::KeyRole2;
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
+use anyhow::Error as AnyhowError;
+
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -22,6 +24,19 @@ pub enum BackendError {
     AccountManager(#[from] AccountManagerError),
     #[error("{0}")]
     Wallet(#[from] WalletError),
+}
+
+impl From<AnyhowError> for BackendError {
+    fn from(error: AnyhowError) -> Self {
+        //db的错误可控，链的太多了
+        if error.to_string().contains("DbError:") {
+            BackendError::DBError(error.to_string())
+        } else if error.to_string().contains("ChainError:") {
+            BackendError::ChainError(error.to_string())
+        }else {
+            BackendError::InternalError(error.to_string())
+        }
+    }
 }
 
 impl ErrorCode for BackendError {

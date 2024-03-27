@@ -21,6 +21,7 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdate
 use models::{account_manager, secret_store, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
+use common::error_code::BackendError::ChainError;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GenReplaceKeyInfo {
@@ -51,20 +52,16 @@ pub(crate) async fn req(req: HttpRequest,data:GenServantSwitchMasterRequest) -> 
             KeyRole2::Servant,
         ))?;
     }
-    
-    let client = ContractClient::<MultiSig>::new();
-    let master_pubkey = client.get_master_pubkey(&main_account).await;
+
+    let client = ContractClient::<MultiSig>::new()?;
+    let master_pubkey = client.get_master_pubkey(&main_account).await?;
 
     let (add_key_txid, add_key_raw) = client
         .add_key(&main_account, &servant_pubkey)
-        .await
-        .unwrap()
-        .unwrap();
+        .await?;
     let (delete_key_txid, delete_key_raw) = client
         .delete_key(&main_account, &master_pubkey)
-        .await
-        .unwrap()
-        .unwrap();
+        .await?;
     let replace_txids = GenReplaceKeyInfo {
         add_key_txid,
         add_key_raw,

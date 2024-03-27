@@ -1,4 +1,4 @@
-use blockchain::{coin::Coin, multi_sig::MultiSigRank, ContractClient};
+use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank}, ContractClient};
 use common::{
     data_structures::{wallet::CoinType, KeyRole2},
     error_code::{BackendError, BackendRes, WalletError},
@@ -6,9 +6,11 @@ use common::{
 use models::{
     account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, PsqlOp
 };
-use std::result::Result;
+use anyhow::Result;
 
 use crate::account_manager::user_info;
+use common::error_code::BackendError::ChainError;
+
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -37,7 +39,7 @@ pub mod sub_send_to_main;
 pub mod tx_list;
 pub mod update_subaccount_hold_limit;
 
-pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>, BackendError> {
+pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))
 }
 
@@ -57,7 +59,7 @@ pub fn get_freezn_amount(account: &str,coin:&CoinType) -> u128{
 }
 
 pub async fn get_available_amount(account_id: &str,coin:&CoinType) -> BackendRes<u128>{
-    let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone());
+    let coin_cli = ContractClient::<Coin>::new(coin.clone()).map_err(|err| ChainError(err.to_string()))?;
     let balance = coin_cli.get_balance(&account_id).await.unwrap().unwrap_or("0".to_string());
     let freezn_amount = get_freezn_amount(&account_id, &coin);
     let total:u128 = balance.parse().unwrap();

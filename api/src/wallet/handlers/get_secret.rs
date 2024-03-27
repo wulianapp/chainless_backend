@@ -14,13 +14,15 @@ use common::{
     error_code::{BackendError, BackendRes},
 };
 use serde::{Deserialize, Serialize};
+use common::error_code::BackendError::ChainError;
+
 
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
 ) -> BackendRes<Vec<SecretStore>> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let cli = blockchain::ContractClient::<MultiSig>::new();
+    let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let main_account = super::get_main_account(user_id)?;
     //
     match request_data.r#type {
@@ -37,12 +39,12 @@ pub(crate) async fn req(
             Ok(Some(vec![secret.secret_store]))
         }
         crate::wallet::SecretType::Master => {
-            let master_key = cli.get_master_pubkey(&main_account).await;
+            let master_key = cli.get_master_pubkey(&main_account).await?;
             let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&master_key))?;
             Ok(Some(vec![secret.secret_store]))
         }
         crate::wallet::SecretType::All => {
-            let master_key = cli.get_master_pubkey(&main_account).await;
+            let master_key = cli.get_master_pubkey(&main_account).await?;
             let mut keys = vec![master_key];
             let mut strategy = cli
                 .get_strategy(&main_account)

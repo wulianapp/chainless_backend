@@ -13,8 +13,7 @@ use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-
-use common::error_code::BackendError;
+use anyhow::Result;
 
 #[derive(Debug)]
 pub enum DeviceInfoUpdater<'a> {
@@ -117,7 +116,7 @@ impl PsqlOp for DeviceInfoView {
     type UpdateContent<'a> = DeviceInfoUpdater<'a>;
     type FilterContent<'b> = DeviceInfoFilter<'b>;
 
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>, BackendError> {
+    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select 
             id,\
@@ -134,29 +133,32 @@ impl PsqlOp for DeviceInfoView {
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get device: raw sql {}", sql);
-        let gen_view = |row: &Row| DeviceInfoView {
-            device_info: DeviceInfo {
-                id: row.get(0),
-                user_id: row.get::<usize, i32>(1) as u32,
-                state: row.get::<usize, String>(2).parse().unwrap(),
-                hold_pubkey: row.get(3),
-                brand: row.get(4),
-                holder_confirm_saved: row.get::<usize, bool>(5),
-                key_role: row.get::<usize, String>(6).parse().unwrap(),
-            },
-            updated_at: row.get(7),
-            created_at: row.get(8),
+        let gen_view = |row: &Row| -> Result<DeviceInfoView> 
+        {
+            Ok(DeviceInfoView {
+                device_info: DeviceInfo {
+                    id: row.get(0),
+                    user_id: row.get::<usize, i32>(1) as u32,
+                    state: row.get::<usize, String>(2).parse()?,
+                    hold_pubkey: row.get(3),
+                    brand: row.get(4),
+                    holder_confirm_saved: row.get::<usize, bool>(5),
+                    key_role: row.get::<usize, String>(6).parse()?,
+                },
+                updated_at: row.get(7),
+                created_at: row.get(8),
+            })
         };
 
-        Ok(execute_res
+        execute_res
             .iter()
             .map(|x| gen_view(x))
-            .collect::<Vec<Self>>())
+            .collect()
     }
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<(), BackendError> {
+    ) -> Result<()> {
         let sql = format!(
             "update device_info set {} where {}",
             new_value.to_string(),
@@ -169,7 +171,7 @@ impl PsqlOp for DeviceInfoView {
         Ok(())
     }
 
-    fn insert(&self) -> Result<(), BackendError> {
+    fn insert(&self) -> Result<()> {
         let DeviceInfo {
             id,
             user_id,

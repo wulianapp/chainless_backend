@@ -37,7 +37,7 @@ pub async fn req(
         let coin_tx =
             models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
         //区分receiver是否是子账户
-        let multi_cli = blockchain::ContractClient::<MultiSig>::new();
+        let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
         let strategy = multi_cli.get_strategy(&coin_tx.transaction.from).await?.unwrap();
         if let Some(_) = strategy.sub_confs.get(&coin_tx.transaction.to){
             let servant_sigs = coin_tx
@@ -63,7 +63,7 @@ pub async fn req(
             .await?;
         //todo:
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(&tx_id.unwrap(), "", CoinTxStatus::SenderReconfirmed),
+            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinTxStatus::SenderReconfirmed),
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
 
