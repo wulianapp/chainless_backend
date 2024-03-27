@@ -13,9 +13,10 @@ use near_primitives::types::{AccountId, BlockReference};
 use hex;
 //use log::debug;
 use tracing::debug;
+use anyhow::{Ok, Result};
 
 //todo: contract_addr type change into AccountId
-pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Transaction {
+pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Result<Transaction> {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
@@ -23,30 +24,29 @@ pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Tr
                 account_id: signer.account_id.clone(),
                 public_key: signer.public_key.clone(),
             },
-        })
-        .await
-        .unwrap();
+        }).await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ => Err("failed to extract current nonce").unwrap(),
+        _ =>    Err(anyhow::anyhow!("failed to extract current nonce"))?
     };
 
+    Ok(
     Transaction {
         signer_id: signer.account_id.clone(),
         public_key: signer.public_key.clone(),
         nonce: current_nonce + 1,
-        receiver_id: contract_addr.parse().unwrap(),
+        receiver_id: contract_addr.parse()?,
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
-    }
+    })
 }
 
 pub async fn gen_transaction_with_caller(
     caller_account_id: AccountId,
     caller_pubkey: PublicKey,
     contract_addr: &str,
-) -> Transaction {
+) -> Result<Transaction> {
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
@@ -55,13 +55,13 @@ pub async fn gen_transaction_with_caller(
                 public_key: caller_pubkey.clone(),
             },
         })
-        .await
-        .unwrap();
+        .await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ => Err("failed to extract current nonce").unwrap(),
+        _ =>  Err(anyhow::anyhow!("failed to extract current nonce"))?,
     };
+    Ok(
     Transaction {
         signer_id: caller_account_id,
         public_key: caller_pubkey,
@@ -69,7 +69,7 @@ pub async fn gen_transaction_with_caller(
         receiver_id: contract_addr.parse().unwrap(),
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
-    }
+    })
 }
 
 pub async fn gen_transaction_with_caller_with_nonce(
@@ -77,7 +77,7 @@ pub async fn gen_transaction_with_caller_with_nonce(
     caller_pubkey: PublicKey,
     contract_addr: &str,
     add_nonce: u8,
-) -> Transaction {
+) -> Result<Transaction> {
     debug!("{},{},{},{}",caller_account_id.to_string(),
     caller_pubkey.to_string(),
     contract_addr.to_string(),
@@ -91,46 +91,46 @@ pub async fn gen_transaction_with_caller_with_nonce(
                 public_key: caller_pubkey.clone(),
             },
         })
-        .await
-        .unwrap();
+        .await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ => Err("failed to extract current nonce").unwrap(),
+        _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
     };
-    Transaction {
+    Ok(Transaction {
         signer_id: caller_account_id,
         public_key: caller_pubkey,
         nonce: current_nonce + add_nonce as u64,
-        receiver_id: contract_addr.parse().unwrap(),
+        receiver_id: contract_addr.parse()?,
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
-    }
+    })
 }
 
-pub fn account_id_from_hex_str(id: &str) -> AccountId {
-    let id_bytes = hex::decode(id).unwrap();
-    AccountId::try_from_slice(&id_bytes).unwrap()
+pub fn account_id_from_hex_str(id: &str) -> Result<AccountId> {
+    let id_bytes = hex::decode(id)?;
+    let account_id = AccountId::try_from_slice(&id_bytes)?;
+    Ok(account_id)
 }
 
-pub fn pubkey_from_hex_str(key: &str) -> PublicKey {
-    let account_id = AccountId::from_str(key).unwrap();
-    PublicKey::from_implicit_account(&account_id).unwrap()
+pub fn pubkey_from_hex_str(key: &str) -> Result<PublicKey> {
+    let account_id = AccountId::from_str(key)?;
+    let key = PublicKey::from_implicit_account(&account_id)?;
+    Ok(key)
 }
 
-pub async fn get_access_key_list(account_str: &str) -> AccessKeyList {
-    let account_id = AccountId::from_str(account_str).unwrap();
+pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
+    let account_id = AccountId::from_str(account_str)?;
     let access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKeyList { account_id },
         })
-        .await
-        .unwrap();
+        .await?;
 
     match access_key_query_response.kind {
-        QueryResponseKind::AccessKeyList(list) => list,
-        _ => Err("failed to extract current nonce").unwrap(),
+        QueryResponseKind::AccessKeyList(list) => Ok(list),
+        _ =>  Err(anyhow::anyhow!("failed to extract current nonce"))?,
     }
 }
 

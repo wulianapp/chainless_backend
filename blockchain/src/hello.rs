@@ -7,6 +7,7 @@ use near_primitives::transaction::{Action, FunctionCallAction};
 use near_primitives::types::{BlockReference, Finality, FunctionArgs};
 use near_primitives::views::{FinalExecutionStatus, QueryRequest};
 use serde_json::json;
+use anyhow::Result;
 
 struct Hello {}
 
@@ -44,7 +45,7 @@ impl ContractClient<Hello> {
         }
     }
 
-    pub async fn call_set_greeting(&self, content: &str) -> Result<String, String> {
+    pub async fn call_set_greeting(&self, content: &str) -> Result<String> {
         let set_greeting_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
             method_name: "set_greeting".to_string(),
             args: json!({
@@ -55,7 +56,7 @@ impl ContractClient<Hello> {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at).await;
+        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at).await?;
         transaction.actions = set_greeting_actions;
 
         let signature = self
@@ -64,7 +65,8 @@ impl ContractClient<Hello> {
 
         let response = broadcast_tx_commit(transaction, signature).await;
         if let FinalExecutionStatus::Failure(error) = response.status {
-            Err(error.to_string())?;
+            //Err(error.to_string())?;
+            Err(anyhow::anyhow!(error.to_string()))?;
         }
         let tx_id = response.transaction.hash.to_string();
         Ok(tx_id)

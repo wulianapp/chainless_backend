@@ -1,4 +1,3 @@
-use common::error_code::BackendRes;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -20,6 +19,7 @@ use serde_json::json;
 
 use crate::multi_sig::get_pubkey;
 use crate::ContractClient;
+use anyhow::Result;
 
 lazy_static! {
     static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
@@ -99,26 +99,26 @@ async fn get_balance(account: &AccountId) -> u128 {
 
 impl ContractClient<Coin> {
     //fixme: gen once object
-    pub fn new(coin: CoinType) -> Self {
+    pub fn new(coin: CoinType) -> Result<Self> {
         //multi_sig7_test
         //relayer_test=b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7
         let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
             .parse()
             .unwrap();
-        let pubkey = get_pubkey(&pri_key.to_string());
+        let pubkey = get_pubkey(&pri_key.to_string())?;
         //bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a
         debug!("dw20 punkey {}", pubkey);
-        let account_id: AccountId = AccountId::from_str(&pubkey).unwrap();
+        let account_id: AccountId = AccountId::from_str(&pubkey)?;
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-        Self {
+        Ok(Self {
             deployed_at: coin.to_account_id(),
             relayer: signer,
             phantom: Default::default(),
-        }
+        })
     }
 
-    pub async fn send_coin(&self, receiver: &str, amount: u128) -> BackendRes<String> {
+    pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
         let receiver: AccountId = AccountId::from_str(receiver).unwrap();
         let args_str = json!({
             "receiver_id":  receiver,
@@ -128,7 +128,7 @@ impl ContractClient<Coin> {
         self.commit_by_relayer("ft_transfer", &args_str).await
     }
 
-    pub async fn get_balance(&self, account_id: &str) -> BackendRes<String> {
+    pub async fn get_balance(&self, account_id: &str) -> Result<Option<String>> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
         let args_str = json!({"account_id": user_account_id}).to_string();
         self.query_call("ft_balance_of", &args_str).await
@@ -168,7 +168,7 @@ mod tests {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(from, &coin_type.to_account_str()).await;
+        let mut transaction = gen_transaction(from, &coin_type.to_account_str()).await.unwrap();
         transaction.actions = transfer_actions;
         println!("{:?}", transaction);
         let raw_tx = transaction.try_to_vec().unwrap();
@@ -192,7 +192,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new(CoinType::DW20);
+        let coin_cli = ContractClient::<Coin>::new(CoinType::DW20).unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());
