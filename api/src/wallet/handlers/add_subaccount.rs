@@ -30,13 +30,11 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         hold_value_limit,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Master,
-        ))?;
-    }
+ 
+    let (_,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Master)?;
 
     //todo: 24小时内只能三次增加的限制    
 

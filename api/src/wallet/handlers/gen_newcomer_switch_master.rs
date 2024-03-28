@@ -40,15 +40,12 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
 
 
-    let main_account = super::get_main_account(user_id)?;
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Undefined {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Undefined,
-        ))?;
-    }
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Undefined)?;
 
     let client = ContractClient::<MultiSig>::new()?;
     let master_list = client.get_master_pubkey_list(&main_account).await?;

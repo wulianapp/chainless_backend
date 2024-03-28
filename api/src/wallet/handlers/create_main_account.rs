@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
-use common::error_code::BackendRes;
+use common::error_code::{BackendError, BackendRes};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::SecretStoreView;
 //use log::info;
@@ -40,6 +40,11 @@ pub(crate) async fn req(
 
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
+    
+    if user_info.user_info.main_account != ""{
+        Err(BackendError::InternalError("main_account is already existent".to_string()))?;
+    }
+
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(

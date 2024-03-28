@@ -7,6 +7,7 @@ use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
@@ -18,12 +19,33 @@ use models::coin_transfer::{get_next_tx_index, CoinTxView};
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyRequest;
+use anyhow::Result;
 
+/*** 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct PreSendMoneyRes{
+    tx_index:u32,
+    txid:Option<String>
+}
+impl PreSendMoneyRes {
+    fn new(tx_index:u32,txid:Option<String>) -> Self{
+        PreSendMoneyRes{
+            tx_index,
+            txid
+        }
+    }
+}
+***/
 
-pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,String)> {
+pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,Option<String>)> {
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let main_account = user.main_account;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Master)?;
 
     let PreSendMoneyRequest {
         to,
@@ -37,13 +59,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let from  = main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
 
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Master,
-        ))?;
-    }
+ 
     let available_balance = super::get_available_amount(&from,&coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
@@ -65,7 +81,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     }
 
     //封装根据状态生成转账对象的逻辑
-    let gen_tx_with_status = |status: CoinTxStatus| -> std::result::Result<CoinTxView,BackendError>{
+    let gen_tx_with_status = |status: CoinTxStatus| -> Result<CoinTxView>{
         let coin_tx_raw = cli
             .gen_send_money_info(&from,
                  &to,
@@ -98,6 +114,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         amount
     ).await; 
 
+    //fixme: this is unsafe
+    let next_tx_index = get_next_tx_index()?;
     //没有从公钥且强制转账的话，直接返回待签名数据
     if need_sig_num == 0 && is_forced{
         debug!("_0000_");
@@ -106,7 +124,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         } 
         Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoney)?;
         let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved)?;
-        let next_tx_index = get_next_tx_index()?;
 
         let (tx_id, chain_tx_raw) = cli
         .gen_send_money_raw(
@@ -123,7 +140,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
-        Ok(Some((next_tx_index,tx_id)))
+        Ok(Some((next_tx_index, None)))
     }else if need_sig_num == 0  && !is_forced{
         debug!("_0001_");
         if captcha.is_none(){
@@ -132,7 +149,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoney)?;
         let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted)?;
         coin_info.insert()?;
-        Ok(None)
+        Ok(Some((next_tx_index, None)))
     }else if need_sig_num != 0  && is_forced{
         debug!("_0002_");
         if captcha.is_some(){
@@ -141,7 +158,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
-        Ok(None)
+        Ok(Some((next_tx_index, None)))
     }else if need_sig_num != 0  && !is_forced{
         debug!("_0003_");
         if captcha.is_some(){
@@ -149,7 +166,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         }
         let coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
         coin_info.insert()?;
-        Ok(None)
+        Ok(Some((next_tx_index, None)))
     }else {
         unreachable!("all case is considered")
     }

@@ -61,6 +61,7 @@ impl Default for MultiSigRank {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyData {
+    pub master_pubkey: String,
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub servant_pubkeys: Vec<String>,
     pub sub_confs: HashMap<String,SubAccConf>,

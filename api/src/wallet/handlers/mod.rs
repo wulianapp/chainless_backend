@@ -1,12 +1,15 @@
-use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank}, ContractClient};
+use std::ops::Deref;
+
+use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
 use common::{
-    data_structures::{wallet::CoinType, KeyRole2},
+    data_structures::{account_manager::UserInfo, device_info::DeviceInfo, wallet::CoinType, KeyRole2},
     error_code::{BackendError, BackendRes, WalletError},
 };
 use models::{
-    account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, PsqlOp
+    account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, device_info::{DeviceInfoFilter, DeviceInfoView}, PsqlOp
 };
 use anyhow::Result;
+use tracing::error;
 
 use crate::account_manager::user_info;
 use common::error_code::BackendError::ChainError;
@@ -97,4 +100,45 @@ pub async fn get_servant_need(
         .find(|&rank| transfer_value >= rank.min && transfer_value < rank.max_eq)
         .map(|rank| rank.sig_num)
         .unwrap_or(0)    
+}
+
+
+pub fn get_role(strategy:&StrategyData,hold_key:Option<&str>) -> KeyRole2{
+    if let Some(key) = hold_key {
+        if strategy.master_pubkey == key {
+            KeyRole2::Master
+        }else if strategy.servant_pubkeys.contains(&key.to_string()) {
+            KeyRole2::Servant
+        }else{
+            error!("unnormal device: {}",key);
+            unreachable!("unnormal device");
+        }
+    }else {
+        KeyRole2::Undefined
+    }
+}
+
+
+//获取当前会话的用户信息、多签配置、设备信息的属性数据
+pub async fn get_session_state(user_id:u32,device_id:&str) -> Result<(UserInfo,StrategyData,DeviceInfo)>{
+    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let main_account = &user.user_info.main_account;
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let current_strategy = multi_sig_cli
+        .get_strategy(&main_account)
+        .await?
+        .ok_or(WalletError::MainAccountNotExist(main_account.to_owned()))?;
+
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
+    Ok((user.user_info,current_strategy,device.device_info))
+}
+
+pub fn check_role(current:KeyRole2,require:KeyRole2) -> Result<()>{
+    if current != require {
+        Err(WalletError::UneligiableRole(
+            current,
+            require,
+        ))?;
+    }
+    Ok(())
 }

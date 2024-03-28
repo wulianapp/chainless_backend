@@ -157,6 +157,7 @@ async fn contact_is_used(
  * @apiSuccess {bool} data.kyc_is_verified          是否kyc
  * @apiSuccess {bool} data.secruity_is_seted        是否进行安全设置
  * @apiSuccess {string} data.main_account             主钱包id
+ * @apiSuccess {string} data.role                   当前的角色
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 
@@ -165,7 +166,7 @@ type UserInfoRequest = ContactIsUsedRequest;
 #[get("/accountManager/userInfo")]
 async fn user_info(request: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::user_info::req(request))
+    gen_extra_respond(handlers::user_info::req(request).await)
 }
 
 /**

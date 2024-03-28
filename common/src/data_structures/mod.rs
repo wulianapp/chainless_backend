@@ -74,3 +74,10 @@ pub enum OpStatus {
     TransferBusy,
     Idle,
 }
+
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
+pub enum TxStatus {
+    Pending,
+    Failed,
+    Successful,
+}

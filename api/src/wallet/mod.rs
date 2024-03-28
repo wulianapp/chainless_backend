@@ -1249,10 +1249,10 @@ mod tests {
             receiver.wallet.main_account,"DW20",12,true,Some("000000".to_string())
         ).unwrap();
 
-        println!("txid {}",txid);
+        println!("txid {:?}",txid);
         let signature = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
-            &txid,
+            &txid.unwrap(),
         ).unwrap();
         test_reconfirm_send_money!(service,sender_master,index,signature);
     }
@@ -1571,7 +1571,7 @@ mod tests {
 
         //step3: master: pre_send_money
         let res = test_pre_send_money2!(service,sender_master,receiver.wallet.main_account,"DW20",12,false);
-        assert!(res.is_none());
+        assert!(res.is_some());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
         if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {

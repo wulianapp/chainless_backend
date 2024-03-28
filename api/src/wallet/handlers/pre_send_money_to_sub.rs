@@ -24,7 +24,13 @@ use common::error_code::BackendError::ChainError;
 //todo: DRY
 pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(u32,String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let main_account = user.main_account;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Master)?;
+
 
     let PreSendMoneyToSubRequest {
         to,
@@ -37,13 +43,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
     let coin_type = CoinType::from_str(&coin).unwrap();
     let from = main_account.clone();
 
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Master,
-        ))?;
-    }
     let available_balance = super::get_available_amount(&from,&coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {

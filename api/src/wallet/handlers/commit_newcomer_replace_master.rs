@@ -37,15 +37,14 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_password,
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
-    let main_account = super::get_main_account(user_id)?;
+
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Undefined {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Undefined,
-        ))?;
-    }
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Undefined)?;
+
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
@@ -109,6 +108,8 @@ pub(crate) async fn req(
             "main account is unnormal".to_string(),
         ))?;
     }
+
+
     multi_sig_cli
     .update_master(&main_account,newcomer_pubkey)
     .await?;

@@ -598,7 +598,7 @@ macro_rules! test_pre_send_money {
             "isForced": $is_forced,
             "captcha": $captcha,
        });
-        let res: BackendRespond<(u32,String)> = test_service_call!(
+        let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoney",
@@ -621,7 +621,7 @@ macro_rules! test_pre_send_money2 {
             "isForced": $is_forced,
             //"captcha": $captcha,
        });
-        let res: BackendRespond<(u32,String)> = test_service_call!(
+        let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoney",

@@ -3,6 +3,7 @@ use common::data_structures::OpStatus;
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoView};
+use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 //use super::super::ContactIsUsedRequest;
@@ -22,13 +23,22 @@ pub struct UserInfoTmp {
     pub kyc_is_verified: bool,
     pub secruity_is_seted: bool,
     pub main_account: String,
+    pub role:String,
     //pub op_status: OpStatus,
 }
 
-pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
-    let user_id = token_auth::validate_credentials(&request)?;
-
+pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&request)?;
+    let devices = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id,user_id))?;
     let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
+
+
+
+    let (_,current_strategy,device) = 
+    crate::wallet::handlers::get_session_state(user_id,&device_id).await?;
+    let current_role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
+
+
     let info = UserInfoTmp {
         id: res.id,
         phone_number: res.user_info.phone_number,
@@ -41,7 +51,7 @@ pub fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         kyc_is_verified: res.user_info.kyc_is_verified,
         secruity_is_seted: res.user_info.secruity_is_seted,
         main_account: res.user_info.main_account,
-        //op_status: res.user_info.op_status,
+        role: current_role.to_string()
     };
     Ok(Some(info))
 }

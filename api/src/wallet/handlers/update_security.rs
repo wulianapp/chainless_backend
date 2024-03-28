@@ -23,15 +23,12 @@ pub(crate) async fn req(
     request_data: UpdateSecurityRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    super::have_no_uncompleted_tx(&user_info.user_info.main_account)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device.device_info.key_role != KeyRole2::Master {
-        Err(WalletError::UneligiableRole(
-            device.device_info.key_role,
-            KeyRole2::Master,
-        ))?;
-    }
+    let (user_info,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+    let main_account = user_info.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Master)?;
 
     let UpdateSecurityRequest {
         anwser_indexes,
