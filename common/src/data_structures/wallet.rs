@@ -108,8 +108,10 @@ pub enum CoinTxStatus {
     ReceiverRejected,
     SenderCanceled,
     SenderReconfirmed,
-    Expired,
-    Broadcast,
+    MultiSigExpired,
+    //上链后，由于合约复杂度没有立即finalize
+    ChainPending,
+    //如果commit之后没有finalize，更正Fail和Success的逻辑放在tx_list里面进行检查更新
     FinalizeAndFailed,
     FinalizeAndSuccessful,
 }
