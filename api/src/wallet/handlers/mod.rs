@@ -112,7 +112,7 @@ pub fn get_role(strategy:&StrategyData,hold_key:Option<&str>) -> KeyRole2{
         }else if strategy.servant_pubkeys.contains(&key.to_string()) {
             KeyRole2::Servant
         }else{
-            error!("unnormal device: {}",key);
+            error!("unnormal device: key {} is not belong to current account",key);
             unreachable!("unnormal device");
         }
     }else {
@@ -148,7 +148,6 @@ pub fn check_role(current:KeyRole2,require:KeyRole2) -> Result<()>{
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct ServentSigDetail {
     pub pubkey: String,
-    pub sig: String,
     pub device_id:String,
     pub device_brand:String
 }
@@ -162,7 +161,6 @@ impl FromStr for ServentSigDetail {
         let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))?;
         Ok(Self{
             pubkey,
-            sig,
             device_id: device.device_info.id,
             device_brand: device.device_info.brand,
         })

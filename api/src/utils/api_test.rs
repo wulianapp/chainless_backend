@@ -709,7 +709,7 @@ macro_rules! test_newcommer_switch_servant {
             "post",
             "/wallet/newcommerSwitchServant",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_new_device.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data

@@ -1,11 +1,12 @@
 use actix_web::HttpRequest;
-use common::data_structures::OpStatus;
+use common::data_structures::{KeyRole2, OpStatus};
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
+use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::UserInfoRequest;
 use crate::utils::token_auth;
@@ -31,12 +32,17 @@ pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
     let (user_id,device_id,_) = token_auth::validate_credentials2(&request)?;
     let devices = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id,user_id))?;
     let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
+    
+    //todo:
+    let role = if res.user_info.main_account == ""{
+        KeyRole2::Undefined
+    }else{
+        let (_,current_strategy,device) = 
+        crate::wallet::handlers::get_session_state(user_id,&device_id).await?;
+        let current_role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
+        current_role
+    };
 
-
-
-    let (_,current_strategy,device) = 
-    crate::wallet::handlers::get_session_state(user_id,&device_id).await?;
-    let current_role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
 
 
     let info = UserInfoTmp {
@@ -51,7 +57,7 @@ pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         kyc_is_verified: res.user_info.kyc_is_verified,
         secruity_is_seted: res.user_info.secruity_is_seted,
         main_account: res.user_info.main_account,
-        role: current_role.to_string()
+        role: role.to_string()
     };
     Ok(Some(info))
 }

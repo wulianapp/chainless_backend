@@ -166,9 +166,9 @@ async fn get_secret(
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {object} data                非**强制转账+单签**返回null.
+* @apiSuccess {object} data                     订单结果.
 * @apiSuccess {number} data.0                交易序列号.
-* @apiSuccess {string} data.1                待签名数据(txid).
+* @apiSuccess {string} [data.1]                待签名数据(txid).
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -904,7 +904,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 
 
 /**
- * @api {get} /wallet/getTx 账单详情
+ * @api {get} /wallet/getTx 单个账单详情
  * @apiVersion 0.0.1
  * @apiName GetTx
  * @apiGroup Wallet
@@ -928,16 +928,20 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String} data.from                发起方
 * @apiSuccess {String} data.to                接收方
 * @apiSuccess {Number} data.amount               交易量
-* @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
+* @apiSuccess {String} data.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                交易状态
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
-* @apiSuccess {object[]} data.signatures       从设备签名详情
-* @apiSuccess {String} data.signatures.pubkey         签名公钥
-* @apiSuccess {String} data.signatures.sig            签名结果
-* @apiSuccess {String} data.signatures.device_id      签名设备id
-* @apiSuccess {String} data.signatures.device_brand   签名设备品牌
+* @apiSuccess {String}  data.need_sig_num         本次转账预估需要的签名数量
+* @apiSuccess {object[]} data.signed_device       从设备签名详情
+* @apiSuccess {String} data.signed_device.pubkey         签名公钥
+* @apiSuccess {String} data.signed_device.device_id      签名设备id
+* @apiSuccess {String} data.signed_device.device_brand   签名设备品牌
+* @apiSuccess {object[]} data.unsigned_device       还没签名从设备
+* @apiSuccess {String} data.unsigned_device.pubkey         签名公钥
+* @apiSuccess {String} data.unsigned_device.device_id      签名设备id
+* @apiSuccess {String} data.unsigned_device.device_brand   签名设备品牌
 * @apiSuccess {String} data.updated_at         交易更新时间戳
 * @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
@@ -1495,6 +1499,8 @@ mod tests {
         //todo：当前例子中不注册也能跑通，要加限制条件，必须已经注册
         test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
 
         test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
         let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);

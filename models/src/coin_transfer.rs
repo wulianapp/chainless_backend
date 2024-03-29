@@ -168,7 +168,7 @@ impl PsqlOp for CoinTxView {
         debug!("get_snapshot: raw sql {}", sql);
         if execute_res.len() > 1 {
             //todo:throw error
-            panic!("_tmp");
+            error!("_tmp");
         }
         //let user_info_raw = execute_res.first().unwrap();
 

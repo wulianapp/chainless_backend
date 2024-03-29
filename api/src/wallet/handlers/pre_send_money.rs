@@ -8,7 +8,7 @@ use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, T
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
@@ -116,6 +116,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
 
     //fixme: this is unsafe
     let next_tx_index = get_next_tx_index()?;
+    debug!("before create order {},{},{}",line!(),need_sig_num,is_forced);
     //没有从公钥且强制转账的话，直接返回待签名数据
     if need_sig_num == 0 && is_forced{
         debug!("_0000_");
