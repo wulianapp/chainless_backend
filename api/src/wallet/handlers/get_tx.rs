@@ -17,13 +17,13 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
-use crate::wallet::TxListRequest;
+use crate::wallet::GetTxRequest;
 
 use super::ServentSigDetail;
 
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CoinTxViewTmp {
+pub struct CoinTxViewTmp2 {
     pub tx_index: u32,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
@@ -42,32 +42,27 @@ pub struct CoinTxViewTmp {
 }
 
 
-pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
+pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<CoinTxViewTmp2> {
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
-    let TxListRequest{ tx_role, counterparty, per_page, page } = request_data;
-    let tx_role = tx_role.parse().unwrap();
-    let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(tx_role,&main_account,counterparty.as_deref(),per_page,page))?;
-    let txs: Vec<CoinTxViewTmp> = txs.into_iter().map(|tx|{
-        CoinTxViewTmp{
-            tx_index: tx.tx_index,
-            tx_id: tx.transaction.tx_id,
-            coin_type: tx.transaction.coin_type,
-            from: tx.transaction.from,
-            to: tx.transaction.to,
-            amount: tx.transaction.amount,
-            expire_at: tx.transaction.expire_at,
-            memo: tx.transaction.memo,
-            status: tx.transaction.status,
-            coin_tx_raw: tx.transaction.coin_tx_raw,
-            chain_tx_raw: tx.transaction.chain_tx_raw,
-            //todo
-            signatures: tx.transaction.signatures.iter().map(|s| s.parse().unwrap()).collect(),
-            tx_type: tx.transaction.tx_type,
-            updated_at: tx.updated_at,
-            created_at: tx.created_at,
-        }
-    }).collect();
-   
-    Ok(Some(txs))
+    let GetTxRequest{index } = request_data;
+    let tx = CoinTxView::find_single(CoinTxFilter::ByTxIndex(index))?;
+    let tx =    CoinTxViewTmp2{
+        tx_index: tx.tx_index,
+        tx_id: tx.transaction.tx_id,
+        coin_type: tx.transaction.coin_type,
+        from: tx.transaction.from,
+        to: tx.transaction.to,
+        amount: tx.transaction.amount,
+        expire_at: tx.transaction.expire_at,
+        memo: tx.transaction.memo,
+        status: tx.transaction.status,
+        coin_tx_raw: tx.transaction.coin_tx_raw,
+        chain_tx_raw: tx.transaction.chain_tx_raw,
+        signatures: tx.transaction.signatures.iter().map(|s| s.parse().unwrap()).collect(),
+        tx_type: tx.transaction.tx_type,
+        updated_at: tx.updated_at,
+        created_at: tx.created_at,
+    };
+    Ok(Some(tx))
 }

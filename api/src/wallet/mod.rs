@@ -149,6 +149,7 @@ async fn get_secret(
  * @apiBody {Number} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
+ * @apiBody {String} isForce      是否强制交易
  * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -864,17 +865,28 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {string=0,1} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {object[]} data                币种和余额列表.
-* @apiSuccess {string} data.0                钱包id.
-* @apiSuccess {object[]} data.1              钱包的各币种余额 .
-* @apiSuccess {string} data.1.account_id                钱包id和data.0一致.
-* @apiSuccess {string=BTC,ETH,USDT,USDC,CLY,DW20} data.1.coin             币种名称.
-* @apiSuccess {string} data.1.total_balance                      总余额.
-* @apiSuccess {string} data.1.available_balance                  可用余额.
-* @apiSuccess {string} data.1.freezn_amount                      冻结数量.
+* @apiSuccess {object[]} data                交易详情数组.
+* @apiSuccess {Number} data.tx_index          交易索引号.
+* @apiSuccess {object} data.transaction        交易详情.
+* @apiSuccess {String} [data.tx_id]        链上交易id.
+* @apiSuccess {String=dw20,cly} data.coin_type      币种名字
+* @apiSuccess {String} data.from                发起方
+* @apiSuccess {String} data.to                接收方
+* @apiSuccess {Number} data.amount               交易量
+* @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
+* @apiSuccess {String} [data.memo]                交易备注
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+* @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
+* @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
+* @apiSuccess {object[]} data.signatures       从设备签名详情
+* @apiSuccess {String} data.signatures.pubkey         签名公钥
+* @apiSuccess {String} data.signatures.sig            签名结果
+* @apiSuccess {String} data.signatures.device_id      签名设备id
+* @apiSuccess {String} data.signatures.device_brand   签名设备品牌
+* @apiSuccess {String} data.updated_at         交易更新时间戳
+* @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
-
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TxListRequest {
@@ -887,6 +899,58 @@ pub struct TxListRequest {
 #[get("/wallet/txList")]
 async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> impl Responder {
     gen_extra_respond(handlers::tx_list::req(req,request_data.0).await)
+}
+
+
+
+/**
+ * @api {get} /wallet/getTx 账单详情
+ * @apiVersion 0.0.1
+ * @apiName GetTx
+ * @apiGroup Wallet
+ * @apiQuery {String=Sender,Receiver} TransferRole  交易中的角色，对应ui的转出和收款栏
+ * @apiQuery {String}                 [counterParty]   交易对手方
+ * @apiQuery {number}                 perPage           每页的数量
+ * @apiQuery {number}                 page            页数的序列号
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {object} data               交易详情.
+* @apiSuccess {Number} data.tx_index          交易索引号.
+* @apiSuccess {object} data.transaction        交易详情.
+* @apiSuccess {String} [data.tx_id]        链上交易id.
+* @apiSuccess {String=dw20,cly} data.coin_type      币种名字
+* @apiSuccess {String} data.from                发起方
+* @apiSuccess {String} data.to                接收方
+* @apiSuccess {Number} data.amount               交易量
+* @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
+* @apiSuccess {String} [data.memo]                交易备注
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+* @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
+* @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
+* @apiSuccess {object[]} data.signatures       从设备签名详情
+* @apiSuccess {String} data.signatures.pubkey         签名公钥
+* @apiSuccess {String} data.signatures.sig            签名结果
+* @apiSuccess {String} data.signatures.device_id      签名设备id
+* @apiSuccess {String} data.signatures.device_brand   签名设备品牌
+* @apiSuccess {String} data.updated_at         交易更新时间戳
+* @apiSuccess {String} data.created_at         交易创建时间戳
+* @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetTxRequest {
+    index: u32,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/getTx")]
+async fn get_tx(req: HttpRequest,request_data: web::Query<GetTxRequest>) -> impl Responder {
+    gen_extra_respond(handlers::get_tx::req(req,request_data.into_inner()).await)
 }
 
 /**
@@ -1118,6 +1182,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(update_security)
         .service(sub_send_to_main)
         .service(tx_list)
+        .service(get_tx)
         .service(pre_send_money_to_sub)
         .service(update_subaccount_hold_limit)
         .service(faucet_claim);
@@ -1161,6 +1226,8 @@ mod tests {
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
+    use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
+
 
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
@@ -1203,7 +1270,7 @@ mod tests {
         }   
 
         let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
-        assert!(pre_send_res.is_none());
+        assert!(pre_send_res.is_some());
         
         let res = test_search_message!(service, sender_servant).unwrap();
         if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
@@ -1246,7 +1313,7 @@ mod tests {
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
             service,sender_master,
-            receiver.wallet.main_account,"DW20",12,true,Some("000000".to_string())
+            receiver.wallet.main_account,"DW20",1,true,Some("000000".to_string())
         ).unwrap();
 
         println!("txid {:?}",txid);
@@ -1572,6 +1639,9 @@ mod tests {
         //step3: master: pre_send_money
         let res = test_pre_send_money2!(service,sender_master,receiver.wallet.main_account,"DW20",12,false);
         assert!(res.is_some());
+        let tx = test_get_tx!(service,sender_master,res.unwrap().0);
+        println!("txxxx__{:?}",tx.unwrap());
+
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
         if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {
@@ -1621,6 +1691,7 @@ mod tests {
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
         println!("txs_0003__ {:?}", txs);
+
 
         //step6: sender_master get notice and react it
         //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
@@ -1696,7 +1767,7 @@ mod tests {
         //step3: master: pre_send_money
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
-        assert!(res.is_none());
+        assert!(res.is_some());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
         if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {

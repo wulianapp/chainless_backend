@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{ops::Deref, str::FromStr};
 
 use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
 use common::{
@@ -9,6 +9,7 @@ use models::{
     account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, device_info::{DeviceInfoFilter, DeviceInfoView}, PsqlOp
 };
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
 use crate::account_manager::user_info;
@@ -41,6 +42,7 @@ pub mod upload_servant_sig;
 pub mod sub_send_to_main;
 pub mod tx_list;
 pub mod update_subaccount_hold_limit;
+pub mod get_tx;
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))
@@ -141,4 +143,28 @@ pub fn check_role(current:KeyRole2,require:KeyRole2) -> Result<()>{
         ))?;
     }
     Ok(())
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct ServentSigDetail {
+    pub pubkey: String,
+    pub sig: String,
+    pub device_id:String,
+    pub device_brand:String
+}
+
+impl FromStr for ServentSigDetail {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let pubkey = s[..64].to_string();
+        let sig = s[64..].to_string();
+        let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))?;
+        Ok(Self{
+            pubkey,
+            sig,
+            device_id: device.device_info.id,
+            device_brand: device.device_info.brand,
+        })
+    }
 }

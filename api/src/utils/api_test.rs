@@ -36,6 +36,7 @@ use common::data_structures::wallet::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 use crate::wallet::handlers::balance_list::AccountBalance;
+use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
 
 #[derive(Debug)]
 pub struct TestWallet {
@@ -925,6 +926,24 @@ macro_rules! test_get_balance_list {
         res.data
     }};
 }
+
+
+#[macro_export]
+macro_rules! test_get_tx {
+    ($service:expr, $app:expr,$index:expr) => {{
+        let url = format!("/wallet/getTx?index={}",$index);
+        let res: BackendRespond<CoinTxViewTmp2> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
 
 #[macro_export]
 macro_rules! test_get_device_list {

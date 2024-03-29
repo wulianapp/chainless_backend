@@ -2,6 +2,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use super::secret_store::SecretStore;
+use anyhow::Error;
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
@@ -164,6 +165,25 @@ pub struct CoinTransaction {
     pub reserved_field2: String,
     pub reserved_field3: String,
 }
+
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct ServentSigDetail {
+    pub pubkey: String,
+    pub sig: String,
+}
+
+impl FromStr for ServentSigDetail {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self{
+            pubkey:  s[..64].to_string(),
+            sig:   s[64..].to_string()
+        })
+    }
+}
+
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
 pub enum TxRole {

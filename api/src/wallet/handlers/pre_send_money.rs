@@ -140,7 +140,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
-        Ok(Some((next_tx_index, None)))
+        Ok(Some((next_tx_index, Some(tx_id))))
     }else if need_sig_num == 0  && !is_forced{
         debug!("_0001_");
         if captcha.is_none(){
