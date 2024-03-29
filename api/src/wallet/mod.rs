@@ -908,10 +908,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
  * @apiVersion 0.0.1
  * @apiName GetTx
  * @apiGroup Wallet
- * @apiQuery {String=Sender,Receiver} TransferRole  交易中的角色，对应ui的转出和收款栏
- * @apiQuery {String}                 [counterParty]   交易对手方
- * @apiQuery {number}                 perPage           每页的数量
- * @apiQuery {number}                 page            页数的序列号
+ * @apiQuery {number}                 index            交易序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
@@ -1231,7 +1228,8 @@ mod tests {
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
     use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
-
+    use std::collections::HashMap;
+    use crate::wallet::handlers::balance_list::AccountBalance;
 
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
@@ -1356,7 +1354,7 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
-
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_get_captcha_with_token!(service,sender_servant,"ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service,sender_servant);
         let add_key_sig = common::encrypt::ed25519_sign_hex(

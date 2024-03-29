@@ -54,14 +54,15 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
 
     let all_device = DeviceInfoView::find(
         DeviceInfoFilter::ByUser(user_id))?
-            .into_iter().map(|d| {
+            .into_iter().filter(|x| {
+                x.device_info.hold_pubkey.is_some()
+            }).map(|d| {
                 ServentSigDetail {
                     pubkey: d.device_info.hold_pubkey.unwrap(),
                     device_id: d.device_info.id,
                     device_brand: d.device_info.brand,
                 }
-            }).collect::<Vec<ServentSigDetail>>()
-        ;
+            }).collect::<Vec<ServentSigDetail>>();
 
     let unsigned_device = all_device.into_iter().filter(|x| !signed_device.contains(x)).collect();
 

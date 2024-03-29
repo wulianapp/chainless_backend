@@ -31,9 +31,10 @@ pub enum AccountType {
    Main,
    AllSub,
    Single(String),
+   All,
 }
 
-pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<Vec<(String,Vec<AccountBalance>)>> {
+pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<HashMap<String,Vec<AccountBalance>>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
@@ -54,12 +55,28 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             .map(|x|x.0.to_string())
             .collect::<Vec<String>>()
         },
+        AccountType::All => {
+            let mut all = vec![main_account.clone()];
+            let strategy = mul_cli
+            .get_strategy(&main_account)
+            .await?
+            .ok_or(InternalError("11".to_string()))?;
+
+            let mut sub = strategy.sub_confs
+            .iter()
+            .map(|x|x.0.to_string())
+            .collect::<Vec<String>>();
+            all.append(&mut sub);
+            all
+        },
         AccountType::Single(acc) => vec![acc],
     };
-    let mut all_account_balances = vec![];
-    for account in  check_accounts{
-        let mut all_coin_balance = vec![];
-        for coin in &coin_list {
+
+
+    let mut coin_balance_map = HashMap::new();
+    for coin in &coin_list {
+        let mut account_balance = vec![];
+        for account in  check_accounts.iter().as_ref(){
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
             let balance_on_chain = if user_info.user_info.secruity_is_seted {
                 coin_cli
@@ -79,11 +96,11 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
                 available_balance,
                 freezn_amount,
             };
-            all_coin_balance.push(balance);
+            account_balance.push(balance);
         }
-        all_account_balances.push((account,all_coin_balance)); 
+        coin_balance_map.insert(coin.to_string(), account_balance);
     }
 
   
-    Ok(Some(all_account_balances))
+    Ok(Some(coin_balance_map))
 }
