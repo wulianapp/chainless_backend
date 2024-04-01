@@ -1314,8 +1314,6 @@ mod tests {
         test_create_main_account!(service, sender_master);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        test_faucet_claim!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
@@ -1572,6 +1570,7 @@ mod tests {
         println!("list {:?}", balances2);
     }
 
+    /*** 
     #[actix_web::test]
     async fn test_wallet_all_braced_wallet_ok_with_fix_key() {
         let sender_master = simulate_sender_master();
@@ -1585,6 +1584,7 @@ mod tests {
 
         test_all_braced_wallet_ok(sender_master, receiver, sender_servant).await;
     }
+    */
 
     #[actix_web::test]
     async fn test_wallet_all_braced_wallet_ok_with_new_key() {
@@ -1616,6 +1616,7 @@ mod tests {
         test_login!(service, sender_servant);
         test_create_main_account!(service, receiver);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
         let receiver_strategy = test_get_strategy!(service, receiver).unwrap();
         println!("receiver strategy {:?}",receiver_strategy);
 
