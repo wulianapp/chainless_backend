@@ -1243,11 +1243,19 @@ async fn test_wallet_yunlong_fake_tx() {
         mut sender_newcommer,
         mut receiver) 
     = gen_some_accounts_with_new_key();
-    sender_master.user.token = Some("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo1LCJkZXZpY2VfaWQiOiIyNGIyNDEyZDdlYmE1YTAwIiwiZGV2aWNlX2JyYW5kIjoiSFVBV0VJIFAzMCBQcm8iLCJpYXQiOjE3MTE5NjQ4NjkyNjksImV4cCI6NDg2NTU2NDg2OTI2OX0.R-IrR2DVfCY3j3uEYuwBaLd4ig2tEt6ojigYBe3saYg".to_string());
-        
+
+    sender_master.user.token = Some("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo4LCJkZXZpY2VfaWQiOiIyNGIyNDEyZDdlYmE1YTAwIiwiZGV2aWNlX2JyYW5kIjoiSFVBV0VJIFAzMCBQcm8iLCJpYXQiOjE3MTE5NjgzNjU2NjQsImV4cCI6NDg2NTU2ODM2NTY2NH0.D_ZN8nygFDp6mHH4V9fHb3uP8fZ3LHNhRKaPinhaon8".to_string());
+    sender_master.wallet.main_account="2d0236ddd991efb6a518f4428eed10d61a5d59f59e7b222a9918a36624c94e47".to_string();
+
+    
+    sender_master.user.contact = "+86 16666666661".to_string();
+    test_faucet_claim!(service, sender_master);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+  
     loop{
-        let receiver = "fcf76e46c33188b48edaa413f20cba861dac4df8b923f697778e81bb9c18a342".to_string();    
-        let pre_send_res = test_pre_send_money!(service,sender_master,receiver,"DW20",12,true,None::<String>);
+        let receiver = "fe82ad43cb6cb59b7e5a18bd8b38abf577316f03fb471ac82ebec49802cbf3e0".to_string();
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");    
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver,"DW20",12,true,Some("000000".to_string()));
         assert!(pre_send_res.is_some());
     }    
 
@@ -1673,7 +1681,7 @@ async fn test_wallet_yunlong_fake_tx() {
         println!("{},,,{:?}", line!(), device_lists);
 
         //step3: master: pre_send_money
-        let res = test_pre_send_money2!(service,sender_master,receiver.wallet.main_account,"DW20",12,false);
+        let res = test_pre_send_money2!(service,sender_master,receiver.user.contact,"DW20",12,false);
         assert!(res.is_some());
         let tx = test_get_tx!(service,sender_master,res.unwrap().0);
         println!("txxxx__{:?}",tx.unwrap());

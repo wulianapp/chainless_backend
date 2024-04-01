@@ -40,14 +40,6 @@ impl PreSendMoneyRes {
 pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,Option<String>)> {
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
-
-    let main_account = user.main_account;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
-
     let PreSendMoneyRequest {
         to,
         coin,
@@ -57,7 +49,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         is_forced,
         captcha
     } = request_data;
-    let to_account_id = if to.contains("email") || to.contains("+"){
+    let to_account_id = if to.contains("mail") || to.contains("+"){
         let receiver =  UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
         receiver.user_info.main_account
     }else{
@@ -65,11 +57,19 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         to
     }; 
 
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+
+    let main_account = user.main_account;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role,KeyRole2::Master)?;
+
+   
+
 
     let from  = main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
 
- 
     let available_balance = super::get_available_amount(&from,&coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
