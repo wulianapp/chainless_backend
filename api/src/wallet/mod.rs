@@ -144,7 +144,7 @@ async fn get_secret(
  * @apiName preSendMoney
  * @apiGroup Wallet
  * @apiBody {String} from    发起方多签钱包ID
- * @apiBody {String} to      收款方ID
+ * @apiBody {String} to      收款方ID（可以是手机、邮箱、钱包id）
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
  * @apiBody {Number} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
@@ -1232,6 +1232,27 @@ mod tests {
     use std::collections::HashMap;
     use crate::wallet::handlers::balance_list::AccountBalance;
 
+
+
+#[actix_web::test]
+async fn test_wallet_yunlong_fake_tx() {
+    let app = init().await;
+    let service = test::init_service(app).await;
+    let (mut sender_master,
+        mut sender_servant,
+        mut sender_newcommer,
+        mut receiver) 
+    = gen_some_accounts_with_new_key();
+    sender_master.user.token = Some("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo1LCJkZXZpY2VfaWQiOiIyNGIyNDEyZDdlYmE1YTAwIiwiZGV2aWNlX2JyYW5kIjoiSFVBV0VJIFAzMCBQcm8iLCJpYXQiOjE3MTE5NjQ4NjkyNjksImV4cCI6NDg2NTU2NDg2OTI2OX0.R-IrR2DVfCY3j3uEYuwBaLd4ig2tEt6ojigYBe3saYg".to_string());
+        
+    loop{
+        let receiver = "fcf76e46c33188b48edaa413f20cba861dac4df8b923f697778e81bb9c18a342".to_string();    
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver,"DW20",12,true,None::<String>);
+        assert!(pre_send_res.is_some());
+    }    
+
+}
+
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
         //todo: cureent is single, add multi_sig testcase
@@ -1308,6 +1329,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master,_,_,mut receiver) = gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        //let receive = a336dc50a8cef019d92c3c80c92a2a9d3842c95576d544286d166f1501a2351b
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
@@ -1856,3 +1878,6 @@ mod tests {
         println!("txs_success {:?}", txs_success);
     }
 }
+
+
+

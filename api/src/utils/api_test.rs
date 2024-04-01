@@ -29,7 +29,7 @@ use blockchain::multi_sig::{CoinTx, MultiSig};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::data_structures::wallet::{AccountMessage, CoinTxStatus};
-use common::utils::math;
+use common::utils::math::{self, gen_random_verify_code};
 use models::secret_store::SecretStoreView;
 // use log::{info, LevelFilter,debug,error};
 use common::data_structures::wallet::CoinType;
@@ -77,8 +77,8 @@ pub async fn init() -> App<
 > {
     env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
-    models::general::table_all_clear();
-    clear_contract().await;
+    //models::general::table_all_clear();
+    //clear_contract().await;
     App::new()
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
@@ -202,6 +202,8 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
     let receiver_sub_secret = ed25519_key_gen();
  
     let mut sender_master = simulate_sender_master();
+    let sender_account = format!("test{}@gmail.com",gen_random_verify_code());
+    sender_master.user.contact = sender_account.clone();
     sender_master.wallet = TestWallet {
         main_account: sender_master_secret.1.clone(),
         pubkey: Some(sender_master_secret.1.clone()),
@@ -210,7 +212,9 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
         sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
     };
 
+
     let mut receiver = simulate_receiver();
+    receiver.user.contact = format!("test{}@gmail.com",gen_random_verify_code());
     receiver.wallet = TestWallet {
         main_account: receiver_master_secret.1.clone(),
         pubkey: Some(receiver_master_secret.1),
@@ -220,6 +224,7 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
     };
 
     let mut sender_servant = simulate_sender_servant();
+    sender_servant.user.contact = sender_account.clone();
     sender_servant.wallet = TestWallet {
         main_account: sender_master_secret.1.clone(),
         pubkey: Some(sender_servant_secret.1.clone()),
@@ -229,6 +234,7 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
     };
 
     let mut sender_newcommer = simulate_sender_new_device();
+    sender_newcommer.user.contact = format!("test{}@gmail.com",gen_random_verify_code());
     sender_newcommer.wallet = TestWallet {
         main_account: "".to_string(),
         pubkey: Some(sender_newcommer_secret.1.clone()),

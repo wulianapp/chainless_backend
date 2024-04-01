@@ -20,6 +20,7 @@ pub enum UserFilter<'b> {
     ByPhoneOrEmail(&'b str),
     ByInviteCode(&'b str),
     ByAccountId(&'b str),
+    ByMainAccount(&'b str),
 }
 
 #[derive(Clone, Debug)]
@@ -37,8 +38,7 @@ impl fmt::Display for UserUpdater<'_> {
             UserUpdater::LoginPwdHash(pwd) => format!("login_pwd_hash='{}'", pwd),
             UserUpdater::AccountIds(ids) => {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
-                format!("account_ids={} ", new_servant_str)
-            }
+                format!("account_ids={} ", new_servant_str)            }
             UserUpdater::SecruityInfo(anwser_indexes, secruity_is_seted, main_account) => format!(
                 "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
                 anwser_indexes, secruity_is_seted, main_account
@@ -61,6 +61,7 @@ impl fmt::Display for UserFilter<'_> {
                 format!("email='{}' or phone_number='{}'", contact, contact)
             }
             UserFilter::ByAccountId(id) => format!("'{}'=any(account_ids) ", id),
+            UserFilter::ByMainAccount(id) => format!("main_account='{}' ", id),
         };
         write!(f, "{}", description)
     }

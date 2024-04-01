@@ -43,6 +43,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     
     let (user,current_strategy,device) = 
     super::get_session_state(user_id,&device_id).await?;
+
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role,KeyRole2::Master)?;
@@ -56,6 +57,15 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         is_forced,
         captcha
     } = request_data;
+    let to_account_id = if to.contains("email") || to.contains("+"){
+        let receiver =  UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
+        receiver.user_info.main_account
+    }else{
+        let receiver =  UserInfoView::find_single(UserFilter::ByMainAccount(&to))?;
+        to
+    }; 
+
+
     let from  = main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
 
@@ -71,10 +81,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         .get_strategy(&main_account)
         .await?
         .ok_or(WalletError::SenderNotFound)?;
-    if let Some(sub_conf) = strategy.sub_confs.get(&to){
-        debug!("to[{}] is subaccount of from[{}]",to,from);
+    if let Some(sub_conf) = strategy.sub_confs.get(&to_account_id){
+        debug!("to[{}] is subaccount of from[{}]",to_account_id,from);
         let coin_price = 1;
-        let balance_value = cli.get_total_value(&to).await?;
+        let balance_value = cli.get_total_value(&to_account_id).await?;
         if  amount * coin_price + balance_value > sub_conf.hold_value_limit {
             Err(WalletError::ExceedSubAccountHoldLimit)?;
         }
@@ -84,14 +94,14 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     let gen_tx_with_status = |status: CoinTxStatus| -> Result<CoinTxView>{
         let coin_tx_raw = cli
             .gen_send_money_info(&from,
-                 &to,
+                 &to_account_id,
                   coin_type.clone(),
                    amount,
                     expire_at)?;
         Ok(CoinTxView::new_with_specified(
             coin_type.clone(),
             from.clone(),
-            to.clone(),
+            to_account_id.clone(),
             amount,
             coin_tx_raw,
             memo,
@@ -103,7 +113,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
     //将转子账户的接口单独剥离出去
     //let servant_is_empty =  strategy.servant_pubkeys.is_empty();
-    let to_is_sub = strategy.sub_confs.get(&to).is_some();
+    let to_is_sub = strategy.sub_confs.get(&to_account_id).is_some();
     if to_is_sub {
         Err(BackendError::InternalError("to cannt be subaccount".to_string()))?;
     }
@@ -131,7 +141,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
             next_tx_index as u64,
             vec![],
             &from,
-            &to,
+            &to_account_id,
             coin_type,
             amount,
             expire_at,
