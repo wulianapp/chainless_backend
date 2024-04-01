@@ -76,7 +76,7 @@ pub struct EnvConf {
 impl Default for EnvConf {
     fn default() -> Self {
         EnvConf {
-            service_mode: ServiceMode::Local,
+            service_mode: ServiceMode::Test,
             api_port: 8065,
             multi_sig_contract: "".to_string(),
             multi_sig_relayer_prikey: "".to_string(),

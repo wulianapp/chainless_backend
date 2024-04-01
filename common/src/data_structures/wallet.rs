@@ -75,12 +75,12 @@ pub enum CoinType {
 impl CoinType {
     pub fn to_account_id(&self) -> AccountId {
         match self {
-            CoinType::BTC => AccountId::from_str("btc.node0").unwrap(),
-            CoinType::ETH => AccountId::from_str("eth.node0").unwrap(),
-            CoinType::USDT => AccountId::from_str("usdt.node0").unwrap(),
-            CoinType::USDC => AccountId::from_str("usdc.node0").unwrap(),
-            CoinType::CLY => AccountId::from_str("cly.node0").unwrap(),
-            CoinType::DW20 => AccountId::from_str("dw20.node0").unwrap(),
+            CoinType::BTC => AccountId::from_str("btc").unwrap(),
+            CoinType::ETH => AccountId::from_str("eth").unwrap(),
+            CoinType::USDT => AccountId::from_str("usdt").unwrap(),
+            CoinType::USDC => AccountId::from_str("usdc").unwrap(),
+            CoinType::CLY => AccountId::from_str("cly").unwrap(),
+            CoinType::DW20 => AccountId::from_str("dw20").unwrap(),
         }
     }
     pub fn to_account_str(&self) -> String {
@@ -166,23 +166,6 @@ pub struct CoinTransaction {
     pub reserved_field3: String,
 }
 
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
-pub struct ServentSigDetail {
-    pub pubkey: String,
-    pub sig: String,
-}
-
-impl FromStr for ServentSigDetail {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self{
-            pubkey:  s[..64].to_string(),
-            sig:   s[64..].to_string()
-        })
-    }
-}
 
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]

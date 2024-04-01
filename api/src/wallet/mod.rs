@@ -927,7 +927,8 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {Number} data.amount               交易量
 * @apiSuccess {String} data.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                交易状态
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                
+    交易状态分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
 * @apiSuccess {String}  data.need_sig_num         本次转账预估需要的签名数量
@@ -1263,6 +1264,7 @@ mod tests {
         test_register!(service, receiver);
         test_login!(service, sender_servant);
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -1310,6 +1312,9 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
@@ -1354,6 +1359,7 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_get_captcha_with_token!(service,sender_servant,"ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service,sender_servant);
@@ -1381,6 +1387,7 @@ mod tests {
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToSub");
@@ -1422,14 +1429,14 @@ mod tests {
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+       tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
 
             //sub to main
             let coin_tx = SubAccCoinTx{
                 amount: 11,
                 //todo: 
-                coin_id: "dw20.node0".to_string(),
+                coin_id: "dw20".to_string(),
             };
             let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
 
@@ -1497,6 +1504,7 @@ mod tests {
         //todo：当前例子中不注册也能跑通，要加限制条件，必须已经注册
         test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
 
@@ -1585,7 +1593,7 @@ mod tests {
             mut sender_servant,
             mut sender_newcommer,
             mut receiver) 
-        = gen_some_accounts_with_new_key();
+         = gen_some_accounts_with_new_key();
 
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
@@ -1612,6 +1620,7 @@ mod tests {
         println!("receiver strategy {:?}",receiver_strategy);
 
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
 
 
         //给链上确认一些时间
