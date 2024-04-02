@@ -357,7 +357,7 @@ pub struct CancelSendMoneyRequest {
     tx_index: u32,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/CancelSendMoney")]
+#[post("/wallet/cancelSendMoney")]
 async fn cancel_send_money(
     request: HttpRequest,
     request_data: web::Json<CancelSendMoneyRequest>,
@@ -1109,6 +1109,45 @@ async fn gen_servant_switch_master(req: HttpRequest,
     gen_extra_respond(handlers::gen_servant_switch_master::req(req,request_data.into_inner()).await)
 }
 
+
+
+
+
+
+/**
+ * @api {post} /wallet/genSendMoney 构建send_money的交易数据
+ * @apiVersion 0.0.1
+ * @apiName GenSendMoney
+ * @apiGroup Wallet
+ * @apiBody {number}     tx_index                交易订单号
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/GenSendMoney
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                 待签名的交易id.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genSendMoney
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenSendMoneyRequest {
+    tx_index: u32,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/genSendMoney")]
+async fn gen_send_money(req: HttpRequest,
+    request_data: web::Json<GenSendMoneyRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::gen_send_money::req(req,request_data.into_inner()).await)
+}
+
 /**
  * @api {post} /wallet/commitNewcomerSwitchMaster 提交在新设备上和主设备身份互换的任务
  * @apiVersion 0.0.1
@@ -1231,6 +1270,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(pre_send_money_to_sub)
         .service(update_subaccount_hold_limit)
         .service(cancel_send_money)
+        .service(gen_send_money)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }

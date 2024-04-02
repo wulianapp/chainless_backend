@@ -114,6 +114,7 @@ impl fmt::Display for CoinTxFilter<'_> {
 pub enum CoinTxUpdater<'a> {
     Status(CoinTxStatus),
     ChainTxInfo(&'a str, &'a str, CoinTxStatus),
+    TxidTxRaw(&'a str, &'a str),
     Signature(Vec<String>),
 }
 
@@ -127,6 +128,13 @@ impl fmt::Display for CoinTxUpdater<'_> {
                     tx_id,
                     chain_tx_raw,
                     CoinTxStatus.to_string()
+                )
+            }
+            CoinTxUpdater::TxidTxRaw(tx_id, chain_tx_raw) => {
+                format!(
+                    "(tx_id,chain_tx_raw)=('{}','{}')",
+                    tx_id,
+                    chain_tx_raw,
                 )
             }
             CoinTxUpdater::Signature(sigs) => {
