@@ -5,6 +5,7 @@ use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{get_support_coin_list, CoinTransaction, CoinTxStatus, CoinType, TxType};
+use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, WalletError};
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -49,14 +50,19 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
     let main_account = super::get_main_account(user_id)?;
     let GetTxRequest{index } = request_data;
     let tx = CoinTxView::find_single(CoinTxFilter::ByTxIndex(index))?;
+
     let signed_device:Vec<ServentSigDetail> = tx.transaction.signatures
     .iter().map(|s| s.parse().unwrap()).collect();
 
+
+    //不从数据库去读
     let all_device = DeviceInfoView::find(
         DeviceInfoFilter::ByUser(user_id))?
-            .into_iter().filter(|x| {
-                x.device_info.hold_pubkey.is_some()
-            }).map(|d| {
+            .into_iter()
+            .filter(|x| {
+                x.device_info.hold_pubkey.is_some() || x.device_info.key_role == KeyRole2::Servant
+            })
+            .map(|d| {
                 ServentSigDetail {
                     pubkey: d.device_info.hold_pubkey.unwrap(),
                     device_id: d.device_info.id,
@@ -65,7 +71,6 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
             }).collect::<Vec<ServentSigDetail>>();
 
     let unsigned_device = all_device.into_iter().filter(|x| !signed_device.contains(x)).collect();
-
 
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;

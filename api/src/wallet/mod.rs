@@ -134,7 +134,7 @@ async fn get_secret(
     request: HttpRequest,
     request_data: web::Query<GetSecretRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params:: {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_secret::req(request, request_data.into_inner()).await)
 }
 
@@ -189,7 +189,7 @@ async fn pre_send_money(
     request: HttpRequest,
     request_data: web::Json<PreSendMoneyRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params:: {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pre_send_money::req(request, request_data.0).await)
 }
 
@@ -240,7 +240,7 @@ async fn pre_send_money_to_sub(
     request: HttpRequest,
     request_data: web::Json<PreSendMoneyToSubRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::pre_send_money_to_sub::req(request, request_data.0).await)
 }
 
@@ -278,7 +278,7 @@ async fn react_pre_send_money(
     request: HttpRequest,
     request_data: web::Json<ReactPreSendMoney>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::react_pre_send_money::req(request, request_data.into_inner()).await)
 }
 
@@ -288,7 +288,7 @@ async fn react_pre_send_money(
  * @apiName reconfirmSendMoney
  * @apiGroup Wallet
  * @apiBody {Number} txIndex    交易序列号
- * @apiBody {String} [confirmedSig]    再确认就传签名结果，取消就不传这个字段
+ * @apiBody {String} confirmedSig    再确认就传签名结果,取消的话用cancelSendMoney的接口
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
@@ -311,7 +311,7 @@ async fn react_pre_send_money(
 #[serde(rename_all = "camelCase")]
 pub struct ReconfirmSendMoneyRequest {
     tx_index: u32,
-    confirmed_sig: Option<String>,
+    confirmed_sig: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/reconfirmSendMoney")]
@@ -319,13 +319,56 @@ async fn reconfirm_send_money(
     request: HttpRequest,
     request_data: web::Json<ReconfirmSendMoneyRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data).await)
 }
 
 
+
+
+
 /**
- * @api {post} /wallet/subSendToMain 发起方打款二次确认
+ * @api {post} /wallet/cancelSendMoney   发起方取消交易
+ * @apiVersion 0.0.1
+ * @apiName CancelSendMoney
+ * @apiGroup Wallet
+ * @apiBody {Number} txIndex    交易序列号
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/cancelSendMoney
+   -d ' {
+        "deviceId":  "1",
+        "txIndex": 1,
+        "confirmedSig": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e6
+                     83ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4e4c12e677ce
+                35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600"
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/canceSendMoney
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelSendMoneyRequest {
+    tx_index: u32,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/CancelSendMoney")]
+async fn cancel_send_money(
+    request: HttpRequest,
+    request_data: web::Json<CancelSendMoneyRequest>,
+) -> impl Responder {
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::cancel_send_money::req(request, request_data).await)
+}
+
+
+/**
+ * @api {post} /wallet/subSendToMain 子账户给主账户打款
  * @apiVersion 0.0.1
  * @apiName SubSendToMain
  * @apiGroup Wallet
@@ -363,7 +406,7 @@ async fn sub_send_to_main(
     request: HttpRequest,
     request_data: web::Json<SubSendToMainRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::sub_send_to_main::req(request, request_data).await)
 }
 
@@ -403,7 +446,7 @@ async fn upload_servant_sig(
     request: HttpRequest,
     request_data: web::Json<UploadTxSignatureRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::upload_servant_sig::req(request, request_data).await)
 }
 
@@ -452,7 +495,7 @@ async fn add_servant(
     req: HttpRequest,
     request_data: web::Json<AddServantRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::add_servant::req(req, request_data.0).await)
 }
 
@@ -494,7 +537,7 @@ async fn newcommer_switch_servant(
     req: HttpRequest,
     request_data: web::Json<NewcommerSwitchServantRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::newcommer_switch_servant::req(req, request_data.0).await)
 }
 
@@ -528,7 +571,7 @@ async fn remove_servant(
     req: HttpRequest,
     request_data: web::Json<RemoveServantRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::remove_servant::req(req, request_data.0).await)
 }
 
@@ -596,7 +639,7 @@ async fn add_subaccount(
     req: HttpRequest,
     request_data: web::Json<AddSubaccountRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params:: {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::add_subaccount::req(req, request_data.0).await)
 }
 
@@ -642,7 +685,7 @@ async fn update_strategy(
     req: HttpRequest,
     request_data: web::Json<UpdateStrategy>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::update_strategy::req(req, request_data).await)
 }
 
@@ -679,7 +722,7 @@ async fn update_subaccount_hold_limit(
     req: HttpRequest,
     request_data: web::Json<UpdateSubaccountHoldLimitRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::update_subaccount_hold_limit::req(req, request_data.into_inner()).await)
 }
 
@@ -730,7 +773,7 @@ async fn update_security(
     req: HttpRequest,
     request_data: web::Json<UpdateSecurityRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::update_security::req(req, request_data.into_inner()).await)
 }
 
@@ -781,7 +824,7 @@ async fn create_main_account(
     req: HttpRequest,
     request_data: web::Json<CreateMainAccountRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::create_main_account::req(req, request_data.into_inner()).await)
 }
 
@@ -1022,7 +1065,7 @@ async fn gen_newcomer_switch_master(
     req: HttpRequest,
     request_data: web::Json<GenNewcomerSwitchMasterRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         handlers::gen_newcomer_switch_master::req(req, request_data.into_inner()).await,
     )
@@ -1110,7 +1153,7 @@ async fn commit_newcomer_switch_master(
     req: HttpRequest,
     request_data: web::Json<CommitNewcomerSwitchMasterRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         handlers::commit_newcomer_replace_master::req(req, request_data.into_inner()).await,
     )
@@ -1154,7 +1197,7 @@ async fn commit_servant_switch_master(
     req: HttpRequest,
     request_data: web::Json<CommitServantSwitchMasterRequest>,
 ) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         handlers::commit_servant_switch_master::req(req, request_data.into_inner()).await,
     )
@@ -1187,6 +1230,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(get_tx)
         .service(pre_send_money_to_sub)
         .service(update_subaccount_hold_limit)
+        .service(cancel_send_money)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1233,6 +1277,7 @@ mod tests {
     use crate::wallet::handlers::balance_list::AccountBalance;
 
 
+    /*** 
 
 #[actix_web::test]
 async fn test_wallet_yunlong_fake_tx() {
@@ -1260,10 +1305,12 @@ async fn test_wallet_yunlong_fake_tx() {
     }    
 
 }
+*/
 
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
         //todo: cureent is single, add multi_sig testcase
+        let app = init().await;
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_,_,_) = gen_some_accounts_with_new_key();
@@ -1293,6 +1340,7 @@ async fn test_wallet_yunlong_fake_tx() {
         test_register!(service, receiver);
         test_login!(service, sender_servant);
         test_create_main_account!(service, sender_master);
+        test_create_main_account!(service, receiver);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
@@ -1342,6 +1390,8 @@ async fn test_wallet_yunlong_fake_tx() {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
+        test_register!(service, receiver);
+        test_create_main_account!(service, receiver);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 

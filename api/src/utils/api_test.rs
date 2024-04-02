@@ -77,8 +77,8 @@ pub async fn init() -> App<
 > {
     env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
-    //models::general::table_all_clear();
-    //clear_contract().await;
+    models::general::table_all_clear();
+    clear_contract().await;
     App::new()
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
@@ -234,7 +234,7 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
     };
 
     let mut sender_newcommer = simulate_sender_new_device();
-    sender_newcommer.user.contact = format!("test{}@gmail.com",gen_random_verify_code());
+    sender_newcommer.user.contact = sender_account.clone();
     sender_newcommer.wallet = TestWallet {
         main_account: "".to_string(),
         pubkey: Some(sender_newcommer_secret.1.clone()),
@@ -715,7 +715,7 @@ macro_rules! test_newcommer_switch_servant {
             "post",
             "/wallet/newcommerSwitchServant",
             Some(payload.to_string()),
-            Some($sender_new_device.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data

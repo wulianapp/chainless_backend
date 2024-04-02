@@ -32,6 +32,10 @@ pub async fn req(
 
     //todo: two update action is unnecessary
     let mut tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+    if tx.transaction.status != CoinTxStatus::Created {
+        Err(WalletError::TxStatusIllegal(tx.transaction.status,CoinTxStatus::Created))?;
+    }
+    
     tx.transaction.signatures.push(signature);
     models::coin_transfer::CoinTxView::update(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
@@ -44,7 +48,7 @@ pub async fn req(
     let strategy = multi_cli.get_strategy(&tx.transaction.from)
     .await?
     .unwrap();
-;
+
     let need_sig_num = super::get_servant_need(
         &strategy.multi_sig_ranks,
         &tx.transaction.coin_type,

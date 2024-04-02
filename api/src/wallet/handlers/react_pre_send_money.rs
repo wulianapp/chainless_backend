@@ -25,12 +25,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         tx_index,
         is_agreed,
     } = request_data;
+
+    let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+    if coin_tx.transaction.status != CoinTxStatus::SenderSigCompleted {
+        Err(WalletError::TxStatusIllegal(coin_tx.transaction.status,CoinTxStatus::SenderSigCompleted))?;
+    }
+
     //message max is 10，
     //let FinalizeSha = request_data.clone();
     if is_agreed {
         //todo:check user_id's main account_id is receiver
-        let coin_tx =
-            models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+
         let cli = blockchain::ContractClient::<MultiSig>::new()?;
         let _strategy = cli.get_strategy(&coin_tx.transaction.from).await.unwrap();
         let servant_sigs = coin_tx
@@ -66,5 +71,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
     };
+
     Ok(None::<String>)
 }

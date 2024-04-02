@@ -31,7 +31,9 @@ pub(crate) async fn req(
         let main_account = user.main_account;
         super::have_no_uncompleted_tx(&main_account)?;
         let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-        super::check_role(current_role,KeyRole2::Undefined)?;
+        super::check_role(current_role,KeyRole2::Master)?;
+
+      
 
     let NewcommerSwitchServantRequest {
         old_servant_pubkey,
@@ -46,10 +48,12 @@ pub(crate) async fn req(
         ))?;
     if undefined_device.device_info.key_role !=  KeyRole2::Undefined{
         Err(BackendError::InternalError(
-            format!("your new_device_id's role  is {},and should be undefined",
+            format!("your new_device_id's role  is {},and should be Undefined",
             undefined_device.device_info.key_role)
         ))?;
     }   
+
+ 
 
     models::general::transaction_begin()?;
     //check if stored already

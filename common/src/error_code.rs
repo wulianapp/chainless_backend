@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::data_structures::KeyRole2;
+use crate::data_structures::{wallet::CoinTxStatus, KeyRole2};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
@@ -125,6 +125,10 @@ pub enum WalletError {
     InsufficientAvailableBalance,
     #[error("ReceiverNotSetSecurity")]
     ReceiverNotSetSecurity,
+    #[error("TxAlreadyConfirmed")]
+    TxAlreadyConfirmed,
+    #[error("Current status is {0},but only {1} is allowed")]
+    TxStatusIllegal(CoinTxStatus,CoinTxStatus),
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -140,6 +144,8 @@ impl ErrorCode for WalletError {
             Self::ExceedSubAccountHoldLimit => 3009,
             Self::InsufficientAvailableBalance => 3010,
             Self::ReceiverNotSetSecurity => 3011,
+            Self::TxAlreadyConfirmed => 3012,
+            Self::TxStatusIllegal(_,_) => 3013,
         }
     }
 }
