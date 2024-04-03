@@ -1111,6 +1111,49 @@ async fn gen_servant_switch_master(req: HttpRequest,
 
 
 
+/**
+ * @api {post} /wallet/getNeedSigNum   获取转账需要几个从设备签名
+ * @apiVersion 0.0.1
+ * @apiName getNeedSigNum
+ * @apiGroup Wallet
+ * @apiBody {String}     coin                  转账币种
+ * @apiBody {String}     amount                转账数量
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/genServantSwitchMaster
+   -d '  {
+             "encryptedPrikey": "",
+             "pubkey": "",
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                nothing.
+* @apiSuccess {string} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
+* @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
+* @apiSuccess {string} data.delete_key_txid             删除旧主公钥对应的tx_id.
+* @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetNeedSigNumRequest {
+    coin: String,
+    amount: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/getNeedSigNum")]
+async fn get_need_sig_num(req: HttpRequest,
+    request_data: web::Json<GetNeedSigNumRequest>,
+) -> impl Responder {
+    gen_extra_respond(handlers::get_need_sig_num::req(req,request_data.into_inner()).await)
+}
+
+
+
+
 
 
 

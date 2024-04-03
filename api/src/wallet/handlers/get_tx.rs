@@ -60,7 +60,7 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
         DeviceInfoFilter::ByUser(user_id))?
             .into_iter()
             .filter(|x| {
-                x.device_info.hold_pubkey.is_some() || x.device_info.key_role == KeyRole2::Servant
+                x.device_info.hold_pubkey.is_some() && x.device_info.key_role == KeyRole2::Servant
             })
             .map(|d| {
                 ServentSigDetail {

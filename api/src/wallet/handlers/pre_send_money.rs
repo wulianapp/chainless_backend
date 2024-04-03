@@ -49,16 +49,23 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         is_forced,
         captcha
     } = request_data;
+    let (user,current_strategy,device) = 
+    super::get_session_state(user_id,&device_id).await?;
+
+
+
     let to_account_id = if to.contains("mail") || to.contains("+"){
         let receiver =  UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
+        if !receiver.user_info.secruity_is_seted{
+            Err(WalletError::NotSetSecurity)?;
+        }
         receiver.user_info.main_account
     }else{
         let receiver =  UserInfoView::find_single(UserFilter::ByMainAccount(&to))?;
         to
     }; 
 
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+
 
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());

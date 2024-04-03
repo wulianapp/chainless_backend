@@ -124,7 +124,7 @@ pub enum WalletError {
     #[error("transfer amount big than available balance")]
     InsufficientAvailableBalance,
     #[error("ReceiverNotSetSecurity")]
-    ReceiverNotSetSecurity,
+    NotSetSecurity,
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
@@ -143,7 +143,7 @@ impl ErrorCode for WalletError {
             Self::UneligiableRole(_, _) => 3008,
             Self::ExceedSubAccountHoldLimit => 3009,
             Self::InsufficientAvailableBalance => 3010,
-            Self::ReceiverNotSetSecurity => 3011,
+            Self::NotSetSecurity => 3011,
             Self::TxAlreadyConfirmed => 3012,
             Self::TxStatusIllegal(_,_) => 3013,
         }
