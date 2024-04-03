@@ -97,3 +97,18 @@ create table device_info
      --一台设备登陆多个账号
     CONSTRAINT device_user PRIMARY KEY (id, user_id)
 );
+
+
+create table wallet_manage_record
+(
+    record_id text primary key,
+    user_id text,
+    operation_type text,
+    operator_pubkey text,
+    operator_device_id text,
+    operator_device_brand text,
+    tx_ids text[],
+    status text,
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
+);

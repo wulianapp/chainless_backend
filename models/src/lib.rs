@@ -13,6 +13,8 @@ pub mod coin_transfer;
 pub mod secret_store;
 //pub mod wallet;
 pub mod device_info;
+pub mod wallet_manage_record;
+
 
 //#[macro_use]
 //extern crate log;

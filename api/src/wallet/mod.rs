@@ -1314,6 +1314,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(update_subaccount_hold_limit)
         .service(cancel_send_money)
         .service(gen_send_money)
+        .service(get_need_sig_num)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
