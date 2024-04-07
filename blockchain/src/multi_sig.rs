@@ -191,6 +191,7 @@ impl ContractClient<MultiSig> {
         .into_iter()
         .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
         .collect::<HashMap<AccountId,SubAccConf>>();
+        debug!("pre_add sub_confs {:?}",sub_confs);
 
         let args_str = json!({
             "main_account_id": main_acc,
@@ -200,7 +201,7 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("add_subaccounts", &args_str).await
     }
 
-    pub async fn remove_subaccounts(&self, main_acc: &str, subacc: &str) -> Result<String> {
+    pub async fn remove_subaccount(&self, main_acc: &str, subacc: &str) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
         let subacc = AccountId::from_str(subacc)?;
 
@@ -209,8 +210,7 @@ impl ContractClient<MultiSig> {
             "accounts": vec![subacc]
         })
         .to_string();
-        self.commit_by_relayer("remove_subaccounts", &args_str).await;
-        todo!()
+        self.commit_by_relayer("remove_subaccounts", &args_str).await
     }
 
     pub async fn remove_account_strategy(&self, acc: String) -> Result<String> {

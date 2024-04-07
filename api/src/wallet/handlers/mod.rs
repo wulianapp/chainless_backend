@@ -46,7 +46,7 @@ pub mod get_tx;
 pub mod cancel_send_money;
 pub mod gen_send_money;
 pub mod get_need_sig_num;
-
+pub mod remove_subaccount;
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))

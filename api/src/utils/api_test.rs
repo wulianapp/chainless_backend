@@ -500,14 +500,32 @@ macro_rules! test_servant_saved_secret {
 
 #[macro_export]
 macro_rules! test_add_subaccount {
-    ($service:expr, $master:expr) => {{
+    ($service:expr, $master:expr,$new_sub_pubkey:expr) => {{
         let payload = json!({
-            "subaccountPubkey":  $master.wallet.subaccount.first().unwrap(),
+            "subaccountPubkey":  $new_sub_pubkey,
             "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
             "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
             "holdValueLimit": 10000,
         });
         let url = format!("/wallet/addSubaccount");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+    }};
+}
+
+#[macro_export]
+macro_rules! test_remove_subaccount {
+    ($service:expr, $master:expr,$sub_account_id:expr) => {{
+        let payload = json!({
+            "accountId":  $sub_account_id,
+        });
+        let url = format!("/wallet/removeSubaccount");
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",

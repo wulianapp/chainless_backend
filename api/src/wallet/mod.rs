@@ -643,6 +643,45 @@ async fn add_subaccount(
     gen_extra_respond(handlers::add_subaccount::req(req, request_data.0).await)
 }
 
+
+/**
+ * @api {post} /wallet/removeSubaccount 删除子钱包
+ * @apiVersion 0.0.1
+ * @apiName RemoveSubaccount
+ * @apiGroup Wallet
+ * @apiBody {String} account_id                   待删除的钱包id
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
+   -d ' {
+             "deviceId": "1",
+             "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
+*/
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveSubaccountRequest {
+    account_id: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/removeSubaccount")]
+async fn remove_subaccount(
+    req: HttpRequest,
+    request_data: web::Json<RemoveSubaccountRequest>,
+) -> impl Responder {
+    debug!("req_params:: {}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::remove_subaccount::req(req, request_data.0).await)
+}
+
+
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MultiSigRankExternal {
@@ -1291,6 +1330,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(add_servant)
         .service(remove_servant)
         .service(add_subaccount)
+        .service(remove_subaccount)
         .service(update_strategy)
         .service(create_main_account)
         .service(servant_saved_secret)
@@ -1386,6 +1426,30 @@ async fn test_wallet_yunlong_fake_tx() {
 
 }
 */
+#[actix_web::test]
+async fn test_wallet_add_remove_subaccount() {
+    //todo: cureent is single, add multi_sig testcase
+    let _app = init().await;
+    let app = init().await;
+    let service = test::init_service(app).await;
+    let (mut sender_master,_,_,_) = gen_some_accounts_with_new_key();
+
+    test_register!(service, sender_master);
+    test_create_main_account!(service, sender_master);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    let subacc = sender_master.wallet.subaccount.first().unwrap();
+    let (new_sub_prikey,new_sub_pubkey) = ed25519_key_gen();
+    test_add_subaccount!(service,sender_master,new_sub_pubkey);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    let strategy = test_get_strategy!(service,sender_master).unwrap();
+    println!("___{:?}",strategy);
+    assert_eq!(strategy.subaccounts.get(&new_sub_pubkey).unwrap().hold_value_limit,10000);
+
+    test_remove_subaccount!(service,sender_master,new_sub_pubkey);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    let strategy = test_get_strategy!(service,sender_master).unwrap();
+    assert!(strategy.subaccounts.get(&new_sub_pubkey).is_none());
+}
 
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {

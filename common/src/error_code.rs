@@ -129,6 +129,12 @@ pub enum WalletError {
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
     TxStatusIllegal(CoinTxStatus,CoinTxStatus),
+    #[error("balanceMustBeZero")]
+    BalanceMustBeZero,
+    #[error("subaccount {0} is not existent on chain")]
+    SubAccountNotExist(String),
+    #[error("MustHaveSubaccount")]
+    MustHaveSubaccount,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -146,6 +152,9 @@ impl ErrorCode for WalletError {
             Self::NotSetSecurity => 3011,
             Self::TxAlreadyConfirmed => 3012,
             Self::TxStatusIllegal(_,_) => 3013,
+            Self::BalanceMustBeZero => 3014,
+            Self::SubAccountNotExist(_) => 3015,
+            Self::MustHaveSubaccount => 3016,
         }
     }
 }
