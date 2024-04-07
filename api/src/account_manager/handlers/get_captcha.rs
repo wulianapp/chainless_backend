@@ -23,7 +23,7 @@ pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
         kind,
     } = request_data;
     let kind: Usage = kind.parse().map_err(
-        |err| BackendError::RequestParamInvalid("".to_string()))?;
+        |_err| BackendError::RequestParamInvalid("".to_string()))?;
     //todo: only master device can reset password
 
     let contract_type = captcha::validate(&contact)?;
@@ -100,7 +100,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
         kind,
     } = request_data;
     let kind: Usage = kind.parse().map_err(
-        |err| BackendError::RequestParamInvalid("".to_string()))?;
+        |_err| BackendError::RequestParamInvalid("".to_string()))?;
 
     let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
     let device = DeviceInfoView::find_single(
@@ -135,7 +135,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
         kind,
     } = request_data;
     let kind: Usage = kind.parse().map_err(
-        |err| BackendError::RequestParamInvalid("".to_string()))?;
+        |_err| BackendError::RequestParamInvalid("".to_string()))?;
     let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     

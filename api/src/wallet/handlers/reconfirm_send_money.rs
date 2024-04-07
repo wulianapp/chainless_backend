@@ -17,10 +17,10 @@ pub async fn req(
 ) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    let _device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     let (user,current_strategy,device) = 
         super::get_session_state(user_id,&device_id).await?;
-        let main_account = user.main_account;
+        let _main_account = user.main_account;
         let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
         super::check_role(current_role,KeyRole2::Master)?;
 
@@ -35,7 +35,7 @@ pub async fn req(
     //区分receiver是否是子账户
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
     let strategy = multi_cli.get_strategy(&coin_tx.transaction.from).await?.unwrap();
-    if let Some(_) = strategy.sub_confs.get(&coin_tx.transaction.to){
+    if strategy.sub_confs.get(&coin_tx.transaction.to).is_some(){
         let servant_sigs = coin_tx
         .transaction
         .signatures

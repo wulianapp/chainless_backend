@@ -29,7 +29,7 @@ use common::error_code::BackendError::ChainError;
 pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
 
-    let (user,current_strategy,device) = super::get_session_state(user_id,&device_id).await?;
+    let (_user,current_strategy,device) = super::get_session_state(user_id,&device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
         super::check_role(current_role,KeyRole2::Master)?;
 

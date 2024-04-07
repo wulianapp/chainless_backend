@@ -32,7 +32,7 @@ fn clear_retry_times(user_id:u32) {
 fn record_once_retry(user_id: u32) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     let now = now_millis();
-    retry_storage.entry(user_id).or_insert(vec![]).push(now);
+    retry_storage.entry(user_id).or_default().push(now);
 }
 
 fn is_locked(user_id: u32) -> bool {
@@ -43,7 +43,7 @@ fn is_locked(user_id: u32) -> bool {
                 true
             } else {
                 //clear retry records
-                retry_storage.entry(user_id).or_insert(vec![]);
+                retry_storage.entry(user_id).or_default();
                 false
             }
         } else {

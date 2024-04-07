@@ -54,7 +54,7 @@ pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
 
 
 pub fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
-    let tx = get_uncompleted_tx(&account)?;
+    let tx = get_uncompleted_tx(account)?;
     if !tx.is_empty() {
         Err(WalletError::HaveUncompleteTx)?;
     }
@@ -62,15 +62,15 @@ pub fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
 }
 
 pub fn get_freezn_amount(account: &str,coin:&CoinType) -> u128{
-    let mut tx = get_uncompleted_tx(&account).unwrap();
+    let mut tx = get_uncompleted_tx(account).unwrap();
     tx.retain(|x| x.transaction.coin_type == *coin);
     tx.iter().map(|x| x.transaction.amount).sum()
 }
 
 pub async fn get_available_amount(account_id: &str,coin:&CoinType) -> BackendRes<u128>{
     let coin_cli = ContractClient::<Coin>::new(coin.clone()).map_err(|err| ChainError(err.to_string()))?;
-    let balance = coin_cli.get_balance(&account_id).await.unwrap().unwrap_or("0".to_string());
-    let freezn_amount = get_freezn_amount(&account_id, &coin);
+    let balance = coin_cli.get_balance(account_id).await.unwrap().unwrap_or("0".to_string());
+    let freezn_amount = get_freezn_amount(account_id, coin);
     let total:u128 = balance.parse().unwrap();
     if total < freezn_amount{
         //todo:
@@ -131,7 +131,7 @@ pub async fn get_session_state(user_id:u32,device_id:&str) -> Result<(UserInfo,S
     let main_account = &user.user_info.main_account;
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let current_strategy = multi_sig_cli
-        .get_strategy(&main_account)
+        .get_strategy(main_account)
         .await?
         .ok_or(WalletError::MainAccountNotExist(main_account.to_owned()))?;
 
@@ -162,7 +162,7 @@ impl FromStr for ServentSigDetail {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pubkey = s[..64].to_string();
-        let sig = s[64..].to_string();
+        let _sig = s[64..].to_string();
         let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))?;
         Ok(Self{
             pubkey,

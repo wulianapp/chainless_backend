@@ -113,7 +113,7 @@ impl PsqlOp for WalletManageRecordView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from wallet_manage_record where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get device: raw sql {}", sql);
@@ -137,7 +137,7 @@ impl PsqlOp for WalletManageRecordView {
 
         execute_res
             .iter()
-            .map(|x| gen_view(x))
+            .map(gen_view)
             .collect()
     }
     fn update(
@@ -146,8 +146,8 @@ impl PsqlOp for WalletManageRecordView {
     ) -> Result<()> {
         let sql = format!(
             "update wallet_manage_record set {} where {}",
-            new_value.to_string(),
-            filter.to_string()
+            new_value,
+            filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -216,7 +216,7 @@ mod tests {
         );
         record.insert().unwrap();
 
-        let mut record_by_find =
+        let record_by_find =
         WalletManageRecordView::find_single(
             WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id)).unwrap();
         println!("{:?}", record_by_find);

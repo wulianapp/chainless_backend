@@ -45,7 +45,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String=dw20,cly} data.CoinTx.transaction.coin_type      币种名字
 * @apiSuccess {String} data.CoinTx.transaction.from                发起方
 * @apiSuccess {String} data.CoinTx.transaction.to                接收方
-* @apiSuccess {Number} data.CoinTx.transaction.amount               交易量
+* @apiSuccess {String} data.CoinTx.transaction.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.CoinTx.transaction.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
@@ -1153,10 +1153,6 @@ async fn get_need_sig_num(req: HttpRequest,
 
 
 
-
-
-
-
 /**
  * @api {post} /wallet/genSendMoney 构建send_money的交易数据
  * @apiVersion 0.0.1
@@ -1394,7 +1390,7 @@ async fn test_wallet_yunlong_fake_tx() {
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
         //todo: cureent is single, add multi_sig testcase
-        let app = init().await;
+        let _app = init().await;
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_,_,_) = gen_some_accounts_with_new_key();
@@ -1497,7 +1493,7 @@ async fn test_wallet_yunlong_fake_tx() {
     async fn test_wallet_replace_servant() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let (mut sender_master,mut sender_servant,mut sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
         test_login!(service, sender_servant);
@@ -1514,7 +1510,7 @@ async fn test_wallet_yunlong_fake_tx() {
     async fn test_wallet_servant_switch_master() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let (mut sender_master,mut sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
         test_login!(service, sender_servant);
@@ -1543,7 +1539,7 @@ async fn test_wallet_yunlong_fake_tx() {
     async fn test_wallet_main_send_money_to_sub() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
@@ -1585,7 +1581,7 @@ async fn test_wallet_yunlong_fake_tx() {
     async fn test_wallet_sub_send_money_to_main() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
@@ -1626,7 +1622,7 @@ async fn test_wallet_yunlong_fake_tx() {
     async fn test_wallet_change_security() {
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master,mut sender_servant,mut sender_newcommer,mut receiver) = gen_some_accounts_with_new_key();
+        let (mut sender_master,mut sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
@@ -1657,9 +1653,9 @@ async fn test_wallet_yunlong_fake_tx() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
-            mut sender_servant,
+            _sender_servant,
             mut sender_newcommer,
-            mut receiver) 
+            _receiver) 
         = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
@@ -1690,9 +1686,9 @@ async fn test_wallet_yunlong_fake_tx() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
-            mut sender_servant,
-            mut sender_newcommer,
-            mut receiver) 
+            _sender_servant,
+            _sender_newcommer,
+            _receiver) 
         = gen_some_accounts_with_new_key();
     
         test_register!(service, sender_master);
@@ -1714,9 +1710,9 @@ async fn test_wallet_yunlong_fake_tx() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
-            mut sender_servant,
-            mut sender_newcommer,
-            mut receiver) 
+            _sender_servant,
+            _sender_newcommer,
+            _receiver) 
         = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
@@ -1753,10 +1749,10 @@ async fn test_wallet_yunlong_fake_tx() {
     #[actix_web::test]
     async fn test_wallet_all_braced_wallet_ok_with_new_key() {
         //fixme: currently used service mode is from environment ,not init's value
-         let (mut sender_master,
-            mut sender_servant,
-            mut sender_newcommer,
-            mut receiver) 
+         let (sender_master,
+            sender_servant,
+            _sender_newcommer,
+            receiver) 
          = gen_some_accounts_with_new_key();
 
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();

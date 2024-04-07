@@ -80,13 +80,13 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
             let balance_on_chain = if user_info.user_info.secruity_is_seted {
                 coin_cli
-                    .get_balance(&account)
+                    .get_balance(account)
                     .await?
                     .unwrap_or("0".to_string())
             } else {
                 "0".to_string()
             };
-            let freezn_amount = super::get_freezn_amount(&account, &coin);
+            let freezn_amount = super::get_freezn_amount(account, coin);
             let total_balance = balance_on_chain.parse().unwrap();
             let available_balance = total_balance - freezn_amount;
             let balance = AccountBalance{

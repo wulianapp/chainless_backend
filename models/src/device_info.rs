@@ -29,7 +29,7 @@ impl fmt::Display for DeviceInfoUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             DeviceInfoUpdater::State(new_state) => {
-                format!("state='{}'", new_state.to_string())
+                format!("state='{}'", new_state)
             }
             DeviceInfoUpdater::HolderSaved(saved) => {
                 format!("holder_confirm_saved={} ", saved)
@@ -129,7 +129,7 @@ impl PsqlOp for DeviceInfoView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from device_info where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get device: raw sql {}", sql);
@@ -152,7 +152,7 @@ impl PsqlOp for DeviceInfoView {
 
         execute_res
             .iter()
-            .map(|x| gen_view(x))
+            .map(gen_view)
             .collect()
     }
     fn update(
@@ -161,8 +161,8 @@ impl PsqlOp for DeviceInfoView {
     ) -> Result<()> {
         let sql = format!(
             "update device_info set {} where {}",
-            new_value.to_string(),
-            filter.to_string()
+            new_value,
+            filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -195,11 +195,11 @@ impl PsqlOp for DeviceInfoView {
          ) values ('{}',{},'{}',{},'{}',{},'{}');",
             id,
             user_id,
-            state.to_string(),
+            state,
             hold_pubkey.to_psql_str(),
             device_type,
             holder_confirm_saved,
-            key_role.to_string()
+            key_role
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;

@@ -30,11 +30,11 @@ pub struct UserInfoTmp {
 
 pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
     let (user_id,device_id,_) = token_auth::validate_credentials2(&request)?;
-    let devices = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id,user_id))?;
+    let _devices = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id,user_id))?;
     let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     
     //todo:
-    let role = if res.user_info.main_account == ""{
+    let role = if res.user_info.main_account.is_empty(){
         KeyRole2::Undefined
     }else{
         let (_,current_strategy,device) = 

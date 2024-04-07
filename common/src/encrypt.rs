@@ -65,7 +65,7 @@ pub fn ed25519_gen_pubkey_sign(prikey_hex: &str, data_hex: &str) -> Result<Strin
     let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes)?;
     let sig = secret_key.sign(&data);
     let pubkey = hex::encode(secret_key.public.as_bytes());
-    let pub_sig = format!("{}{}",pubkey,sig.to_string());
+    let pub_sig = format!("{}{}",pubkey,sig);
     Ok(pub_sig)
 }
 
@@ -142,7 +142,7 @@ mod tests {
         let input_hex = "hello";
         let sig = ed25519_sign_raw(&prikey, input_hex).unwrap();
         let verify_res = ed25519_verify(input_hex,&pubkey,&sig).unwrap();
-        assert_eq!(verify_res,true);
+        assert!(verify_res);
     }
    
 }

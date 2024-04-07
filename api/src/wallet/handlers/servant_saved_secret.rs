@@ -22,7 +22,7 @@ pub(crate) async fn req(
 ) -> BackendRes<String> {
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user,current_strategy,device) = 
+    let (_user,current_strategy,device) = 
     super::get_session_state(user_id,&device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role,KeyRole2::Servant)?;

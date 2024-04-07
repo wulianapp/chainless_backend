@@ -41,7 +41,7 @@ pub(crate) async fn req(
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     
-    if user_info.user_info.main_account != ""{
+    if !user_info.user_info.main_account.is_empty(){
         Err(BackendError::InternalError("main_account is already existent".to_string()))?;
     }
 

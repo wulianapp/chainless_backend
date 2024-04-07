@@ -152,7 +152,7 @@ pub async fn safe_gen_transaction(
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ => Err("failed to extract current nonce").unwrap(),
+        _ => panic!("{:?}", "failed to extract current nonce"),
     };
 
     Transaction {

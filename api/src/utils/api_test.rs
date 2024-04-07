@@ -449,7 +449,7 @@ macro_rules! test_tx_list {
                 $role,$per_page,$page)            
             }
         };
-        let res: BackendRespond<Vec<crate::wallet::handlers::tx_list::CoinTxViewTmp>> = test_service_call!(
+        let res: BackendRespond<Vec<$crate::wallet::handlers::tx_list::CoinTxViewTmp>> = test_service_call!(
             $service,
             "get",
             &url,

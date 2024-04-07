@@ -43,7 +43,7 @@ impl fmt::Display for UserUpdater<'_> {
                 "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
                 anwser_indexes, secruity_is_seted, main_account
             ),
-            UserUpdater::OpStatus(status) => format!("op_status='{}'", status.to_string()),
+            UserUpdater::OpStatus(status) => format!("op_status='{}'", status),
             UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
         };
         write!(f, "{}", description)
@@ -131,7 +131,7 @@ impl PsqlOp for UserInfoView {
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
-            filter.to_string()
+            filter
         );
         let query_res = crate::query(sql.as_str())?;
         debug!("get_snapshot: raw sql {}", sql);
@@ -166,7 +166,7 @@ impl PsqlOp for UserInfoView {
             };
             Ok(view)
         };
-        query_res.iter().map(|x| gen_view(x)).collect()
+        query_res.iter().map(gen_view).collect()
     }
 
     fn update(
@@ -175,8 +175,8 @@ impl PsqlOp for UserInfoView {
     ) -> Result<()> {
         let sql = format!(
             "UPDATE users SET {} where {}",
-            new_value.to_string(),
-            filter.to_string()
+            new_value,
+            filter
         );
         debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -242,7 +242,7 @@ impl PsqlOp for UserInfoView {
             secruity_is_seted,
             create_subacc_time_str,
             main_account,
-            op_status.to_string(),
+            op_status,
             reserved_field1,
             reserved_field2,
             reserved_field3,

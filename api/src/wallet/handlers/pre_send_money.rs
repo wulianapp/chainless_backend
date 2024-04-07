@@ -54,14 +54,14 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
 
 
 
-    let to_account_id = if to.contains("mail") || to.contains("+"){
+    let to_account_id = if to.contains("mail") || to.contains('+'){
         let receiver =  UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
         if !receiver.user_info.secruity_is_seted{
             Err(WalletError::NotSetSecurity)?;
         }
         receiver.user_info.main_account
     }else{
-        let receiver =  UserInfoView::find_single(UserFilter::ByMainAccount(&to))?;
+        let _receiver =  UserInfoView::find_single(UserFilter::ByMainAccount(&to))?;
         to
     }; 
 

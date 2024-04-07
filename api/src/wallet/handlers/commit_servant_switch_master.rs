@@ -40,10 +40,14 @@ pub(crate) async fn req(
     //get user's main_account 、mater_key、current servant_key
     let main_account = super::get_main_account(user_id)?;
     super::have_no_uncompleted_tx(&main_account)?;
-    let (user,current_strategy,device) = 
+    let (_user,current_strategy,device) = 
     super::get_session_state(user_id,&device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role,KeyRole2::Servant)?;
+
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
+    let old_master = master_list.first().unwrap();
 
     let servant_pubkey =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?
@@ -52,7 +56,6 @@ pub(crate) async fn req(
             .ok_or(BackendError::InternalError(
                 "this haven't be servant yet".to_string(),
             ))?;
-    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
     if master_list.len() != 1 {
         error!("unnormal account， it's account have more than 1 master");
@@ -60,7 +63,6 @@ pub(crate) async fn req(
             "".to_string(),
         ));
     }
-    let old_master = master_list.first().unwrap();
 
     models::general::transaction_begin()?;
 
@@ -84,8 +86,8 @@ pub(crate) async fn req(
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         DeviceInfoView::update(
-            DeviceInfoUpdater::BecomeServant(&old_master),
-            DeviceInfoFilter::ByHoldKey(&old_master),
+            DeviceInfoUpdater::BecomeServant(old_master),
+            DeviceInfoFilter::ByHoldKey(old_master),
         )?;
         
     }else if master_list.len() == 1 && master_list.contains(&servant_pubkey){
@@ -106,8 +108,8 @@ pub(crate) async fn req(
         .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
 
     //maybe is unnecessary
-    if &current_strategy.master_pubkey == old_master 
-        && current_strategy.servant_pubkeys.contains(&servant_pubkey){
+    if current_strategy.master_pubkey == servant_pubkey
+        && current_strategy.servant_pubkeys.contains(&old_master){
         warn!("servant adjustment  is already completed ");
     }else{
         current_strategy

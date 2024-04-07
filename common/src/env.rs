@@ -119,7 +119,7 @@ lazy_static! {
         }
 
         if let Some(value) = env::var_os("BACKEND_CHAIN_RPC"){
-            println!("__{}",value.to_str().unwrap().to_string());
+            println!("__{}",value.to_str().unwrap());
             conf.chain_rpc = value.to_str().unwrap().parse().unwrap();
         }
 

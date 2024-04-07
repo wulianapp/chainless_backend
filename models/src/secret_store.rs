@@ -30,7 +30,7 @@ impl fmt::Display for SecretUpdater<'_> {
                 )
             }
             SecretUpdater::State(new_state) => {
-                format!("state='{}'", new_state.to_string())
+                format!("state='{}'", new_state)
             }
         };
         write!(f, "{}", description)
@@ -96,7 +96,7 @@ impl PsqlOp for SecretStoreView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from secret_store where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get_secret: raw sql {}", sql);
@@ -114,13 +114,13 @@ impl PsqlOp for SecretStoreView {
             })
         };
 
-        execute_res.iter().map(|x| gen_view(x)).collect()
+        execute_res.iter().map(gen_view).collect()
     }
     fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<()> {
         let sql = format!(
             "update secret_store set {} where {}",
-            new_value.to_string(),
-            filter.to_string()
+            new_value,
+            filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -147,7 +147,7 @@ impl PsqlOp for SecretStoreView {
                 encrypted_prikey_by_answer\
          ) values ('{}','{}',{},'{}','{}');",
             pubkey,
-            state.to_string(),
+            state,
             user_id,
             encrypted_prikey_by_password,
             encrypted_prikey_by_answer

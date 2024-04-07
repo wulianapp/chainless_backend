@@ -97,11 +97,11 @@ impl fmt::Display for CoinTxFilter<'_> {
                 match  counterparty {
                     Some(account) => format!(
                         "{}='{}' and {}='{}' order by updated_at desc limit {} offset {}",
-                        role.to_string(),account,role.counterparty(),account,per_page,offset
+                        role,account,role.counterparty(),account,per_page,offset
                     ),
                     None => format!(
                         "{}='{}' order by updated_at desc limit {} offset {}",
-                        role.to_string(),account,per_page,offset
+                        role,account,per_page,offset
                     ),
                 }
             }
@@ -121,13 +121,13 @@ pub enum CoinTxUpdater<'a> {
 impl fmt::Display for CoinTxUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            CoinTxUpdater::Status(status) => format!("status='{}'", status.to_string()),
+            CoinTxUpdater::Status(status) => format!("status='{}'", status),
             CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) => {
                 format!(
                     "(tx_id,chain_tx_raw,status)=('{}','{}','{}')",
                     tx_id,
                     chain_tx_raw,
-                    CoinTxStatus.to_string()
+                    CoinTxStatus
                 )
             }
             CoinTxUpdater::TxidTxRaw(tx_id, chain_tx_raw) => {
@@ -170,7 +170,7 @@ impl PsqlOp for CoinTxView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from coin_transaction where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get_snapshot: raw sql {}", sql);
@@ -206,15 +206,15 @@ impl PsqlOp for CoinTxView {
         };
         execute_res
             .iter()
-            .map(|x| gen_view(x))
+            .map(gen_view)
             .collect()
     }
 
     fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<()> {
         let sql = format!(
             "UPDATE coin_transaction SET {} where {}",
-            update_data.to_string(),
-            filter.to_string()
+            update_data,
+            filter
         );
         info!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -238,8 +238,8 @@ impl PsqlOp for CoinTxView {
             signatures,
             tx_type,
             reserved_field1,
-            reserved_field2,
-            reserved_field3,
+            reserved_field2: _,
+            reserved_field3: _,
         } = self.transaction.clone();
         let tx_id: PsqlType = tx_id.into();
         let chain_raw_data: PsqlType = chain_tx_raw.into();
@@ -264,17 +264,17 @@ impl PsqlOp for CoinTxView {
          reserved_field3\
          ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}','{}','{}');",
             tx_id.to_psql_str(),
-            coin_type.to_string(),
+            coin_type,
             sender,
             receiver,
-            amount.to_string(),
-            expire_at.to_string(),
+            amount,
+            expire_at,
             memo.to_psql_str(),
-            status.to_string(),
+            status,
             coin_tx_raw,
             chain_raw_data.to_psql_str(),
             vec_str2array_text(signatures),
-            tx_type.to_string(),
+            tx_type,
             reserved_field1,
             reserved_field1,
             reserved_field1,

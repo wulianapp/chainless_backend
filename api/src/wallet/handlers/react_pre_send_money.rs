@@ -16,7 +16,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let (user,current_strategy,device) = 
         super::get_session_state(user_id,&device_id).await?;
-        let main_account = user.main_account;
+        let _main_account = user.main_account;
         let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
         super::check_role(current_role,KeyRole2::Master)?;
 
