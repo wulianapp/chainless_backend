@@ -212,7 +212,9 @@ mod tests {
               "11111",
               "apple_device_id",
                 "apple",
-                vec!["txid1".to_string(),"txid2".to_string()]
+                vec![
+                    "JBjvhpc3Uze77eVVoa4LvyAo1k6YQchMzsTd2pdADHvw".to_string(),
+                "6sXahQSvCNkj7Y3uRhVcGHD1BPZcAHVtircBUj7L9NhY".to_string()]
         );
         record.insert().unwrap();
 

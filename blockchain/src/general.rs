@@ -18,7 +18,7 @@ use near_jsonrpc_primitives::types::transactions::TransactionInfo;
 
 use hex;
 //use log::debug;
-use tracing::debug;
+use tracing::{debug, warn};
 use anyhow::{anyhow, Ok, Result};
 
 //todo: contract_addr type change into AccountId
@@ -146,7 +146,7 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
    
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
-            tx_hash: hex_to_bs58(tx_id).unwrap().parse().unwrap(),
+            tx_hash: tx_id.parse().unwrap(),
             sender_account_id: "node0".parse()?,
         },
     };
@@ -155,13 +155,20 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
 
 
     let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
+        let mut status =   TxStatusOnChain::FinalizeAndSuccessful;
         for outcome in tx_status.receipts_outcome {
-            if let ExecutionStatusView::SuccessValue(_value) = outcome.outcome.status{
-                Err(anyhow!("".to_string()))?;
+            match outcome.outcome.status{
+                ExecutionStatusView::Unknown => unreachable!(""),
+                ExecutionStatusView::Failure(_) => {
+                    status = TxStatusOnChain::FinalizeAndFailed;
+                },
+                ExecutionStatusView::SuccessValue(_) => {},
+                ExecutionStatusView::SuccessReceiptId(_) => {},
             }
         }
-        TxStatusOnChain::FinalizeAndSuccessful
+        status
     }else if let FinalExecutionStatus::Failure(error) = tx_status.status{
+        warn!("tx_id({}) is failed: {}",tx_id,error.to_string());
         TxStatusOnChain::FinalizeAndFailed
     }else {
         TxStatusOnChain::Pending
