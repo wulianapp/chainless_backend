@@ -792,7 +792,7 @@ macro_rules! test_sub_send_to_master {
             "amount": $amount
         });
         let url = format!("/wallet/subSendToMain");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             &url,

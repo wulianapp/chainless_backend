@@ -180,8 +180,8 @@ pub enum TxRole {
 pub enum TxType {
     Normal,
     Forced,
-    ToSub,
-    FromSub
+    MainToSub,
+    SubToMain
 }
 
 impl TxRole {

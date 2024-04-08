@@ -17,6 +17,7 @@ async fn main() {
         ).unwrap();
 
         for op in ops  {
+            //todo: 目前的txid是bs58的待修复
             let tx_id = op.record.tx_ids.last().unwrap();
             debug!("start check tx {}",tx_id);
             let status = blockchain::general::tx_status(tx_id).await.unwrap();

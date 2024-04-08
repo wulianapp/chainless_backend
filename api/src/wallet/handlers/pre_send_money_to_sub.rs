@@ -113,7 +113,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         .await
         .map_err(|err| ChainError(err.to_string()))?;
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
-        coin_info.transaction.tx_type = TxType::ToSub;
+        coin_info.transaction.tx_type = TxType::MainToSub;
         coin_info.insert()?;
         Ok(Some((next_tx_index,tx_id)))
     }else {
@@ -122,7 +122,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
             Err(BackendError::InternalError("For multi-sig tx,need not  captcha".to_string()))?;
         }
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
-        coin_info.transaction.tx_type = TxType::ToSub;
+        coin_info.transaction.tx_type = TxType::MainToSub;
         coin_info.insert()?;
         Ok(None)
     }

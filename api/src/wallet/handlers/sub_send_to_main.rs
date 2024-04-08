@@ -6,6 +6,7 @@ use blockchain::multi_sig::{MultiSig, SignInfo};
 use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
+use common::encrypt::bs58_to_hex;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -50,6 +51,7 @@ pub async fn req(
                 coin_type.clone(),
                 amount,
             ).await?;
+        let tx_id = bs58_to_hex(&tx_id)?;    
         //todo:
         let coin_tx_raw = "".to_string();
         let mut coin_info = CoinTxView::new_with_specified(
@@ -62,8 +64,8 @@ pub async fn req(
             u64::MAX,
             CoinTxStatus::SenderSigCompleted,
         );
-        coin_info.transaction.tx_type = TxType::FromSub;
-        coin_info.transaction.tx_id = Some(tx_id);
+        coin_info.transaction.tx_type = TxType::SubToMain;
+        coin_info.transaction.tx_id = Some(tx_id.clone());
         coin_info.insert()?;
-    Ok(None)
+    Ok(Some(tx_id))
 }
