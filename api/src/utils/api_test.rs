@@ -939,7 +939,7 @@ macro_rules! test_get_secret {
 macro_rules! test_get_balance_list {
     ($service:expr, $app:expr,$kind:expr) => {{
         let url = format!("/wallet/balanceList?kind={}",$kind);
-        let res: BackendRespond<HashMap<String,Vec<AccountBalance>>> = test_service_call!(
+        let res: BackendRespond<Vec<(String,Vec<AccountBalance>)>> = test_service_call!(
             $service,
             "get",
             &url,

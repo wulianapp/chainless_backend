@@ -1,8 +1,10 @@
 use actix_web::{web, HttpRequest};
+use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::SecretStoreView;
+use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -23,7 +25,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,
@@ -75,9 +77,21 @@ pub(crate) async fn req(
 
     let multi_cli = ContractClient::<MultiSig>::new()?;
 
-    multi_cli
+
+    //todo:
+    let txid = multi_cli
         .init_strategy(&master_pubkey, &subaccount_pubkey)
         .await?;
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::CreateAccount,
+        &master_pubkey,
+        &device_id,
+        &device_brand,
+        vec![txid]
+    );
+    record.insert()?;
+
     models::general::transaction_commit()?;
     info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)

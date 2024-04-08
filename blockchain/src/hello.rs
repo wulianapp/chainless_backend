@@ -46,7 +46,7 @@ impl ContractClient<Hello> {
     }
 
     pub async fn call_set_greeting(&self, content: &str) -> Result<String> {
-        let set_greeting_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
+        let set_greeting_actions = vec![Action::FunctionCall(Box::new(FunctionCallAction {
             method_name: "set_greeting".to_string(),
             args: json!({
                 "greeting": content,
@@ -56,7 +56,7 @@ impl ContractClient<Hello> {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at).await?;
+        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await?;
         transaction.actions = set_greeting_actions;
 
         let signature = self

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest};
+use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
 use blockchain::multi_sig::{MultiSig, SubAccConf};
@@ -55,10 +57,20 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     secret.insert()?;
     let multi_cli = ContractClient::<MultiSig>::new()?;
     let sub_confs = HashMap::from([(subaccount_pubkey.as_str(),SubAccConf{ hold_value_limit})]);
-    multi_cli
+    let txid = multi_cli
         .add_subaccount(&main_account, sub_confs)
-        .await
-        .unwrap();
+        .await?;
+    
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::AddSubaccount,
+        &device.hold_pubkey.unwrap(),
+        &device.id,
+        &device.brand,
+        vec![txid]
+    );
+    record.insert()?;
+
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
     models::general::transaction_commit()?;
     //info!("new wallet {:?}  successfully", user_info);

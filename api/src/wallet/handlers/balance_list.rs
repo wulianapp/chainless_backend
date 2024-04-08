@@ -34,7 +34,7 @@ pub enum AccountType {
    All,
 }
 
-pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<HashMap<String,Vec<AccountBalance>>> {
+pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<Vec<(String,Vec<AccountBalance>)>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
@@ -73,7 +73,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
     };
 
 
-    let mut coin_balance_map = HashMap::new();
+    let mut coin_balance_map = vec![];
     for coin in &coin_list {
         let mut account_balance = vec![];
         for account in  check_accounts.iter().as_ref(){
@@ -98,7 +98,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             };
             account_balance.push(balance);
         }
-        coin_balance_map.insert(coin.to_string(), account_balance);
+        coin_balance_map.push((coin.to_string(), account_balance));
     }
 
   

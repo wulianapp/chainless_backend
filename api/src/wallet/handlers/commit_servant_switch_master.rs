@@ -1,9 +1,11 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
+use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
+use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -120,9 +122,21 @@ pub(crate) async fn req(
             .servant_pubkeys
             .push(old_master.to_string());
 
-        multi_sig_cli
+        let txid = multi_sig_cli
             .update_servant_pubkey_and_master(&main_account, current_strategy.servant_pubkeys,servant_pubkey)
             .await?;
+
+        //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
+        //从一开始就记录的话、状态管理太多    
+        let record = WalletManageRecordView::new_with_specified(
+            &user_id.to_string(),
+            WalletOperateType::NewcomerSwitchMaster,
+            &device.hold_pubkey.unwrap(),
+            &device.id,
+            &device.brand,
+            vec![txid]
+        );
+        record.insert()?;
     }
     models::general::transaction_commit()?;
     Ok(None::<String>)

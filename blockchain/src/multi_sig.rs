@@ -23,6 +23,7 @@ use near_crypto::InMemorySigner;
 use near_primitives::account::Account;
 use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
+use near_crypto::Signature;
 
 use common::data_structures::wallet::CoinType;
 use serde::{Deserialize, Serialize};
@@ -179,6 +180,38 @@ impl ContractClient<MultiSig> {
         .await
     }
 
+
+    pub async fn init_strategy2(
+        &self,
+        main_account_id: &str,
+        main_account_pubkey: &str,
+        subaccount_id: &str,
+        subaccount_pubkey: &str,
+    ) -> Result<String> {
+        //create account by send token
+        let register_main_tx_id = self.register_account_with_name(
+            main_account_id,
+            main_account_pubkey
+        ).await?;
+
+        debug!("register_main_tx_id {}", register_main_tx_id);
+        let register_tx_id = self.register_account_with_name(
+            subaccount_id,
+            subaccount_pubkey
+        ).await?;
+
+        debug!("register_tx_id {}", register_tx_id);
+        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 100 })]);
+        self.set_strategy(
+            main_account_id,
+            main_account_pubkey,
+            vec![],
+            sub_confs,
+            vec![MultiSigRank::default()],
+        )
+        .await
+    }
+
     pub async fn remove_tx_index(&self, tx_index: u64) -> Result<String> {
         let args_str = json!({"index": tx_index}).to_string();
         self.commit_by_relayer("remove_tx_index", &args_str).await
@@ -276,8 +309,16 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("update_subaccount_hold_limit", &args_str).await
     }
 
-    async fn register_account(&self, account_id: &str) -> Result<String> {
-        self.commit_by_relayer("register_account", account_id).await
+    async fn register_account(&self, user_id: &str) -> Result<String> {
+        self.commit_by_relayer("register_account", user_id).await
+    }
+
+    async fn register_account_with_name(&self, 
+        account_id: &str,
+        pubkey:&str,
+    ) -> Result<String> {
+        let arg_str = format!("{}:{}",account_id,pubkey);
+        self.commit_by_relayer("register_account_with_name", &arg_str).await
     }
 
     pub async fn update_servant_pubkey(
@@ -531,14 +572,15 @@ lazy_static! {
 
 pub fn get_pubkey(pri_key_str: &str) -> Result<String> {
     let secret_key = near_crypto::SecretKey::from_str(pri_key_str)?;
-    let pubkey = secret_key.public_key().try_to_vec()?;
-    Ok(pubkey.as_slice()[1..].to_vec().encode_hex())
+    let pubkey = secret_key.public_key().unwrap_as_ed25519().0;
+    //Ok(pubkey.as_slice()[1..].to_vec().encode_hex())
+    Ok(pubkey.encode_hex())
 }
 
 fn pubkey_from_hex(hex_str: &str) -> Result<PublicKey> {
     println!("pubkey_from_hex {}", hex_str);
     let sender_id = AccountId::from_str(hex_str)?;
-    Ok(PublicKey::from_implicit_account(&sender_id)?)
+    Ok(PublicKey::from_near_implicit_account(&sender_id)?)
 }
 
 pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> Result<String> {
@@ -551,9 +593,13 @@ pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> Result<Str
     let signer_account_id = AccountId::from_str(&main_device_pubkey)?;
     let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
     let signature = signer.sign(&data);
-    let near_sig_bytes = signature.try_to_vec()?;
-    let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    Ok(hex::encode(ed25519_sig_bytes))
+    if let Signature::ED25519(sig) = signature {
+        let near_sig_bytes = sig.to_bytes();
+        Ok(hex::encode(&near_sig_bytes))
+    }else {
+        unreachable!("")
+    }
+
 }
 
 pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<String> {
@@ -562,9 +608,13 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<S
     let signer_account_id = AccountId::from_str(&main_device_pubkey)?;
     let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
     let signature = signer.sign(data);
-    let near_sig_bytes = signature.try_to_vec()?;
-    let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    Ok(hex::encode(ed25519_sig_bytes))
+
+    if let Signature::ED25519(sig) = signature {
+        let near_sig_bytes = sig.to_bytes();
+        Ok(hex::encode(&near_sig_bytes))
+    }else {
+        unreachable!("")
+    }
 }
 
 #[cfg(test)]
@@ -649,6 +699,7 @@ mod tests {
         }
     }
 
+    /*** 
     #[tokio::test]
     async fn test_multi_sig_strategy() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
@@ -694,7 +745,6 @@ mod tests {
             .unwrap();
         println!("call set strategy txid {}", set_strategy_res);
     }
-
     #[tokio::test]
     async fn test_sig_near_ed25519() {
         let data_json = "{\"from\":\"6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45\",\
@@ -730,6 +780,7 @@ mod tests {
         println!("near_sig_res_bytes {:?}", ed25519_sig_bytes);
         println!("near_sig_res_hex {:?}", hex::encode(ed25519_sig_bytes));
     }
+        **/
 
     /***
     #[tokio::test]

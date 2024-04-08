@@ -45,7 +45,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String=dw20,cly} data.CoinTx.transaction.coin_type      币种名字
 * @apiSuccess {String} data.CoinTx.transaction.from                发起方
 * @apiSuccess {String} data.CoinTx.transaction.to                接收方
-* @apiSuccess {String} data.CoinTx.transaction.amount               交易量
+* @apiSuccess {Number} data.CoinTx.transaction.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.CoinTx.transaction.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
@@ -649,7 +649,7 @@ async fn add_subaccount(
  * @apiVersion 0.0.1
  * @apiName RemoveSubaccount
  * @apiGroup Wallet
- * @apiBody {String} account_id                   待删除的钱包id
+ * @apiBody {String} accountId                   待删除的钱包id
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
@@ -663,7 +663,7 @@ async fn add_subaccount(
 * @apiSuccess {string=0,1,3007} status_code         status code.
 * @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
 * @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
+* @apiSampleRequest http://120.232.251.101:8066/wallet/removeSubaccount
 */
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -1662,6 +1662,7 @@ async fn test_wallet_add_remove_subaccount() {
             };
             let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
 
+            //todo: 也许子账户转主账户也需要落表
             let coin_tx_hex_str = hex::encode(coin_tx_str.as_bytes());    
             let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.sub_prikey.clone().unwrap().first().unwrap(),

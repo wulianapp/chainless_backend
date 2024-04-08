@@ -20,7 +20,7 @@ use common::error_code;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
-    borsh::BorshSerialize,
+    borsh::{self, BorshSerialize},
     transaction::{
         Action, AddKeyAction, CreateAccountAction, DeleteKeyAction, FunctionCallAction,
         SignedTransaction, Transaction, TransferAction,
@@ -28,9 +28,9 @@ use near_primitives::{
     types::{AccountId, BlockReference, Finality, FunctionArgs},
     views::{FinalExecutionStatus, QueryRequest},
 };
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
-use std::{marker::PhantomData, str::FromStr};
+use std::{hash::Hash, marker::PhantomData, str::FromStr};
 use tracing::{debug, info};
 use anyhow::{Ok, Result};
 
@@ -64,27 +64,43 @@ impl<T> ContractClient<T> {
         let (receiver_str, actions, nonce) = if method_name == "register_account" {
             (
                 args.to_string(),
+                //匿名账户可以通过转账的方式创建
                 vec![Action::Transfer(TransferAction {
                     deposit: 1u128,
                 })],
                 1,
             )
+        //根据指定名字创建用户，需要配置顶级账户    
+        }else if method_name == "register_account_with_name"{
+            let args:Vec<&str> = args.split(":").collect();
+            let account_id = args[0];
+            let pubkey = args[1];
+
+            let add_action = Action::AddKey(Box::new(AddKeyAction {
+                public_key: pubkey_from_hex_str(pubkey)?,
+                access_key: AccessKey {
+                    nonce: 0u64,
+                    permission: AccessKeyPermission::FullAccess,
+                },
+            }));
+            let create_action = Action::CreateAccount(CreateAccountAction {});
+            (account_id.to_string(), vec![create_action,add_action], 1)
         } else if method_name == "add_key" {
-            let add_action = Action::AddKey(AddKeyAction {
+            let add_action = Action::AddKey(Box::new(AddKeyAction {
                 public_key: pubkey_from_hex_str(args)?,
                 access_key: AccessKey {
                     nonce: 0u64,
                     permission: AccessKeyPermission::FullAccess,
                 },
-            });
+            }));
             (caller_account_id.to_string(), vec![add_action], 1)
         } else if method_name == "delete_key" {
-            let delete_action = Action::DeleteKey(DeleteKeyAction {
+            let delete_action = Action::DeleteKey(Box::new(DeleteKeyAction {
                 public_key: pubkey_from_hex_str(args)?,
-            });
+            }));
             (caller_account_id.to_string(), vec![delete_action], 2)
         } else {
-            let call_action = Action::FunctionCall(*Box::new(FunctionCallAction {
+            let call_action = Action::FunctionCall(Box::new(FunctionCallAction {
                 method_name: method_name.to_string(),
                 args: args.as_bytes().to_vec(),
                 gas: 600000000000000, // 100 TeraGas
@@ -105,6 +121,7 @@ impl<T> ContractClient<T> {
        Ok(transaction)
     }
 
+    /*** 
     async fn gen_create_account_tx(&self, receiver: &AccountId) -> Result<Transaction> {
         let deposit_actions: Vec<Action> =
             vec![Action::Transfer(TransferAction { deposit: 0u128 })];
@@ -112,13 +129,13 @@ impl<T> ContractClient<T> {
         let mut transaction = gen_transaction_with_caller(
             self.relayer.account_id.clone(),
             self.relayer.public_key().clone(),
-            receiver,
+            receiver.as_str(),
         )
         .await?;
         transaction.actions = deposit_actions;
         Ok(transaction)
     }
-
+    */
     async fn gen_raw_with_relayer(
         &self,
         method_name: &str,
@@ -144,11 +161,12 @@ impl<T> ContractClient<T> {
             .gen_tx(caller_account_id, caller_pubkey, method_name, args)
             .await?;
 
-        let hash = tx.get_hash_and_size().0.try_to_vec().unwrap();
+        let raw_bytes = borsh::to_vec(&tx.clone())?;
+        let raw_str = hex::encode(raw_bytes);
+
+        let hash = tx.get_hash_and_size().0.as_bytes().to_owned();
         let txid = hex::encode(hash);
 
-        let raw_bytes = tx.try_to_vec().unwrap();
-        let raw_str = hex::encode(raw_bytes);
         Ok((txid, raw_str))
     }
 
@@ -216,10 +234,10 @@ pub async fn test_connect() {
     let mainnet_client = JsonRpcClient::connect("http://120.232.251.101:8061");
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
-            hash: "2HvMg8EpsgweGFSG87ngpJ97yWnuX9nBNB9yaXn8HC8w"
+            tx_hash: "2HvMg8EpsgweGFSG87ngpJ97yWnuX9nBNB9yaXn8HC8w"
                 .parse()
                 .unwrap(),
-            account_id: "node0".parse().unwrap(),
+            sender_account_id: "node0".parse().unwrap(),
         },
     };
 

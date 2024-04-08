@@ -1,10 +1,9 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::data_structures::KeyRole2;
+use common::data_structures::{wallet::WalletOperateType, KeyRole2};
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
-    PsqlOp,
+    device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
 
 use crate::utils::token_auth;
@@ -15,7 +14,7 @@ use common::error_code::{BackendRes, WalletError};
 pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> BackendRes<String> {
     //todo: must be called by main device
 
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
 
     let (user,current_strategy,device) = 
     super::get_session_state(user_id,&device_id).await?;
@@ -42,7 +41,18 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     //add wallet info
     let cli = ContractClient::<MultiSig>::new()?;
 
-    cli.update_rank(&main_account, strategy).await?;
+    let txid = cli.update_rank(&main_account, strategy).await?;
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::UpdateStrategy,
+        &device.hold_pubkey.unwrap(),
+        &device.id,
+        &device.brand,
+        vec![txid]
+    );
+    record.insert()?;    
+
+
 
     Ok(None::<String>)
 }

@@ -1,10 +1,9 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::data_structures::KeyRole2;
+use common::data_structures::{wallet::WalletOperateType, KeyRole2};
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
-    PsqlOp,
+    device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
 
 use crate::utils::token_auth;
@@ -31,7 +30,17 @@ pub async fn req(req: HttpRequest, request_data: UpdateSubaccountHoldLimitReques
     //add wallet info
     let cli = ContractClient::<MultiSig>::new()?;    
 
-    cli.update_subaccount_hold_limit(&main_account, &subaccount,limit).await?;
+    let txid = cli.update_subaccount_hold_limit(&main_account, &subaccount,limit).await?;
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::UpdateSubaccountHoldLimit,
+        &device.hold_pubkey.unwrap(),
+        &device.id,
+        &device.brand,
+        vec![txid]
+    );
+    record.insert()?;    
+
 
     Ok(None::<String>)
 }

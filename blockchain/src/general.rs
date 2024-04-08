@@ -1,19 +1,25 @@
+use common::data_structures::wallet::TxStatusOnChain;
+use common::utils::math::hex_to_bs58;
 use near_crypto::{InMemorySigner, KeyType, PublicKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::views::AccessKeyList;
+use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
 use std::str::FromStr;
 
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
 
+use near_jsonrpc_client::{JsonRpcClient};
+use near_jsonrpc_primitives::types::transactions::TransactionInfo;
+
+
 use hex;
 //use log::debug;
 use tracing::debug;
-use anyhow::{Ok, Result};
+use anyhow::{anyhow, Ok, Result};
 
 //todo: contract_addr type change into AccountId
 pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Result<Transaction> {
@@ -115,7 +121,7 @@ pub fn account_id_from_hex_str(id: &str) -> Result<AccountId> {
 
 pub fn pubkey_from_hex_str(key: &str) -> Result<PublicKey> {
     let account_id = AccountId::from_str(key)?;
-    let key = PublicKey::from_implicit_account(&account_id)?;
+    let key = PublicKey::from_near_implicit_account(&account_id)?;
     Ok(key)
 }
 
@@ -132,6 +138,35 @@ pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
         QueryResponseKind::AccessKeyList(list) => Ok(list),
         _ =>  Err(anyhow::anyhow!("failed to extract current nonce"))?,
     }
+}
+
+
+
+pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
+   
+    let tx_status_request = methods::tx::RpcTransactionStatusRequest {
+        transaction_info: TransactionInfo::TransactionId {
+            tx_hash: hex_to_bs58(tx_id).unwrap().parse().unwrap(),
+            sender_account_id: "node0".parse()?,
+        },
+    };
+
+    let tx_status = crate::CHAIN_CLIENT.call(tx_status_request).await?;
+
+
+    let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
+        for outcome in tx_status.receipts_outcome {
+            if let ExecutionStatusView::SuccessValue(_value) = outcome.outcome.status{
+                Err(anyhow!("".to_string()))?;
+            }
+        }
+        TxStatusOnChain::FinalizeAndSuccessful
+    }else if let FinalExecutionStatus::Failure(error) = tx_status.status{
+        TxStatusOnChain::FinalizeAndFailed
+    }else {
+        TxStatusOnChain::Pending
+    };
+    Ok(status)
 }
 
 pub async fn safe_gen_transaction(

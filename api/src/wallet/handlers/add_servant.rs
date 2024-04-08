@@ -1,6 +1,8 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
+use common::data_structures::wallet::WalletOperateType;
+use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::account_manager::user_info;
 use crate::utils::token_auth;
@@ -68,7 +70,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     current_strategy
         .servant_pubkeys
         .push(servant_pubkey.clone());
-    multi_sig_cli
+    let txid = multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
 
@@ -77,6 +79,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         DeviceInfoUpdater::AddServant(&servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
     )?;
+
+    //WalletManageRecordView
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::AddServant,
+        &device.hold_pubkey.unwrap(),
+        &device.id,
+        &device.brand,
+        vec![txid]
+    );
+    record.insert()?;
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

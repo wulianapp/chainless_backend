@@ -2,6 +2,7 @@ use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
 use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
+use std::ops::Deref;
 use std::str::FromStr;
 use tracing::debug;
 
@@ -45,7 +46,7 @@ fn decode_action(acts: &Vec<Action>) -> Result<NRC20TransferArgs, String> {
             deposit,
             args: _,
             gas,
-        } = act;
+        } = act.deref();
         //todo: gas limit
         if method_name == "ft_transfer" && deposit.eq(&0u128) && gas <= &u64::MAX {
             if let Ok(args) = serde_json::from_slice::<NRC20TransferArgs>(&act.args) {
@@ -140,7 +141,7 @@ mod tests {
     use crate::general::gen_transaction;
     use common::data_structures::wallet::CoinType;
     use near_crypto::InMemorySigner;
-    use near_primitives::borsh::BorshSerialize;
+    use near_primitives::borsh::{self, BorshSerialize};
     use near_primitives::types::AccountId;
     use serde_json::json;
     use std::str::FromStr;
@@ -156,7 +157,7 @@ mod tests {
         amount: u128,
         memo: Option<&str>,
     ) -> String {
-        let transfer_actions = vec![Action::FunctionCall(*Box::new(FunctionCallAction {
+        let transfer_actions = vec![Action::FunctionCall(Box::new(FunctionCallAction {
             method_name: "ft_transfer".to_string(),
             args: json!({
                 "receiver_id":  AccountId::from_str(&to).unwrap(),
@@ -171,8 +172,10 @@ mod tests {
         let mut transaction = gen_transaction(from, &coin_type.to_account_str()).await.unwrap();
         transaction.actions = transfer_actions;
         println!("{:?}", transaction);
-        let raw_tx = transaction.try_to_vec().unwrap();
-        hex::encode(raw_tx)
+        
+
+        let raw_bytes = borsh::to_vec(&transaction.clone()).unwrap();
+        hex::encode(&raw_bytes)
     }
 
     #[tokio::test]

@@ -10,18 +10,9 @@ use tracing::error;
 //use ed25519_dalek::Signer;
 use ed25519_dalek::Signer as DalekSigner;
 use hex::ToHex;
-use near_crypto::{ED25519SecretKey, PublicKey, SecretKey, Signer};
-use near_primitives::types::{BlockReference, Finality, FunctionArgs};
-use near_primitives::views::{FinalExecutionStatus, QueryRequest};
 use rand::rngs::OsRng;
 use serde_json::json;
 use bs58;
-
-use near_crypto::InMemorySigner;
-use near_primitives::account::Account;
-use near_primitives::borsh::BorshSerialize;
-use near_primitives::types::AccountId;
-
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use anyhow::Result;
