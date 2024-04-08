@@ -12,7 +12,7 @@ use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
 use crate::account_manager::{
-    contact_is_used, get_captcha, login, register_by_email, register_by_phone, reset_password,
+    contact_is_used, login, register_by_email, register_by_phone, reset_password,
 };
 use tracing::{debug, span, Level};
 

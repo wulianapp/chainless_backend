@@ -8,7 +8,7 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 use tracing::debug;
 
-use crate::account_manager::{self, user_info, GetCaptchaRequest, GetCaptchaWithTokenRequest, GetCaptchaWithoutTokenRequest};
+use crate::account_manager::{self, user_info, GetCaptchaWithoutTokenRequest, GetCaptchaWithTokenRequest};
 use crate::utils::{captcha, token_auth};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use common::error_code::{BackendError, BackendRes, WalletError};
@@ -16,8 +16,8 @@ use common::utils::time::{now_millis, MINUTE1, MINUTE10};
 use crate::utils::captcha::Usage::*;
 
 //老的接口暂时不动它
-pub async fn req(request_data: GetCaptchaRequest) -> BackendRes<String> {
-    let GetCaptchaRequest {
+pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
+    let GetCaptchaWithoutTokenRequest {
         device_id,
         contact,
         kind,
@@ -102,14 +102,12 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     let kind: Usage = kind.parse().map_err(
         |_err| BackendError::RequestParamInvalid("".to_string()))?;
 
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
-    let device = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user.id)
-    )?;
+
 
     //重置登录密码
     match kind {
         ResetLoginPassword => {
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceContact(&device_id, &contact))?;
             if device.device_info.key_role != KeyRole2::Master {
                 Err(WalletError::UneligiableRole(
                     device.device_info.key_role,
@@ -118,7 +116,16 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             }                
         },
         Register => {
-            debug!("");
+            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
+            if find_res.is_ok() {
+                Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
+            }
+        },
+        Login => {
+            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
+            if find_res.is_err() {
+                Err(AccountManagerError::PhoneOrEmailNotRegister)?;
+            }
         },
         SetSecurity| PreSendMoney |PreSendMoneyToSub| ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
@@ -140,7 +147,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     
     match kind {
-        ResetLoginPassword | Register => {
+        ResetLoginPassword | Register | Login => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
         },
         //验证码有效期内只能发起一次转账

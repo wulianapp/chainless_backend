@@ -18,7 +18,7 @@ async fn register(
     device_brand: String,
     contact: String,
     captcha: String,
-    predecessor_invite_code: Option<String>,
+    predecessor_invite_code: String,
     password: String,
     contact_type: ContactType,
     //encrypted_prikey: String,
@@ -51,12 +51,13 @@ async fn register(
         }
     }
 
-    if let Some(code) = predecessor_invite_code {
-        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code))
-            .map_err(|_e| InviteCodeNotExist)?;
-        view.user_info.predecessor = Some(predecessor.id);
+    let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&predecessor_invite_code))
+        .map_err(|_e| InviteCodeNotExist)?;
+    if !predecessor.user_info.secruity_is_seted{
+        Err(PredecessorNotSetSecurity)?;
     }
-
+    view.user_info.predecessor = Some(predecessor.id);
+    
     models::general::transaction_begin()?;
     //account_manager::single_insert(&view.user_info)?;
     account_manager::UserInfoView::insert(&view)?;

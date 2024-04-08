@@ -7,7 +7,8 @@ use common::error_code::AccountManagerError::{
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use tracing::debug;
 
-use crate::account_manager::LoginRequest;
+use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
+use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::BackendRes;
 use common::utils::time::{now_millis, MINUTE30};
@@ -74,6 +75,42 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect)?;
     }
+    //todo: distinguish repeat and not found
+    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
+        &device_id,
+        user_at_stored.id,
+    ));
+    if find_res.is_err() {
+        let device =
+            DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+        device.insert()?;
+    }
+
+    //generate auth token
+    let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);
+    Ok(Some(token))
+}
+
+
+pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<String> {
+    debug!("{:?}", request_data);
+    let LoginByCaptchaRequest {
+        device_id,
+        device_brand,
+        contact,
+        captcha,
+    } = request_data;
+    //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
+    let user_at_stored =
+        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+
+    Captcha::check_user_code(
+        &user_at_stored.id.to_string(), 
+        &captcha, 
+        Usage::Login
+    )?;
+
+
     //todo: distinguish repeat and not found
     let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
         &device_id,

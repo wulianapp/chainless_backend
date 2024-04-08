@@ -35,6 +35,7 @@ pub enum ContactType {
 #[derive(PartialEq, Clone, Debug, Eq, Hash,EnumString,ToString)]
 pub enum Usage {
     Register,
+    Login,
     ResetLoginPassword,
     SetSecurity,
     //验证码有效期内只能发起一次转账
@@ -65,7 +66,7 @@ impl FromStr for Usage {
 
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
-    if input.contains("mail") {
+    if input.contains("@") {
         /*** 
         let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
         if email_re.is_match(input) {

@@ -12,39 +12,6 @@ use tracing::{debug, Level};
 
 use crate::utils::respond::gen_extra_respond;
 
-/**
- * @apiDeprecated use now (#accountManager:getCaptchaWithoutToken).
- * @api {post} /accountManager/getCaptcha 获取验证码
- * @apiVersion 0.0.1
- * @apiName getCaptcha
- * @apiGroup AccountManager
- * @apiBody {String} deviceId   用户设备ID,也是测试服务的验证码返回值
- * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test000001@gmail.com
- * @apiBody {String="register","resetPassword","setSecurity","addServant","servantReplaceMaster","newcomerBecomeMaster"} kind 验证码类型
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptcha -H "Content-Type: application/json" -d
- *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
- * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
- * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
- * @apiSuccess {string} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptcha
- */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GetCaptchaRequest {
-    device_id: String,
-    contact: String,
-    kind: String,
-}
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/accountManager/getCaptcha")]
-async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_captcha::req(request_data.into_inner()).await)
-}
-
-
-
 
 
 /**
@@ -54,7 +21,7 @@ async fn get_captcha(request_data: web::Json<GetCaptchaRequest>) -> impl Respond
  * @apiGroup AccountManager
  * @apiBody {String} deviceId   用户设备ID,也是测试服务的验证码返回值
  * @apiBody {String} contact 用户联系方式 手机 +86 18888888888 or 邮箱 test000001@gmail.com
- * @apiBody {String="Register","ResetLoginPassword"} kind 验证码类型，测试网生成的验证码为000000
+ * @apiBody {String="Register","Login","ResetLoginPassword"} kind 验证码类型，测试网生成的验证码为000000
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
@@ -135,6 +102,42 @@ async fn contact_is_used(
     gen_extra_respond(handlers::contact_is_used::req(request_data.into_inner()))
 }
 
+
+
+
+
+/**
+ * @api {get} /accountManager/checkCaptcha 验证验证码
+ * @apiVersion 0.0.1
+ * @apiName CheckCaptcha
+ * @apiGroup AccountManager
+ * @apiBody {String} contact   邮箱或者手机号
+ * @apiBody {String} captcha   验证码值
+ * @apiBody {String="Register","Login","ResetLoginPassword","SetSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} usage    验证码用途
+
+ * @apiExample {curl} Example usage:
+ * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
+ * @apiSuccess {string=0,1,} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {bool} data                result.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
+ */
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckCaptchaRequest {
+    contact: String,
+    captcha: String,
+    usage: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/accountManager/checkCaptcha")]
+async fn check_captcha(
+    request_data: web::Query<CheckCaptchaRequest>,
+) -> impl Responder {
+    debug!("request_data {}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::check_captcha::req(request_data.into_inner()))
+}
+
 /**
  * @api {get} /accountManager/userInfo 用户账号详情
  * @apiVersion 0.0.1
@@ -201,7 +204,7 @@ pub struct RegisterByEmailRequest {
     password: String,
     //encrypted_prikey: String,
     //pubkey: String,
-    predecessor_invite_code: Option<String>,
+    predecessor_invite_code: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -243,7 +246,7 @@ pub struct RegisterByPhoneRequest {
     password: String,
     //encrypted_prikey: String,
     //pubkey: String,
-    predecessor_invite_code: Option<String>,
+    predecessor_invite_code: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
@@ -284,6 +287,40 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
     gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
 }
 
+
+
+/**
+ * @api {post} /accountManager/loginByCaptcha   通过验证码登录
+ * @apiVersion 0.0.1
+ * @apiName LoginByCaptcha
+ * @apiGroup AccountManager
+ * @apiBody {String} deviceId   设备ID
+ * @apiBody {String} deviceBrand  手机型号 Huawei-P20
+ * @apiBody {String} contact    例如 phone +86 18888888888 or email test000001@gmail.com
+ * @apiBody {String} captcha   验证码 000000
+ * @apiExample {curl} Example usage:
+ *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
+ *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
+* @apiSuccess {string=0,1,2012,2009} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
+ * @apiSuccess {string} data                jwt token.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
+ */
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginByCaptchaRequest {
+    device_id: String,
+    device_brand: String,
+    contact: String,
+    captcha: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/accountManager/loginByCaptcha")]
+async fn login_by_captcha(request_data: web::Json<LoginByCaptchaRequest>) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::login::req_by_captcha(request_data.into_inner()).await)
+}
+
 /**
 * @api {post} /accountManager/resetPassword  重置登录密码
 * @apiVersion 0.0.1
@@ -320,14 +357,17 @@ async fn reset_password(
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-        cfg.service(get_captcha)
+        cfg
+        //.service(get_captcha)
         .service(contact_is_used)
         .service(register_by_email)
         .service(register_by_phone)
         .service(login)
+        .service(login_by_captcha)
         .service(user_info)
         .service(get_captcha_with_token)
         .service(get_captcha_without_token)
+        .service(check_captcha)
         .service(reset_password);
 }
 
