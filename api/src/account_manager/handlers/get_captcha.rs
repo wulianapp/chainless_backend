@@ -113,25 +113,28 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
                     device.device_info.key_role,
                     KeyRole2::Master,
                 ))?;
-            }                
+            }
+            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+            get(device_id,contact,kind,Some(find_res.id))                
         },
         Register => {
             let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
+            get(device_id,contact,kind,None)
         },
         Login => {
             let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
             if find_res.is_err() {
                 Err(AccountManagerError::PhoneOrEmailNotRegister)?;
             }
+            get(device_id,contact,kind,Some(find_res.unwrap().id))
         },
         SetSecurity| PreSendMoney |PreSendMoneyToSub| ServantSwitchMaster | NewcomerSwitchMaster => {
-            Err(AccountManagerError::CaptchaUsageNotAllowed)?;
+            Err(AccountManagerError::CaptchaUsageNotAllowed)?
         }
     }
-    get(device_id,contact,kind,None)
 }
 
 

@@ -8,6 +8,7 @@ mod hello;
 pub mod multi_sig;
 mod newbie_reward;
 pub mod bridge;
+pub mod fees_call;
 
 use common::{
     error_code::{BackendError, ExternalServiceError},

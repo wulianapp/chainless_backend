@@ -100,7 +100,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
 
-        debug!("get_captcha_eddy_{:?}",code_storage);
+        debug!("get_all_captcha {:?}",code_storage);
     let value = code_storage
         .get(&(user, kind.to_owned()))
         .as_ref()
@@ -197,6 +197,21 @@ impl Captcha {
                 .lock()
                 .map_err(|e| InternalError(e.to_string()))?;
                 code_storage.remove(&(user.to_string(), kind.clone()));
+                Ok(())
+            }
+        } else {
+            Err(CaptchaNotFound)?
+        }
+    }
+
+    //todo: 验证验证码的时候不能进行验证码删除
+    pub fn check_user_code2(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+        if let Some(data) = get_captcha(user.to_string(), &kind)? {
+            if data.code != code {
+                Err(CaptchaIncorrect)?
+            } else if data.code == code && data.is_expired() {
+                Err(CaptchaExpired)?
+            } else {
                 Ok(())
             }
         } else {

@@ -14,7 +14,7 @@ pub fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
 
-    let check_res = Captcha::check_user_code(&user.id.to_string(), &captcha,usage);
+    let check_res = Captcha::check_user_code2(&user.id.to_string(), &captcha,usage);
     let is_ok = if check_res.is_err(){
         false
     }else{
