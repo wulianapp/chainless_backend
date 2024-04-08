@@ -20,6 +20,10 @@ ed25519-dalek = "1.0.1"
 tracing = "0.1.27"
 rand = "0.7"
 anyhow = "1.0.53"
+ethers = "2.0.11"
+ethers-signers = "2.0.13"
+ethers-core = "2.0.13"
+ethers-contract = "2.0.13"
 
 
 

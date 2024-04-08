@@ -7,6 +7,7 @@ pub mod general;
 mod hello;
 pub mod multi_sig;
 mod newbie_reward;
+pub mod bridge;
 
 use common::{
     error_code::{BackendError, ExternalServiceError},

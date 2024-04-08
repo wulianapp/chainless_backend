@@ -47,6 +47,9 @@ pub struct EnvConf {
     ///http service port
     pub api_port: usize,
     pub multi_sig_contract: String,
+    pub fees_call_contract: String,
+    pub bridge_near_contract: String,
+    pub bridge_eth_contract: String,
     /// ws servie prot
     pub multi_sig_relayer_prikey: String,
     /// psql connect url
@@ -91,6 +94,9 @@ impl Default for EnvConf {
             sms_server: "1".to_string(),
             sms_account: "1".to_string(),
             sms_token: "1".to_string(),
+            fees_call_contract: "fees_call".to_string(),
+            bridge_near_contract: "cvault0001.chainless".to_string(),
+            bridge_eth_contract: "0x1234".to_string(),
         }
     }
 }
@@ -113,6 +119,20 @@ lazy_static! {
         if let Some(value) = env::var_os("BACKEND_MULTI_SIG_CONTRACT"){
             conf.multi_sig_contract = value.to_str().unwrap().parse().unwrap();
         }
+
+
+        if let Some(value) = env::var_os("BACKEND_FEES_CALL_CONTRACT"){
+            conf.fees_call_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_BRIDGE_NEAR_CONTRACT"){
+            conf.bridge_near_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_BRIDGE_ETH_CONTRACT"){
+            conf.bridge_eth_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
 
         if let Some(value) = env::var_os("BACKEND_MULTI_SIG_RELAYER_PRIKEY"){
             conf.multi_sig_relayer_prikey = value.to_str().unwrap().parse().unwrap();
