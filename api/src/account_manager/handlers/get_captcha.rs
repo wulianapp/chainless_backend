@@ -58,8 +58,13 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
 
 fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> BackendRes<String> {
    
-    //todo: only master device can reset password
+    //兼容已登陆和未登陆
+    let contact = match user_id{
+        Some(id) => id.to_string(),
+        None => contact,
+    };
 
+    //todo: only master device can reset password
     let contract_type = captcha::validate(&contact)?;
     if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
         let past_time = now_millis() - data.created_at;
@@ -81,10 +86,7 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
         //email::send_email(&code).unwrap()
     };
 
-    let contact = match user_id{
-        Some(id) => id.to_string(),
-        None => contact,
-    };
+ 
     let code = Captcha::new(contact, device_id, kind);
     code.store()?;
 
@@ -107,14 +109,15 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceContact(&device_id, &contact))?;
+            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+            let user_id = find_res.id;
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
             if device.device_info.key_role != KeyRole2::Master {
                 Err(WalletError::UneligiableRole(
                     device.device_info.key_role,
                     KeyRole2::Master,
                 ))?;
             }
-            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
             get(device_id,contact,kind,Some(find_res.id))                
         },
         Register => {

@@ -24,7 +24,6 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
-    Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
     //check userinfo form db
     let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
@@ -44,10 +43,10 @@ async fn register(
     let mut view = UserInfoView::new_with_specified(&password, &this_user_id.to_string());
     match contact_type {
         ContactType::PhoneNumber => {
-            view.user_info.phone_number = contact;
+            view.user_info.phone_number = contact.clone();
         }
         ContactType::Email => {
-            view.user_info.email = contact;
+            view.user_info.email = contact.clone();
         }
     }
 
@@ -60,7 +59,7 @@ async fn register(
         view.user_info.predecessor = Some(predecessor.id);
     }
 
-    
+    Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
     models::general::transaction_begin()?;
     //account_manager::single_insert(&view.user_info)?;
     account_manager::UserInfoView::insert(&view)?;

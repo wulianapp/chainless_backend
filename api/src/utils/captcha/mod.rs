@@ -85,11 +85,14 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
         //这里和前端的有效判断不一致先放开
         let number = phonenumber::parse(None, input);
         //if phonenumber::is_valid(&number){
+        /***    
         if number.is_ok() {
             Ok(ContactType::PhoneNumber)
         } else {
             Err(PhoneOrEmailIncorrect)
         }
+        */
+        Ok(ContactType::PhoneNumber)
     }
 }
 
