@@ -36,22 +36,23 @@ fn record_once_retry(user_id: u32) {
     retry_storage.entry(user_id).or_default().push(now);
 }
 
-fn is_locked(user_id: u32) -> bool {
+fn is_locked(user_id: u32) -> (bool,u32) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
-            if now_millis() <= *records.last().unwrap() + MINUTE30 {
-                true
+            let remain_ms = *records.last().unwrap() as i64 + MINUTE30 as i64 - now_millis() as i64; 
+            if  remain_ms > 0 {
+                (true,remain_ms as u32 / 1000)
             } else {
                 //clear retry records
                 retry_storage.entry(user_id).or_default();
-                false
+                (false,0)
             }
         } else {
-            false
+            (false,0)
         }
     } else {
-        false
+        (false,0)
     }
 }
 
@@ -68,8 +69,9 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
     if password != user_at_stored.user_info.login_pwd_hash {
-        if is_locked(user_at_stored.id) {
-            Err(AccountLocked)?;
+        let (is_lock,remain_seconds) = is_locked(user_at_stored.id);
+        if is_lock{
+            Err(AccountLocked(remain_seconds))?;
         }
 
         record_once_retry(user_at_stored.id);
