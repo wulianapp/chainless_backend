@@ -3,9 +3,11 @@
 pub mod handlers;
 mod transaction;
 
+use actix_web::web::service;
 use actix_web::{get, post, web, HttpRequest, Responder};
 
 use common::data_structures::secret_store::SecretStore;
+use common::data_structures::wallet::CoinType;
 use serde::{Deserialize, Serialize};
 
 use crate::utils::respond::gen_extra_respond;
@@ -90,6 +92,28 @@ async fn search_message(request: HttpRequest) -> impl Responder {
 #[get("/wallet/getStrategy")]
 async fn get_strategy(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::get_strategy::req(request).await)
+}
+
+/**
+ * @api {get} /wallet/getFeesPriority 获取抵扣手续费的币种顺序
+ * @apiVersion 0.0.1
+ * @apiName GetFeesPriority
+ * @apiGroup Wallet
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
+ * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+ * @apiSuccess {string=0,1} status_code         status code.
+ * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {String[]} data                          币种顺序
+ * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
+ */
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/getFeesPriority")]
+async fn get_fees_priority(request: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::get_fees_priority::req(request).await)
 }
 
 /**
@@ -730,6 +754,45 @@ async fn update_strategy(
 
 
 /**
+ * @api {post} /wallet/setFeesPriority 设置手续费币种扣减顺序
+ * @apiVersion 0.0.1
+ * @apiName SetFeesPriority
+ * @apiGroup Wallet
+ * @apiBody {String[]=USDT,BTC,ETH,DW20,USDC} feesPriority   币种优先级
+
+ * @apiBody {Number} strategy.sigNum   所需签名数量
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/setFeesPriority
+   -d '  {
+             "strategy": [{"min": 0, "maxEq": 100, "sigNum": 0},{"min": 100, "maxEq": 1844674407370955200, "sigNum": 1}]
+            }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1,3007} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/setFeesPriority
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SetFeesPriorityRequest {
+    fees_priority: Vec<String>,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/setFeesPriority")]
+async fn set_fees_priority(
+    req: HttpRequest,
+    request_data: web::Json<SetFeesPriorityRequest>,
+) -> impl Responder {
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::set_fees_priority::req(req, request_data).await)
+}
+
+
+
+/**
  * @api {post} /wallet/updateSubaccountHoldLimit 更新子钱包的持仓额度
  * @apiVersion 0.0.1
  * @apiName UpdateSubaccountHoldLimit
@@ -1323,6 +1386,8 @@ async fn commit_servant_switch_master(
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(search_message)
         .service(get_strategy)
+        .service(get_fees_priority)
+        .service(set_fees_priority)
         .service(pre_send_money)
         .service(react_pre_send_money)
         .service(reconfirm_send_money)
@@ -1426,6 +1491,26 @@ async fn test_wallet_yunlong_fake_tx() {
 
 }
 */
+#[actix_web::test]
+async fn test_wallet_fees_prioritys_op() {
+    //todo: cureent is single, add multi_sig testcase
+    let _app = init().await;
+    let app = init().await;
+    let service = test::init_service(app).await;
+    let (mut sender_master,_,_,_) = gen_some_accounts_with_new_key();
+
+    test_register!(service, sender_master);
+    test_create_main_account!(service, sender_master);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    let priority1 = test_get_fees_priority!(service,sender_master).unwrap();
+    println!("priority1___{:?}",priority1);
+    test_set_fees_priority!(service,sender_master);
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    let priority2 = test_get_fees_priority!(service,sender_master).unwrap();
+    println!("priority2___{:?}",priority2);
+}
+
+
 #[actix_web::test]
 async fn test_wallet_add_remove_subaccount() {
     //todo: cureent is single, add multi_sig testcase

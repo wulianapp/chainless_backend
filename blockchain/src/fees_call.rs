@@ -24,8 +24,8 @@ use crate::ContractClient;
 use anyhow::{Ok, Result};
 
 
-pub struct Bridge {}
-impl ContractClient<Bridge> {
+pub struct FeesCall {}
+impl ContractClient<FeesCall> {
     //fixme: gen once object
     pub fn new() -> Result<Self> {
         let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
@@ -45,7 +45,7 @@ impl ContractClient<Bridge> {
         })
     }
 
-    pub async fn set_fee_priority(&self,account_id:&str,tokens:Vec<CoinType>) -> Result<String>{
+    pub async fn set_fees_priority(&self,account_id:&str,tokens:Vec<CoinType>) -> Result<String>{
         //todo: verify user's ecdsa signature
         let account_id = AccountId::from_str(&account_id)?;
         let tokens:Vec<AccountId> = tokens.iter().map(|coin|{
@@ -59,13 +59,19 @@ impl ContractClient<Bridge> {
     }
 
 
-    pub async fn get_fee_priority(&self,account_id:&str) -> Result<Vec<String>>{
+    pub async fn get_fees_priority(&self,account_id:&str) -> Result<Vec<CoinType>>{
         let user_account_id = AccountId::from_str(account_id).unwrap();
         let args_str = json!({
             "id": user_account_id,
         }).to_string();
-        let tokens = self.query_call("get_user_tokens", &args_str).await?;
-        Ok(tokens.unwrap())
+        //contract return default priority when not set
+        let tokens:Option<Vec<String>> = self.query_call("get_user_tokens", &args_str).await?;
+        let tokens = tokens
+        .unwrap()
+        .iter()
+        .map(|x| x.parse::<CoinType>().map_err(|e| anyhow::anyhow!(e)))
+        .collect::<Result<Vec<CoinType>>>()?;
+        Ok(tokens)
     }
 }
 
@@ -82,15 +88,18 @@ mod tests {
             CoinType::USDT,
             CoinType::DW20,
         ];
-        let fees_cli = ContractClient::<Bridge>::new().unwrap();
-        let prioritys = fees_cli.get_fee_priority("user.node0").await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys1 {:?} ",prioritys);
+        let json_string = serde_json::to_string(&prioritys).unwrap();
+        println!("prioritys_json1 {:?} ",json_string);
 
-        let set_res = fees_cli.set_fee_priority("user.node0",default_prioritys).await.unwrap();
+
+        let set_res = fees_cli.set_fees_priority("user.node0",default_prioritys).await.unwrap();
         println!("set_res {} ",set_res);
 
 
-        let prioritys = fees_cli.get_fee_priority("user.node0").await.unwrap();
+        let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys2 {:?} ",prioritys);
     }
 }

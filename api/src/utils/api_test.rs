@@ -302,7 +302,7 @@ macro_rules! test_register {
             let _res: BackendRespond<String> = test_service_call!(
                 $service,
                 "post",
-                "/accountManager/getCaptcha",
+                "/accountManager/getCaptchaWithoutToken",
                 Some(payload.to_string()),
                 None::<String>
             );
@@ -424,6 +424,22 @@ macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getStrategy");
         let res: BackendRespond<StrategyDataTmp> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_get_fees_priority {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/wallet/getFeesPriority");
+        let res: BackendRespond<Vec<String>> = test_service_call!(
             $service,
             "get",
             &url,
@@ -575,6 +591,23 @@ macro_rules! test_update_strategy {
     }};
 }
 
+
+#[macro_export]
+macro_rules! test_set_fees_priority{
+    ($service:expr, $master:expr) => {{
+        let payload = json!({
+            "feesPriority": ["USDC","eth","UsDt","Dw20","BTC"]
+        });
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/setFeesPriority",
+            Some(payload.to_string()),
+            Some($master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+    }};
+}
 
 
 #[macro_export]

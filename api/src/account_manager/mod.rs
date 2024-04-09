@@ -202,9 +202,8 @@ pub struct RegisterByEmailRequest {
     email: String,
     captcha: String,
     password: String,
-    //encrypted_prikey: String,
-    //pubkey: String,
-    predecessor_invite_code: String,
+    //第一个账户肯定没有predecessor
+    predecessor_invite_code: Option<String>,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -246,7 +245,7 @@ pub struct RegisterByPhoneRequest {
     password: String,
     //encrypted_prikey: String,
     //pubkey: String,
-    predecessor_invite_code: String,
+    predecessor_invite_code: Option<String>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]

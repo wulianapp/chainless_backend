@@ -64,11 +64,17 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
 pub enum CoinType {
+    #[strum(ascii_case_insensitive,to_string = "btc")]
     BTC,
+    #[strum(ascii_case_insensitive,to_string = "eth")]
     ETH,
+    #[strum(ascii_case_insensitive,to_string = "usdt")]
     USDT,
+    #[strum(ascii_case_insensitive,to_string = "usdc")]
     USDC,
+    #[strum(ascii_case_insensitive,to_string = "cly")]
     CLY,
+    #[strum(ascii_case_insensitive,to_string = "dw20")]
     DW20,
 }
 
