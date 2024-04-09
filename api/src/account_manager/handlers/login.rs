@@ -33,26 +33,28 @@ fn clear_retry_times(user_id:u32) {
 fn record_once_retry(user_id: u32) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     let now = now_millis();
+    debug!("0001___{}",now);
     retry_storage.entry(user_id).or_default().push(now);
 }
 
-fn is_locked(user_id: u32) -> (bool,u32) {
+fn is_locked(user_id: u32) -> (bool,u8,u64) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
-            let remain_ms = *records.last().unwrap() as i64 + MINUTE30 as i64 - now_millis() as i64; 
-            if  remain_ms > 0 {
-                (true,remain_ms as u32 / 1000)
+            let unlock_time = *records.last().unwrap() + MINUTE30; 
+            debug!("0002___{}",unlock_time);
+            if  unlock_time > now_millis() {
+                (true,0,unlock_time as u64 / 1000)
             } else {
                 //clear retry records
                 retry_storage.entry(user_id).or_default();
-                (false,0)
+                (false,0,0)
             }
         } else {
-            (false,0)
+            (false,5 - 1 - records.len() as u8,0)
         }
     } else {
-        (false,0)
+        (false,5 - 1,0)
     }
 }
 
@@ -69,13 +71,13 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
     if password != user_at_stored.user_info.login_pwd_hash {
-        let (is_lock,remain_seconds) = is_locked(user_at_stored.id);
+        let (is_lock,remain_chance,unlock_time) = is_locked(user_at_stored.id);
         if is_lock{
-            Err(AccountLocked(remain_seconds))?;
+            Err(AccountLocked(unlock_time))?;
         }
 
         record_once_retry(user_at_stored.id);
-        Err(PasswordIncorrect)?;
+        Err(PasswordIncorrect(remain_chance))?;
     }
     //todo: distinguish repeat and not found
     let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(

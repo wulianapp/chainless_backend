@@ -68,12 +68,12 @@ pub enum AccountManagerError {
     PhoneOrEmailAlreadyRegister,
     #[error("user's phone number or email not register")]
     PhoneOrEmailNotRegister,
-    #[error("user's password is incorrect")]
-    PasswordIncorrect,
+    #[error("user's password is incorrect,remain [{0}] input chance")]
+    PasswordIncorrect(u8),
     #[error("Captcha request too frequently,and it is alive in [{0}] secs")]
     CaptchaRequestTooFrequently(u8),
-    #[error("Account is locking,unlock after [{0}] seconds")]
-    AccountLocked(u32),
+    #[error("Account is locking,unlock after timestamp [{0}]")]
+    AccountLocked(u64),
     #[error("Invite code not exist")]
     InviteCodeNotExist,
     #[error("user_id is not exist")]
@@ -93,7 +93,7 @@ impl ErrorCode for AccountManagerError {
             Self::PhoneOrEmailIncorrect => 2005,
             Self::PhoneOrEmailAlreadyRegister => 2006,
             Self::PhoneOrEmailNotRegister => 2008,
-            Self::PasswordIncorrect => 2009,
+            Self::PasswordIncorrect(_) => 2009,
             Self::CaptchaRequestTooFrequently(_) => 2011,
             Self::AccountLocked(_) => 2012,
             Self::InviteCodeNotExist => 2013,
