@@ -268,6 +268,57 @@ async fn pre_send_money_to_sub(
     gen_extra_respond(handlers::pre_send_money_to_sub::req(request, request_data.0).await)
 }
 
+
+
+/**
+ * @api {post} /wallet/preSendMoneyToBridge 主钱包发起给子账户的预交易
+ * @apiVersion 0.0.1
+ * @apiName PreSendMoneyToBridge
+ * @apiGroup Wallet
+ * @apiBody {String} to      收款方ID
+ * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
+ * @apiBody {Number} amount      转账数量
+ * @apiBody {Number} expireAt      有效截止时间戳
+ * @apiBody {String} [memo]      交易备注
+ * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+            "from": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
+            "to": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb",
+            "coin":"dw20",
+            "amount": 123,
+            "expireAt": 1708015513000
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {string=0,1} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {string} data                nothing.
+* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreSendMoneyToBridgeRequest {
+    coin: String,
+    amount: u128,
+    expire_at: u64,
+    memo: Option<String>,
+    captcha: Option<String>
+}
+
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[post("/wallet/preSendMoneyToBridge")]
+async fn pre_send_money_to_bridge(
+    request: HttpRequest,
+    request_data: web::Json<PreSendMoneyToBridgeRequest>,
+) -> impl Responder {
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::pre_send_money_to_bridge::req(request, request_data.0).await)
+}
+
 /**
  * @api {post} /wallet/reactPreSendMoney 接受者收款确认
  * @apiVersion 0.0.1
@@ -1416,6 +1467,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(cancel_send_money)
         .service(gen_send_money)
         .service(get_need_sig_num)
+        .service(pre_send_money_to_bridge)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1719,6 +1771,45 @@ async fn test_wallet_add_remove_subaccount() {
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
     }
+
+
+    #[actix_web::test]
+    async fn test_wallet_main_send_money_to_bridge() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
+
+        //step3: master: pre_send_money
+        test_pre_send_money_to_bridge!(
+            service,
+            sender_master,
+            "DW20",
+            120000000
+        );
+
+        let res = test_search_message!(service, sender_master).unwrap();
+        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
+            //local sign
+            let signature = common::encrypt::ed25519_gen_pubkey_sign(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                //区别于普通转账，给子账户的签coin_tx_raw
+                &tx.coin_tx_raw,
+            ).unwrap();
+            test_reconfirm_send_money!(service,sender_master,index,signature);
+        }
+    }
+
+
     use std::str::FromStr;
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub struct SubAccCoinTx {

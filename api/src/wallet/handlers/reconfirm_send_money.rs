@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, SignInfo};
-use common::data_structures::wallet::CoinTxStatus;
+use common::data_structures::wallet::{CoinTxStatus, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -47,6 +47,34 @@ pub async fn req(
 
         let tx_id =  multi_cli
         .internal_transfer_main_to_sub(
+            master_sign, 
+            servant_sigs,
+            &coin_tx.transaction.from,
+            &coin_tx.transaction.to,
+            coin_tx.transaction.coin_type,
+            coin_tx.transaction.amount,
+            coin_tx.transaction.expire_at,
+        )
+        .await?;
+
+        //todo:txid?
+        models::coin_transfer::CoinTxView::update(
+            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinTxStatus::SenderReconfirmed),
+            CoinTxFilter::ByTxIndex(tx_index),
+        )?;
+
+    }else if coin_tx.transaction.tx_type == TxType::MainToBridge {
+        let servant_sigs = coin_tx
+        .transaction
+        .signatures
+        .iter()
+        .map(|data| data.parse().unwrap())
+        .collect();
+        //todo: unwrap()
+        let master_sign : SignInfo= confirmed_sig.parse().unwrap();
+
+        let tx_id =  multi_cli
+        .internal_withdraw(
             master_sign, 
             servant_sigs,
             &coin_tx.transaction.from,

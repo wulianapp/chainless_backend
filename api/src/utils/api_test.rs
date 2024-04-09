@@ -286,7 +286,7 @@ macro_rules! test_service_call {
             .try_into_bytes()
             .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("body_str {}", body_str);
+        println!("api {}, body_str {}",$api, body_str);
         serde_json::from_str::<_>(&body_str).unwrap()
     }};
 }
@@ -314,6 +314,7 @@ macro_rules! test_register {
                 //"captcha": $app.user.captcha,
                 "captcha": "000000",
                 "password": $app.user.password
+                //"predecessorInviteCode":"chainless.hk"
             });
 
             let res: BackendRespond<String> = test_service_call!(
@@ -712,6 +713,29 @@ macro_rules! test_pre_send_money_to_sub {
         res.data
     }};
 }
+
+
+#[macro_export]
+macro_rules! test_pre_send_money_to_bridge {
+    ($service:expr, $sender_master:expr,$coin:expr,$amount:expr) => {{
+        let payload = json!({
+            "coin":$coin,
+            "amount": $amount,
+            "expireAt": 1808015513000u64,
+            "captcha": "000000",
+       });
+        let res: BackendRespond<(u32,String)> = test_service_call!(
+            $service,
+            "post",
+            "/wallet/preSendMoneyToBridge",
+            Some(payload.to_string()),
+            Some($sender_master.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
 
 #[macro_export]
 macro_rules! test_reconfirm_send_money {

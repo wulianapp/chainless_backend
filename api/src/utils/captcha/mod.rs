@@ -41,6 +41,7 @@ pub enum Usage {
     //验证码有效期内只能发起一次转账
     PreSendMoney,
     PreSendMoneyToSub,
+    PreSendMoneyToBridge,
     //SetSecurity,
     //AddServant,
     ServantSwitchMaster,

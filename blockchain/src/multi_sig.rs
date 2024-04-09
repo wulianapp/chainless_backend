@@ -389,14 +389,6 @@ impl ContractClient<MultiSig> {
             memo: None,
         };
 
-        /****
-        let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
-        let public_key_bytes: Vec<u8> = hex::decode(master_sig.pubkey).unwrap();
-        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes).unwrap();
-        let signature = ed25519_dalek::Signature::from_str(&master_sig.signature).unwrap();
-        public_key.verify_strict(coin_tx_str.as_bytes(), &signature).unwrap();
-        **/
-
         let args_str = json!({
             "master_sig": master_sig,
             "servant_sigs": servant_sigs,
@@ -529,6 +521,38 @@ impl ContractClient<MultiSig> {
         let coin_tx_hex_str = hex::encode(coin_tx_json.as_bytes());
         Ok(coin_tx_hex_str)
     }
+
+
+      //转账给跨链桥
+       //todo: 检查持仓限制
+    pub async fn internal_withdraw(
+        &self,
+        master_sig: SignInfo,
+        servant_sigs: Vec<SignInfo>,
+        from: &str,
+        to: &str,
+        coin: CoinType,
+        transfer_amount: u128,
+        expire_at: u64,
+    ) -> Result<String> {
+        let coin_tx = CoinTx {
+            from: AccountId::from_str(from)?,
+            to: AccountId::from_str(to)?,
+            coin_id: coin.to_account_id(),
+            amount: transfer_amount,
+            expire_at,
+            memo: None,
+        };
+
+        let args_str = json!({
+            "master_sig": master_sig,
+            "servant_sigs": servant_sigs,
+            "coin_tx": coin_tx,
+        })
+        .to_string();
+        self.commit_by_relayer("internal_withdraw", &args_str)
+            .await
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -558,6 +582,14 @@ pub struct CoinTx {
     amount: u128,
     expire_at: u64,
     memo: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct WithdrawInfo {
+    from: AccountId,
+    kind: String,
+    coin_id: AccountId,
+    amount: u128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

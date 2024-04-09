@@ -54,10 +54,10 @@ pub fn get_support_coin_list() -> Vec<CoinType> {
 
 pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     vec![
-        CoinType::BTC,
-        CoinType::ETH,
-        CoinType::USDT,
-        CoinType::USDC,
+        //CoinType::BTC,
+        //CoinType::ETH,
+        //CoinType::USDT,
+        //CoinType::USDC,
         CoinType::DW20,
     ]
 }
@@ -111,6 +111,7 @@ pub enum CoinTxStatus {
     SenderSigCompleted,
     //子账户是接收者需要特殊对待
     SenderSigCompletedAndReceiverIsSub,
+    SenderSigCompletedAndReceiverIsBridge,
     ReceiverApproved,
     ReceiverRejected,
     SenderCanceled,
@@ -187,7 +188,8 @@ pub enum TxType {
     Normal,
     Forced,
     MainToSub,
-    SubToMain
+    SubToMain,
+    MainToBridge,
 }
 
 impl TxRole {
