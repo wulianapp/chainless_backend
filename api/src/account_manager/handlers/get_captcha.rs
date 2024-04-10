@@ -6,7 +6,7 @@ use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently}
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::account_manager::{self, user_info, GetCaptchaWithoutTokenRequest, GetCaptchaWithTokenRequest};
 use crate::utils::{captcha, token_auth};
@@ -109,16 +109,29 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
-            let user_id = find_res.id;
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-            if device.device_info.key_role != KeyRole2::Master {
-                Err(WalletError::UneligiableRole(
-                    device.device_info.key_role,
-                    KeyRole2::Master,
-                ))?;
+            let find_user_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+            let user_id = find_user_res.id;
+
+            if find_user_res.user_info.secruity_is_seted {
+                let find_device_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id));
+                if find_device_res.is_ok() && find_device_res.as_ref().unwrap().device_info.key_role.to_owned() == KeyRole2::Master {
+                   debug!("line {}",line!());
+                }else if find_device_res.is_err(){
+                    Err(WalletError::UneligiableRole(
+                        KeyRole2::Undefined,
+                        KeyRole2::Master,
+                    ))?;
+                }else {
+                    Err(WalletError::UneligiableRole(
+                        find_device_res.unwrap().device_info.key_role,
+                        KeyRole2::Master,
+                    ))?;
+                }
+                
             }
-            get(device_id,contact,kind,Some(find_res.id))                
+           
+        
+            get(device_id,contact,kind,Some(find_user_res.id))                
         },
         Register => {
             let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));

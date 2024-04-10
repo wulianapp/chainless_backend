@@ -37,6 +37,7 @@ use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 use crate::wallet::handlers::balance_list::AccountBalance;
 use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
+use crate::wallet::handlers::get_strategy::StrategyDataTmp;
 
 #[derive(Debug)]
 pub struct TestWallet {
@@ -870,7 +871,7 @@ macro_rules! test_update_subaccount_hold_limit {
             "limit": $limit
         });
         let url = format!("/wallet/updateSubaccountHoldLimit");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             &url,
@@ -891,7 +892,7 @@ macro_rules! test_react_pre_send_money {
             "isAgreed": $is_agreed,
         });
         let url = format!("/wallet/reactPreSendMoney");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             &url,

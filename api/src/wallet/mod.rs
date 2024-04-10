@@ -269,56 +269,6 @@ async fn pre_send_money_to_sub(
 }
 
 
-
-/**
- * @api {post} /wallet/preSendMoneyToBridge 主钱包发起给子账户的预交易
- * @apiVersion 0.0.1
- * @apiName PreSendMoneyToBridge
- * @apiGroup Wallet
- * @apiBody {String} to      收款方ID
- * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
- * @apiBody {Number} amount      转账数量
- * @apiBody {Number} expireAt      有效截止时间戳
- * @apiBody {String} [memo]      交易备注
- * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
- * @apiHeader {String} Authorization  user's access token
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
-   -d ' {
-            "from": "2fa7ab5bd3a75f276fd551aff10b215cf7c8b869ad245b562c55e49f322514c0",
-            "to": "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb",
-            "coin":"dw20",
-            "amount": 123,
-            "expireAt": 1708015513000
-           }'
-   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
-    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
-    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
-* @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
-*/
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct PreSendMoneyToBridgeRequest {
-    coin: String,
-    amount: u128,
-    expire_at: u64,
-    memo: Option<String>,
-    captcha: Option<String>
-}
-
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
-#[post("/wallet/preSendMoneyToBridge")]
-async fn pre_send_money_to_bridge(
-    request: HttpRequest,
-    request_data: web::Json<PreSendMoneyToBridgeRequest>,
-) -> impl Responder {
-    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::pre_send_money_to_bridge::req(request, request_data.0).await)
-}
-
 /**
  * @api {post} /wallet/reactPreSendMoney 接受者收款确认
  * @apiVersion 0.0.1
@@ -1467,7 +1417,6 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(cancel_send_money)
         .service(gen_send_money)
         .service(get_need_sig_num)
-        .service(pre_send_money_to_bridge)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -1613,7 +1562,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,_,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1631,7 +1580,7 @@ async fn test_wallet_add_remove_subaccount() {
             test_servant_saved_secret!(service,sender_servant);
         }   
 
-        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH",12,true,None::<String>);
         assert!(pre_send_res.is_some());
         
         let res = test_search_message!(service, sender_servant).unwrap();
@@ -1665,7 +1614,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_,_,mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         //let receive = a336dc50a8cef019d92c3c80c92a2a9d3842c95576d544286d166f1501a2351b
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -1679,7 +1628,7 @@ async fn test_wallet_add_remove_subaccount() {
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
             service,sender_master,
-            receiver.wallet.main_account,"DW20",1,true,Some("000000".to_string())
+            receiver.wallet.main_account,"ETH",1,true,Some("000000".to_string())
         ).unwrap();
 
         println!("txid {:?}",txid);
@@ -1741,7 +1690,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1755,7 +1704,7 @@ async fn test_wallet_add_remove_subaccount() {
             service,
             sender_master,
             sender_master.wallet.subaccount.first().unwrap(),
-            "DW20",
+            "ETH",
             12
         );
 
@@ -1778,7 +1727,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1792,8 +1741,8 @@ async fn test_wallet_add_remove_subaccount() {
         test_pre_send_money_to_bridge!(
             service,
             sender_master,
-            "DW20",
-            120000000
+            "USDT",
+            1200
         );
 
         let res = test_search_message!(service, sender_master).unwrap();
@@ -1822,7 +1771,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1850,7 +1799,7 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.subaccount.first().unwrap(),
                 signature
             );
-            test_sub_send_to_master!(service,sender_master,signature,"DW20",11);
+            test_sub_send_to_master!(service,sender_master,signature,"ETH",11);
     }
 
     #[derive(Deserialize, Serialize, Clone)]
@@ -1864,7 +1813,7 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,mut sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
 
         test_register!(service, sender_master);
@@ -1996,7 +1945,7 @@ async fn test_wallet_add_remove_subaccount() {
             receiver) 
          = gen_some_accounts_with_new_key();
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -2052,7 +2001,7 @@ async fn test_wallet_add_remove_subaccount() {
         println!("{},,,{:?}", line!(), device_lists);
 
         //step3: master: pre_send_money
-        let res = test_pre_send_money2!(service,sender_master,receiver.user.contact,"DW20",12,false);
+        let res = test_pre_send_money2!(service,sender_master,receiver.user.contact,"ETH",12,false);
         assert!(res.is_some());
         let tx = test_get_tx!(service,sender_master,res.unwrap().0);
         println!("txxxx__{:?}",tx.unwrap());
@@ -2181,7 +2130,7 @@ async fn test_wallet_add_remove_subaccount() {
 
         //step3: master: pre_send_money
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
-        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"DW20",12,true,None::<String>);
+        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH",12,true,None::<String>);
         assert!(res.is_some());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();

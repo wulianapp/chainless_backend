@@ -91,7 +91,7 @@ impl fmt::Display for DeviceInfoFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug,Clone)]
 pub struct DeviceInfoView {
     pub device_info: DeviceInfo,
     pub updated_at: String,

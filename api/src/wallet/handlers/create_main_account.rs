@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use actix_web::{web, HttpRequest};
+use blockchain::bridge::Bridge;
 use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes};
@@ -82,6 +85,12 @@ pub(crate) async fn req(
     let txid = multi_cli
         .init_strategy(&master_pubkey, &subaccount_pubkey)
         .await?;
+
+    //todo: 通过get_user进行检查、在里面了就不调用了    
+    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let set_res = bridge_cli.set_user_batch(&master_pubkey).await;
+    println!("set_user_batch txid {} ",set_res.unwrap());
+
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::CreateAccount,
@@ -91,6 +100,8 @@ pub(crate) async fn req(
         vec![txid]
     );
     record.insert()?;
+
+    //todo: 跨链桥更新状态
 
     models::general::transaction_commit()?;
     info!("new wallet {:?}  successfully", user_info);

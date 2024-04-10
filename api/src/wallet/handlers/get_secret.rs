@@ -32,7 +32,7 @@ pub(crate) async fn req(
                     .device_info
                     .hold_pubkey
                     .ok_or(BackendError::InternalError(
-                        "this haven't be servant yet".to_string(),
+                        "this have no pubkey yet".to_string(),
                     ))?;
 
             let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey))?;

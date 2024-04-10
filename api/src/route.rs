@@ -14,6 +14,7 @@ pub mod general;
 pub mod newbie_reward;
 pub mod utils;
 pub mod wallet;
+pub mod bridge;
 
 use actix_cors::Cors;
 use actix_web::{http, middleware, App, HttpServer};
@@ -41,6 +42,7 @@ async fn main() -> std::io::Result<()> {
             )
             .configure(account_manager::configure_routes)
             .configure(wallet::configure_routes)
+            .configure(bridge::configure_routes)
     })
     .bind(service)?
     .run()

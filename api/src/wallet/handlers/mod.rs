@@ -49,7 +49,6 @@ pub mod get_need_sig_num;
 pub mod remove_subaccount;
 pub mod set_fees_priority;
 pub mod get_fees_priority;
-pub mod pre_send_money_to_bridge;
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))

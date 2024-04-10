@@ -26,7 +26,7 @@ pub enum KeyRole {
     Newcommer(String),
 }
 
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq,Clone)]
 pub enum KeyRole2 {
     Master,
     Servant,
@@ -56,7 +56,7 @@ pub enum SecretKeyState {
 
 type DeviceType = Option<KeyRole>;
 
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq,Clone)]
 pub enum DeviceState {
     Active,
     Inactive,
