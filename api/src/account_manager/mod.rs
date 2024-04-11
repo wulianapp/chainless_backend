@@ -161,6 +161,8 @@ async fn check_captcha(
  * @apiSuccess {bool} data.secruity_is_seted        是否进行安全设置
  * @apiSuccess {string} data.main_account             主钱包id
  * @apiSuccess {string} data.role                   当前的角色
+ * @apiSuccess {string} [data.name]                       kyc实名名字
+ * @apiSuccess {string} [data.birthday]                   出生日期
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 

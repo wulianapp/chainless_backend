@@ -25,6 +25,9 @@ pub struct UserInfoTmp {
     pub secruity_is_seted: bool,
     pub main_account: String,
     pub role:String,
+    pub name:Option<String>,
+    pub birth:Option<String>,
+
     //pub op_status: OpStatus,
 }
 
@@ -57,7 +60,10 @@ pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         kyc_is_verified: res.user_info.kyc_is_verified,
         secruity_is_seted: res.user_info.secruity_is_seted,
         main_account: res.user_info.main_account,
-        role: role.to_string()
+        role: role.to_string(),
+        name: Some("Bob".to_string()),
+        birth: Some("1993-04-01".to_string())
+
     };
     Ok(Some(info))
 }
