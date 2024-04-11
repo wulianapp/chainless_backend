@@ -50,14 +50,17 @@ pub mod remove_subaccount;
 pub mod set_fees_priority;
 pub mod get_fees_priority;
 
-pub async fn gen_random_account_id() -> Result<String,BackendError>{
-    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+pub async fn gen_random_account_id(multi_sig_cli: &ContractClient<MultiSig>) -> Result<String,BackendError>{
     for _ in 0..10  {
         let relayer_name = &common::env::CONF.multi_sig_relayer_account_id;
         let hex_str = generate_random_hex_string(8);
         let account_id = format!("{}.{}",hex_str,relayer_name);
-        let key = multi_sig_cli.get_master_pubkey(&account_id).await;
-        return Ok(account_id);
+        //当前的以空master_key来判断是否账户存在
+        //let key = multi_sig_cli.get_master_pubkey_list(&account_id).await?;
+        //todo:
+        if true{
+            return Ok(account_id);
+        }
     }
     Err(BackendError::InternalError("".to_string()))
 }

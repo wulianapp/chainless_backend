@@ -210,6 +210,13 @@ impl Captcha {
 
     //todo: 验证验证码的时候不能进行验证码删除
     pub fn check_user_code2(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+        if common::env::CONF.service_mode != ServiceMode::Product
+        && common::env::CONF.service_mode != ServiceMode::Dev
+        && code.eq("000000")
+        {
+            return Ok(());
+        }
+        
         if let Some(data) = get_captcha(user.to_string(), &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?

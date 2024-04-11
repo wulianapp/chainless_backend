@@ -57,7 +57,10 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
 
 
 fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> BackendRes<String> {
-   
+    let contract_type = captcha::validate(&contact)?;
+    //fixme:
+    let contact2 = contact.clone();
+
     //兼容已登陆和未登陆
     let contact = match user_id{
         Some(id) => id.to_string(),
@@ -65,7 +68,6 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
     };
 
     //todo: only master device can reset password
-    let contract_type = captcha::validate(&contact)?;
     if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
         let past_time = now_millis() - data.created_at;
         if past_time <= MINUTE1 {
@@ -87,7 +89,7 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
        //phone::send_sms(&code).unwrap()
        Err(ExternalServiceError::PhoneCaptcha("Not support Phone nowadays".to_string()))?;
     } else {
-       email::send_email(&code)?;
+       email::send_email(&code,contact2)?;
     };
     
     code.store()?;

@@ -166,15 +166,19 @@ impl ContractClient<MultiSig> {
 
     pub async fn init_strategy(
         &self,
+        main_account_pubkey: &str,
         main_account_id: &str,
+        subaccount_pubkey: &str,
         subaccount_id: &str,
     ) -> Result<String> {
         //create account by send token
-        let register_main_tx_id = self.register_account(main_account_id).await?;
+        println!("0001a");
+        let register_main_tx_id = self.register_account_with_name(main_account_id,main_account_pubkey).await?;
         debug!("register_main_tx_id {}", register_main_tx_id);
-        let register_tx_id = self.register_account(subaccount_id).await?;
+        let register_tx_id = self.register_account_with_name(subaccount_id,subaccount_pubkey).await?;
         debug!("register_tx_id {}", register_tx_id);
         let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 100 })]);
+        println!("0001b");
         self.set_strategy(
             main_account_id,
             main_account_id,
@@ -736,6 +740,13 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn test_get_master_keys(){
+        let multi_sig_cli = ContractClient::<MultiSig>::new().unwrap();
+        let account_id = "test".to_string();
+        let res = multi_sig_cli.get_master_pubkey_list(&account_id).await;
+        println!("{:?}",res);
+    }
     /*** 
     #[tokio::test]
     async fn test_multi_sig_strategy() {

@@ -84,12 +84,12 @@ pub async fn gen_transaction_with_caller_with_nonce(
     contract_addr: &str,
     add_nonce: u8,
 ) -> Result<Transaction> {
-    debug!("{},{},{},{}",caller_account_id.to_string(),
+    debug!("line_{}___{},{},{},{}",line!(),caller_account_id.to_string(),
     caller_pubkey.to_string(),
     contract_addr.to_string(),
     add_nonce.to_string()
-);
-    let access_key_query_response = crate::CHAIN_CLIENT
+    );
+    let mut access_key_query_response = crate::CHAIN_CLIENT
         .call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKey {
@@ -97,7 +97,22 @@ pub async fn gen_transaction_with_caller_with_nonce(
                 public_key: caller_pubkey.clone(),
             },
         })
-        .await?;
+        .await;
+    //fixme: must retry
+    if access_key_query_response.is_err() {
+        access_key_query_response = crate::CHAIN_CLIENT
+        .call(methods::query::RpcQueryRequest {
+            block_reference: BlockReference::latest(),
+            request: near_primitives::views::QueryRequest::ViewAccessKey {
+                account_id: caller_account_id.clone(),
+                public_key: caller_pubkey.clone(),
+            },
+        })
+        .await;
+    }
+    let access_key_query_response = access_key_query_response.unwrap();
+
+    debug!("line_{}___{}",line!(),caller_account_id.to_string());
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
@@ -270,5 +285,20 @@ mod tests {
         let raw_sign = "11bfe4d0b7705f6c57282a9030b22505ce2641547e9f246561d75a284f5a6e0a10e596fa7e702b6f897ad19c859ee880d4d1e80e521d91c53cc8827b67558a0e";
         let raw_tx = "1d00000074696d657374616d705f313730343139303135343938332e6e6f64653000b07a2c1e6d6a5f42827bace780a4cd9b03d37b5cff85f2fdcd08821ecbc3db9181a2a6585a010000050000006e6f6465308fed8725a8d7494013680e18ee53e86c76598ff2734ca1739735e1b16fc9a829010000000301000000000000000000000000000000";
         let _res = broadcast_tx_commit_from_raw(raw_tx, raw_sign).await;
+    }
+
+    #[tokio::test]
+    async fn test_gen_transaction_with_caller_with_nonce(){
+        let caller_account_id = AccountId::from_str("test").unwrap();
+        let pubkey_hex = AccountId::from_str("b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7").unwrap();
+        let caller_pubkey = PublicKey::from_near_implicit_account(&pubkey_hex).unwrap();
+        let receiver_id = "7daa0e49.test";
+        let res = gen_transaction_with_caller_with_nonce(
+            caller_account_id,
+            caller_pubkey,
+            receiver_id,
+            1
+        ).await.unwrap();
+        println!("res {:?}",res);
     }
 }

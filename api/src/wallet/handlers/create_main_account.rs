@@ -5,6 +5,7 @@ use blockchain::bridge::Bridge;
 use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes};
+use common::utils::math::generate_random_hex_string;
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::SecretStoreView;
 use models::wallet_manage_record::WalletManageRecordView;
@@ -46,14 +47,20 @@ pub(crate) async fn req(
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     
-    if !user_info.user_info.main_account.is_empty(){
+    if !user_info.user_info.main_account.eq(""){
         Err(BackendError::InternalError("main_account is already existent".to_string()))?;
     }
+
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    //todo:
+    let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
+    let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
+
 
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update(
-        UserUpdater::SecruityInfo(&anwser_indexes, true, &master_pubkey),
+        UserUpdater::SecruityInfo(&anwser_indexes, true, &main_account_id),
         UserFilter::ById(user_id),
     )?;
 
@@ -78,14 +85,14 @@ pub(crate) async fn req(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;
 
-    let multi_cli = ContractClient::<MultiSig>::new()?;
 
-
-    //todo:
-    let txid = multi_cli
-        .init_strategy(&master_pubkey, &subaccount_pubkey)
-        .await?;
-
+    let txid = multi_sig_cli
+        .init_strategy(
+            &master_pubkey,
+            &main_account_id, 
+            &subaccount_pubkey,
+            &subaccount_id
+        ).await?;
     //todo: 通过get_user进行检查、在里面了就不调用了    
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
     let set_res = bridge_cli.set_user_batch(&master_pubkey).await;
