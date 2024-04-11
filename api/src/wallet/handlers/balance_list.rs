@@ -34,7 +34,7 @@ pub enum AccountType {
    All,
 }
 
-pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<Vec<(String,Vec<AccountBalance>)>> {
+pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<Vec<(CoinType,Vec<AccountBalance>)>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
@@ -74,7 +74,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
 
 
     let mut coin_balance_map = vec![];
-    for coin in &coin_list {
+    for coin in coin_list {
         let mut account_balance = vec![];
         for account in  check_accounts.iter().as_ref(){
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
@@ -86,7 +86,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             } else {
                 "0".to_string()
             };
-            let freezn_amount = super::get_freezn_amount(account, coin);
+            let freezn_amount = super::get_freezn_amount(account, &coin);
             let total_balance = balance_on_chain.parse().unwrap();
             let available_balance = total_balance - freezn_amount;
             let balance = AccountBalance{
@@ -98,7 +98,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             };
             account_balance.push(balance);
         }
-        coin_balance_map.push((coin.to_string(), account_balance));
+        coin_balance_map.push((coin, account_balance));
     }
 
   

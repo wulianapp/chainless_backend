@@ -11,7 +11,7 @@ use tracing::{debug, info};
 use crate::account_manager::{self, user_info, GetCaptchaWithoutTokenRequest, GetCaptchaWithTokenRequest};
 use crate::utils::{captcha, token_auth};
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
-use common::error_code::{BackendError, BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::utils::time::{now_millis, MINUTE1, MINUTE10};
 use crate::utils::captcha::Usage::*;
 
@@ -85,7 +85,7 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
 
     if contract_type == ContactType::PhoneNumber {
        //phone::send_sms(&code).unwrap()
-       Err(BackendError::InternalError("Not support Phone nowadays".to_string()))?;
+       Err(ExternalServiceError::PhoneCaptcha("Not support Phone nowadays".to_string()))?;
     } else {
        email::send_email(&code)?;
     };

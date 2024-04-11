@@ -52,6 +52,8 @@ pub struct EnvConf {
     pub bridge_eth_contract: String,
     /// ws servie prot
     pub multi_sig_relayer_prikey: String,
+    //relayer_account_id
+    pub multi_sig_relayer_account_id: String,
     /// psql connect url
     pub wallet_api_port: usize,
     /// redis
@@ -83,6 +85,7 @@ impl Default for EnvConf {
             api_port: 8065,
             multi_sig_contract: "".to_string(),
             multi_sig_relayer_prikey: "".to_string(),
+            multi_sig_relayer_account_id: "".to_string(),
             wallet_api_port: 8069,
             prostgres_server: "".to_string(),
             chain_rpc: "1".to_string(),
@@ -136,6 +139,10 @@ lazy_static! {
 
         if let Some(value) = env::var_os("BACKEND_MULTI_SIG_RELAYER_PRIKEY"){
             conf.multi_sig_relayer_prikey = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_MULTI_SIG_RELAYER_ACCOUNT_ID"){
+            conf.multi_sig_relayer_account_id = value.to_str().unwrap().parse().unwrap();
         }
 
         if let Some(value) = env::var_os("BACKEND_CHAIN_RPC"){

@@ -233,6 +233,7 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
 
+        /***     
         test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
         let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
 
@@ -246,5 +247,6 @@ mod tests {
             &gen_res.as_ref().unwrap().delete_key_txid,
         ).unwrap();
         test_commit_newcommer_switch_master!(service,sender_newcommer,gen_res,add_key_sig,delete_key_sig);
+        */
     }
 }

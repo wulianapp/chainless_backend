@@ -158,7 +158,11 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
         let mut status =   TxStatusOnChain::FinalizeAndSuccessful;
         for outcome in tx_status.receipts_outcome {
             match outcome.outcome.status{
-                ExecutionStatusView::Unknown => unreachable!(""),
+                ExecutionStatusView::Unknown => {
+                    unreachable!("");
+                    status = TxStatusOnChain::FinalizeAndFailed;
+                    break;
+                },
                 ExecutionStatusView::Failure(_) => {
                     status = TxStatusOnChain::FinalizeAndFailed;
                 },

@@ -3,16 +3,16 @@ use std::{ops::Deref, str::FromStr};
 use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
 use common::{
     data_structures::{account_manager::UserInfo, device_info::DeviceInfo, wallet::CoinType, KeyRole2},
-    error_code::{BackendError, BackendRes, WalletError},
+    error_code::{BackendError, BackendRes, WalletError}, utils::math::generate_random_hex_string,
 };
 use models::{
     account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, device_info::{DeviceInfoFilter, DeviceInfoView}, PsqlOp
 };
-use anyhow::Result;
+use anyhow::{Result};
 use serde::{Deserialize, Serialize};
 use tracing::error;
 
-use crate::account_manager::user_info;
+use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 
 
@@ -49,6 +49,18 @@ pub mod get_need_sig_num;
 pub mod remove_subaccount;
 pub mod set_fees_priority;
 pub mod get_fees_priority;
+
+pub async fn gen_random_account_id() -> Result<String,BackendError>{
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    for _ in 0..10  {
+        let relayer_name = &common::env::CONF.multi_sig_relayer_account_id;
+        let hex_str = generate_random_hex_string(8);
+        let account_id = format!("{}.{}",hex_str,relayer_name);
+        let key = multi_sig_cli.get_master_pubkey(&account_id).await;
+        return Ok(account_id);
+    }
+    Err(BackendError::InternalError("".to_string()))
+}
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
     CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))

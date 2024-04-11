@@ -22,7 +22,7 @@ pub fn gen_random_verify_code() -> u32 {
 //生成随机值的hex字符串
 pub fn generate_random_hex_string(size: usize) -> String {
     // 计算需要生成的随机字节数
-    let byte_size = (size + 1) / 2; // 每个十六进制字符表示 4 位二进制数，所以需要的字节数为 size / 2
+    let byte_size = (size + 1) / 2;
 
     // 生成随机字节数组
     let mut rng = rand::thread_rng();
