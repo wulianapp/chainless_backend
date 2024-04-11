@@ -148,14 +148,7 @@ pub fn distill_code_from_contact(contact: &str) -> String {
 
 impl Captcha {
     pub fn new(user: String, device_id: String, kind: Usage) -> Self {
-        let code = if common::env::CONF.service_mode != ServiceMode::Product
-            && common::env::CONF.service_mode != ServiceMode::Dev
-        {
-            //distill_code_from_contact(&user)
-            "000000".to_string()
-        } else {
-            gen_random_verify_code().to_string()
-        };
+        let code = gen_random_verify_code().to_string();
         let now = now_millis();
         Captcha {
             owner: user,
@@ -190,6 +183,13 @@ impl Captcha {
     }
 
     pub fn check_user_code(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+        if common::env::CONF.service_mode != ServiceMode::Product
+        && common::env::CONF.service_mode != ServiceMode::Dev
+        && code.eq("000000")
+        {
+            return Ok(());
+        }
+        
         if let Some(data) = get_captcha(user.to_string(), &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?
