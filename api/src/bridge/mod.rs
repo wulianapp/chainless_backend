@@ -120,7 +120,7 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
 }
 
 /**
- * @api {post} /bridge/genDepositSig  生成跨链提现签名
+ * @api {post} /bridge/genDepositSig  生成跨链提现
  * @apiVersion 0.0.1
  * @apiName GenDepositSig
  * @apiGroup Bridge
@@ -216,4 +216,35 @@ mod tests {
     use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
     use std::collections::HashMap;
     use crate::wallet::handlers::balance_list::AccountBalance;
+
+    #[actix_web::test]
+    async fn test_bridge_deposit() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let (mut sender_master,
+            _sender_servant,
+            mut sender_newcommer,
+            _receiver) 
+        = gen_some_accounts_with_new_key();
+
+        test_register!(service, sender_master);
+        test_login!(service, sender_newcommer);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+
+        test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
+        let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
+
+        let add_key_sig = common::encrypt::ed25519_sign_hex(
+            sender_master.wallet.prikey.as_ref().unwrap(),
+            &gen_res.as_ref().unwrap().add_key_txid,
+        ).unwrap();
+
+        let delete_key_sig = common::encrypt::ed25519_sign_hex(
+            sender_master.wallet.prikey.as_ref().unwrap(),
+            &gen_res.as_ref().unwrap().delete_key_txid,
+        ).unwrap();
+        test_commit_newcommer_switch_master!(service,sender_newcommer,gen_res,add_key_sig,delete_key_sig);
+    }
 }

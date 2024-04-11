@@ -524,7 +524,7 @@ impl ContractClient<MultiSig> {
 
 
       //转账给跨链桥
-       //todo: 检查持仓限制
+       //todo: 弃用
     pub async fn internal_withdraw(
         &self,
         master_sig: SignInfo,

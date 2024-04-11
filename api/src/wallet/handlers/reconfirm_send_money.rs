@@ -63,7 +63,10 @@ pub async fn req(
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
 
-    }else if coin_tx.transaction.tx_type == TxType::MainToBridge {
+    }
+    /***
+     //跨链转出，在无链端按照普通转账处理
+    else if coin_tx.transaction.tx_type == TxType::MainToBridge {
         let servant_sigs = coin_tx
         .transaction
         .signatures
@@ -91,7 +94,8 @@ pub async fn req(
             CoinTxFilter::ByTxIndex(tx_index),
         )?;
 
-    }else{           
+    }*/
+    else{           
         blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
             &confirmed_sig,
@@ -102,5 +106,5 @@ pub async fn req(
         )?;     
     }
         
-    Ok(None::<String>)
+    Ok(None)
 }
