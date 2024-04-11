@@ -345,6 +345,7 @@ pub struct ResetPasswordRequest {
     contact: String,
     captcha: String,
     new_password: String,
+    device_id: String
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
