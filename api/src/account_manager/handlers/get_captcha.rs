@@ -151,7 +151,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             }
             get(device_id,contact,kind,Some(find_res.unwrap().id))
         },
-        SetSecurity| PreSendMoney |PreSendMoneyToSub| PreSendMoneyToBridge| ServantSwitchMaster | NewcomerSwitchMaster => {
+        SetSecurity| UpdateSecurity | PreSendMoney |PreSendMoneyToSub| PreSendMoneyToBridge| ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?
         }
     }
@@ -182,7 +182,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
                 ))?;
             }
         },
-        SetSecurity => {
+        SetSecurity | UpdateSecurity => {
             if user.user_info.secruity_is_seted {
                 if device.device_info.key_role != KeyRole2::Master {
                     Err(WalletError::UneligiableRole(

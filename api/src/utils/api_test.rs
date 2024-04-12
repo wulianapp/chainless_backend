@@ -617,7 +617,7 @@ macro_rules! test_update_security {
     ($service:expr, $app:expr, $secrets:expr) => {{
         let payload = json!({
             "contact": $app.user.contact,
-            "kind": "SetSecurity"
+            "kind": "UpdateSecurity"
         });
         let res: BackendRespond<String> = test_service_call!(
             $service,

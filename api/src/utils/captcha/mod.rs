@@ -38,6 +38,7 @@ pub enum Usage {
     Login,
     ResetLoginPassword,
     SetSecurity,
+    UpdateSecurity,
     //验证码有效期内只能发起一次转账
     PreSendMoney,
     PreSendMoneyToSub,

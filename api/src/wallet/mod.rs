@@ -1548,7 +1548,8 @@ async fn test_wallet_add_remove_subaccount() {
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let subacc = sender_master.wallet.subaccount.first().unwrap();
+        let strategy = test_get_strategy!(service,sender_master).unwrap();
+        let subacc = strategy.subaccounts.iter().next().unwrap().0;
         test_update_subaccount_hold_limit!(service,sender_master,subacc,12);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let strategy = test_get_strategy!(service,sender_master).unwrap();

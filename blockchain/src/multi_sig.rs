@@ -181,7 +181,7 @@ impl ContractClient<MultiSig> {
         println!("0001b");
         self.set_strategy(
             main_account_id,
-            main_account_id,
+            main_account_pubkey,
             vec![],
             sub_confs,
             vec![MultiSigRank::default()],
