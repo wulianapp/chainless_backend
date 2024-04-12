@@ -96,7 +96,7 @@ async fn bind_eth_addr(
  * @apiVersion 0.0.1
  * @apiName GenBindEthAddrSig
  * @apiGroup Bridge
- * @apiBody {String="SetSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
+ * @apiBody {String} ethAddr 以太坊地址
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/bridge/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
@@ -120,11 +120,12 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
 }
 
 /**
- * @api {post} /bridge/genDepositSig  生成跨链提现
+ * @api {post} /bridge/genDepositSig  生成跨链充值
  * @apiVersion 0.0.1
  * @apiName GenDepositSig
  * @apiGroup Bridge
- * @apiBody {String="SetSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
+ * @apiBody {String="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
+ * @apiBody {Number} amount 提现数量
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'

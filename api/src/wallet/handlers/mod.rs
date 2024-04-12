@@ -10,7 +10,7 @@ use models::{
 };
 use anyhow::{Result};
 use serde::{Deserialize, Serialize};
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
@@ -56,10 +56,11 @@ pub async fn gen_random_account_id(multi_sig_cli: &ContractClient<MultiSig>) -> 
         let hex_str = generate_random_hex_string(8);
         let account_id = format!("{}.{}",hex_str,relayer_name);
         //当前的以空master_key来判断是否账户存在
-        //let key = multi_sig_cli.get_master_pubkey_list(&account_id).await?;
-        //todo:
-        if true{
+        let key = multi_sig_cli.get_master_pubkey_list(&account_id).await?;
+        if key.is_empty(){
             return Ok(account_id);
+        }else{
+            warn!("account_id {} already register on chain",account_id);
         }
     }
     Err(BackendError::InternalError("".to_string()))

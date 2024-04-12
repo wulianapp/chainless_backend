@@ -13,9 +13,10 @@ pub mod fees_call;
 use common::{
     error_code::{BackendError, ExternalServiceError},
 };
+use ethers::providers::JsonRpcError;
 use general::{gen_transaction_with_caller, pubkey_from_hex_str};
 use lazy_static::lazy_static;
-use near_jsonrpc_client::{methods, JsonRpcClient};
+use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use common::error_code;
@@ -33,8 +34,8 @@ use near_primitives::{
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{hash::Hash, marker::PhantomData, str::FromStr};
-use tracing::{debug, info};
-use anyhow::{Ok, Result};
+use tracing::{debug, error, info};
+use anyhow::{Result};
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
 
@@ -46,6 +47,20 @@ lazy_static! {
     };
 }
 
+//todo: deal with error detail
+pub async fn rpc_call<M>(method: M) -> Result<M::Response> 
+where M: methods::RpcMethod,
+{
+    for _ in 0..5 {
+        match crate::CHAIN_CLIENT.call(&method).await {
+            Ok(result) => return Ok(result),
+            Err(err) => {
+                error!("Error occurred");
+            }
+        }
+    }
+    Err(anyhow::anyhow!("call rpc failed, and max retries exceeded"))
+}
 
 #[derive(Clone)]
 pub struct ContractClient<T> {
@@ -193,7 +208,7 @@ impl<T> ContractClient<T> {
 
         debug!("call commit_by_relayer txid {}", &tx.get_hash().to_string());
 
-        let rep = crate::general::call(request).await.unwrap();
+        let rep = crate::rpc_call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
             Err(ExternalServiceError::Chain(error.to_string()))?
         }
@@ -218,7 +233,7 @@ impl<T> ContractClient<T> {
                 args: FunctionArgs::from(args.to_string().into_bytes()),
             },
         };
-        let rep = crate::general::call(request).await?;
+        let rep = crate::rpc_call(request).await?;
 
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result)?;

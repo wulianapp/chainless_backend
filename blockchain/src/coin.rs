@@ -85,7 +85,7 @@ async fn get_balance(account: &AccountId) -> u128 {
             ),
         },
     };
-    let rep = crate::general::call(request).await.unwrap();
+    let rep = crate::rpc_call(request).await.unwrap();
 
     if let QueryResponseKind::CallResult(result) = rep.kind {
         let amount_str: String = String::from_utf8(result.result)

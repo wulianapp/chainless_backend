@@ -81,7 +81,7 @@ impl ContractClient<MultiSig> {
         let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
         println!("0002___{}",prikey_str);
        let account_id = AccountId::from_str(relayer_account)?;
-        println!("0003___{}",prikey_str);
+        println!("0003___{}",account_id);
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {

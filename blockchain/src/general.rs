@@ -18,13 +18,12 @@ use near_jsonrpc_primitives::types::transactions::TransactionInfo;
 
 use hex;
 //use log::debug;
-use tracing::{debug, warn};
+use tracing::{debug, error, warn};
 use anyhow::{anyhow, Ok, Result};
 
 //todo: contract_addr type change into AccountId
 pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Result<Transaction> {
-    let access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
+    let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKey {
                 account_id: signer.account_id.clone(),
@@ -53,8 +52,7 @@ pub async fn gen_transaction_with_caller(
     caller_pubkey: PublicKey,
     contract_addr: &str,
 ) -> Result<Transaction> {
-    let access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
+    let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKey {
                 account_id: caller_account_id.clone(),
@@ -89,29 +87,15 @@ pub async fn gen_transaction_with_caller_with_nonce(
     contract_addr.to_string(),
     add_nonce.to_string()
     );
-    let mut access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
+    let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKey {
                 account_id: caller_account_id.clone(),
                 public_key: caller_pubkey.clone(),
             },
         })
-        .await;
-    //fixme: must retry
-    if access_key_query_response.is_err() {
-        access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id: caller_account_id.clone(),
-                public_key: caller_pubkey.clone(),
-            },
-        })
-        .await;
-    }
-    let access_key_query_response = access_key_query_response.unwrap();
-
+        .await?;
+ 
     debug!("line_{}___{}",line!(),caller_account_id.to_string());
 
     let current_nonce = match access_key_query_response.kind {
@@ -142,10 +126,9 @@ pub fn pubkey_from_hex_str(key: &str) -> Result<PublicKey> {
 
 pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
     let account_id = AccountId::from_str(account_str)?;
-    let access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
+    let mut access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKeyList { account_id },
+            request: near_primitives::views::QueryRequest::ViewAccessKeyList { account_id: account_id.clone() },
         })
         .await?;
 
@@ -166,7 +149,7 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
         },
     };
 
-    let tx_status = crate::CHAIN_CLIENT.call(tx_status_request).await?;
+    let tx_status = crate::rpc_call(tx_status_request).await?;
 
 
     let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
@@ -199,31 +182,28 @@ pub async fn safe_gen_transaction(
     caller_account_id: &str,
     caller_pubkey: &str,
     contract_addr: &str,
-) -> Transaction {
-    let access_key_query_response = crate::CHAIN_CLIENT
-        .call(methods::query::RpcQueryRequest {
+) -> Result<Transaction> {
+    let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
             block_reference: BlockReference::latest(),
             request: near_primitives::views::QueryRequest::ViewAccessKey {
                 account_id: AccountId::from_str(caller_account_id).unwrap(),
                 public_key: PublicKey::from_str(caller_pubkey).unwrap(),
             },
-        })
-        .await
-        .unwrap();
+        }).await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
         _ => panic!("{:?}", "failed to extract current nonce"),
     };
 
-    Transaction {
+    Ok(Transaction {
         signer_id: AccountId::from_str(caller_account_id).unwrap(),
         public_key: PublicKey::from_str(caller_pubkey).unwrap(),
         nonce: current_nonce + 1,
         receiver_id: contract_addr.parse().unwrap(),
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
-    }
+    })
 }
 
 //user-api shouldn't use this directly
@@ -256,7 +236,7 @@ pub async fn broadcast_tx_commit(
     let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
         signed_transaction: tx,
     };
-    crate::CHAIN_CLIENT.call(request).await.unwrap()
+    crate::rpc_call(request).await.unwrap()
 }
 
 pub async fn call<M>(request: M) -> MethodCallResult<M::Response, M::Error>
@@ -270,7 +250,7 @@ pub async fn broadcast_tx_async(){
     let request = methods::broadcast_tx_async::RpcBroadcastTxAsyncRequest {
         signed_transaction: transaction.sign(&signer),
     };
-    let tx_hash = crate::CHAIN_CLIENT.call(request).await.unwrap();
+    let tx_hash = crate::rpc_call(request).await.unwrap();
 }
 
  */
@@ -300,5 +280,15 @@ mod tests {
             1
         ).await.unwrap();
         println!("res {:?}",res);
+    }
+
+    #[tokio::test]
+    async fn test_get_access_key_list(){
+        loop{
+            let res = get_access_key_list("node0").await;
+            println!("res {:?}",res); 
+            tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        }
+
     }
 }
