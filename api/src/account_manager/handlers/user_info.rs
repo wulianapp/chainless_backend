@@ -37,7 +37,7 @@ pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
     let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     
     //todo:
-    let role = if res.user_info.main_account.is_empty(){
+    let role = if res.user_info.main_account.eq(""){
         KeyRole2::Undefined
     }else{
         let (_,current_strategy,device) = 
