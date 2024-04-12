@@ -109,6 +109,10 @@ impl ContractClient<Bridge> {
         let pubkey = get_pubkey(&pri_key.to_string())?;
 
         let account_id = AccountId::from_str(&pubkey)?;
+        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
+        println!("0002___{}",prikey_str);
+       let account_id = AccountId::from_str(relayer_account)?;
+        println!("0003___{}",account_id);
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {
@@ -267,13 +271,13 @@ impl ContractClient<Bridge> {
             symbol: coin.to_string(),
             amount: U256::from(amount),
             owner: owner.parse().unwrap(),
-            contract: "0x91341BA63f81c5F1C2879f108645f3a8Bd6051c5"
+            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
                 .parse()
                 .unwrap(),
-            deadline: U256::from(1)
+            deadline: U256::from(2712916794u128)
         };
 
-        let signature = format!("0x{}", wallet.sign_typed_data(&data).await.unwrap());
+        let signature = format!("{}", wallet.sign_typed_data(&data).await.unwrap());
         Ok(signature)
     }
 
@@ -287,6 +291,8 @@ impl ContractClient<Bridge> {
 
 #[cfg(test)]
 mod tests {
+
+    use crate::eth_cli::EthContractClient;
 
     use super::*;
 
@@ -302,7 +308,7 @@ mod tests {
     #[tokio::test]
     async fn test_eth_sign() {
         let bridge_cli = ContractClient::<Bridge>::new().unwrap();
-        let set_res = bridge_cli.set_user_batch("ode0").await;
+        let set_res = bridge_cli.set_user_batch("node0").await;
        println!("set_user_batch txid {} ",set_res.unwrap());
 
         let sig = bridge_cli.sign_bind_info(
@@ -331,5 +337,49 @@ mod tests {
             "node0"
            ).await;
        println!("sign_deposit  {} ",sig.unwrap());
+
+    }
+
+    #[tokio::test]
+    async fn test_bind_deposit() {
+        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let set_res = bridge_cli.set_user_batch("test").await;
+       println!("set_user_batch txid {} ",set_res.unwrap());
+
+        let sig = bridge_cli.sign_bind_info(
+             "test",
+              "0x52D786dE49Bec1bdfc7406A9aD746CAC4bfD72F9",
+            ).await;
+        println!("sign_bind sig {} ",sig);
+
+        //todo: sig on imtoken and verify on server
+
+        /*** 
+        let bind_res = bridge_cli.bind_eth_addr(
+            "test",
+        "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
+        &sig
+        ).await.unwrap();
+        println!("bind_res {} ",bind_res);
+        ***/
+
+            
+        let sig = bridge_cli.sign_deposit_info(
+            CoinType::USDT,
+            100,
+            "test"
+           ).await.unwrap();
+       println!("sign_deposit  {} ",sig);
+    
+
+        let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await;
+        println!("current_bind_res {} ",current_binded_eth_addr.unwrap().unwrap());
+
+        let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
+        let token = cli.deposit("test","usdt",100u128,&sig,2712916794u128).await.unwrap();
+        println!("{:?}",token);
+
+   
+       
     }
 }

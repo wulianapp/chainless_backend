@@ -7,8 +7,10 @@ pub mod general;
 mod hello;
 pub mod multi_sig;
 mod newbie_reward;
-pub mod bridge;
+pub mod bridge_on_near;
+pub mod bridge_on_eth;
 pub mod fees_call;
+pub mod eth_cli;
 
 use common::{
     error_code::{BackendError, ExternalServiceError},

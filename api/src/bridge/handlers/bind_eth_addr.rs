@@ -1,5 +1,5 @@
 use actix_web::{web, HttpRequest};
-use blockchain::bridge::Bridge;
+use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};

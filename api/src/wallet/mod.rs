@@ -760,8 +760,6 @@ async fn update_strategy(
  * @apiName SetFeesPriority
  * @apiGroup Wallet
  * @apiBody {String[]=USDT,BTC,ETH,DW20,USDC} feesPriority   币种优先级
-
- * @apiBody {Number} strategy.sigNum   所需签名数量
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/setFeesPriority

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest};
-use blockchain::bridge::Bridge;
+use blockchain::bridge_on_near::Bridge;
 use common::data_structures::wallet::WalletOperateType;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes};
