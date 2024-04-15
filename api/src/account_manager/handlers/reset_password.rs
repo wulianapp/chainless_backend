@@ -32,10 +32,13 @@ pub async fn req(
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id))?;
    
     if user_at_stored.user_info.secruity_is_seted{
+        //目前没有需要必须登陆才能改密码的需求
+        /*** 
         let (token_user_id, token_device_id, _) = token_auth::validate_credentials2(&req)?;
         if user_at_stored.id != token_user_id || device_id != token_device_id {
             Err(BackendError::RequestParamInvalid("".to_string()))?;
         }
+        ***/
 
         //看是否设置了安全措施，之前是都可以，之后是只有主设备可以
         if device.device_info.key_role != KeyRole2::Master

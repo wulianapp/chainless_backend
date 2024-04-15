@@ -728,7 +728,7 @@ macro_rules! test_pre_send_money_to_bridge {
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,
             "post",
-            "/wallet/preSendMoneyToBridge",
+            "/bridge/preWithdraw",
             Some(payload.to_string()),
             Some($sender_master.user.token.as_ref().unwrap())
         );

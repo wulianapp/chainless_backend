@@ -26,6 +26,7 @@ pub struct UserInfoTmp {
     pub main_account: String,
     pub role:String,
     pub name:Option<String>,
+    //todo: birthday
     pub birth:Option<String>,
 
     //pub op_status: OpStatus,
