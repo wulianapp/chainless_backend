@@ -19,21 +19,18 @@ fn is_valid() -> Result<(), EmailError> {
     unimplemented!()
 }
 
-pub fn send_email(code: &Captcha,contact:String) -> BackendRes<String> {
+pub fn send_email(code: &str,to_mail:&str) -> BackendRes<String> {
     // 替换为您的 Gmail 邮箱地址和密码
     let email_address = "cs2-test@chainless.top";
     let email_password = "vkHyW2dvynF8YuG1xN";
-    let to = code.owner.clone();
-    let to = contact;
-    let captcha = gen_random_verify_code();
     let content = format!(
         "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
-        captcha
+        code
     );
     // 创建电子邮件内容
     let email = Message::builder()
         .from(email_address.parse().unwrap())
-        .to(to.parse().unwrap())
+        .to(to_mail.parse().unwrap())
         .subject("[ChainLess] Captcha")
         .header(ContentType::TEXT_PLAIN)
         .body(content)
@@ -82,7 +79,7 @@ mod tests {
             "1".to_string(),
             Usage::Register,
         );
-        let res = send_email(&code,code.owner.clone()).unwrap();
+        let res = send_email("123456",&code.owner).unwrap();
         println!("res {:?}", res);
     }
 }

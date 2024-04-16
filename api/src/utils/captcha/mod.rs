@@ -98,7 +98,7 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     }
 }
 
-pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, BackendError> {
+pub fn get_captcha(user: &str, kind: &Usage) -> Result<Option<Captcha>, BackendError> {
     debug!("get_captcha_find_{}_{}",user,kind.to_string());
 
     let code_storage = &CODE_STORAGE
@@ -107,7 +107,7 @@ pub fn get_captcha(user: String, kind: &Usage) -> Result<Option<Captcha>, Backen
 
         debug!("get_all_captcha {:?}",code_storage);
     let value = code_storage
-        .get(&(user, kind.to_owned()))
+        .get(&(user.to_owned(), kind.to_owned()))
         .as_ref()
         .map(|&x| x.to_owned());
     Ok(value)
@@ -119,7 +119,7 @@ pub struct Captcha {
     owner: String,
     device_id: String,
     kind: Usage,
-    code: String,
+    pub code: String,
     pub created_at: u64,
     pub expiration_time: u64,
 }
@@ -191,7 +191,7 @@ impl Captcha {
             return Ok(());
         }
         
-        if let Some(data) = get_captcha(user.to_string(), &kind)? {
+        if let Some(data) = get_captcha(user, &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?
             } else if data.code == code && data.is_expired() {
@@ -218,7 +218,7 @@ impl Captcha {
             return Ok(());
         }
         
-        if let Some(data) = get_captcha(user.to_string(), &kind)? {
+        if let Some(data) = get_captcha(user, &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?
             } else if data.code == code && data.is_expired() {

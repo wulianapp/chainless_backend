@@ -151,7 +151,7 @@ pub async fn get_session_state(user_id:u32,device_id:&str) -> Result<(UserInfo,S
         .get_strategy(main_account)
         .await?
         .ok_or(WalletError::MainAccountNotExist(main_account.to_owned()))?;
-
+    //注册过的一定有设备信息
     let mut device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
     device.device_info.key_role = get_role(&current_strategy,device.device_info.hold_pubkey.as_deref());
     Ok((user.user_info,current_strategy,device.device_info))

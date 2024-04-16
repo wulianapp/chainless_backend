@@ -27,7 +27,7 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
     //todo: only master device can reset password
 
     let contract_type = captcha::validate(&contact)?;
-    if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
+    if let Some(data) = captcha::get_captcha(&contact, &kind)? {
         let past_time = now_millis() - data.created_at;
         if past_time <= MINUTE1 {
             let remain_time = MINUTE1 - past_time;
@@ -58,17 +58,14 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
 
 fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> BackendRes<String> {
     let contract_type = captcha::validate(&contact)?;
-    //fixme:
-    let contact2 = contact.clone();
-
     //兼容已登陆和未登陆
-    let contact = match user_id{
+    let storage_key = match user_id{
         Some(id) => id.to_string(),
-        None => contact,
+        None => contact.clone(),
     };
 
     //todo: only master device can reset password
-    if let Some(data) = captcha::get_captcha(contact.clone(), &kind)? {
+    if let Some(data) = captcha::get_captcha(&storage_key, &kind)? {
         let past_time = now_millis() - data.created_at;
         if past_time <= MINUTE1 {
             let remain_time = MINUTE1 - past_time;
@@ -83,19 +80,20 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
     }
 
  
-    let code = Captcha::new(contact, device_id, kind);
+    let captcha = Captcha::new(storage_key, device_id, kind);
 
     if contract_type == ContactType::PhoneNumber {
        //phone::send_sms(&code).unwrap()
        Err(ExternalServiceError::PhoneCaptcha("Not support Phone nowadays".to_string()))?;
     } else {
-       email::send_email(&code,contact2)?;
+       //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供 
+       email::send_email(&captcha.code,&contact)?;
     };
     
-    code.store()?;
+    captcha.store()?;
 
     //todo: delete expired captcha，so as to avoid use too much memory
-    debug!("send code {:?}", code);
+    debug!("send code {:?}", captcha);
     Ok(None::<String>)
 }
 

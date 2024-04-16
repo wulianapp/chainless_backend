@@ -154,12 +154,11 @@ async fn gen_deposit_sig(request: HttpRequest,
  * @apiVersion 0.0.1
  * @apiName GetBindedEthAddr
  * @apiGroup Bridge
- * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo"
+ * curl -X GET "http://120.232.251.101:8066/bridge/getBindedEthAddr"
  * @apiSuccess {string=0,1,} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError} msg
- * @apiSuccess {object} data                当前绑定的eth地址
+ * @apiSuccess {string=null} data                当前绑定的eth地址，
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 

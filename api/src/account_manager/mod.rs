@@ -289,6 +289,35 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
 }
 
 
+/**
+ * @api {get} /accountManager/getUserDeviceRole 获取当前用户当前设备的角色信息
+ * @apiVersion 0.0.1
+ * @apiName GetUserDeviceRole
+ * @apiGroup AccountManager
+ * @apiQuery {String}        deviceId   设备id
+ * @apiQuery {String}        contact    当前用户联系方式
+ * @apiExample {curl} Example usage:
+ *    curl -X POST http://120.232.251.101:8066/accountManager/getUserDeviceRole -H "Content-Type: application/json" -d
+ *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
+* @apiSuccess {string=0,1,2012,2009} status_code         status code.
+* @apiSuccess {string=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
+ * @apiSuccess {string=Master,Servant,Undefined} data               角色信息.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/getUserDeviceRole
+ */
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GetUserDeviceRoleRequest {
+    device_id: String,
+    contact: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/accountManager/getUserDeviceRole")]
+async fn get_user_device_role(request_data: web::Query<GetUserDeviceRoleRequest>) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(handlers::get_user_device_role::req(request_data.into_inner()).await)
+}
+
+
 
 /**
  * @api {post} /accountManager/loginByCaptcha   通过验证码登录
@@ -370,6 +399,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(get_captcha_with_token)
         .service(get_captcha_without_token)
         .service(check_captcha)
+        .service(get_user_device_role)
         .service(reset_password);
 }
 
