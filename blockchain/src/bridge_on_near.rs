@@ -444,7 +444,7 @@ mod tests {
 
         
             
-        let sig = bridge_cli.sign_deposit_info(
+        let (sig,deadline) = bridge_cli.sign_deposit_info(
             "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
             CoinType::USDT,
             111,
@@ -458,7 +458,7 @@ mod tests {
         println!("current_bind_res {} ",current_binded_eth_addr.unwrap().unwrap());
 
         let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
-        let deposit_res = cli.deposit("test","usdt",111u128,&sig,2712916794000001u128).await.unwrap();
+        let deposit_res = cli.deposit("test","usdt",111u128,&sig,deadline as u128).await.unwrap();
         //println!("{:?}",deposit_res);
 
        
