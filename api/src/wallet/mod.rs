@@ -31,15 +31,15 @@ use self::handlers::balance_list::AccountType;
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg                 description of status.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg                 description of status.
 * @apiSuccess {object[]} data                当前需要处理的消息详情.
 * @apiSuccess {object} data.NewcomerBecameSevant    新设备成为从设备消息
-* @apiSuccess {string} data.NewcomerBecameSevant.pubkey           被分配的servant_pubkey
-* @apiSuccess {string} data.NewcomerBecameSevant.state            不用关注
+* @apiSuccess {String} data.NewcomerBecameSevant.pubkey           被分配的servant_pubkey
+* @apiSuccess {String} data.NewcomerBecameSevant.state            不用关注
 * @apiSuccess {Number} data.NewcomerBecameSevant.user_id          所属用户id
-* @apiSuccess {string} data.NewcomerBecameSevant.encrypted_prikey_by_password    安全密码加密私钥的输出
-* @apiSuccess {string} data.NewcomerBecameSevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
+* @apiSuccess {String} data.NewcomerBecameSevant.encrypted_prikey_by_password    安全密码加密私钥的输出
+* @apiSuccess {String} data.NewcomerBecameSevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
 * @apiSuccess {object[]} data.CoinTx                转账消息
 * @apiSuccess {Number} data.CoinTx.tx_index          交易索引号.
 * @apiSuccess {object} data.CoinTx.transaction        交易详情.
@@ -74,14 +74,14 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1} status_code         status code.
- * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {String=0,1} status_code         status code.
+ * @apiSuccess {String=Successfully,InternalError} msg
  * @apiSuccess {Object} data                          策略详情.
  * @apiSuccess {String} data.master_pubkey        主钱包的maser的公钥
  * @apiSuccess {String[]} data.servant_pubkeys    主钱包的servant的公钥组
  * @apiSuccess {Object[]} data.subaccounts        子钱包的配置
  * @apiSuccess {String} data.subaccounts.0        子钱包的公钥组
- * @apiSuccess {number} data.subaccounts.hold_value_limit   子钱包持仓限制
+ * @apiSuccess {Number} data.subaccounts.hold_value_limit   子钱包持仓限制
  * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
  * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
@@ -105,8 +105,8 @@ async fn get_strategy(request: HttpRequest) -> impl Responder {
  * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
- * @apiSuccess {string=0,1} status_code         status code.
- * @apiSuccess {string=Successfully,InternalError} msg
+ * @apiSuccess {String=0,1} status_code         status code.
+ * @apiSuccess {String=Successfully,InternalError} msg
  * @apiSuccess {String[]} data                          币种顺序
  * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
  */
@@ -128,8 +128,8 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {Object[]} data                                    备份加密密钥信息.
 * @apiSuccess {String} data.pubkey                             对应的公钥
 * @apiSuccess {String} data.state                              不关注
@@ -188,11 +188,11 @@ async fn get_secret(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object} data                     订单结果.
-* @apiSuccess {number} data.0                交易序列号.
-* @apiSuccess {string} [data.1]                待签名数据(txid).
+* @apiSuccess {Number} data.0                交易序列号.
+* @apiSuccess {String} [data.1]                待签名数据(txid).
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -242,9 +242,9 @@ async fn pre_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToSub
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -286,9 +286,9 @@ async fn pre_send_money_to_sub(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reactPreSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -327,9 +327,9 @@ async fn react_pre_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -371,9 +371,9 @@ async fn reconfirm_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/canceSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -399,7 +399,7 @@ async fn cancel_send_money(
  * @apiGroup Wallet
  * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
  * @apiBody {String} coin       交易币种
- * @apiBody {number} amount     交易数量
+ * @apiBody {Number} amount     交易数量
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
@@ -413,9 +413,9 @@ async fn cancel_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -454,9 +454,9 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8066/wallet/uploadServantSig
  */
 #[derive(Deserialize, Serialize, Clone)]
@@ -499,9 +499,9 @@ async fn upload_servant_sig(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
@@ -542,9 +542,9 @@ async fn add_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/newcommerSwitchServant
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -580,9 +580,9 @@ async fn newcommer_switch_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -612,9 +612,9 @@ async fn remove_servant(
   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/servantSavedSecret
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -633,7 +633,7 @@ async fn servant_saved_secret(
  * @apiBody {String} subaccountPubkey                   从公钥
  * @apiBody {String} subaccountPrikeyEncrypedByPassword      密码加密后的从私钥
  * @apiBody {String} subaccountPrikeyEncrypedByAnswer   问答加密后的从私钥
- * @apiBody {number} holdValueLimit   持仓上限
+ * @apiBody {Number} holdValueLimit   持仓上限
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
@@ -644,9 +644,9 @@ async fn servant_saved_secret(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
@@ -685,9 +685,9 @@ async fn add_subaccount(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeSubaccount
 */
 
@@ -733,9 +733,9 @@ pub struct MultiSigRankExternal {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -769,9 +769,9 @@ async fn update_strategy(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/setFeesPriority
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -806,9 +806,9 @@ async fn set_fees_priority(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -847,9 +847,9 @@ async fn update_subaccount_hold_limit(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 
@@ -901,9 +901,9 @@ async fn update_security(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/createMainAccount
 */
 
@@ -943,9 +943,9 @@ async fn create_main_account(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/faucetClaim
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -966,16 +966,16 @@ async fn faucet_claim(req: HttpRequest) -> impl Responder {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object[]} data                币种和余额列表.
-* @apiSuccess {string} data.0                钱包id.
+* @apiSuccess {String} data.0                钱包id.
 * @apiSuccess {object[]} data.1              钱包的各币种余额 .
-* @apiSuccess {string} data.1.account_id                钱包id和data.0一致.
-* @apiSuccess {string=BTC,ETH,USDT,USDC,CLY,DW20} data.1.coin             币种名称.
-* @apiSuccess {string} data.1.total_balance                      总余额.
-* @apiSuccess {string} data.1.available_balance                  可用余额.
-* @apiSuccess {string} data.1.freezn_amount                      冻结数量.
+* @apiSuccess {String} data.1.account_id                钱包id和data.0一致.
+* @apiSuccess {String=BTC,ETH,USDT,USDC,CLY,DW20} data.1.coin             币种名称.
+* @apiSuccess {String} data.1.total_balance                      总余额.
+* @apiSuccess {String} data.1.available_balance                  可用余额.
+* @apiSuccess {String} data.1.freezn_amount                      冻结数量.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
 
@@ -999,16 +999,16 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
  * @apiGroup Wallet
  * @apiQuery {String=Sender,Receiver} TransferRole  交易中的角色，对应ui的转出和收款栏
  * @apiQuery {String}                 [counterParty]   交易对手方
- * @apiQuery {number}                 perPage           每页的数量
- * @apiQuery {number}                 page            页数的序列号
+ * @apiQuery {Number}                 perPage           每页的数量
+ * @apiQuery {Number}                 page            页数的序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/txList?
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object[]} data                交易详情数组.
 * @apiSuccess {Number} data.tx_index          交易索引号.
 * @apiSuccess {object} data.transaction        交易详情.
@@ -1052,15 +1052,15 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
  * @apiVersion 0.0.1
  * @apiName GetTx
  * @apiGroup Wallet
- * @apiQuery {number}                 index            交易序列号
+ * @apiQuery {Number}                 index            交易序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object} data               交易详情.
 * @apiSuccess {Number} data.tx_index          交易索引号.
 * @apiSuccess {object} data.transaction        交易详情.
@@ -1110,15 +1110,15 @@ async fn get_tx(req: HttpRequest,request_data: web::Query<GetTxRequest>) -> impl
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object[]} data                 设备信息列表.
-* @apiSuccess {string} data.id                设备id.
-* @apiSuccess {string} data.user_id           设备当前所属用户id.
-* @apiSuccess {string} data.state             （不关注）.
-* @apiSuccess {string} data.brand             设备品牌.
-* @apiSuccess {string} data.holder_confirm_saved   设备主钱包持有的master或者servant的pubkey.
-* @apiSuccess {string=Master,Servant,Undefined} data.key_role           当前设备持有的key的类型
+* @apiSuccess {String} data.id                设备id.
+* @apiSuccess {String} data.user_id           设备当前所属用户id.
+* @apiSuccess {String} data.state             （不关注）.
+* @apiSuccess {String} data.brand             设备品牌.
+* @apiSuccess {String} data.holder_confirm_saved   设备主钱包持有的master或者servant的pubkey.
+* @apiSuccess {String=Master,Servant,Undefined} data.key_role           当前设备持有的key的类型
 
 * @apiSampleRequest http://120.232.251.101:8066/wallet/deviceList
 */
@@ -1145,13 +1145,13 @@ async fn device_list(req: HttpRequest) -> impl Responder {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
-* @apiSuccess {string} data.add_key_txid                增加主公钥对应的tx_id
-* @apiSuccess {string} data.add_key_raw                 增加主公钥对应的tx_raw.
-* @apiSuccess {string} data.delete_key_txid             删除主公钥对应的tx_id.
-* @apiSuccess {string} data.delete_key_raw              删除主公钥对应的tx_raw.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
+* @apiSuccess {String} data.add_key_txid                增加主公钥对应的tx_id
+* @apiSuccess {String} data.add_key_raw                 增加主公钥对应的tx_raw.
+* @apiSuccess {String} data.delete_key_txid             删除主公钥对应的tx_id.
+* @apiSuccess {String} data.delete_key_raw              删除主公钥对应的tx_raw.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genNewcomerSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -1188,13 +1188,13 @@ async fn gen_newcomer_switch_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
-* @apiSuccess {string} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
-* @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
-* @apiSuccess {string} data.delete_key_txid             删除旧主公钥对应的tx_id.
-* @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
+* @apiSuccess {String} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
+* @apiSuccess {String} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
+* @apiSuccess {String} data.delete_key_txid             删除旧主公钥对应的tx_id.
+* @apiSuccess {String} data.delete_key_raw              删除旧主公钥对应的tx_raw.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -1229,13 +1229,13 @@ async fn gen_servant_switch_master(req: HttpRequest,
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
-* @apiSuccess {string} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
-* @apiSuccess {string} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
-* @apiSuccess {string} data.delete_key_txid             删除旧主公钥对应的tx_id.
-* @apiSuccess {string} data.delete_key_raw              删除旧主公钥对应的tx_raw.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
+* @apiSuccess {String} data.add_key_txid                增加从公钥成为主公钥对应的tx_id
+* @apiSuccess {String} data.add_key_raw                 增加从公钥成为主公钥对应的tx_raw.
+* @apiSuccess {String} data.delete_key_txid             删除旧主公钥对应的tx_id.
+* @apiSuccess {String} data.delete_key_raw              删除旧主公钥对应的tx_raw.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -1259,7 +1259,7 @@ async fn get_need_sig_num(req: HttpRequest,
  * @apiVersion 0.0.1
  * @apiName GenSendMoney
  * @apiGroup Wallet
- * @apiBody {number}     tx_index                交易订单号
+ * @apiBody {Number}     tx_index                交易订单号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/GenSendMoney
@@ -1270,9 +1270,9 @@ async fn get_need_sig_num(req: HttpRequest,
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                 待签名的交易id.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                 待签名的交易id.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -1310,9 +1310,9 @@ async fn gen_send_money(req: HttpRequest,
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -1357,9 +1357,9 @@ async fn commit_newcomer_switch_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {string=0,1,3007} status_code         status code.
-* @apiSuccess {string=Successfully,InternalError,HaveUncompleteTx} msg
-* @apiSuccess {string} data                nothing.
+* @apiSuccess {String=0,1,3007} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError,HaveUncompleteTx} msg
+* @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitServantSwitchMaster
 */
 #[derive(Deserialize, Serialize, Clone)]
