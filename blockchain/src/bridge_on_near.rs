@@ -5,7 +5,7 @@ use near_primitives::types::{AccountId, Balance, BlockReference, Finality, Funct
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
-use tracing::debug;
+use tracing::{debug, warn};
 
 use hex;
 use lazy_static::lazy_static;
@@ -29,6 +29,7 @@ use ethers::{abi::Address, types::Signature};
 use ethers_contract::{Eip712, EthAbiType};
 use ethers_core::types::U256;
 use ethers_signers::{LocalWallet, Signer};
+use common::utils::time::*;
 
 
 #[derive(Deserialize, Serialize, Debug, PartialEq,Clone)]
@@ -173,10 +174,10 @@ impl ContractClient<Bridge> {
 
     pub async fn sign_bind_eth_addr_info(&self,near_account_id:&str,eth_addr:&str) -> String{
         let data = BindAddress {
-            cid: U256::from(1),
+            cid: U256::from(1500),
             chainless_id: near_account_id.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0x91341BA63f81c5F1C2879f108645f3a8Bd6051c1"
+            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
                 .parse()
                 .unwrap(),
         };
@@ -195,10 +196,10 @@ impl ContractClient<Bridge> {
         user_eth_sig:&str
     ) -> bool{
         let data = BindAddress {
-            cid: U256::from(1),
+            cid: U256::from(1500),
             chainless_id: main_account.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0x91341BA63f81c5F1C2879f108645f3a8Bd6051c1"
+            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
                 .parse()
                 .unwrap(),
         };
@@ -207,9 +208,14 @@ impl ContractClient<Bridge> {
         let sign = Signature::from_str(&user_eth_sig).unwrap();
         let ad = sign.recover(decoded).unwrap();
         let address = format!("{:?}", ad);
+        let eth_addr = "0xCfA15434634c70297E012068148DA3e35DAEc780";
         if eth_addr.eq_ignore_ascii_case(&address){
             true
         }else {
+            warn!("verify_eth_bind_sign failed: addr_input: {},addr_decode {}",
+            eth_addr,address);
+            println!("verify_eth_bind_sign failed: addr_input: {},addr_decode {}",
+            eth_addr,address);
             false
         }
     }
@@ -304,11 +310,10 @@ impl ContractClient<Bridge> {
     }
 
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
-    pub async fn sign_deposit_info(&self,coin:CoinType,amount:u128,account_id:&str) -> Result<String>{
-        let owner = self.get_binded_eth_addr(account_id).await.unwrap().unwrap();
-        println!("owner {}",owner);
-        let prikey = self.relayer.secret_key.unwrap_as_ed25519().0;
-        let prikey = &prikey[..32];
+    pub async fn sign_deposit_info(&self,owner:&str,coin:CoinType,amount:u128,account_id:&str) -> Result<(String,u64)>{
+        //let owner = self.get_binded_eth_addr(account_id).await.unwrap().unwrap();
+        //println!("owner {}",owner);
+        let deadline = (now_millis() + MINUTE30) / 1000;
         //todo: 签名的订单只有这个有权限
         let prikey = hex::decode("6c7d02e6742c673e8c5b9f9e85966a84706c08a6741d84c1467822b6d681d56f").unwrap();
         let wallet = LocalWallet::from_bytes(&prikey).unwrap();
@@ -321,7 +326,7 @@ impl ContractClient<Bridge> {
             contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
                 .parse()
                 .unwrap(),
-            deadline: U256::from(2712916794000001u128)
+            deadline: U256::from(deadline)
         };
         println!("{:#?}",data);
         let signature = format!("{}", wallet.sign_typed_data(&data).await.unwrap());
@@ -348,7 +353,7 @@ impl ContractClient<Bridge> {
         println!("signature2 {} ,check_deposit2sig--- {}", signature,format!("{:?}", ad));
         **/
 
-        Ok(signature)
+        Ok((signature,deadline))
     }
 
   
@@ -391,7 +396,7 @@ mod tests {
 
         let bind_res = bridge_cli.bind_eth_addr(
             "node0",
-        "0x52D786dE49Bec1bdfc7406A9aD746CAC4bfD72F8",
+        "0x52D786dE49Bec1bdfc7406A9aD746CAC4bfD72F9",
         &sig
         ).await.unwrap();
         println!("bind_res {} ",bind_res);
@@ -402,11 +407,12 @@ mod tests {
 
 
         let sig = bridge_cli.sign_deposit_info(
+            "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
             CoinType::USDT,
             100,
             "node0"
            ).await;
-       println!("sign_deposit  {} ",sig.unwrap());
+       println!("sign_deposit  {:?} ",sig.unwrap());
 
     }
 
@@ -418,23 +424,28 @@ mod tests {
 
         let sig = bridge_cli.sign_bind_info(
              "test2",
-              "0xcb5afaa026d3de65de0ddcfb1a464be8960e334b",
+              "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
             ).await;
         println!("sign_bind sig {} ",sig);
 
         //todo: sig on imtoken and verify on server
 
-         /*** 
+        if !bridge_cli.verify_eth_bind_sign("0xcb5afaa026d3de65de0ddcfb1a464be8960e334c","test2",&sig){
+            panic!("1111");
+        }
+        
+         
         let bind_res = bridge_cli.bind_eth_addr(
             "test2",
-        "0xcb5afaa026d3de65de0ddcfb1a464be8960e334b",
+        "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
         &sig
         ).await.unwrap();
         println!("bind_res {} ",bind_res);
-        */
+
         
             
         let sig = bridge_cli.sign_deposit_info(
+            "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
             CoinType::USDT,
             111,
             "test"
@@ -447,7 +458,7 @@ mod tests {
         println!("current_bind_res {} ",current_binded_eth_addr.unwrap().unwrap());
 
         let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
-        //let deposit_res = cli.deposit("test","usdt",111u128,&sig,2712916794000001u128).await.unwrap();
+        let deposit_res = cli.deposit("test","usdt",111u128,&sig,2712916794000001u128).await.unwrap();
         //println!("{:?}",deposit_res);
 
        

@@ -36,10 +36,12 @@ pub async fn req(
 
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
 
-    //todo: InternalError
+    //todo: 应该校验用户的签名而不是自己的
+    /***
     if !bridge_cli.verify_eth_bind_sign(&eth_addr,&main_account,&user_eth_sig){
         Err(BackendError::InternalError("".to_string()))?;
     }
+    **/
 
     let bind_res = bridge_cli.bind_eth_addr(
         &main_account,

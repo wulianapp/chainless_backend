@@ -124,14 +124,18 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
  * @apiVersion 0.0.1
  * @apiName GenDepositSig
  * @apiGroup Bridge
- * @apiBody {String="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
- * @apiBody {Number} amount 提现数量
+ * @apiBody {string="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
+ * @apiBody {number} amount 提现数量
+ * @apiBody {string} ethDepositor 充值方的eth地址
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
  * @apiSuccess {string=0,1,2,2002,2003,2004,2005} status_code         status code.
  * @apiSuccess {string=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
- * @apiSuccess {string} data                nothing.
+ * @apiSuccess {object} data                签名和过期时间戳.
+ * @apiSuccess {string} data.0                签名.
+ * @apiSuccess {number} data.1                过期时间戳.
+
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */
 #[derive(Deserialize, Serialize, Default, Clone)]
@@ -139,6 +143,7 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
 pub struct GenDepositSigRequest {
     coin:String,
     amount:u128,
+    eth_depositor:String
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/bridge/genDepositSig")]
@@ -216,9 +221,11 @@ mod tests {
     use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
     use std::collections::HashMap;
     use crate::wallet::handlers::balance_list::AccountBalance;
+    use crate::account_manager::handlers::user_info::UserInfoTmp;
+
 
     #[actix_web::test]
-    async fn test_bridge_deposit() {
+    async fn test_bind_eth_addr() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,
@@ -231,22 +238,24 @@ mod tests {
         test_login!(service, sender_newcommer);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let user_info = test_user_info!(service,sender_master).unwrap();    
+        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new().unwrap();
+        let sig = bridge_cli.sign_bind_info(
+            &user_info.main_account,
+             "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+           ).await;
+       println!("sign_bind sig {} ",sig);
 
+       //todo: sig on imtoken and verify on server
+       let bind_res = bridge_cli.bind_eth_addr(
+        &user_info.main_account,
+       "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+       &sig
+       ).await.unwrap();
+       println!("bind_res {} ",bind_res);
+       tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+       let current_bind_eth_addr = bridge_cli.get_binded_eth_addr(&user_info.main_account).await.unwrap();
+       println!("bind_res {:?} ",current_bind_eth_addr);
 
-        /***     
-        test_get_captcha_with_token!(service,sender_newcommer,"NewcomerSwitchMaster");
-        let gen_res = test_gen_newcommer_switch_master!(service,sender_newcommer);
-
-        let add_key_sig = common::encrypt::ed25519_sign_hex(
-            sender_master.wallet.prikey.as_ref().unwrap(),
-            &gen_res.as_ref().unwrap().add_key_txid,
-        ).unwrap();
-
-        let delete_key_sig = common::encrypt::ed25519_sign_hex(
-            sender_master.wallet.prikey.as_ref().unwrap(),
-            &gen_res.as_ref().unwrap().delete_key_txid,
-        ).unwrap();
-        test_commit_newcommer_switch_master!(service,sender_newcommer,gen_res,add_key_sig,delete_key_sig);
-        */
     }
 }

@@ -20,7 +20,7 @@ use crate::wallet::handlers::*;
 pub async fn req(
     req: HttpRequest,
     request_data: GenDepositSigRequest,
-) -> BackendRes<String> {
+) -> BackendRes<(String,u64)> {
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
@@ -33,6 +33,7 @@ pub async fn req(
     let GenDepositSigRequest {
         coin,
         amount,
+        eth_depositor
     } = request_data.clone();
     let coin: CoinType =  coin.parse().map_err(|_e| BackendError::InternalError("".to_string()))?;
     if coin == CoinType::CLY{
@@ -41,12 +42,13 @@ pub async fn req(
 
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
 
-    let sig = bridge_cli.sign_deposit_info(
+    let (sig,deadline) = bridge_cli.sign_deposit_info(
+        &eth_depositor,
         coin,
         amount,
-        &main_account 
+        &main_account
     ).await?;
     println!("sig {} ",sig);
 
-    Ok(Some(sig))
+    Ok(Some((sig,deadline)))
 }

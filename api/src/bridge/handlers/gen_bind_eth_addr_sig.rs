@@ -21,7 +21,6 @@ pub async fn req(
     request_data: GenBindEthAddrSigRequest,
 ) -> BackendRes<String> {
     //todo: check jwt token
-    debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let (user,current_strategy,device) = 
     get_session_state(user_id,&device_id).await?;
@@ -35,7 +34,7 @@ pub async fn req(
 
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
 
-    let sig = bridge_cli.sign_bind_eth_addr_info(&main_account,&eth_addr).await;
+    let sig = bridge_cli.sign_bind_info(&main_account,&eth_addr).await;
     println!("sig {} ",sig);
 
     Ok(Some(sig))
