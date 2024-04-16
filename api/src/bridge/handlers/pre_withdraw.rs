@@ -24,6 +24,7 @@ use crate::wallet::handlers::*;
 
 //todo: DRY
 pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> BackendRes<(u32,String)> {
+    println!("__0001_start preWithdraw ");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     let (user,current_strategy,device) = 
@@ -87,6 +88,22 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> B
 
         let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsBridge)?;
         let next_tx_index = get_next_tx_index()?;
+
+        let (tx_id, chain_tx_raw) = cli
+        .gen_send_money_raw(
+            next_tx_index as u64,
+            vec![],
+            &from,
+            &to,
+            coin_type,
+            amount,
+            expire_at,
+        )
+        .await?;
+
+
+        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
+        coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.insert()?;
         Ok(Some((next_tx_index,coin_info.transaction.coin_tx_raw)))

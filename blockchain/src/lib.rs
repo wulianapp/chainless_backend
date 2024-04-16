@@ -8,6 +8,8 @@ mod hello;
 pub mod multi_sig;
 mod newbie_reward;
 pub mod bridge_on_near;
+pub mod erc20_on_eth;
+
 pub mod bridge_on_eth;
 pub mod fees_call;
 pub mod eth_cli;

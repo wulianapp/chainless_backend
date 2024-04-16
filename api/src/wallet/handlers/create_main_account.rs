@@ -95,8 +95,8 @@ pub(crate) async fn req(
         ).await?;
     //todo: 通过get_user进行检查、在里面了就不调用了    
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
-    let set_res = bridge_cli.set_user_batch(&master_pubkey).await;
-    println!("set_user_batch txid {} ",set_res.unwrap());
+    let set_res = bridge_cli.set_user_batch(&main_account_id).await;
+    println!("set_user_batch txid {} ,{}",set_res.unwrap(),main_account_id);
 
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),

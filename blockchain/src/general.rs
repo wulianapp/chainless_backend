@@ -221,7 +221,7 @@ pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
     let tx_hex = hex::decode(tx_str).unwrap();
     let sign_hex = hex::decode(sig_str).unwrap();
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
-    debug!("{:?}", transaction);
+    debug!("line={}, tx={:?}, hex {}",line!(),transaction,sig_str);
     //let signature = Signature::try_from_slice(&sign_hex).unwrap();
     let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
     let rest = broadcast_tx_commit(transaction, signature).await;

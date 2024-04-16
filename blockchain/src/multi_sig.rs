@@ -54,7 +54,7 @@ impl Default for MultiSigRank {
         MultiSigRank {
             min: 0,
             //fixme: number out of range when u128::MAX
-            max_eq: u64::MAX as u128,
+            max_eq: 100000u128,
             sig_num: 0,
         }
     }
@@ -830,29 +830,23 @@ mod tests {
     }
         **/
 
-    /***
+
+    /*** 
     #[tokio::test]
-    async fn test_multi_sig_send_money2() {
-        let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
+    async fn test_multi_sig_send_money_to_bridge() {
+        let pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc";
         let secret_key: SecretKey = pri_key.parse().unwrap();
         let _secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
         //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
         let main_device_pubkey = get_pubkey(&pri_key);
-        let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let signer = near_crypto::InMemorySigner::from_secret_key(
-            signer_account_id.to_owned(),
-            secret_key.clone(),
-        );
 
         let client = ContractClient::<super::MultiSig>::new();
-        let sender_id = AccountId::from_str(
-            "6a7a4df96a60c\
-        225f25394fd0195eb938eb1162de944d2c331dccef324372f45",
-        )
-        .unwrap();
-        let sender_pubkey = PublicKey::from_implicit_account(&sender_id).unwrap();
-
-        let receiver_id = AccountId::from_str("test1").unwrap();
+        let signer_id = AccountId::from_str("test").unwrap();
+        let receiver_id = AccountId::from_str("cvault0003.chainless").unwrap();
+        let signer = near_crypto::InMemorySigner::from_secret_key(
+            signer_id.to_owned(),
+            secret_key.clone(),
+        );
 
         let servant_pubkey = servant_keys().as_slice()[..2]
             .iter()

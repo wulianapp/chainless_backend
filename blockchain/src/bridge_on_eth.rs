@@ -3,6 +3,7 @@ use anyhow::{Ok, Result};
 use common::env::CONF as ENV_CONF;
 use ethers::prelude::*;
 use ethers::types::Address;
+use hex::FromHex;
 
 use std::marker::PhantomData;
 use std::ops::Mul;
@@ -65,11 +66,15 @@ impl EthContractClient<Bridge> {
         signature: &str,
         deadline: u128,
     ) -> Result<TransactionReceipt> {
-        let cid = U256::from(1u32);
+        let cid = U256::from(1500u32);
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
         let signature = hex::decode(signature).unwrap();
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        
+        println!("cid {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n,deadline {}\n",
+        cid,chainless_id,symbol,amount,hex::encode(signature.clone()),deadline
+    );
         let send_res = bridge_cli.deposit(
             cid, 
             chainless_id.to_owned(),
@@ -81,6 +86,35 @@ impl EthContractClient<Bridge> {
         println!("send_res {:?}",send_res.as_ref().unwrap());  
         Ok(send_res.unwrap())
     }
+
+    
+    pub async fn withdraw(
+        &self,
+        order_id: u128,
+        chainless_id: &str,
+        amount: u128,
+        symbol: &str,
+        signature: &str,
+    ) -> Result<TransactionReceipt> {
+        let amount = U256::from(amount);
+        let signature = signature.replace("0x","");
+        let signature = hex::decode(signature).unwrap();
+        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        
+        println!("order_id {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n",
+        order_id,chainless_id,symbol,amount,hex::encode(signature.clone())
+    );
+        let send_res = bridge_cli.withdraw(
+            U256::from(order_id),
+            chainless_id.to_owned(),
+              U256::from(amount), 
+              symbol.to_owned(),
+              vec![signature.into()], 
+        ).legacy().send().await.unwrap().await.unwrap();
+        println!("send_res {:?}",send_res.as_ref().unwrap());  
+        Ok(send_res.unwrap())
+    }
+    
 
 
     pub async fn token_info(

@@ -4,6 +4,7 @@ use blockchain::multi_sig::{MultiSig, SignInfo};
 use common::data_structures::wallet::{CoinTxStatus, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use tracing::debug;
 
 use crate::utils::token_auth;
 use crate::wallet::ReconfirmSendMoneyRequest;
@@ -36,6 +37,7 @@ pub async fn req(
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
     let strategy = multi_cli.get_strategy(&coin_tx.transaction.from).await?.unwrap();
     if strategy.sub_confs.get(&coin_tx.transaction.to).is_some(){
+        debug!("coin_tx {:?} is a tx which send money to sub",coin_tx);
         let servant_sigs = coin_tx
         .transaction
         .signatures

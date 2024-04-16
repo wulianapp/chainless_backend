@@ -1428,6 +1428,7 @@ mod tests {
     use super::*;
     use std::default::Default;
     use std::env;
+    use std::ops::Deref;
 
     use actix_web::body::MessageBody;
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
@@ -1459,6 +1460,8 @@ mod tests {
     use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
     use std::collections::HashMap;
     use crate::wallet::handlers::balance_list::AccountBalance;
+    use crate::account_manager::handlers::user_info::UserInfoTmp;
+
 
 
     /*** 
@@ -1579,7 +1582,7 @@ async fn test_wallet_add_remove_subaccount() {
             test_servant_saved_secret!(service,sender_servant);
         }   
 
-        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH",12,true,None::<String>);
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.user.contact,"ETH",12,true,None::<String>);
         assert!(pre_send_res.is_some());
         
         let res = test_search_message!(service, sender_servant).unwrap();
@@ -1627,7 +1630,7 @@ async fn test_wallet_add_remove_subaccount() {
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
             service,sender_master,
-            receiver.wallet.main_account,"ETH",1,true,Some("000000".to_string())
+            receiver.user.contact,"ETH",1,true,Some("000000".to_string())
         ).unwrap();
 
         println!("txid {:?}",txid);
@@ -1696,13 +1699,15 @@ async fn test_wallet_add_remove_subaccount() {
         test_create_main_account!(service, sender_master);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let user_info = test_get_strategy!(service,sender_master).unwrap();
+        let subaccount: Vec<String> = user_info.subaccounts.into_keys().collect();
 
         test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToSub");
         //step3: master: pre_send_money
         test_pre_send_money_to_sub!(
             service,
             sender_master,
-            sender_master.wallet.subaccount.first().unwrap(),
+            subaccount.first().unwrap(),
             "ETH",
             12
         );
@@ -1736,6 +1741,27 @@ async fn test_wallet_add_remove_subaccount() {
 
         test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
 
+        let user_info = test_user_info!(service,sender_master).unwrap();
+        println!("{:#?}",user_info);
+        //: bind eth addr before send money
+        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new().unwrap();
+        let sig = bridge_cli.sign_bind_info(
+            &user_info.main_account,
+             "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+           ).await;
+       println!("sign_bind sig {} ",sig);
+
+       //todo: sig on imtoken and verify on server
+       let bind_res = bridge_cli.bind_eth_addr(
+        &user_info.main_account,
+       "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+       &sig
+       ).await.unwrap();
+       println!("bind_res {} ",bind_res);
+
+
+
+
         //step3: master: pre_send_money
         test_pre_send_money_to_bridge!(
             service,
@@ -1748,13 +1774,58 @@ async fn test_wallet_add_remove_subaccount() {
         if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
             //local sign
-            let signature = common::encrypt::ed25519_gen_pubkey_sign(
+            let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
-                //区别于普通转账，给子账户的签coin_tx_raw
-                &tx.coin_tx_raw,
+                tx.tx_id.as_ref().unwrap(),
             ).unwrap();
+
             test_reconfirm_send_money!(service,sender_master,index,signature);
         }
+
+       
+
+       
+
+        tokio::time::sleep(std::time::Duration::from_millis(2000)).await;   
+        let current_binded_eth_addr = bridge_cli.get_binded_eth_addr(&user_info.main_account).await.unwrap().unwrap();
+        println!("current_bind_res {} ",current_binded_eth_addr);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
+        let erc20_cli = blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new();
+        let usdt_addr = "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499";
+        let eth_bridge_cli = blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
+        loop{
+            let (_,orders)  = bridge_cli.list_withdraw_order(&user_info.main_account).await.unwrap().unwrap();
+            println!("orders {:?}",orders);
+            if orders.is_empty() || orders.first().unwrap().1.signers.is_empty(){
+                println!("orders or signers is empty");
+                let balance_on_near = coin_cli.get_balance(&user_info.main_account).await.unwrap().unwrap();  
+                println!("usdt_balance_on_near: {}——————{}",user_info.main_account,balance_on_near);   
+                let balance_on_eth = erc20_cli.balance_of(usdt_addr,&current_binded_eth_addr).await.unwrap();
+                println!("usdt_balance_on_eth: {}——————{}",current_binded_eth_addr,balance_on_eth);   
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;   
+                continue;
+            }
+            let (order_id,blockchain::bridge_on_near::BridgeOrder{
+                account_id,
+                symbol,
+                amount,
+                signers,
+                ..
+            }) = orders.first().unwrap().clone(); 
+            
+            let withdraw_res = eth_bridge_cli.withdraw(
+                order_id, 
+                &account_id.to_string(), 
+                amount, 
+                &symbol, 
+                signers.first().unwrap().signature.as_ref().unwrap()).await.unwrap();
+            println!("withdraw_res {:?}",withdraw_res); 
+            let balance_on_near = coin_cli.get_balance(&user_info.main_account).await.unwrap().unwrap();  
+            println!("usdt_balance_on_near: {}——————{}",user_info.main_account,balance_on_near);   
+            let balance_on_eth = erc20_cli.balance_of(usdt_addr,&current_binded_eth_addr).await.unwrap();
+            println!("usdt_balance_on_eth: {}——————{}",current_binded_eth_addr,balance_on_eth);  
+            break; 
+        }   
     }
 
 
@@ -2067,6 +2138,16 @@ async fn test_wallet_add_remove_subaccount() {
                 &sender_strategy.master_pubkey,
                 "only sender_master_key can reconfirm or refuse it"
             );
+
+            /****
+             * 
+                let signature = common::encrypt::ed25519_gen_pubkey_sign(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                //区别于普通转账，给子账户的签coin_tx_raw
+                tx.chain_tx_raw.as_ref().unwrap(),
+            ).unwrap();
+            test_reconfirm_send_money!(service,sender_master,index,signature);
+            */
 
             //local sign
             let signature = common::encrypt::ed25519_sign_hex(

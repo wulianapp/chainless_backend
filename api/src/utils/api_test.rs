@@ -38,6 +38,8 @@ use tracing::{debug, error, info};
 use crate::wallet::handlers::balance_list::AccountBalance;
 use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
 use crate::wallet::handlers::get_strategy::StrategyDataTmp;
+use crate::account_manager::handlers::user_info::UserInfoTmp;
+
 
 #[derive(Debug)]
 pub struct TestWallet {
@@ -83,6 +85,7 @@ pub async fn init() -> App<
     App::new()
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
+        .configure(crate::bridge::configure_routes)
 }
 
 pub fn simulate_sender_master() -> TestWulianApp2 {
@@ -438,6 +441,22 @@ macro_rules! test_get_strategy {
 }
 
 #[macro_export]
+macro_rules! test_user_info {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/accountManager/userInfo");
+        let res: BackendRespond<UserInfoTmp> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code,0);
+        res.data
+    }};
+}
+
+#[macro_export]
 macro_rules! test_get_fees_priority {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getFeesPriority");
@@ -724,7 +743,11 @@ macro_rules! test_pre_send_money_to_bridge {
             "amount": $amount,
             "expireAt": 1808015513000u64,
             "captcha": "000000",
+            "memo": "test"
        });
+       println!{"_0001_"};
+
+       println!{"__{:?}",payload.to_string()};
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,
             "post",
