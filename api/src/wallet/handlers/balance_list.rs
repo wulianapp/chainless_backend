@@ -57,16 +57,18 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
         },
         AccountType::All => {
             let mut all = vec![main_account.clone()];
-            let strategy = mul_cli
-            .get_strategy(&main_account)
-            .await?
-            .ok_or(InternalError("11".to_string()))?;
-
-            let mut sub = strategy.sub_confs
-            .iter()
-            .map(|x|x.0.to_string())
-            .collect::<Vec<String>>();
-            all.append(&mut sub);
+            if main_account.ne(""){
+                let strategy = mul_cli
+                .get_strategy(&main_account)
+                .await?
+                .ok_or(InternalError("11".to_string()))?;
+    
+                let mut sub = strategy.sub_confs
+                .iter()
+                .map(|x|x.0.to_string())
+                .collect::<Vec<String>>();
+                all.append(&mut sub);
+            } 
             all
         },
         AccountType::Single(acc) => vec![acc],

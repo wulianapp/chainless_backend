@@ -987,6 +987,7 @@ pub struct BalanceListRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/balanceList")]
 async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListRequest>) -> impl Responder {
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::balance_list::req(req,request_data.0).await)
 }
 
