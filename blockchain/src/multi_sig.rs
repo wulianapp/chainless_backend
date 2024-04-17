@@ -54,7 +54,7 @@ impl Default for MultiSigRank {
         MultiSigRank {
             min: 0,
             //fixme: number out of range when u128::MAX
-            max_eq: 100000u128,
+            max_eq: 1_000_000_000_000_000_000_000_000u128,//one million
             sig_num: 0,
         }
     }
@@ -275,6 +275,8 @@ impl ContractClient<MultiSig> {
             .into_iter()
             .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
             .collect::<HashMap<AccountId,SubAccConf>>();
+        debug!("set_strategy {:?}",rank_arr);
+        
         let args_str = json!({
             "user_account_id": user_account_id,
             "master_pubkey": master_pubkey,
@@ -283,6 +285,7 @@ impl ContractClient<MultiSig> {
             "rank_arr": rank_arr
         })
         .to_string();
+
         self.commit_by_relayer("set_strategy2", &args_str).await
     }
 
