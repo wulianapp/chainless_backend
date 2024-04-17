@@ -3,6 +3,7 @@ use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::wallet::CoinType;
 use common::data_structures::KeyRole2;
+use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 //use log::debug;
 use tracing::debug;
@@ -35,6 +36,9 @@ pub async fn req(
         amount,
         eth_depositor
     } = request_data.clone();
+    let amount = display2raw(&amount)
+    .map_err(|err| BackendError::RequestParamInvalid(err))?;
+
     let coin: CoinType =  coin.parse().map_err(|_e| BackendError::InternalError("".to_string()))?;
     if coin == CoinType::CLY{
         Err(BackendError::InternalError("".to_string()))?

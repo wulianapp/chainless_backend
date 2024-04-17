@@ -9,6 +9,7 @@ use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, WalletError};
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
+use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -30,7 +31,7 @@ pub struct CoinTxViewTmp2 {
     pub coin_type: CoinType,
     pub from: String, //uid
     pub to: String,   //uid
-    pub amount: u128,
+    pub amount: String,
     pub expire_at: u64,
     pub memo: Option<String>,
     pub status: CoinTxStatus,
@@ -91,7 +92,7 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
         coin_type: tx.transaction.coin_type,
         from: tx.transaction.from,
         to: tx.transaction.to,
-        amount: tx.transaction.amount,
+        amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,
         status: tx.transaction.status,

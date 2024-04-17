@@ -18,7 +18,7 @@ use crate::utils::respond::gen_extra_respond;
  * @apiName PreWithdraw
  * @apiGroup Bridge
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20} coin      币种名字
- * @apiBody {Number} amount      转账数量
+ * @apiBody {String} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
  * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
@@ -42,7 +42,7 @@ use crate::utils::respond::gen_extra_respond;
 #[serde(rename_all = "camelCase")]
 pub struct PreWithdrawRequest {
     coin: String,
-    amount: u128,
+    amount: String,
     expire_at: u64,
     memo: Option<String>,
     captcha: Option<String>
@@ -125,7 +125,7 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
  * @apiName GenDepositSig
  * @apiGroup Bridge
  * @apiBody {String="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
- * @apiBody {Number} amount 提现数量
+ * @apiBody {String} amount 提现数量
  * @apiBody {String} ethDepositor 充值方的eth地址
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
@@ -142,7 +142,7 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
 #[serde(rename_all = "camelCase")]
 pub struct GenDepositSigRequest {
     coin:String,
-    amount:u128,
+    amount: String,
     eth_depositor:String
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]

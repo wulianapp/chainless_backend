@@ -5,7 +5,7 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
 
 use crate::utils::token_auth;
-use common::error_code::{BackendRes, WalletError};
+use common::{error_code::{BackendError, BackendRes, WalletError}, utils::math::coin_amount::display2raw};
 use serde::{Deserialize, Serialize};
 use common::error_code::BackendError::ChainError;
 use crate::wallet::GetNeedSigNumRequest;
@@ -24,7 +24,7 @@ pub(crate) async fn req(req: HttpRequest,request_data: GetNeedSigNumRequest) -> 
     }
 
     let coin_type = coin.parse().unwrap();
-    let amount = amount.parse().unwrap();
+    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     let need_sig_num = super::get_servant_need(
         &strategy.unwrap().multi_sig_ranks,
         &coin_type,

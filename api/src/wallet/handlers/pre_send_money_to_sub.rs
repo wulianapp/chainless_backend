@@ -6,6 +6,7 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
+use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
 
@@ -40,6 +41,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         memo,
         captcha
     } = request_data;
+    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     let coin_type = CoinType::from_str(&coin).unwrap();
     let from = main_account.clone();
 

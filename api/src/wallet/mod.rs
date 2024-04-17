@@ -47,7 +47,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String=dw20,cly} data.CoinTx.transaction.coin_type      币种名字
 * @apiSuccess {String} data.CoinTx.transaction.from                发起方
 * @apiSuccess {String} data.CoinTx.transaction.to                接收方
-* @apiSuccess {Number} data.CoinTx.transaction.amount               交易量
+* @apiSuccess {String} data.CoinTx.transaction.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.CoinTx.transaction.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
@@ -83,9 +83,9 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {String} data.subaccounts.0        子钱包的公钥组
  * @apiSuccess {Number} data.subaccounts.hold_value_limit   子钱包持仓限制
  * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
- * @apiSuccess {Number} data.multi_sig_ranks.min       最小金额.
- * @apiSuccess {Number} data.multi_sig_ranks.max_eq        最大金额.
- * @apiSuccess {Number} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
+ * @apiSuccess {String} data.multi_sig_ranks.min       最小金额.
+ * @apiSuccess {String} data.multi_sig_ranks.max_eq        最大金额.
+ * @apiSuccess {String} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
  * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
  */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -170,7 +170,7 @@ async fn get_secret(
  * @apiBody {String} from    发起方多签钱包ID
  * @apiBody {String} to      收款方ID（可以是手机、邮箱、钱包id）
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
- * @apiBody {Number} amount      转账数量
+ * @apiBody {String} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
  * @apiBody {String} isForce      是否强制交易
@@ -200,7 +200,7 @@ async fn get_secret(
 pub struct PreSendMoneyRequest {
     to: String,
     coin: String,
-    amount: u128,
+    amount: String,
     expire_at: u64,
     memo: Option<String>,
     is_forced: bool,
@@ -225,7 +225,7 @@ async fn pre_send_money(
  * @apiGroup Wallet
  * @apiBody {String} to      收款方ID
  * @apiBody {String=BTC,ETH,USDT,USDC,DW20,CLY} coin      币种名字
- * @apiBody {Number} amount      转账数量
+ * @apiBody {String} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
  * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
@@ -252,7 +252,7 @@ async fn pre_send_money(
 pub struct PreSendMoneyToSubRequest {
     to: String,
     coin: String,
-    amount: u128,
+    amount: String,
     expire_at: u64,
     memo: Option<String>,
     captcha: Option<String>
@@ -399,7 +399,7 @@ async fn cancel_send_money(
  * @apiGroup Wallet
  * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
  * @apiBody {String} coin       交易币种
- * @apiBody {Number} amount     交易数量
+ * @apiBody {String} amount     交易数量
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
@@ -423,7 +423,7 @@ async fn cancel_send_money(
 pub struct SubSendToMainRequest {
     sub_sig: String,
     coin: String,
-    amount: u128,
+    amount: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/subSendToMain")]
@@ -707,11 +707,11 @@ async fn remove_subaccount(
 }
 
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone,Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MultiSigRankExternal {
-    min: u128,
-    max_eq: u128,
+    min: String,
+    max_eq: String,
     sig_num: u8,
 }
 
@@ -721,8 +721,8 @@ pub struct MultiSigRankExternal {
  * @apiName updateStrategy
  * @apiGroup Wallet
  * @apiBody {Object[]} strategy   策略内容
- * @apiBody {Number} strategy.min   档位最小值(开区间)
- * @apiBody {Number} strategy.maxEq  档位最大值(闭区间)
+ * @apiBody {String} strategy.min   档位最小值(开区间)
+ * @apiBody {String} strategy.maxEq  档位最大值(闭区间)
  * @apiBody {Number} strategy.sigNum   所需签名数量
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
@@ -797,7 +797,7 @@ async fn set_fees_priority(
  * @apiName UpdateSubaccountHoldLimit
  * @apiGroup Wallet
  * @apiBody {String} subaccount   待修改的子钱包id
- * @apiBody {Number} limit         待更新的额度
+ * @apiBody {String} limit         待更新的额度
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
@@ -815,7 +815,7 @@ async fn set_fees_priority(
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSubaccountHoldLimitRequest {
     subaccount: String,
-    limit: u128,
+    limit: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/updateSubaccountHoldLimit")]
@@ -1017,7 +1017,7 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
 * @apiSuccess {String=dw20,cly} data.coin_type      币种名字
 * @apiSuccess {String} data.from                发起方
 * @apiSuccess {String} data.to                接收方
-* @apiSuccess {Number} data.amount               交易量
+* @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
@@ -1069,7 +1069,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String=dw20,cly} data.coin_type      币种名字
 * @apiSuccess {String} data.from                发起方
 * @apiSuccess {String} data.to                接收方
-* @apiSuccess {Number} data.amount               交易量
+* @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                

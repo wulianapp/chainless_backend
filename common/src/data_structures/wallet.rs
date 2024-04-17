@@ -38,7 +38,7 @@ pub trait AddressConvert: Sized {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub enum AccountMessage {
     NewcomerBecameSevant(SecretStore),
-    CoinTx(u32, CoinTransaction),
+    CoinTx(u32, CoinTransaction2),
 }
 
 pub fn get_support_coin_list() -> Vec<CoinType> {
@@ -173,6 +173,25 @@ pub struct CoinTransaction {
     pub reserved_field3: String,
 }
 
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+pub struct CoinTransaction2 {
+    pub tx_id: Option<String>,
+    pub coin_type: CoinType,
+    pub from: String, //uid
+    pub to: String,   //uid
+    pub amount: String,
+    pub expire_at: u64,
+    pub memo: Option<String>,
+    pub status: CoinTxStatus,
+    pub coin_tx_raw: String,
+    pub chain_tx_raw: Option<String>,
+    pub signatures: Vec<String>,
+    pub tx_type: TxType,
+    pub reserved_field1: String,
+    pub reserved_field2: String,
+    pub reserved_field3: String,
+}
 
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]

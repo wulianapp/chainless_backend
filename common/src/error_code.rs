@@ -39,6 +39,12 @@ impl From<AnyhowError> for BackendError {
     }
 }
 
+impl From<String> for BackendError {
+    fn from(error: String) -> Self {
+        BackendError::InternalError(error.to_string())
+    }
+}
+
 impl ErrorCode for BackendError {
     fn code(&self) -> u16 {
         match self {

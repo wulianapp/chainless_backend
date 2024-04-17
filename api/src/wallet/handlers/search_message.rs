@@ -1,4 +1,7 @@
 use actix_web::HttpRequest;
+use common::data_structures::wallet::CoinTransaction;
+use common::data_structures::wallet::CoinTransaction2;
+use common::utils::math::coin_amount::raw2display;
 
 use crate::utils::token_auth;
 use crate::wallet::add_servant;
@@ -32,7 +35,27 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
     let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account))?;
     let mut tx_msg = coin_txs
         .into_iter()
-        .map(|tx| AccountMessage::CoinTx(tx.tx_index, tx.transaction))
+        .map(|tx| {
+            let CoinTransaction { tx_id, coin_type, from, to, amount, expire_at, memo, status, coin_tx_raw, chain_tx_raw, signatures, tx_type, reserved_field1, reserved_field2, reserved_field3 } = tx.transaction;
+            let transaction =  CoinTransaction2 {
+                tx_id,
+                coin_type,
+                from,
+                to,
+                amount: raw2display(amount),
+                expire_at,
+                memo,
+                status,
+                coin_tx_raw,
+                chain_tx_raw,
+                signatures,
+                tx_type,
+                reserved_field1,
+                reserved_field2,
+                reserved_field3,
+            };
+            AccountMessage::CoinTx(tx.tx_index, transaction)
+        })
         .collect::<Vec<AccountMessage>>();
 
     messages.append(&mut tx_msg);

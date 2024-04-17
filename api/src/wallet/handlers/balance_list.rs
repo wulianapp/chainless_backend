@@ -8,6 +8,7 @@ use common::data_structures::wallet::{get_support_coin_list, CoinType};
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
+use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
@@ -21,9 +22,9 @@ use common::error_code::BackendError::ChainError;
 pub struct AccountBalance {
     account_id: String,
     coin: CoinType,
-    total_balance:u128,
-    available_balance: u128,
-    freezn_amount:u128,
+    total_balance:String,
+    available_balance: String,
+    freezn_amount:String,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -94,9 +95,9 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             let balance = AccountBalance{
                 account_id:account.clone(),
                 coin: coin.clone(),
-                total_balance,
-                available_balance,
-                freezn_amount,
+                total_balance: raw2display(total_balance),
+                available_balance: raw2display(available_balance),
+                freezn_amount: raw2display(freezn_amount),
             };
             account_balance.push(balance);
         }

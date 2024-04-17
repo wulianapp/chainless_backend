@@ -6,6 +6,7 @@ use blockchain::multi_sig::{CoinTx, MultiSig};
 use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
+use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
@@ -49,6 +50,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         is_forced,
         captcha
     } = request_data;
+    let amount = display2raw(&amount)
+   .map_err(|err| BackendError::RequestParamInvalid(err))?;
+
     let (user,current_strategy,device) = 
     super::get_session_state(user_id,&device_id).await?;
 

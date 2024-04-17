@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::data_structures::{wallet::WalletOperateType, KeyRole2};
+use common::{data_structures::{wallet::WalletOperateType, KeyRole2}, error_code::BackendError, utils::math::coin_amount::display2raw};
 use models::{
     device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
@@ -31,12 +31,16 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     //fixme:
     let strategy = strategy
         .into_iter()
-        .map(|x| MultiSigRank {
-            min: x.min,
-            max_eq: x.max_eq,
-            sig_num: x.sig_num,
+        .map(|x| -> Result<MultiSigRank,String> {
+            let rank = MultiSigRank {
+                min: display2raw(&x.min)?,
+                max_eq: display2raw(&x.max_eq)?,
+                sig_num: x.sig_num,
+            };
+            Ok(rank)
         })
-        .collect();
+        .collect::<Result<Vec<_>,String>>()
+        .map_err(|err| BackendError::RequestParamInvalid(err))?;
 
     //add wallet info
     let cli = ContractClient::<MultiSig>::new()?;

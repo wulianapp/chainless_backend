@@ -7,12 +7,13 @@ use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
 use common::encrypt::bs58_to_hex;
+use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
 use crate::wallet::SubSendToMainRequest;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater, CoinTxView};
 use models::PsqlOp;
 
@@ -36,6 +37,8 @@ pub async fn req(
         coin,
         amount,
     } = request_data.0;
+    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
+
 
         //from必须是用户的子账户
         let cli = ContractClient::<MultiSig>::new()?;

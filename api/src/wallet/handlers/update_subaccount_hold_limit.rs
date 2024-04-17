@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::data_structures::{wallet::WalletOperateType, KeyRole2};
+use common::{data_structures::{wallet::WalletOperateType, KeyRole2}, error_code::BackendError, utils::math::coin_amount::display2raw};
 use models::{
     device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
@@ -25,7 +25,8 @@ pub async fn req(req: HttpRequest, request_data: UpdateSubaccountHoldLimitReques
         subaccount,
         limit,
     } = request_data;
-   
+    let limit = display2raw(&limit).map_err(|err| BackendError::RequestParamInvalid(err))?;
+
 
     //add wallet info
     let cli = ContractClient::<MultiSig>::new()?;    
