@@ -95,38 +95,12 @@ impl EthContractClient<Erc20> {
 #[cfg(test)]
 mod tests {
 
+    use ::common::data_structures::wallet::{get_support_coin_list, get_support_coin_list_without_cly, CoinType};
+
     use super::*;
 
     #[tokio::test]
     async fn test_erc20_op(){
-        /***
-         * 
-         * "btc": {
-          "address": "0xbCE3C6f47F27d4e09Fe8c3F2a7911f55688A900C",
-          "decimal": 18,
-          "token_type": "erc20"
-        },
-        "eth": {
-          "address": "0x96dcA0056178832176d0534422D3d5322986c38C",
-          "decimal": 18,
-          "token_type": "erc20"
-        },
-        "dw20": {
-          "address": "0x6870b5237028aa5A2Ae7a94F02Ac8D9CBc97D42e",
-          "decimal": 18,
-          "token_type": "erc20"
-        },
-        "usdc": {
-          "address": "0x8cF428b6A97857C12E4E62e3D382A1caB4830F3D",
-          "decimal": 18,
-          "token_type": "erc20"
-        },
-        "usdt": {
-          "address": "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499",
-          "decimal": 18,
-          "token_type": "erc20"
-        }
-        */
         let cli = EthContractClient::<Erc20>::new();
         let usdt_addr = "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499";
         let address = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
@@ -140,5 +114,26 @@ mod tests {
         let allow_amount = cli.allowance(usdt_addr,relayer_addr,&spender).await.unwrap();
         println!("allow_amount__{}",allow_amount);
 
+    }
+    #[tokio::test]
+    async fn tools_batch_approve(){
+        let cli = EthContractClient::<Erc20>::new();
+        let address = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
+        let relayer_addr = "cb5afaa026d3de65de0ddcfb1a464be8960e334a";
+
+        let coins = get_support_coin_list();
+        for coin in coins {
+            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::CLY){
+                continue;
+            } 
+            let erc20_addr = coin.erc20_ca().unwrap();
+            let balance = cli.balance_of(&erc20_addr,address).await.unwrap();
+            println!("coin {} balance__{}",coin.to_string(),balance);
+            let spender = hex::encode(cli.contract_addr);
+            let amount = 1000000 * 10u128.pow(18);
+            let _approve_res = cli.relayer_approve(&erc20_addr, &spender, amount).await.unwrap();
+            let allow_amount = cli.allowance(&erc20_addr,relayer_addr,&spender).await.unwrap();
+            println!("allow_amount__{}",allow_amount);
+        }
     }
 }

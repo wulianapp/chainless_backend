@@ -6,6 +6,7 @@ use anyhow::Error;
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
+use crate::env::CONF as global_conf;
 
 const PREDECESSOR_SUBFIX: &str = ".node0";
 
@@ -89,6 +90,18 @@ impl CoinType {
             CoinType::DW20 => AccountId::from_str("dw20").unwrap(),
         }
     }
+
+    pub fn erc20_ca(&self) -> Option<String> {
+        match self {
+            CoinType::BTC => Some(global_conf.eth_wbtc_contract.clone()),
+            CoinType::ETH => None,
+            CoinType::USDT => Some(global_conf.eth_usdt_contract.clone()),
+            CoinType::USDC => Some(global_conf.eth_usdc_contract.clone()),
+            CoinType::CLY => None,
+            CoinType::DW20 => Some(global_conf.eth_dw20_contract.clone()),
+        }
+    }
+
     pub fn to_account_str(&self) -> String {
         self.to_account_id().to_string()
     }

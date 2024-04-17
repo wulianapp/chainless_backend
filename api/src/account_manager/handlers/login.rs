@@ -43,11 +43,11 @@ fn is_locked(user_id: u32) -> (bool,u8,u64) {
         if records.len() >= 5 {
             let unlock_time = *records.last().unwrap() + MINUTE30; 
             debug!("0002___{}",unlock_time);
-            if  unlock_time > now_millis() {
+            if now_millis() < unlock_time {
                 (true,0,unlock_time as u64 / 1000)
             } else {
                 //clear retry records
-                retry_storage.entry(user_id).or_default();
+                let _ = retry_storage.remove(&user_id);
                 (false,0,0)
             }
         } else {
@@ -70,15 +70,19 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     let user_at_stored =
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
-    if password != user_at_stored.user_info.login_pwd_hash {
-        let (is_lock,remain_chance,unlock_time) = is_locked(user_at_stored.id);
-        if is_lock{
-            Err(AccountLocked(unlock_time))?;
-        }
+    let (is_lock,remain_chance,unlock_time) = is_locked(user_at_stored.id);
+    if is_lock{
+        Err(AccountLocked(unlock_time))?;
+    }
 
+    if password != user_at_stored.user_info.login_pwd_hash {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect(remain_chance))?;
+    }else {
+        let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
+        let _ = retry_storage.remove(&user_at_stored.id);
     }
+
     //todo: distinguish repeat and not found
     let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
         &device_id,
@@ -128,5 +132,8 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);
+    //成功登陆删掉错误密码的限制
+    let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
+    let _ = retry_storage.remove(&user_at_stored.id);
     Ok(Some(token))
 }

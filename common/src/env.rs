@@ -5,6 +5,8 @@ use std::str::FromStr;
 
 use tracing::info;
 
+use crate::utils::time::MINUTE30;
+
 #[derive(Debug, PartialEq)]
 pub enum ServiceMode {
     Product,
@@ -56,6 +58,8 @@ pub struct EnvConf {
     pub multi_sig_relayer_account_id: String,
     /// psql connect url
     pub wallet_api_port: usize,
+    pub captcha_valid_interval: u64,
+    pub login_by_password_retry_time: u64,
     /// redis
     pub prostgres_server: String,
     /// eth rpc url
@@ -76,6 +80,10 @@ pub struct EnvConf {
     pub sms_account: String,
     ///bot key
     pub sms_token: String,
+    pub eth_wbtc_contract: String,
+    pub eth_usdt_contract: String,
+    pub eth_usdc_contract: String,
+    pub eth_dw20_contract: String,
 }
 
 impl Default for EnvConf {
@@ -87,6 +95,7 @@ impl Default for EnvConf {
             multi_sig_relayer_prikey: "".to_string(),
             multi_sig_relayer_account_id: "".to_string(),
             wallet_api_port: 8069,
+            captcha_valid_interval: MINUTE30,
             prostgres_server: "".to_string(),
             chain_rpc: "1".to_string(),
             stmp_account: "1".to_string(),
@@ -100,6 +109,11 @@ impl Default for EnvConf {
             fees_call_contract: "fees_call".to_string(),
             bridge_near_contract: "cvault0001.chainless".to_string(),
             bridge_eth_contract: "0x1234".to_string(),
+            eth_wbtc_contract: "0x1234".to_string(),
+            eth_usdt_contract: "0x1234".to_string(),
+            eth_usdc_contract: "0x1234".to_string(),
+            eth_dw20_contract: "0x1234".to_string(),
+            login_by_password_retry_time: 5,
         }
     }
 }
@@ -136,6 +150,21 @@ lazy_static! {
             conf.bridge_eth_contract = value.to_str().unwrap().parse().unwrap();
         }
 
+        if let Some(value) = env::var_os("BACKEND_ERC20_USDT_CONTRACT"){
+            conf.eth_usdt_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_ERC20_USDC_CONTRACT"){
+            conf.eth_usdc_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_ERC20_DW20_CONTRACT"){
+            conf.eth_dw20_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_ERC20_WBTC_CONTRACT"){
+            conf.eth_wbtc_contract = value.to_str().unwrap().parse().unwrap();
+        }
 
         if let Some(value) = env::var_os("BACKEND_MULTI_SIG_RELAYER_PRIKEY"){
             conf.multi_sig_relayer_prikey = value.to_str().unwrap().parse().unwrap();
@@ -158,6 +187,9 @@ lazy_static! {
             conf.wallet_api_port = value.to_str().unwrap().parse().unwrap();
         }
 
+        if let Some(value) = env::var_os("BACKEND_CAPTCHA_VALID_INTERVAL"){
+            conf.captcha_valid_interval = value.to_str().unwrap().parse().unwrap();
+        }
 
         if let Some(value) = env::var_os("BACKEND_SMTP_PORT"){
             println!("__{:?}",value.to_str().unwrap().to_string());
@@ -196,8 +228,13 @@ lazy_static! {
             conf.sms_account = value.to_str().unwrap().to_owned();
         }
 
-         if let Some(value) = env::var_os("BACKEND_SMS_TOKEN"){
+        if let Some(value) = env::var_os("BACKEND_SMS_TOKEN"){
             conf.sms_token = value.to_str().unwrap().to_owned();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_SMTP_PORT"){
+            println!("__{:?}",value.to_str().unwrap().to_string());
+            conf.stmp_port  = value.to_str().unwrap().parse().unwrap();
         }
 
         conf

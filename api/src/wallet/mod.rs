@@ -1768,7 +1768,7 @@ async fn test_wallet_add_remove_subaccount() {
             service,
             sender_master,
             "USDT",
-            1200
+            "1.2"
         );
 
         let res = test_search_message!(service, sender_master).unwrap();
