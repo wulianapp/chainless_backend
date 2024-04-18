@@ -21,7 +21,6 @@ use crate::utils::respond::gen_extra_respond;
  * @apiBody {String} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
- * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -45,7 +44,6 @@ pub struct PreWithdrawRequest {
     amount: String,
     expire_at: u64,
     memo: Option<String>,
-    captcha: Option<String>
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]

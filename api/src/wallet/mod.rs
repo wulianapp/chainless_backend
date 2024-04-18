@@ -204,7 +204,6 @@ pub struct PreSendMoneyRequest {
     expire_at: u64,
     memo: Option<String>,
     is_forced: bool,
-    captcha: Option<String>
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -1740,7 +1739,7 @@ async fn test_wallet_add_remove_subaccount() {
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
+        //test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
 
         let user_info = test_user_info!(service,sender_master).unwrap();
         println!("{:#?}",user_info);

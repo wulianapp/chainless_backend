@@ -130,7 +130,7 @@ mod tests {
             let balance = cli.balance_of(&erc20_addr,address).await.unwrap();
             println!("coin {} balance__{}",coin.to_string(),balance);
             let spender = hex::encode(cli.contract_addr);
-            let amount = 1000000 * 10u128.pow(18);
+            let amount = 1000000000000000 * 10u128.pow(18);
             let _approve_res = cli.relayer_approve(&erc20_addr, &spender, amount).await.unwrap();
             let allow_amount = cli.allowance(&erc20_addr,relayer_addr,&spender).await.unwrap();
             println!("allow_amount__{}",allow_amount);

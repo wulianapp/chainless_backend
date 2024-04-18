@@ -1,6 +1,7 @@
 use anyhow::{Ok, Result};
 
 use common::env::CONF as ENV_CONF;
+use ::common::utils::time::now_millis;
 use ethers::prelude::*;
 use ethers::types::Address;
 use hex::FromHex;
@@ -64,9 +65,10 @@ impl EthContractClient<Bridge> {
         symbol: &str,
         amount: u128,
         signature: &str,
-        deadline: u128,
+        deadline: u64,
+        cid:u64,
     ) -> Result<TransactionReceipt> {
-        let cid = U256::from(1500u32);
+        let cid = U256::from(cid);
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
         let signature = hex::decode(signature).unwrap();

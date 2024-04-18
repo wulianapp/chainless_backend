@@ -50,7 +50,7 @@ async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutToke
  * @apiVersion 0.0.1
  * @apiName GetCaptchaWithToken
  * @apiGroup AccountManager
- * @apiBody {String="PreSendMoneyToBridge","SetSecurity","UpdateSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
+ * @apiBody {String="SetSecurity","UpdateSecurity","ResetLoginPassword","ServantSwitchMaster","NewcomerSwitchMaster"} kind 验证码类型，测试网生成的验证码为000000
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
@@ -113,7 +113,7 @@ async fn contact_is_used(
  * @apiGroup AccountManager
  * @apiBody {String} contact   邮箱或者手机号
  * @apiBody {String} captcha   验证码值
- * @apiBody {String="Register","Login","ResetLoginPassword","SetSecurity","ResetLoginPassword","PreSendMoney","PreSendMoneyToSub","ServantSwitchMaster","NewcomerSwitchMaster"} usage    验证码用途
+ * @apiBody {String="Register","Login","ResetLoginPassword","SetSecurity","ResetLoginPassword","ServantSwitchMaster","NewcomerSwitchMaster"} usage    验证码用途
 
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"

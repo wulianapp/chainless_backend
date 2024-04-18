@@ -98,7 +98,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         if captcha.is_none(){
             Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
         } 
-        Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoneyToSub)?;
 
         let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub)?;
         let next_tx_index = get_next_tx_index()?;

@@ -39,7 +39,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> B
         amount,
         expire_at,
         memo,
-        captcha
     } = request_data;
     
     let amount = display2raw(&amount)
@@ -86,11 +85,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> B
 
     //转子账户不需要is_forced标志位，本身就是强制的
     if need_sig_num == 0 {
-        if captcha.is_none(){
-            Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
-        } 
-        Captcha::check_user_code(&user_id.to_string(), &captcha.unwrap(), Usage::PreSendMoneyToBridge)?;
-
         let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsBridge)?;
         let next_tx_index = get_next_tx_index()?;
 
@@ -113,10 +107,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> B
         coin_info.insert()?;
         Ok(Some((next_tx_index,coin_info.transaction.coin_tx_raw)))
     }else {
-        //todo:
-        if captcha.is_some(){
-            Err(BackendError::InternalError("For multi-sig tx,need not  captcha".to_string()))?;
-        }
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.insert()?;

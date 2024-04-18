@@ -742,7 +742,6 @@ macro_rules! test_pre_send_money_to_bridge {
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
-            "captcha": "000000",
             "memo": "test"
        });
        println!{"_0001_"};
