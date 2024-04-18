@@ -130,9 +130,10 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
  * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
  * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
- * @apiSuccess {object} data                签名和过期时间戳.
+ * @apiSuccess {object} data                  签名和过期时间戳.
  * @apiSuccess {String} data.0                签名.
  * @apiSuccess {Number} data.1                过期时间戳.
+ * @apiSuccess {Number} data.2                签名cid
 
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */

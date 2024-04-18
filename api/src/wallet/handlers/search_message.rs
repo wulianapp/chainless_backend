@@ -14,7 +14,7 @@ use models::device_info::*;
 use models::secret_store::*;
 use models::PsqlOp;
 
-pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
+pub(crate) async fn req(req: HttpRequest) -> BackendRes<AccountMessage> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let user = UserInfoView::find_single(UserFilter::ById(user_id))
         .map_err(|_e| AccountManagerError::UserIdNotExist)?;
@@ -31,6 +31,10 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
         messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
     }
     **/
+    let mut messages = AccountMessage{
+        newcomer_became_sevant: vec![],
+        coin_tx: vec![]
+    };
 
     let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account))?;
     let mut tx_msg = coin_txs
@@ -38,6 +42,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
         .map(|tx| {
             let CoinTransaction { tx_id, coin_type, from, to, amount, expire_at, memo, status, coin_tx_raw, chain_tx_raw, signatures, tx_type, reserved_field1, reserved_field2, reserved_field3 } = tx.transaction;
             let transaction =  CoinTransaction2 {
+                tx_index: tx.tx_index,
                 tx_id,
                 coin_type,
                 from,
@@ -54,11 +59,11 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<AccountMessage>> {
                 reserved_field2,
                 reserved_field3,
             };
-            AccountMessage::CoinTx(tx.tx_index, transaction)
+            transaction
         })
-        .collect::<Vec<AccountMessage>>();
+        .collect::<Vec<CoinTransaction2>>();
 
-    messages.append(&mut tx_msg);
+    messages.coin_tx.append(&mut tx_msg);
 
     Ok(Some(messages))
 }

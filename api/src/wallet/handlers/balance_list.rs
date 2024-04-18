@@ -23,6 +23,8 @@ pub struct AccountBalance {
     account_id: String,
     coin: CoinType,
     total_balance:String,
+    total_dollar_value:String,
+    total_rmb_value:String,
     available_balance: String,
     freezn_amount:String,
 }
@@ -98,6 +100,8 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
                 total_balance: raw2display(total_balance),
                 available_balance: raw2display(available_balance),
                 freezn_amount: raw2display(freezn_amount),
+                total_dollar_value: raw2display(total_balance),
+                total_rmb_value: raw2display(total_balance / 7),
             };
             account_balance.push(balance);
         }

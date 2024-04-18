@@ -24,6 +24,15 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     if user.user_info.main_account.eq(""){
         return Ok(Some(KeyRole2::Undefined));
     } 
+    //todo:
+    let mut device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
+    if let Err(err) = device {
+        if err.to_string().contains("data isn't existed"){
+            return Ok(Some(KeyRole2::Undefined));
+        }else{
+            return Err(BackendError::DBError(err.to_string()));
+        }
+    }
 
     let (_,current_strategy,device) = 
     crate::wallet::handlers::get_session_state(user.id,&device_id).await?;
