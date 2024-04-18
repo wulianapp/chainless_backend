@@ -40,11 +40,12 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {Number} data.newcomer_became_sevant.user_id          所属用户id
 * @apiSuccess {String} data.newcomer_became_sevant.encrypted_prikey_by_password    安全密码加密私钥的输出
 * @apiSuccess {String} data.newcomer_became_sevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
+* @apiSuccess {Bool} data.have_pending_txs             作为发送方是否有待处理的交易   
 * @apiSuccess {object[]} data.coin_tx                转账消息
 * @apiSuccess {Number} data.coin_tx.tx_index          交易索引号.
 * @apiSuccess {object} data.coin_tx.transaction        交易详情.
 * @apiSuccess {String} [data.coin_tx.transaction.tx_id]        链上交易id.
-* @apiSuccess {String=DW20,CLY} data.coin_tx.transaction.coin_type      币种名字
+* @apiSuccess {String=BTC,ETH,USDT,USDC,DW20,CLY} data.coin_tx.transaction.coin_type      币种名字
 * @apiSuccess {String} data.coin_tx.transaction.from                发起方
 * @apiSuccess {String} data.coin_tx.transaction.to                接收方
 * @apiSuccess {String} data.coin_tx.transaction.amount               交易量
@@ -54,7 +55,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String}  data.coin_tx.transaction.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.coin_tx.transaction.chain_tx_raw]          链上交互的原始数据
 * @apiSuccess {String[]} data.coin_tx.transaction.signatures         从设备对业务数据的签名
-* @apiSuccess {String=Normal,Forced,ToSub,FromSub} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
+* @apiSuccess {String=Normal,Forced,MainToSub,SubToMain,MainToBridge} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
 * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
 */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -1071,7 +1072,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String} data.from                发起方
 * @apiSuccess {String} data.to                接收方
 * @apiSuccess {String} data.amount               交易量
-* @apiSuccess {String} data.expireAt             交易截止时间戳
+* @apiSuccess {String} data.expire_at             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
 * @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                
     交易状态分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
@@ -1086,6 +1087,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String} data.unsigned_device.pubkey         签名公钥
 * @apiSuccess {String} data.unsigned_device.device_id      签名设备id
 * @apiSuccess {String} data.unsigned_device.device_brand   签名设备品牌
+* @apiSuccess {String=Normal,Forced,MainToSub,SubToMain,MainToBridge} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
 * @apiSuccess {String} data.updated_at         交易更新时间戳
 * @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
@@ -1580,36 +1582,36 @@ async fn test_wallet_add_remove_subaccount() {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::NewcomerBecameSevant(_secret) = res.first().unwrap() {
+        if !res.newcomer_became_sevant.is_empty() {
             test_servant_saved_secret!(service,sender_servant);
         }   
 
-        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.user.contact,"ETH",12,true,None::<String>);
+        let pre_send_res = test_pre_send_money!(service,sender_master,receiver.user.contact,"ETH","1.2",true,None::<String>);
         assert!(pre_send_res.is_some());
         
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
-            assert_eq!(tx.status, CoinTxStatus::Created);
-            assert_eq!(tx.tx_type, TxType::Forced);
-            //local sign
-            let signature = common::encrypt::ed25519_gen_pubkey_sign(
-                &sender_servant.wallet.prikey.unwrap(),
-                &tx.coin_tx_raw,
-            ).unwrap();
-           test_upload_servant_sig!(service,sender_servant,index,signature);
-        }
+        let tx = res.coin_tx.first().unwrap();
+        assert_eq!(tx.status, CoinTxStatus::Created);
+        assert_eq!(tx.tx_type, TxType::Forced);
+        //local sign
+        let signature = common::encrypt::ed25519_gen_pubkey_sign(
+            &sender_servant.wallet.prikey.unwrap(),
+            &tx.coin_tx_raw,
+        ).unwrap();
+        test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
+        
 
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
-            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
-            assert_eq!(tx.tx_type, TxType::Forced);
-            //local sign
-            let signature = common::encrypt::ed25519_sign_hex(
-                sender_master.wallet.prikey.as_ref().unwrap(),
-                tx.tx_id.as_ref().unwrap(),
-            ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,index,signature);
-        }
+        let tx = res.coin_tx.first().unwrap();
+        assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+        assert_eq!(tx.tx_type, TxType::Forced);
+        //local sign
+        let signature = common::encrypt::ed25519_sign_hex(
+            sender_master.wallet.prikey.as_ref().unwrap(),
+            tx.tx_id.as_ref().unwrap(),
+        ).unwrap();
+        test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+        
     }
     
     #[actix_web::test]
@@ -1632,7 +1634,7 @@ async fn test_wallet_add_remove_subaccount() {
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
             service,sender_master,
-            receiver.user.contact,"ETH",1,true,Some("000000".to_string())
+            receiver.user.contact,"ETH","1",true,Some("000000".to_string())
         ).unwrap();
 
         println!("txid {:?}",txid);
@@ -1711,11 +1713,11 @@ async fn test_wallet_add_remove_subaccount() {
             sender_master,
             subaccount.first().unwrap(),
             "ETH",
-            12
+            "1.2"
         );
 
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        if let Some(tx) = res.coin_tx.first() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
             //local sign
             let signature = common::encrypt::ed25519_gen_pubkey_sign(
@@ -1723,7 +1725,7 @@ async fn test_wallet_add_remove_subaccount() {
                 //区别于普通转账，给子账户的签coin_tx_raw
                 &tx.coin_tx_raw,
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
         }
     }
 
@@ -1773,7 +1775,7 @@ async fn test_wallet_add_remove_subaccount() {
         );
 
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
             //local sign
             let signature = common::encrypt::ed25519_sign_hex(
@@ -1781,8 +1783,8 @@ async fn test_wallet_add_remove_subaccount() {
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
 
-            test_reconfirm_send_money!(service,sender_master,index,signature);
-        }
+            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+        
 
        
 
@@ -1853,7 +1855,7 @@ async fn test_wallet_add_remove_subaccount() {
 
             //sub to main
             let coin_tx = SubAccCoinTx{
-                amount: 11,
+                amount: 11_000_000_000_000_000_000,
                 //todo: 
                 coin_id: "dw20".to_string(),
             };
@@ -1871,7 +1873,7 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.subaccount.first().unwrap(),
                 signature
             );
-            test_sub_send_to_master!(service,sender_master,signature,"ETH",11);
+            test_sub_send_to_master!(service,sender_master,signature,"ETH","11");
     }
 
     #[derive(Deserialize, Serialize, Clone)]
@@ -2063,7 +2065,7 @@ async fn test_wallet_add_remove_subaccount() {
 
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
+        if let Some(secret) = res.newcomer_became_sevant.first() {
             sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
             test_servant_saved_secret!(service,sender_servant);
         }
@@ -2073,23 +2075,23 @@ async fn test_wallet_add_remove_subaccount() {
         println!("{},,,{:?}", line!(), device_lists);
 
         //step3: master: pre_send_money
-        let res = test_pre_send_money2!(service,sender_master,receiver.user.contact,"ETH",12,false);
+        let res = test_pre_send_money2!(service,sender_master,receiver.user.contact,"ETH","12",false);
         assert!(res.is_some());
         let tx = test_get_tx!(service,sender_master,res.unwrap().0);
         println!("txxxx__{:?}",tx.unwrap());
 
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
                 &sender_strategy.master_pubkey,
                 "this device hold  master key,and do nothing for 'Created' tx"
             );
-        }
+        
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
@@ -2110,20 +2112,21 @@ async fn test_wallet_add_remove_subaccount() {
             );
 
             //upload_servant_sig
-           test_upload_servant_sig!(service,sender_servant,index,signature);
-        }
+           test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
+        
 
         //step5: receiver get notice and react it
         let res = test_search_message!(service, receiver).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();
+
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
             assert_eq!(
                 receiver.wallet.pubkey.unwrap(),
                 receiver_strategy.master_pubkey,
                 "only master_key can ratify or refuse it"
             );
-            test_react_pre_send_money!(service,receiver,index,true);
-        }
+            test_react_pre_send_money!(service,receiver,tx.tx_index,true);
+        
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
         println!("txs_0003__ {:?}", txs);
@@ -2133,7 +2136,7 @@ async fn test_wallet_add_remove_subaccount() {
         //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
         //超过了就链上过期（非多签业务过期）
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();
             assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
@@ -2156,8 +2159,8 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,index,signature);
-        }
+            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+        
 
         let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;
         println!("txs_success {:?}", txs_success);
@@ -2201,10 +2204,10 @@ async fn test_wallet_add_remove_subaccount() {
 
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::NewcomerBecameSevant(secret) = res.first().unwrap() {
-            sender_servant.wallet.prikey = Some(secret.encrypted_prikey_by_password.clone());
+        let tx = res.newcomer_became_sevant.first().unwrap();
+            sender_servant.wallet.prikey = Some(tx.encrypted_prikey_by_password.clone());
             test_servant_saved_secret!(service,sender_servant);
-        }
+        
 
         //step2.4: get device list
         let device_lists: Vec<DeviceInfo> = test_get_device_list!(service,sender_servant).unwrap();
@@ -2212,11 +2215,12 @@ async fn test_wallet_add_remove_subaccount() {
 
         //step3: master: pre_send_money
         test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
-        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH",12,true,None::<String>);
+        let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH","2",true,None::<String>);
         assert!(res.is_some());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(_index, tx) = res.first().unwrap() {
+        if let Some(tx) = res.coin_tx.first() {
+            {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
@@ -2225,7 +2229,7 @@ async fn test_wallet_add_remove_subaccount() {
             );
         }
         let res = test_search_message!(service, sender_servant).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        if let Some(tx) = res.coin_tx.first() {
             assert_eq!(tx.status, CoinTxStatus::Created);
             assert_eq!(
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
@@ -2246,19 +2250,19 @@ async fn test_wallet_add_remove_subaccount() {
             );
 
             //upload_servant_sig
-           test_upload_servant_sig!(service,sender_servant,index,signature);
+           test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
         }
 
         //step5: receiver get notice and react it
         let res = test_search_message!(service, receiver).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        if let Some(tx) = res.coin_tx.first() {
             assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
             assert_eq!(
                 receiver.wallet.pubkey.unwrap(),
                 receiver_strategy.master_pubkey,
                 "only master_key can ratify or refuse it"
             );
-            test_react_pre_send_money!(service,receiver,index,true);
+            test_react_pre_send_money!(service,receiver,tx.tx_index,true);
         }
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
@@ -2268,7 +2272,7 @@ async fn test_wallet_add_remove_subaccount() {
         //todo: 为了减少一个接口以及减掉客户端交易组装的逻辑，在to账户确认的时候就生成了txid和raw_data,所以master只有1分钟的确认时间
         //超过了就链上过期（非多签业务过期）
         let res = test_search_message!(service, sender_master).unwrap();
-        if let AccountMessage::CoinTx(index, tx) = res.first().unwrap() {
+        let tx = res.coin_tx.first().unwrap();        
             assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
@@ -2281,13 +2285,13 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,index,signature);
-        }
+            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+        
 
         let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;
         println!("txs_success {:?}", txs_success);
     }
 }
 
-
+}
 

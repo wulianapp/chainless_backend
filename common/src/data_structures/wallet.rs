@@ -36,10 +36,11 @@ pub trait AddressConvert: Sized {
 }
 */
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone,Default)]
 pub struct AccountMessage {
     pub newcomer_became_sevant: Vec<SecretStore>,
     pub coin_tx: Vec<CoinTransaction2>,
+    pub have_uncompleted_txs: bool
 }
 
 pub fn get_support_coin_list() -> Vec<CoinType> {

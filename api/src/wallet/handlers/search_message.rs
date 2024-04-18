@@ -19,22 +19,20 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<AccountMessage> {
     let user = UserInfoView::find_single(UserFilter::ById(user_id))
         .map_err(|_e| AccountManagerError::UserIdNotExist)?;
 
-    let mut messages: Vec<AccountMessage> = vec![];
 
+    let mut messages = AccountMessage::default();
     //if newcomer device not save,notify it to do
-    /***
     let device_info = DeviceInfoView::find(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    if device_info.len() == 1 && !device_info[0].device_info.holder_confirm_saved {
+    if device_info.len() == 1 
+    && device_info[0].device_info.hold_pubkey.is_some()
+    && !device_info[0].device_info.holder_confirm_saved 
+    {
         let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(
             device_info[0].device_info.hold_pubkey.as_ref().unwrap(),
         ))?;
-        messages.push(AccountMessage::NewcomerBecameSevant(secret.secret_store))
+        messages.newcomer_became_sevant.push(secret.secret_store);//(AccountMessage::NewcomerBecameSevant())
     }
-    **/
-    let mut messages = AccountMessage{
-        newcomer_became_sevant: vec![],
-        coin_tx: vec![]
-    };
+    
 
     let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account))?;
     let mut tx_msg = coin_txs
@@ -64,6 +62,10 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<AccountMessage> {
         .collect::<Vec<CoinTransaction2>>();
 
     messages.coin_tx.append(&mut tx_msg);
+    let uncompleted_txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(&user.user_info.main_account))?;
+    if !uncompleted_txs.is_empty(){
+        messages.have_uncompleted_txs = true;
+    }   
 
     Ok(Some(messages))
 }

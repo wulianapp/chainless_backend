@@ -412,7 +412,7 @@ macro_rules! test_create_main_account{
 macro_rules! test_search_message {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/searchMessage");
-        let res: BackendRespond<Vec<AccountMessage>> = test_service_call!(
+        let res: BackendRespond<AccountMessage> = test_service_call!(
             $service,
             "get",
             &url,
@@ -599,7 +599,7 @@ macro_rules! test_update_strategy {
     ($service:expr, $master:expr) => {{
         let payload = json!({
             "deviceId": "1",
-            "strategy": [{"min": 1, "maxEq": 10, "sigNum": 0},{"min": 10, "maxEq": 1844674407370955200u64, "sigNum": 1}]
+            "strategy": [{"min": "1", "maxEq": "10", "sigNum": 0},{"min": "10", "maxEq": "10000000000", "sigNum": 1}]
         });
         let res: BackendRespond<String> = test_service_call!(
             $service,
@@ -675,7 +675,6 @@ macro_rules! test_pre_send_money {
             "amount": $amount,
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
-            "captcha": $captcha,
        });
         let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
             $service,
@@ -698,7 +697,6 @@ macro_rules! test_pre_send_money2 {
             "amount": $amount,
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
-            //"captcha": $captcha,
        });
         let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
             $service,
@@ -720,7 +718,6 @@ macro_rules! test_pre_send_money_to_sub {
             "coin":$coin,
             "amount": $amount,
             "expireAt": 1808015513000u64,
-            "captcha": "000000",
        });
         let res: BackendRespond<(u32,String)> = test_service_call!(
             $service,

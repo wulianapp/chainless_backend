@@ -12,10 +12,17 @@ use common::error_code::BackendError::ChainError;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
-    pub multi_sig_ranks: Vec<MultiSigRankExternal>,
+    pub multi_sig_ranks: Vec<MultiSigRankTmp>,
     pub master_pubkey: String,
     pub servant_pubkeys: Vec<String>,
     pub subaccounts: HashMap<String,SubAccConf>,
+}
+
+#[derive(Deserialize, Serialize, Clone,Debug)]
+pub struct MultiSigRankTmp {
+    min: String,
+    max_eq: String,
+    sig_num: u8,
 }
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
@@ -31,7 +38,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
         let rank_external = data.multi_sig_ranks
         .iter()
         .map(|rank| {
-            MultiSigRankExternal {
+            MultiSigRankTmp {
                 min: raw2display(rank.min),
                 max_eq: raw2display(rank.max_eq),
                 sig_num: rank.sig_num,
