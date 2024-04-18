@@ -21,13 +21,13 @@ pub fn gen_random_verify_code() -> u32 {
 pub mod coin_amount{
     use std::ops::{Div, Mul};
     pub const BASE_DECIMAL: u128 = 1_000_000_000_000_000_000;//18
-    pub const DISPLAY_DECIMAL:  u128 = 1_00_000_000;//8
+    pub const DISPLAY_DECIMAL:  u128 = 100_000_000;//8
     pub const DEDUCT_DECIMAL:  u128 = 10_000_000_000;//10
 
     pub fn raw2display(raw:u128) ->String {
         //截取后方的10位
         let raw = raw / DEDUCT_DECIMAL;
-        let dist = format!("{}.{:08}",raw / 100_000_000,raw % 10_000_000);
+        let dist = format!("{}.{:08}",raw / DISPLAY_DECIMAL,raw % DISPLAY_DECIMAL);
         dist
     }
     
@@ -85,6 +85,7 @@ mod tests {
     #[test]
     fn test_coin_amount(){
         assert_eq!(raw2display(1u128 * BASE_DECIMAL),"1.00000000".to_string());
+        assert_eq!(raw2display(1u128 * BASE_DECIMAL + 10_000_000u128 * DEDUCT_DECIMAL),"1.10000000".to_string());
         assert_eq!(raw2display(1u128 * BASE_DECIMAL + 123u128),"1.00000000".to_string());
         assert_eq!(raw2display(1u128 * BASE_DECIMAL + 100u128 * DEDUCT_DECIMAL),"1.00000100".to_string());
         assert_eq!(raw2display(110u128 * DEDUCT_DECIMAL),"0.00000110".to_string());
