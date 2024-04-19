@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank, SignInfo};
+use blockchain::multi_sig::{MultiSig, MultiSigRank, PubkeySignInfo};
 use blockchain::ContractClient;
 use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
 use common::data_structures::KeyRole2;
@@ -70,7 +70,7 @@ pub async fn req(
             .transaction
             .signatures
             .iter()
-            .map(|data| SignInfo {
+            .map(|data| PubkeySignInfo {
                 pubkey: data[..64].to_string(),
                 signature: data[64..].to_string(),
             })

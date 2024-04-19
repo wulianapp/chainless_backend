@@ -39,7 +39,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         amount,
         expire_at,
         memo,
-        captcha
     } = request_data;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     let coin_type = CoinType::from_str(&coin).unwrap();
@@ -95,10 +94,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
 
     //转子账户不需要is_forced标志位，本身就是强制的
     if need_sig_num == 0 {
-        if captcha.is_none(){
-            Err(BackendError::InternalError("For single tx,need captcha".to_string()))?;
-        } 
-
         let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub)?;
         let next_tx_index = get_next_tx_index()?;
         let (tx_id, chain_tx_raw) = cli
@@ -118,10 +113,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         coin_info.insert()?;
         Ok(Some((next_tx_index,tx_id)))
     }else {
-        //todo:
-        if captcha.is_some(){
-            Err(BackendError::InternalError("For multi-sig tx,need not  captcha".to_string()))?;
-        }
         let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
         coin_info.transaction.tx_type = TxType::MainToSub;
         coin_info.insert()?;

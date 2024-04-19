@@ -13,7 +13,7 @@ use crate::utils::token_auth;
 use crate::wallet::{
     CreateMainAccountRequest, GenSendMoneyRequest,
 };
-use blockchain::multi_sig::{MultiSig, SignInfo};
+use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
@@ -50,7 +50,7 @@ pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> Ba
             .transaction
             .signatures
             .iter()
-            .map(|data| SignInfo {
+            .map(|data| PubkeySignInfo {
                 pubkey: data[..64].to_string(),
 
                 signature: data[64..].to_string(),

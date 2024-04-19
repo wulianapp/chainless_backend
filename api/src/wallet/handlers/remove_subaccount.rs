@@ -39,6 +39,8 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         Err(WalletError::SubAccountNotExist(account_id.clone()))?;
     }
 
+    let sub_pubkey = &current_strategy.sub_confs.get(&account_id).unwrap().pubkey;
+
     //reserve one subaccount at least
     if current_strategy.sub_confs.len() == 1 {
         Err(WalletError::MustHaveSubaccount)?;
@@ -49,6 +51,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     for coin in &coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
         if let Some(balance) = coin_cli.get_balance(&account_id).await?{
+            //当前不会出现小于1聪的情况，以后和第三方交互可能会有
             if balance != "0".to_string(){
                 Err(WalletError::BalanceMustBeZero)?;
             }
@@ -59,7 +62,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     models::general::transaction_begin()?;
     SecretStoreView::update(
         SecretUpdater::State(SecretKeyState::Abandoned),
-        SecretFilter::ByPubkey(&account_id),
+        SecretFilter::ByPubkey(sub_pubkey),
     )?;
     let multi_cli = ContractClient::<MultiSig>::new()?;
     multi_cli.remove_subaccount(&main_account, &account_id).await?;

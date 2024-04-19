@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, SignInfo};
+use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
 use common::data_structures::wallet::{CoinTxStatus, CoinType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -41,7 +41,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
             .transaction
             .signatures
             .iter()
-            .map(|data| SignInfo {
+            .map(|data| PubkeySignInfo {
                 pubkey: data[..64].to_string(),
 
                 signature: data[64..].to_string(),

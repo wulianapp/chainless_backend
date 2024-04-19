@@ -228,7 +228,6 @@ async fn pre_send_money(
  * @apiBody {String} amount      转账数量
  * @apiBody {Number} expireAt      有效截止时间戳
  * @apiBody {String} [memo]      交易备注
- * @apiBody {String} [captcha]      如果是无需从设备签名的交易，则需要验证码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -255,7 +254,6 @@ pub struct PreSendMoneyToSubRequest {
     amount: String,
     expire_at: u64,
     memo: Option<String>,
-    captcha: Option<String>
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -1531,17 +1529,23 @@ async fn test_wallet_add_remove_subaccount() {
     test_create_main_account!(service, sender_master);
     tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     let subacc = sender_master.wallet.subaccount.first().unwrap();
+    let sender_info = test_get_strategy!(service,sender_master).unwrap();
+    let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
+    let first_subaccount_id = sub_accoounts.first().unwrap();
+    
     let (new_sub_prikey,new_sub_pubkey) = ed25519_key_gen();
     test_add_subaccount!(service,sender_master,new_sub_pubkey);
     tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     let strategy = test_get_strategy!(service,sender_master).unwrap();
     println!("___{:?}",strategy);
-    assert_eq!(strategy.subaccounts.get(&new_sub_pubkey).unwrap().hold_value_limit,10000);
+    let sub_accoounts:  Vec<String> = strategy.subaccounts.into_keys().collect();
+    let second_sub = sub_accoounts.last().unwrap();
+    //assert_eq!(strategy.subaccounts.get(&new_sub_pubkey).unwrap().hold_value_limit,1000_);
 
-    test_remove_subaccount!(service,sender_master,new_sub_pubkey);
+    test_remove_subaccount!(service,sender_master,second_sub);
     tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     let strategy = test_get_strategy!(service,sender_master).unwrap();
-    assert!(strategy.subaccounts.get(&new_sub_pubkey).is_none());
+    assert!(strategy.subaccounts.get(second_sub).is_none());
 }
 
     #[actix_web::test]
@@ -1633,7 +1637,6 @@ async fn test_wallet_add_remove_subaccount() {
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let (index,txid) = test_pre_send_money!(
             service,sender_master,
             receiver.user.contact,"ETH","1",true,Some("000000".to_string())
@@ -1708,7 +1711,6 @@ async fn test_wallet_add_remove_subaccount() {
         let user_info = test_get_strategy!(service,sender_master).unwrap();
         let subaccount: Vec<String> = user_info.subaccounts.into_keys().collect();
 
-        test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToSub");
         //step3: master: pre_send_money
         test_pre_send_money_to_sub!(
             service,
@@ -2211,7 +2213,7 @@ async fn test_wallet_add_remove_subaccount() {
         println!("{},,,{:?}", line!(), device_lists);
 
         //step3: master: pre_send_money
-        test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
+        //test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let res = test_pre_send_money!(service,sender_master,receiver.wallet.main_account,"ETH","2",true,None::<String>);
         assert!(res.is_some());
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名

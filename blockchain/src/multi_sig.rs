@@ -178,7 +178,7 @@ impl ContractClient<MultiSig> {
         debug!("register_main_tx_id {}", register_main_tx_id);
         let register_tx_id = self.register_account_with_name(subaccount_id,subaccount_pubkey).await?;
         debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ pubkey: subaccount_pubkey.to_string(),hold_value_limit: 100 })]);
+        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ pubkey: subaccount_pubkey.to_string(),hold_value_limit: 100000_000_000_000_000_000_000})]);
         println!("0001b");
         self.set_strategy(
             main_account_id,
@@ -361,8 +361,8 @@ impl ContractClient<MultiSig> {
     //todo: 检查持仓限制
     pub async fn internal_transfer_main_to_sub(
         &self,
-        master_sig: SignInfo,
-        servant_sigs: Vec<SignInfo>,
+        master_sig: PubkeySignInfo,
+        servant_sigs: Vec<PubkeySignInfo>,
         from: &str,
         to: &str,
         coin: CoinType,
@@ -424,7 +424,7 @@ impl ContractClient<MultiSig> {
     pub async fn gen_send_money_raw(
         &self,
         tx_index: u64,
-        servant_device_sigs: Vec<SignInfo>,
+        servant_device_sigs: Vec<PubkeySignInfo>,
         from: &str,
         to: &str,
         coin: CoinType,
@@ -464,7 +464,7 @@ impl ContractClient<MultiSig> {
         tx_index: u64,
         _sender_account_id: &str,
         _sender_pubkey: &str,
-        servant_device_sigs: Vec<SignInfo>,
+        servant_device_sigs: Vec<PubkeySignInfo>,
         from: &str,
         to: &str,
         coin: CoinType,
@@ -516,8 +516,8 @@ impl ContractClient<MultiSig> {
        //todo: 弃用
     pub async fn internal_withdraw(
         &self,
-        master_sig: SignInfo,
-        servant_sigs: Vec<SignInfo>,
+        master_sig: PubkeySignInfo,
+        servant_sigs: Vec<PubkeySignInfo>,
         from: &str,
         to: &str,
         coin: CoinType,
@@ -545,18 +545,18 @@ impl ContractClient<MultiSig> {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SignInfo {
+pub struct PubkeySignInfo {
     pub pubkey: String,
     pub signature: String,
 }
-impl FromStr for SignInfo{
+impl FromStr for PubkeySignInfo{
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         //todo
         if s.len() < 64{
             Err(BackendError::RequestParamInvalid(s.to_string()))?;
         }
-        Ok( SignInfo{
+        Ok( PubkeySignInfo{
             pubkey: s[..64].to_string(),
             signature: s[64..].to_string(),
         })

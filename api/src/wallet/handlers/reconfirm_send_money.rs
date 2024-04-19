@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, SignInfo};
+use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
 use common::data_structures::wallet::{CoinTxStatus, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -45,7 +45,7 @@ pub async fn req(
         .map(|data| data.parse().unwrap())
         .collect();
         //todo: unwrap()
-        let master_sign : SignInfo= confirmed_sig.parse().unwrap();
+        let master_sign : PubkeySignInfo = confirmed_sig.parse()?;
 
         let tx_id =  multi_cli
         .internal_transfer_main_to_sub(
