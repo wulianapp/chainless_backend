@@ -30,6 +30,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::coin::Coin;
+use crate::fees_call::FeesCall;
 use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
@@ -95,13 +96,14 @@ impl ContractClient<MultiSig> {
     pub async fn get_total_value(&self, account_str: &str) -> Result<u128>{
         let coins = get_support_coin_list();
         let mut total_value = 0;
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
         for coin in coins {
-            let coin_cli = ContractClient::<Coin>::new(coin)?;
+            let coin_cli = ContractClient::<Coin>::new(coin.clone())?;
             let balance = coin_cli.get_balance(account_str).await?;
             let balance:u128 = balance.unwrap_or("0".to_string()).parse()?;
-            //todo: get price from contract
-            let coin_price = 1;
-            total_value +=  balance * coin_price;
+            //get price from contract
+            let (base,quote) = fees_cli.get_coin_price(&coin).await.unwrap();
+            total_value +=  balance * quote / base;
         }
         Ok(total_value)
     }

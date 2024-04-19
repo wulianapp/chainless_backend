@@ -1001,7 +1001,7 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
  * @apiName txList
  * @apiGroup Wallet
  * @apiQuery {String=Sender,Receiver} TransferRole  交易中的角色，对应ui的转出和收款栏
- * @apiQuery {String}                 [counterParty]   交易对手方
+ * @apiQuery {String}                 [counterparty]   交易对手方
  * @apiQuery {Number}                 perPage           每页的数量
  * @apiQuery {Number}                 page            页数的序列号
  * @apiHeader {String} Authorization  user's access token
@@ -1045,6 +1045,7 @@ pub struct TxListRequest {
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/txList")]
 async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> impl Responder {
+    debug!("req_params::  {}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::tx_list::req(req,request_data.0).await)
 }
 

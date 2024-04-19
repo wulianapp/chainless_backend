@@ -2,6 +2,7 @@ use crate::utils::token_auth;
 use crate::wallet::CreateMainAccountRequest;
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
+use blockchain::fees_call::FeesCall;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::wallet::{get_support_coin_list, CoinType};
@@ -81,6 +82,8 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
     let mut coin_balance_map = vec![];
     for coin in coin_list {
         let mut account_balance = vec![];
+        //let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+
         for account in  check_accounts.iter().as_ref(){
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
             let balance_on_chain = if user_info.user_info.secruity_is_seted {
@@ -94,14 +97,16 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             let freezn_amount = super::get_freezn_amount(account, &coin);
             let total_balance = balance_on_chain.parse().unwrap();
             let available_balance = total_balance - freezn_amount;
+            let total_dollar_value = super::get_value(&coin, total_balance).await;
+            let total_rmb_value = total_dollar_value / 7;
             let balance = AccountBalance{
                 account_id:account.clone(),
                 coin: coin.clone(),
                 total_balance: raw2display(total_balance),
                 available_balance: raw2display(available_balance),
                 freezn_amount: raw2display(freezn_amount),
-                total_dollar_value: raw2display(total_balance),
-                total_rmb_value: raw2display(total_balance / 7),
+                total_dollar_value: raw2display(total_dollar_value),
+                total_rmb_value: raw2display(total_rmb_value),
             };
             account_balance.push(balance);
         }

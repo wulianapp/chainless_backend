@@ -1,6 +1,6 @@
 use std::{ops::Deref, str::FromStr};
 
-use blockchain::{coin::Coin, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
+use blockchain::{coin::Coin, fees_call::FeesCall, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
 use common::{
     data_structures::{account_manager::UserInfo, device_info::DeviceInfo, wallet::CoinType, KeyRole2},
     error_code::{BackendError, BackendRes, WalletError}, utils::math::generate_random_hex_string,
@@ -108,16 +108,23 @@ pub fn get_email(user_id:u32) -> Result<String,BackendError>{
     Ok(user.user_info.email)
 }
 
+//calculate total value for dollar
+//目前的场景转账超过300兆才会溢出
+//由于取整造成的精度丢失可以忽略
+pub async fn get_value(coin:&CoinType,amount: u128) -> u128{
+    let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+    let (base_amount,quote_amount) = fees_cli.get_coin_price(coin).await.unwrap();
+    amount * quote_amount / base_amount
+}
 
 pub async fn get_servant_need(
     strategy: &Vec<MultiSigRank>,
-    _coin: &CoinType,
+    coin: &CoinType,
     amount: u128,
 ) -> u8 {
     //todo: get price by oracle
     //let coin_price = get_coin_price(coin_account_id);
-    let coin_price = 1;
-    let transfer_value = amount * coin_price;
+    let transfer_value = get_value(coin,amount).await;
     strategy
         .iter()
         .find(|&rank| transfer_value >= rank.min && transfer_value < rank.max_eq)

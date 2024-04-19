@@ -92,12 +92,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         .await?
         .ok_or(WalletError::SenderNotFound)?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to_account_id){
-        debug!("to[{}] is subaccount of from[{}]",to_account_id,from);
-        let coin_price = 1;
-        let balance_value = cli.get_total_value(&to_account_id).await?;
-        if  amount * coin_price + balance_value > sub_conf.hold_value_limit {
-            Err(WalletError::ExceedSubAccountHoldLimit)?;
-        }
+      panic!("todo");
     }
 
     //封装根据状态生成转账对象的逻辑

@@ -57,11 +57,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         .ok_or(WalletError::SenderNotFound)?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to){
         debug!("to[{}] is subaccount of from[{}]",to,from);
-        let coin_price = 1;
-        let balance_value = cli.get_total_value(&to).await.map_err(|err| ChainError(err.to_string()))?;
-        if  amount * coin_price + balance_value > sub_conf.hold_value_limit {
+        let coin_value = super::get_value(&coin_type, amount).await;
+        let balance_value = cli.get_total_value(&to).await?;
+        if  coin_value + balance_value > sub_conf.hold_value_limit {
             Err(WalletError::ExceedSubAccountHoldLimit)?;
         }
+    }else{
+        panic!("todo:");
     }
 
     let gen_tx_with_status = |status: CoinTxStatus| -> std::result::Result<CoinTxView,BackendError>{

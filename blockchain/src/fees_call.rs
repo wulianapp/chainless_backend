@@ -78,20 +78,20 @@ impl ContractClient<FeesCall> {
     }
 
     //后台不做乘法计算，允许这里精度丢失
-    pub async fn get_coin_price(&self,coin: &CoinType) -> Result<(String,String)>{
+    pub async fn get_coin_price(&self,coin: &CoinType) -> Result<(u128,u128)>{
         let args_str = json!({
             "id":  coin.to_account_id(),
         }).to_string();
         let (base_amount,quote_amount):(String,String) = self.query_call("get_price", &args_str).await?.unwrap();
+        let base_amount:u128 = base_amount.parse().unwrap();
+        let quote_amount:u128 = quote_amount.parse().unwrap();
         Ok((base_amount,quote_amount))
     }
 
     
     pub async fn get_coin_price_custom(&self,coin: &CoinType) -> Result<f32>{
         let (base_amount,quote_amount) = self.get_coin_price(coin).await?;
-        let base_amount:f32 = base_amount.parse().unwrap();
-        let quote_amount:f32 = quote_amount.parse().unwrap();
-        let price = quote_amount / base_amount;
+        let price = quote_amount as f32 / base_amount as f32;
         Ok(price)
     }
 }
@@ -133,7 +133,7 @@ mod tests {
         ];
         let fees_cli = ContractClient::<FeesCall>::new().unwrap();
         for coin in coins {
-            let price = fees_cli.get_coin_price_custom(&coin).await.unwrap();
+            let price= fees_cli.get_coin_price_custom(&coin).await.unwrap();
             println!("{}: price {} ",coin,price);
         }
     }
