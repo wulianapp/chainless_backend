@@ -1,9 +1,10 @@
 
+use common::utils::math::coin_amount::raw2display;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
 use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
-use std::ops::Deref;
+use std::ops::{Deref, Div};
 use std::str::FromStr;
 use tracing::debug;
 
@@ -23,6 +24,8 @@ use crate::multi_sig::get_pubkey;
 use crate::ContractClient;
 use anyhow::{Ok, Result};
 
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct U128(pub u128);
 
 pub struct FeesCall {}
 impl ContractClient<FeesCall> {
@@ -73,6 +76,24 @@ impl ContractClient<FeesCall> {
         .collect::<Result<Vec<CoinType>>>()?;
         Ok(tokens)
     }
+
+    //后台不做乘法计算，允许这里精度丢失
+    pub async fn get_coin_price(&self,coin: &CoinType) -> Result<(String,String)>{
+        let args_str = json!({
+            "id":  coin.to_account_id(),
+        }).to_string();
+        let (base_amount,quote_amount):(String,String) = self.query_call("get_price", &args_str).await?.unwrap();
+        Ok((base_amount,quote_amount))
+    }
+
+    
+    pub async fn get_coin_price_custom(&self,coin: &CoinType) -> Result<f32>{
+        let (base_amount,quote_amount) = self.get_coin_price(coin).await?;
+        let base_amount:f32 = base_amount.parse().unwrap();
+        let quote_amount:f32 = quote_amount.parse().unwrap();
+        let price = quote_amount / base_amount;
+        Ok(price)
+    }
 }
 
 #[cfg(test)]
@@ -94,12 +115,27 @@ mod tests {
         let json_string = serde_json::to_string(&prioritys).unwrap();
         println!("prioritys_json1 {:?} ",json_string);
 
-
         let set_res = fees_cli.set_fees_priority("user.node0",default_prioritys).await.unwrap();
         println!("set_res {} ",set_res);
-
 
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys2 {:?} ",prioritys);
     }
+
+    #[tokio::test]
+    async fn test_get_coin_price() {
+        let coins: Vec<CoinType> = vec![
+            CoinType::USDC,
+            CoinType::BTC,
+            CoinType::ETH,
+            CoinType::USDT,
+            CoinType::DW20,
+        ];
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        for coin in coins {
+            let price = fees_cli.get_coin_price_custom(&coin).await.unwrap();
+            println!("{}: price {} ",coin,price);
+        }
+    }
+
 }

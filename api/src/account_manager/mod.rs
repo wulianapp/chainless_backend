@@ -79,12 +79,14 @@ async fn get_captcha_with_token(request: HttpRequest,
  * @apiVersion 0.0.1
  * @apiName contactIsUsed
  * @apiGroup AccountManager
- * @apiBody {String} contact   邮箱或者手机号
+ * @apiQuery {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
  * @apiSuccess {String=0,1,} status_code         status code.
  * @apiSuccess {String=Successfully,InternalError} msg
- * @apiSuccess {bool} data                result.
+ * @apiSuccess {Object} data                            联系方式的状态.
+ * @apiSuccess {bool} data.contact_is_register            是否已经注册.
+ * @apiSuccess {bool} data.secruity_is_seted              是否进行安全问答.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
  */
 #[derive(Deserialize, Serialize, Default, Clone)]

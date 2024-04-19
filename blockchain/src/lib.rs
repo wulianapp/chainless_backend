@@ -245,6 +245,7 @@ impl<T> ContractClient<T> {
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result)?;
             debug!("query_res1 {}", amount_str);
+            println!("query_res1 {}", amount_str);
             Ok(serde_json::from_str::<Option<R>>(&amount_str)?)
         } else {
             Err(BackendError::InternalError(
