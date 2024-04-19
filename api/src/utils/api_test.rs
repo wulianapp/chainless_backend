@@ -862,9 +862,10 @@ macro_rules! test_gen_servant_switch_master {
 
 #[macro_export]
 macro_rules! test_sub_send_to_master {
-    ($service:expr,$sender_master:expr,$signature:expr,$coin:expr,$amount:expr) => {{
+    ($service:expr,$sender_master:expr,$subaccount_id:expr,$signature:expr,$coin:expr,$amount:expr) => {{
         let payload = json!({
             "subSig": $signature,
+            "subaccountId": $subaccount_id,
             "coin":   $coin,
             "amount": $amount
         });

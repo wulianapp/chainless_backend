@@ -398,6 +398,7 @@ async fn cancel_send_money(
  * @apiName SubSendToMain
  * @apiGroup Wallet
  * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
+ * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
  * @apiBody {String} coin       交易币种
  * @apiBody {String} amount     交易数量
  * @apiHeader {String} Authorization  user's access token
@@ -422,6 +423,7 @@ async fn cancel_send_money(
 #[serde(rename_all = "camelCase")]
 pub struct SubSendToMainRequest {
     sub_sig: String,
+    subaccount_id:String,
     coin: String,
     amount: String,
 }
@@ -1845,14 +1847,15 @@ async fn test_wallet_add_remove_subaccount() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
-        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
-
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
-       tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
-
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let sender_info = test_get_strategy!(service,sender_master).unwrap();
+        let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
+        let subaccount_id = sub_accoounts.first().unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        coin_cli.send_coin(&subaccount_id, 13_000_000_000_000_000_000u128).await.unwrap();
+        
             //sub to main
             let coin_tx = SubAccCoinTx{
                 amount: 11_000_000_000_000_000_000,
@@ -1867,13 +1870,7 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.sub_prikey.clone().unwrap().first().unwrap(),
                 &coin_tx_hex_str,
             ).unwrap();
-
-            let signature = format!(
-                "{}{}",
-                sender_master.wallet.subaccount.first().unwrap(),
-                signature
-            );
-            test_sub_send_to_master!(service,sender_master,signature,"ETH","11");
+            test_sub_send_to_master!(service,sender_master,subaccount_id,signature,"DW20","11");
     }
 
     #[derive(Deserialize, Serialize, Clone)]

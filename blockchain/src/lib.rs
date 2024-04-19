@@ -37,7 +37,7 @@ use near_primitives::{
 };
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
-use std::{hash::Hash, marker::PhantomData, str::FromStr};
+use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
 use tracing::{debug, error, info};
 use anyhow::{Result};
 
@@ -52,18 +52,21 @@ lazy_static! {
 }
 
 //todo: deal with error detail
-pub async fn rpc_call<M>(method: M) -> Result<M::Response> 
+pub async fn rpc_call<M>(method: M) -> Result<M::Response,near_jsonrpc_client::errors::JsonRpcError<M::Error>> 
 where M: methods::RpcMethod,
 {
-    for _ in 0..5 {
+    for index in 0..5 {
         match crate::CHAIN_CLIENT.call(&method).await {
             Ok(result) => return Ok(result),
             Err(err) => {
-                error!("Error occurred");
+                if index == 4 {
+                    return Err(err);
+                }
             }
         }
-    }
-    Err(anyhow::anyhow!("call rpc failed, and max retries exceeded"))
+    };
+    //Err(anyhow::anyhow!("call rpc failed, and max retries exceeded"))
+    panic!("")
 }
 
 #[derive(Clone)]

@@ -16,6 +16,7 @@ use crate::wallet::SubSendToMainRequest;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater, CoinTxView};
 use models::PsqlOp;
+use blockchain::multi_sig::AccountSignInfo;
 
 pub async fn req(
     req: HttpRequest,
@@ -34,6 +35,7 @@ pub async fn req(
     //todo: check must be main device
     let SubSendToMainRequest {
         sub_sig,
+        subaccount_id,
         coin,
         amount,
     } = request_data.0;
@@ -43,7 +45,7 @@ pub async fn req(
         //from必须是用户的子账户
         let cli = ContractClient::<MultiSig>::new()?;
 
-        let sub_sig : SignInfo= sub_sig.as_str().parse().unwrap();
+        let sub_sig = AccountSignInfo::new(&subaccount_id,&sub_sig);
         let coin_type: CoinType = coin.parse().unwrap();
 
 
@@ -59,7 +61,7 @@ pub async fn req(
         let coin_tx_raw = "".to_string();
         let mut coin_info = CoinTxView::new_with_specified(
             coin_type,
-            sub_sig.pubkey,
+            sub_sig.account_id,
             main_account,
             amount,
             coin_tx_raw,

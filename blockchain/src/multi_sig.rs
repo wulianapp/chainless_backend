@@ -46,6 +46,7 @@ pub struct MultiSigRank {
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct SubAccConf {
+    pub pubkey: String,
     pub hold_value_limit: u128,
 }
 
@@ -177,40 +178,8 @@ impl ContractClient<MultiSig> {
         debug!("register_main_tx_id {}", register_main_tx_id);
         let register_tx_id = self.register_account_with_name(subaccount_id,subaccount_pubkey).await?;
         debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 100 })]);
+        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ pubkey: subaccount_pubkey.to_string(),hold_value_limit: 100 })]);
         println!("0001b");
-        self.set_strategy(
-            main_account_id,
-            main_account_pubkey,
-            vec![],
-            sub_confs,
-            vec![MultiSigRank::default()],
-        )
-        .await
-    }
-
-
-    pub async fn init_strategy2(
-        &self,
-        main_account_id: &str,
-        main_account_pubkey: &str,
-        subaccount_id: &str,
-        subaccount_pubkey: &str,
-    ) -> Result<String> {
-        //create account by send token
-        let register_main_tx_id = self.register_account_with_name(
-            main_account_id,
-            main_account_pubkey
-        ).await?;
-
-        debug!("register_main_tx_id {}", register_main_tx_id);
-        let register_tx_id = self.register_account_with_name(
-            subaccount_id,
-            subaccount_pubkey
-        ).await?;
-
-        debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ hold_value_limit: 100 })]);
         self.set_strategy(
             main_account_id,
             main_account_pubkey,
@@ -228,10 +197,18 @@ impl ContractClient<MultiSig> {
 
     pub async fn add_subaccount(&self, main_acc: &str, subacc: HashMap<&str,SubAccConf>) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
+        assert_eq!(subacc.len(),1,"tmp limit");
+        for (account_id,conf) in subacc.clone().into_iter() {
+            let _register_tx_id = self.register_account_with_name(account_id,&conf.pubkey).await?;
+        }
+
         //let subacc = AccountId::from_str(subacc).unwrap();
         let sub_confs = subacc
         .into_iter()
-        .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
+        .map(|(acc_str,conf)| {
+            //todo:
+            (AccountId::from_str(acc_str).unwrap(),conf)
+        })
         .collect::<HashMap<AccountId,SubAccConf>>();
         debug!("pre_add sub_confs {:?}",sub_confs);
 
@@ -414,7 +391,7 @@ impl ContractClient<MultiSig> {
     pub async fn internal_transfer_sub_to_main(
         &self,
         main_account: &str,
-        sub_sig: SignInfo,
+        sub_sig: AccountSignInfo,
         coin: CoinType,
         transfer_amount: u128,
     ) -> Result<String> {
@@ -585,6 +562,22 @@ impl FromStr for SignInfo{
         })
     }
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct AccountSignInfo {
+    pub account_id: String,
+    pub signature: String,
+}
+
+impl AccountSignInfo{
+    pub fn new(account_id: &str,signature: &str) -> Self{
+        Self{
+            account_id: account_id.to_owned(),
+            signature: signature.to_owned()
+        }
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CoinTx {

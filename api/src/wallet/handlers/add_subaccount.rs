@@ -46,6 +46,8 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
 
     models::general::transaction_begin()?;
     //account_manager::UserInfoView::update(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
     //todo: encrypted_prikey_by_password
     let secret = SecretStoreView::new_with_specified(
@@ -55,8 +57,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_answer,
     );
     secret.insert()?;
+
     let multi_cli = ContractClient::<MultiSig>::new()?;
-    let sub_confs = HashMap::from([(subaccount_pubkey.as_str(),SubAccConf{ hold_value_limit})]);
+    let sub_confs = HashMap::from([(subaccount_id.as_str(),SubAccConf{ pubkey: subaccount_pubkey,hold_value_limit})]);
     let txid = multi_cli
         .add_subaccount(&main_account, sub_confs)
         .await?;
