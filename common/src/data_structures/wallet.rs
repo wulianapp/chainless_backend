@@ -103,6 +103,30 @@ impl CoinType {
         }
     }
 
+    //todo: config by env
+    pub fn erc20_decimal(&self) -> Option<u8> {
+        match self {
+            CoinType::BTC => Some(18),
+            //is token_decimal rather than coin_decimal
+            CoinType::ETH => Some(18),
+            CoinType::USDT => Some(18),
+            CoinType::USDC => Some(18),
+            CoinType::CLY => None,
+            CoinType::DW20 => Some(18),
+        }
+    }
+
+    pub fn nep21_decimal(&self) -> u8 {
+        match self {
+            CoinType::BTC => 18,
+            CoinType::ETH => 18,
+            CoinType::USDT => 18,
+            CoinType::USDC => 18,
+            CoinType::CLY => 18,
+            CoinType::DW20 => 18,
+        }
+    }
+
     pub fn to_account_str(&self) -> String {
         self.to_account_id().to_string()
     }

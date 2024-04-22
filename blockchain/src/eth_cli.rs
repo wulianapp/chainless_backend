@@ -52,3 +52,16 @@ pub struct EthContractClient<E> {
     pub contract_addr: H160,
     pub phantom: PhantomData<E>,
 }
+
+pub mod general {
+    use std::str::FromStr;
+    use ethers::{providers::{Http, Middleware, Provider}, types::Address};
+
+    pub async fn  get_eth_balance(addr: &str) -> u128 {
+        //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
+        let addr = Address::from_str(addr).unwrap();
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        let balance_before = provider.get_balance(addr, None).await.unwrap();
+        balance_before.as_u128()
+    }
+}

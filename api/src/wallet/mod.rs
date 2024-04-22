@@ -1837,6 +1837,102 @@ async fn test_wallet_add_remove_subaccount() {
         }   
     }
 
+    //todo: eth主网币，场景单独测试DRY
+    #[actix_web::test]
+    async fn test_wallet_main_send_eth_to_bridge() {
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let (mut sender_master,_sender_servant,_sender_newcommer,_receiver) = gen_some_accounts_with_new_key();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        //test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
+
+        let user_info = test_user_info!(service,sender_master).unwrap();
+        println!("{:#?}",user_info);
+        //: bind eth addr before send money
+        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new().unwrap();
+        let sig = bridge_cli.sign_bind_info(
+            &user_info.main_account,
+             "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+           ).await;
+       println!("sign_bind sig {} ",sig);
+
+       //todo: sig on imtoken and verify on server
+       let bind_res = bridge_cli.bind_eth_addr(
+        &user_info.main_account,
+       "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+       &sig
+       ).await.unwrap();
+       println!("bind_res {} ",bind_res);
+
+        //step3: master: pre_send_money
+        test_pre_send_money_to_bridge!(
+            service,
+            sender_master,
+            "ETH",
+            "1.2"
+        );
+
+        let res = test_search_message!(service, sender_master).unwrap();
+        let tx = res.coin_tx.first().unwrap();
+            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
+            //local sign
+            let signature = common::encrypt::ed25519_sign_hex(
+                sender_master.wallet.prikey.as_ref().unwrap(),
+                tx.tx_id.as_ref().unwrap(),
+            ).unwrap();
+
+            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+
+        tokio::time::sleep(std::time::Duration::from_millis(2000)).await;   
+        let current_binded_eth_addr = bridge_cli.get_binded_eth_addr(&user_info.main_account).await.unwrap().unwrap();
+        println!("current_bind_res {} ",current_binded_eth_addr);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let erc20_cli = blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new();
+        let usdt_addr = "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499";
+        let eth_bridge_cli = blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
+        loop{
+            let (_,orders)  = bridge_cli.list_withdraw_order(&user_info.main_account).await.unwrap().unwrap();
+            println!("orders {:?}",orders);
+            let balance_on_near = coin_cli.get_balance(&user_info.main_account).await.unwrap().unwrap();  
+            println!("usdt_balance_on_near: {}——————{}",user_info.main_account,balance_on_near);   
+            let mut balance_on_eth = blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await;
+            println!("usdt_balance_on_eth: {}——————{}",current_binded_eth_addr,balance_on_eth);  
+
+            if orders.is_empty() || orders.first().unwrap().1.signers.is_empty(){
+                println!("orders or signers is empty"); 
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;   
+                continue;
+            }
+            let (order_id,blockchain::bridge_on_near::BridgeOrder{
+                account_id,
+                symbol,
+                amount,
+                signers,
+                ..
+            }) = orders.first().unwrap().clone(); 
+            
+            let withdraw_res = eth_bridge_cli.withdraw(
+                order_id, 
+                &account_id.to_string(), 
+                amount, 
+                &symbol, 
+                signers.first().unwrap().signature.as_ref().unwrap()).await.unwrap();
+            println!("withdraw_res {:?}",withdraw_res); 
+            let balance_on_near = coin_cli.get_balance(&user_info.main_account).await.unwrap().unwrap();  
+            println!("usdt_balance_on_near: {}——————{}",user_info.main_account,balance_on_near);   
+            balance_on_eth = blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await;
+            println!("usdt_balance_on_eth: {}——————{}",current_binded_eth_addr,balance_on_eth);  
+            break; 
+        }   
+    }
+
 
     use std::str::FromStr;
     #[derive(Serialize, Deserialize, Clone, Debug)]

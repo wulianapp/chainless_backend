@@ -317,6 +317,11 @@ impl ContractClient<Bridge> {
         //println!("owner {}",owner);
         let deadline = (now_millis() + MINUTE30) / 1000;
         let cid = now_millis();
+        let amount =  if coin == CoinType::ETH {
+            U256::zero()
+        }else{
+            U256::from(amount)
+        };
         //todo: 签名的订单只有这个有权限
         let prikey = hex::decode("6c7d02e6742c673e8c5b9f9e85966a84706c08a6741d84c1467822b6d681d56f").unwrap();
         let wallet = LocalWallet::from_bytes(&prikey).unwrap();
@@ -324,7 +329,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(cid),
             chainless_id: account_id.parse().unwrap(),
             symbol: coin.to_string(),
-            amount: U256::from(amount),
+            amount,
             owner: owner.parse().unwrap(),
             contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
                 .parse()
@@ -480,7 +485,9 @@ mod tests {
     #[tokio::test]
     async fn tools_batch_deposit() {
         let relayer_eth_addr = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
-        let deposit_amount = 9000_000_000_000_000_000_000u128;//9
+        let current_balance =  crate::eth_cli::general::get_eth_balance(relayer_eth_addr).await;
+        println!("current eth balance: {}",current_balance);
+        let deposit_amount = 40_000_000_000_000_000_000u128;//40
         let replayer_acccount_id = "test";
         
 
@@ -501,7 +508,11 @@ mod tests {
 
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::CLY){
+            if coin.eq(&CoinType::CLY){
+                continue;
+            } 
+
+            if !coin.eq(&CoinType::ETH){
                 continue;
             } 
 
@@ -523,13 +534,22 @@ mod tests {
             println!("current_bind_res {} ",current_binded_eth_addr.unwrap().unwrap());
     
             let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
-            let deposit_res = cli.deposit(
-                replayer_acccount_id,
-                &coin.to_string(),
-                deposit_amount,&sig,deadline,cid).await.unwrap();
+            let deposit_res = if coin.eq(&CoinType::ETH){
+                cli.deposit_eth(
+                    replayer_acccount_id,
+                    deposit_amount,
+                    &sig,
+                    deadline,
+                    cid
+                ).await.unwrap()
+            }else{
+                cli.deposit(
+                    replayer_acccount_id,
+                    &coin.to_string(),
+                    deposit_amount,&sig,deadline,cid).await.unwrap()
+            }; 
             println!("deposit {:?}",deposit_res);
     
-        
             loop{
                 let balance2: Option<String> = coin_cli.get_balance(replayer_acccount_id).await.unwrap();  
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;   

@@ -1,5 +1,6 @@
 use anyhow::{Ok, Result};
 
+use ::common::data_structures::wallet::CoinType;
 use common::env::CONF as ENV_CONF;
 use ::common::utils::time::now_millis;
 use ethers::prelude::*;
@@ -85,6 +86,39 @@ impl EthContractClient<Bridge> {
               signature.into(), 
               deadline
         ).legacy().send().await.unwrap().await.unwrap();
+        println!("send_res {:?}",send_res.as_ref().unwrap());  
+        Ok(send_res.unwrap())
+    }
+
+    pub async fn deposit_eth(
+        &self,
+        chainless_id: &str,
+        amount: u128,
+        signature: &str,
+        deadline: u64,
+        cid:u64,
+    ) -> Result<TransactionReceipt> {
+        let cid = U256::from(cid);
+        let amount = U256::from(amount);
+        let deadline = U256::from(deadline);
+        let signature = hex::decode(signature).unwrap();
+        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        
+        println!("cid {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n,deadline {}\n",
+        cid,chainless_id,CoinType::ETH,amount,hex::encode(signature.clone()),deadline
+    );
+        let send_res = bridge_cli.deposit(
+            cid, 
+            chainless_id.to_owned(),
+            CoinType::ETH.to_string(),
+              U256::zero(), 
+              signature.into(), 
+              deadline
+        )
+        .value(U256::from(amount))
+        .legacy()
+        .send()
+        .await.unwrap().await.unwrap();
         println!("send_res {:?}",send_res.as_ref().unwrap());  
         Ok(send_res.unwrap())
     }
