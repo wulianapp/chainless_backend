@@ -5,7 +5,7 @@ use actix_web::HttpRequest;
 use blockchain::{fees_call::FeesCall, multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf}};
 
 use crate::utils::token_auth;
-use common::{data_structures::wallet::CoinType, error_code::BackendRes};
+use common::{data_structures::CoinType, error_code::BackendRes};
 use serde::{Deserialize, Serialize};
 use common::error_code::BackendError::ChainError;
 

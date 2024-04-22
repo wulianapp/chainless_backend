@@ -1,6 +1,7 @@
-use common::data_structures::wallet::get_support_coin_list;
+use common::data_structures::get_support_coin_list;
 use common::error_code::BackendError;
 use anyhow::Result;
+use common::utils::time::now_millis;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -25,7 +26,7 @@ use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
 use near_crypto::Signature;
 
-use common::data_structures::wallet::CoinType;
+use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -425,7 +426,6 @@ impl ContractClient<MultiSig> {
 
     pub async fn gen_send_money_raw(
         &self,
-        tx_index: u64,
         servant_device_sigs: Vec<PubkeySignInfo>,
         from: &str,
         to: &str,
@@ -445,7 +445,8 @@ impl ContractClient<MultiSig> {
             expire_at,
             memo: None,
         };
-
+        //todo: remove tx_index;
+        let tx_index = now_millis();
         let args_str = json!({
             "tx_index": tx_index,
             "servant_device_sigs": servant_device_sigs,

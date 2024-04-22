@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::{data_structures::{wallet::WalletOperateType, KeyRole2}, error_code::BackendError, utils::math::coin_amount::display2raw};
+use common::{data_structures::{wallet_namage_record::WalletOperateType, KeyRole2}, error_code::BackendError, utils::math::coin_amount::display2raw};
 use models::{
     device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
 };

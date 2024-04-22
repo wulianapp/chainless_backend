@@ -1,6 +1,6 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
-use common::data_structures::wallet::WalletOperateType;
+use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};

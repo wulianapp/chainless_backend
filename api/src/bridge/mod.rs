@@ -131,9 +131,9 @@ async fn gen_bind_eth_addr_sig(request: HttpRequest,
  * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
  * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {object} data                  签名和过期时间戳.
- * @apiSuccess {String} data.0                签名.
- * @apiSuccess {Number} data.1                过期时间戳.
- * @apiSuccess {Number} data.2                签名cid
+ * @apiSuccess {String} data.sig                签名.
+ * @apiSuccess {Number} data.deadline                过期时间戳.
+ * @apiSuccess {Number} data.cid                签名随机值cid
 
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */
@@ -210,11 +210,10 @@ mod tests {
     use blockchain::multi_sig::{CoinTx, MultiSig};
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
-    use common::data_structures::wallet::{AccountMessage, CoinTxStatus, TxType};
     use common::utils::math;
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
-    use common::data_structures::wallet::CoinType;
+    use common::data_structures::CoinType;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
     use crate::wallet::handlers::get_tx::CoinTxViewTmp2;

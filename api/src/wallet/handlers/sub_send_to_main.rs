@@ -4,7 +4,9 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
 use blockchain::ContractClient;
-use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
+use common::data_structures::coin_transaction::{CoinSendStage, TxType};
+use common::data_structures::{CoinType};
+
 use common::data_structures::KeyRole2;
 use common::encrypt::bs58_to_hex;
 use common::utils::math::coin_amount::display2raw;
@@ -67,7 +69,7 @@ pub async fn req(
             coin_tx_raw,
             Some("sub_to_main_tmp".to_string()),
             u64::MAX,
-            CoinTxStatus::SenderSigCompleted,
+            CoinSendStage::SenderSigCompleted,
         );
         coin_info.transaction.tx_type = TxType::SubToMain;
         coin_info.transaction.tx_id = Some(tx_id.clone());

@@ -8,7 +8,6 @@ use common::data_structures::account_manager::UserInfo;
 
 use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType};
 use serde::Serialize;
 use anyhow::{Ok, Result};
 

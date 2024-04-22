@@ -28,11 +28,11 @@ use common::encrypt::{ed25519_key_gen};
 use blockchain::multi_sig::{CoinTx, MultiSig};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
-use common::data_structures::wallet::{AccountMessage, CoinTxStatus};
+//use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::{self, gen_random_verify_code};
 use models::secret_store::SecretStoreView;
 // use log::{info, LevelFilter,debug,error};
-use common::data_structures::wallet::CoinType;
+use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 use crate::wallet::handlers::balance_list::AccountBalance;
@@ -676,7 +676,7 @@ macro_rules! test_pre_send_money {
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
        });
-        let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
+        let res: BackendRespond<(String,Option<String>)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoney",
@@ -698,7 +698,7 @@ macro_rules! test_pre_send_money2 {
             "expireAt": 1808015513000u64,
             "isForced": $is_forced,
        });
-        let res: BackendRespond<(u32,Option<String>)> = test_service_call!(
+        let res: BackendRespond<(String,Option<String>)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoney",
@@ -719,7 +719,7 @@ macro_rules! test_pre_send_money_to_sub {
             "amount": $amount,
             "expireAt": 1808015513000u64,
        });
-        let res: BackendRespond<(u32,String)> = test_service_call!(
+        let res: BackendRespond<(String,String)> = test_service_call!(
             $service,
             "post",
             "/wallet/preSendMoneyToSub",
@@ -744,7 +744,7 @@ macro_rules! test_pre_send_money_to_bridge {
        println!{"_0001_"};
 
        println!{"__{:?}",payload.to_string()};
-        let res: BackendRespond<(u32,String)> = test_service_call!(
+        let res: BackendRespond<(String,String)> = test_service_call!(
             $service,
             "post",
             "/bridge/preWithdraw",
@@ -752,6 +752,7 @@ macro_rules! test_pre_send_money_to_bridge {
             Some($sender_master.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
+        println!("__0001");
         res.data
     }};
 }
@@ -759,9 +760,9 @@ macro_rules! test_pre_send_money_to_bridge {
 
 #[macro_export]
 macro_rules! test_reconfirm_send_money {
-    ($service:expr, $sender_master:expr, $index:expr,$signature:expr) => {{
+    ($service:expr, $sender_master:expr, $order_id:expr,$signature:expr) => {{
         let payload = json!({
-            "txIndex": $index,
+            "orderId": $order_id,
             "confirmedSig": $signature,
        });
         let res: BackendRespond<String> = test_service_call!(
@@ -777,9 +778,9 @@ macro_rules! test_reconfirm_send_money {
 
 #[macro_export]
 macro_rules! test_upload_servant_sig {
-    ($service:expr, $sender_servant:expr,$tx_index:expr,$signature:expr) => {{
+    ($service:expr, $sender_servant:expr,$order_id:expr,$signature:expr) => {{
         let payload = json!({
-            "txIndex": $tx_index,
+            "orderId": $order_id,
             "signature": $signature,
         });
         let res: BackendRespond<String> = test_service_call!(
@@ -805,7 +806,7 @@ macro_rules! test_newcommer_switch_servant {
             "newServantPrikeyEncrypedByAnswer": $sender_new_device.wallet.prikey.unwrap(),
             "newDeviceId": $sender_new_device.device.id
         });
-        let res: BackendRespond<(u32,String)> = test_service_call!(
+        let res: BackendRespond<(String,String)> = test_service_call!(
             $service,
             "post",
             "/wallet/newcommerSwitchServant",
@@ -906,9 +907,9 @@ macro_rules! test_update_subaccount_hold_limit {
 
 #[macro_export]
 macro_rules! test_react_pre_send_money {
-    ($service:expr,$receiver:expr,$index:expr,$is_agreed:expr) => {{
+    ($service:expr,$receiver:expr,$order_id:expr,$is_agreed:expr) => {{
         let payload = json!({
-            "txIndex": $index,
+            "orderId": $order_id,
             "isAgreed": $is_agreed,
         });
         let url = format!("/wallet/reactPreSendMoney");
@@ -1032,8 +1033,8 @@ macro_rules! test_get_balance_list {
 
 #[macro_export]
 macro_rules! test_get_tx {
-    ($service:expr, $app:expr,$index:expr) => {{
-        let url = format!("/wallet/getTx?index={}",$index);
+    ($service:expr, $app:expr,$order_id:expr) => {{
+        let url = format!("/wallet/getTx?orderId={}",$order_id);
         let res: BackendRespond<CoinTxViewTmp2> = test_service_call!(
             $service,
             "get",

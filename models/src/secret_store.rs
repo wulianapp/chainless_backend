@@ -3,8 +3,6 @@ extern crate rustc_serialize;
 use postgres::Row;
 use std::fmt;
 use std::fmt::Display;
-//#[derive(Serialize)]
-use common::data_structures::wallet::CoinTxStatus;
 use common::data_structures::SecretKeyState;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
 use serde::{Deserialize, Serialize};

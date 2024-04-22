@@ -3,6 +3,7 @@ extern crate rustc_serialize;
 use std::fmt;
 use std::str::FromStr;
 
+use common::utils::math::generate_random_hex_string;
 use jsonrpc_http_server::jsonrpc_core::futures::future::OrElse;
 use postgres::Row;
 //#[derive(Serialize)]
@@ -10,12 +11,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxRole, TxType};
+use common::data_structures::coin_transaction::{CoinTransaction, CoinSendStage, TxRole, TxType};
 use anyhow::{Ok, Result};
+use common::data_structures::{CoinType, TxStatusOnChain};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxView {
-    pub tx_index: u32,
     pub transaction: CoinTransaction,
     pub updated_at: String,
     pub created_at: String,
@@ -30,27 +31,27 @@ impl CoinTxView {
         coin_tx_raw: String,
         memo: Option<String>,
         expire_at: u64,
-        status: CoinTxStatus,
+        stage: CoinSendStage,
     ) -> Self {
         let coin_tx = CoinTransaction {
+            order_id: generate_random_hex_string(32),
             tx_id: None,
             coin_type,
             from,
             to,
             amount,
-            status,
+            stage,
             coin_tx_raw,
             chain_tx_raw: None,
             signatures: vec![],
             memo,
             expire_at,
             tx_type: TxType::Normal,
-            reserved_field1: "".to_string(),
+            chain_status: TxStatusOnChain::NotLaunch,
             reserved_field2: "".to_string(),
             reserved_field3: "".to_string(),
         };
         CoinTxView {
-            tx_index: 0,
             transaction: coin_tx,
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -66,7 +67,7 @@ pub enum CoinTxFilter<'b> {
     ByAccountPending(&'b str),
     BySenderUncompleted(&'b str),
     //todo: replace with u128
-    ByTxIndex(u32),
+    ByOrderId(&'b str),
     ByTxRolePage(TxRole,&'b str,Option<&'b str>,u32,u32),
 }
 
@@ -77,15 +78,15 @@ impl fmt::Display for CoinTxFilter<'_> {
             CoinTxFilter::BySender(uid) => format!("sender='{}'", uid),
             CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),
             CoinTxFilter::ByAccountPending(acc_id) => format!(
-                "sender='{}' and status in ('SenderSigCompletedAndReceiverIsSub','SenderSigCompletedAndReceiverIsBridge','ReceiverApproved','ReceiverRejected','Created') or \
-                receiver='{}' and status in ('SenderSigCompleted')",
+                "sender='{}' and stage in ('SenderSigCompleted','ReceiverApproved','ReceiverRejected','Created') or \
+                receiver='{}' and stage in ('SenderSigCompleted')",
                 acc_id, acc_id
             ),
             CoinTxFilter::BySenderUncompleted(acc_id) => format!(
-                "sender='{}' and status in ('ReceiverApproved','ReceiverRejected','Created','SenderSigCompleted','SenderSigCompletedAndReceiverIsSub')",
+                "sender='{}' and stage in ('ReceiverApproved','ReceiverRejected','Created','SenderSigCompleted')",
                 acc_id
             ),
-            CoinTxFilter::ByTxIndex(tx_index) => format!("tx_index='{}' ", tx_index),
+            CoinTxFilter::ByOrderId(id) => format!("order_id='{}' ", id),
             CoinTxFilter::ByTxRolePage(role,account,counterparty,per_page,page) => {
                 
                 let offset = if *page == 1u32 {
@@ -112,8 +113,8 @@ impl fmt::Display for CoinTxFilter<'_> {
 
 #[derive(Clone, Debug)]
 pub enum CoinTxUpdater<'a> {
-    Status(CoinTxStatus),
-    ChainTxInfo(&'a str, &'a str, CoinTxStatus),
+    Stage(CoinSendStage),
+    ChainTxInfo(&'a str, &'a str, CoinSendStage),
     TxidTxRaw(&'a str, &'a str),
     Signature(Vec<String>),
 }
@@ -121,13 +122,13 @@ pub enum CoinTxUpdater<'a> {
 impl fmt::Display for CoinTxUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            CoinTxUpdater::Status(status) => format!("status='{}'", status),
-            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, CoinTxStatus) => {
+            CoinTxUpdater::Stage(stage) => format!("stage='{}'", stage),
+            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, stage) => {
                 format!(
-                    "(tx_id,chain_tx_raw,status)=('{}','{}','{}')",
+                    "(tx_id,chain_tx_raw,stage)=('{}','{}','{}')",
                     tx_id,
                     chain_tx_raw,
-                    CoinTxStatus
+                    stage
                 )
             }
             CoinTxUpdater::TxidTxRaw(tx_id, chain_tx_raw) => {
@@ -151,7 +152,7 @@ impl PsqlOp for CoinTxView {
 
     fn find(filter: Self::FilterContent<'_>) -> Result<Vec<CoinTxView>> {
         let sql = format!(
-            "select tx_index,\
+            "select order_id,\
          tx_id,\
          coin_type,\
          sender,\
@@ -159,12 +160,12 @@ impl PsqlOp for CoinTxView {
          amount,\
          expire_at,
          memo,
-         status,\
+         stage,\
          coin_tx_raw,\
          chain_tx_raw,\
          signatures,\
          tx_type,\
-         reserved_field1,\
+         chain_status,\
          reserved_field2,\
          reserved_field3,\
          cast(updated_at as text), \
@@ -182,8 +183,8 @@ impl PsqlOp for CoinTxView {
 
         let gen_view = |row: &Row| -> Result<CoinTxView> {
             Ok(CoinTxView{
-                tx_index: row.get::<usize, i32>(0) as u32,
                 transaction: CoinTransaction {
+                    order_id: row.get(0),
                     tx_id: row.get(1),
                     coin_type: CoinType::from_str(row.get::<usize, &str>(2))?,
                     from: row.get(3),
@@ -191,12 +192,12 @@ impl PsqlOp for CoinTxView {
                     amount: u128::from_str(row.get::<usize, &str>(5))?,
                     expire_at: row.get::<usize, String>(6).parse()?,
                     memo: row.get(7),
-                    status: row.get::<usize, &str>(8).parse()?,
+                    stage: row.get::<usize, &str>(8).parse()?,
                     coin_tx_raw: row.get(9),
                     chain_tx_raw: row.get(10),
                     signatures: row.get::<usize, Vec<String>>(11),
                     tx_type: row.get::<usize, &str>(12).parse()?,
-                    reserved_field1: row.get(13),
+                    chain_status: row.get::<usize, &str>(13).parse()?,
                     reserved_field2: row.get(14),
                     reserved_field3: row.get(15),
                 },
@@ -225,6 +226,7 @@ impl PsqlOp for CoinTxView {
 
     fn insert(&self) -> Result<()> {
         let CoinTransaction {
+            order_id,
             tx_id,
             coin_type,
             from: sender,
@@ -232,14 +234,14 @@ impl PsqlOp for CoinTxView {
             amount,
             expire_at,
             memo,
-            status,
+            stage,
             coin_tx_raw,
             chain_tx_raw,
             signatures,
             tx_type,
-            reserved_field1,
-            reserved_field2: _,
-            reserved_field3: _,
+            chain_status,
+            reserved_field2,
+            reserved_field3,
         } = self.transaction.clone();
         let tx_id: PsqlType = tx_id.into();
         let chain_raw_data: PsqlType = chain_tx_raw.into();
@@ -247,22 +249,24 @@ impl PsqlOp for CoinTxView {
 
         //todo: amount specific type short or long
         let sql = format!(
-            "insert into coin_transaction (tx_id,\
+            "insert into coin_transaction (order_id,
+                tx_id,\
          coin_type,\
          sender,\
          receiver,\
          amount,\
          expire_at,\
          memo,\
-         status,\
+         stage,\
         coin_tx_raw,\
          chain_tx_raw,\
          signatures,\
          tx_type,\
-         reserved_field1,\
+         chain_status,\
          reserved_field2,\
          reserved_field3\
-         ) values ({},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}','{}','{}');",
+         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}','{}','{}');",
+            order_id,
             tx_id.to_psql_str(),
             coin_type,
             sender,
@@ -270,14 +274,14 @@ impl PsqlOp for CoinTxView {
             amount,
             expire_at,
             memo.to_psql_str(),
-            status,
+            stage,
             coin_tx_raw,
             chain_raw_data.to_psql_str(),
             vec_str2array_text(signatures),
             tx_type,
-            reserved_field1,
-            reserved_field1,
-            reserved_field1,
+            chain_status,
+            reserved_field2,
+            reserved_field3,
         );
         println!("row sql {} rows", sql);
 
@@ -288,6 +292,7 @@ impl PsqlOp for CoinTxView {
     }
 }
 
+//todo: delete
 pub fn get_next_tx_index() -> Result<u32> {
     let execute_res = crate::query(
         "select last_value,is_called from coin_transaction_tx_index_seq order by last_value desc limit 1",

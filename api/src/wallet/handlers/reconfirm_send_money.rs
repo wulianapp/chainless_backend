@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
-use common::data_structures::wallet::{CoinTxStatus, TxType};
+use common::data_structures::coin_transaction::{CoinSendStage};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
@@ -27,12 +27,12 @@ pub async fn req(
 
     //todo: check must be main device
     let ReconfirmSendMoneyRequest {
-        tx_index,
+        order_id,
         confirmed_sig,
     } = request_data.0;
 
     let coin_tx =
-        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     //区分receiver是否是子账户
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
     let strategy = multi_cli.get_strategy(&coin_tx.transaction.from).await?.unwrap();
@@ -61,8 +61,8 @@ pub async fn req(
 
         //todo:txid?
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinTxStatus::SenderReconfirmed),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinSendStage::SenderReconfirmed),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;
 
     }
@@ -103,8 +103,8 @@ pub async fn req(
             &confirmed_sig,
         ).await;
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::Status(CoinTxStatus::SenderReconfirmed),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxUpdater::Stage(CoinSendStage::SenderReconfirmed),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;     
     }
         

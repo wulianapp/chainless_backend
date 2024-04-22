@@ -15,7 +15,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::wallet::{CoinTransaction, CoinType};
+use common::data_structures::{CoinType};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;

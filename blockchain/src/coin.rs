@@ -1,3 +1,4 @@
+use common::data_structures::coin_transaction::CoinTransaction;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -13,7 +14,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::wallet::{CoinTransaction, CoinType};
+use common::data_structures::{CoinType};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -139,7 +140,7 @@ impl ContractClient<Coin> {
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
-    use common::data_structures::wallet::CoinType;
+    use common::data_structures::CoinType;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::{self, BorshSerialize};
     use near_primitives::types::AccountId;

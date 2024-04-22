@@ -48,7 +48,7 @@ create index if not exists ix_users_phone
 
 
 create table coin_transaction(
-     tx_index serial  primary key,
+     order_id  text primary key,
      tx_id text,
      sender text,
      receiver text,
@@ -56,12 +56,12 @@ create table coin_transaction(
      amount text,
      expire_at text,
      memo  text,
-     status  text,
+     stage  text,
      coin_tx_raw  text,
      chain_tx_raw  text,
      signatures text[],
      tx_type text not null, --Forced,ToSub,FromSub
-     reserved_field1 text not null,
+     chain_status text not null,
      reserved_field2 text not null,
      reserved_field3 text not null,
      updated_at  timestamp with time zone default current_timestamp,

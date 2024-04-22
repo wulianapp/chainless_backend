@@ -1,19 +1,21 @@
 extern crate rustc_serialize;
 
 use common::data_structures::device_info::DeviceInfo;
+use common::data_structures::wallet_namage_record::{WalletManageRecord, WalletOperateType};
 use common::utils::math::generate_random_hex_string;
 use postgres::Row;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
 //#[derive(Serialize)]
-use common::data_structures::wallet::{CoinTxStatus, TxStatusOnChain, WalletManageRecord, WalletOperateType};
 use common::data_structures::SecretKeyState;
 use common::data_structures::*;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use derive_more::{AsRef, Deref};
+use common::data_structures::coin_transaction::CoinSendStage;
+use common::data_structures::TxStatusOnChain;
 
 
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
@@ -197,7 +199,7 @@ impl PsqlOp for WalletManageRecordView {
 mod tests {
 
     use super::*;
-    use common::log::init_logger;
+    use common::{data_structures::wallet_namage_record::WalletOperateType, log::init_logger};
     use std::env;
 
     #[test]
@@ -226,7 +228,7 @@ mod tests {
        // assert_eq!(record..record_id device_by_find.record);
 
        WalletManageRecordView::update(
-            WalletManageRecordUpdater::Status(TxStatusOnChain::FinalizeAndSuccessful),
+            WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id),
         )
         .unwrap();

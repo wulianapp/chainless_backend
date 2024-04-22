@@ -4,7 +4,9 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxType};
+use common::data_structures::coin_transaction::{CoinTransaction, CoinSendStage, TxType};
+use common::data_structures::{CoinType};
+
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -23,7 +25,7 @@ use common::error_code::BackendError::ChainError;
 
 
 //todo: DRY
-pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(u32,String)> {
+pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest) -> BackendRes<(String,String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     let (user,current_strategy,device) = 
@@ -66,7 +68,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         panic!("todo:");
     }
 
-    let gen_tx_with_status = |status: CoinTxStatus| -> std::result::Result<CoinTxView,BackendError>{
+    let gen_tx_with_status = |stage: CoinSendStage| -> std::result::Result<CoinTxView,BackendError>{
         let coin_tx_raw = cli
             .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
             .map_err(|err| ChainError(err.to_string()))?;
@@ -78,7 +80,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
             coin_tx_raw,
             memo,
             expire_at,
-            status,
+            stage,
         ))
     };
 
@@ -96,11 +98,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
 
     //转子账户不需要is_forced标志位，本身就是强制的
     if need_sig_num == 0 {
-        let mut coin_info = gen_tx_with_status( CoinTxStatus::SenderSigCompletedAndReceiverIsSub)?;
-        let next_tx_index = get_next_tx_index()?;
+        let mut coin_info = gen_tx_with_status( CoinSendStage::SenderSigCompleted)?;
         let (tx_id, chain_tx_raw) = cli
         .gen_send_money_raw(
-            next_tx_index as u64,
             vec![],
             &from,
             &to,
@@ -113,9 +113,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::MainToSub;
         coin_info.insert()?;
-        Ok(Some((next_tx_index,tx_id)))
+        Ok(Some((coin_info.transaction.order_id,tx_id)))
     }else {
-        let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
+        let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::MainToSub;
         coin_info.insert()?;
         Ok(None)

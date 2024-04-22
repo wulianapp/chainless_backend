@@ -4,7 +4,7 @@ use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::wallet::{get_support_coin_list, CoinTransaction, CoinTxStatus, CoinType, TxType};
+use common::data_structures::{coin_transaction::{CoinSendStage, CoinTransaction, TxType}, get_support_coin_list, CoinType, TxStatusOnChain};
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, WalletError};
 use common::error_code::BackendError::InternalError;
@@ -26,7 +26,7 @@ use super::ServentSigDetail;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxViewTmp2 {
-    pub tx_index: u32,
+    pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
     pub from: String, //uid
@@ -34,13 +34,14 @@ pub struct CoinTxViewTmp2 {
     pub amount: String,
     pub expire_at: u64,
     pub memo: Option<String>,
-    pub status: CoinTxStatus,
+    pub stage: CoinSendStage,
     pub coin_tx_raw: String,
     pub chain_tx_raw: Option<String>,
     pub need_sig_num:u8,
     pub signed_device: Vec<ServentSigDetail>,
     pub unsigned_device: Vec<ServentSigDetail>,
     pub tx_type: TxType,
+    pub chain_status: TxStatusOnChain,
     pub updated_at: String,
     pub created_at: String,
 }
@@ -49,8 +50,8 @@ pub struct CoinTxViewTmp2 {
 pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<CoinTxViewTmp2> {
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
-    let GetTxRequest{index } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByTxIndex(index))?;
+    let GetTxRequest{order_id } = request_data;
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
 
     let signed_device:Vec<ServentSigDetail> = tx.transaction.signatures
     .iter().map(|s| s.parse().unwrap()).collect();
@@ -87,7 +88,7 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
     ).await; 
 
     let tx = CoinTxViewTmp2{
-        tx_index: tx.tx_index,
+        order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
         coin_type: tx.transaction.coin_type,
         from: tx.transaction.from,
@@ -95,13 +96,14 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,
-        status: tx.transaction.status,
+        stage: tx.transaction.stage,
         coin_tx_raw: tx.transaction.coin_tx_raw,
         chain_tx_raw: tx.transaction.chain_tx_raw,
         need_sig_num,
         signed_device,
         unsigned_device,
         tx_type: tx.transaction.tx_type,
+        chain_status: tx.transaction.chain_status,
         updated_at: tx.updated_at,
         created_at: tx.created_at,
     };

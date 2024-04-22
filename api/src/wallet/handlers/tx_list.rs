@@ -4,7 +4,9 @@ use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::wallet::{get_support_coin_list, CoinTransaction, CoinTxStatus, CoinType, TxType};
+use common::data_structures::coin_transaction::CoinSendStage;
+use common::data_structures::{get_support_coin_list, coin_transaction::{CoinTransaction,TxType}, CoinType};
+use common::data_structures::TxStatusOnChain;
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -25,7 +27,7 @@ use super::ServentSigDetail;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxViewTmp {
-    pub tx_index: u32,
+    pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
     pub from: String, //uid
@@ -33,11 +35,12 @@ pub struct CoinTxViewTmp {
     pub amount: String,
     pub expire_at: u64,
     pub memo: Option<String>,
-    pub status: CoinTxStatus,
+    pub stage: CoinSendStage,
     pub coin_tx_raw: String,
     pub chain_tx_raw: Option<String>,
     pub signatures: Vec<ServentSigDetail>,
     pub tx_type: TxType,
+    pub chain_status: TxStatusOnChain,
     pub updated_at: String,
     pub created_at: String,
 }
@@ -51,7 +54,7 @@ pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec
     let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(tx_role,&main_account,counterparty.as_deref(),per_page,page))?;
     let txs: Vec<CoinTxViewTmp> = txs.into_iter().map(|tx|{
         CoinTxViewTmp{
-            tx_index: tx.tx_index,
+            order_id: tx.transaction.order_id,
             tx_id: tx.transaction.tx_id,
             coin_type: tx.transaction.coin_type,
             from: tx.transaction.from,
@@ -59,12 +62,13 @@ pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec
             amount: raw2display(tx.transaction.amount),
             expire_at: tx.transaction.expire_at,
             memo: tx.transaction.memo,
-            status: tx.transaction.status,
+            stage: tx.transaction.stage,
             coin_tx_raw: tx.transaction.coin_tx_raw,
             chain_tx_raw: tx.transaction.chain_tx_raw,
             //todo
             signatures: tx.transaction.signatures.iter().map(|s| s.parse().unwrap()).collect(),
             tx_type: tx.transaction.tx_type,
+            chain_status: tx.transaction.chain_status,
             updated_at: tx.updated_at,
             created_at: tx.created_at,
         }

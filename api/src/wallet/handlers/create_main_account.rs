@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
-use common::data_structures::wallet::WalletOperateType;
+use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes};
 use common::utils::math::generate_random_hex_string;

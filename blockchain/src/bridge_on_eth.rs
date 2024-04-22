@@ -1,6 +1,6 @@
 use anyhow::{Ok, Result};
 
-use ::common::data_structures::wallet::CoinType;
+use ::common::data_structures::CoinType;
 use common::env::CONF as ENV_CONF;
 use ::common::utils::time::now_millis;
 use ethers::prelude::*;

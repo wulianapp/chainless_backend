@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest};
 use blockchain::coin::Coin;
-use common::data_structures::wallet::get_support_coin_list;
+use common::data_structures::get_support_coin_list;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 //use log::info;

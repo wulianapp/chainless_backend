@@ -14,7 +14,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::wallet::{CoinTransaction, CoinType};
+use common::data_structures::{CoinType};
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -375,7 +375,7 @@ impl ContractClient<Bridge> {
 #[cfg(test)]
 mod tests {
 
-    use common::data_structures::wallet::get_support_coin_list;
+    use common::data_structures::get_support_coin_list;
 
     use crate::{eth_cli::EthContractClient, multi_sig::MultiSig};
 

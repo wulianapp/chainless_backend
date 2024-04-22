@@ -1,5 +1,4 @@
 
-use crate::data_structures::wallet::get_support_coin_list;
 use crate::error_code::BackendError;
 use crate::error_code::BackendRes;
 use std::collections::HashMap;

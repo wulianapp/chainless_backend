@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, PubkeySignInfo};
 use blockchain::ContractClient;
-use common::data_structures::wallet::{CoinTxStatus, CoinType, TxType};
+use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -26,20 +26,20 @@ pub async fn req(
     super::check_role(current_role,KeyRole2::Servant)?;
     
     let UploadTxSignatureRequest {
-        tx_index,
+        order_id,
         signature,
     } = request_data.0;
 
     //todo: two update action is unnecessary
-    let mut tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
-    if tx.transaction.status != CoinTxStatus::Created {
-        Err(WalletError::TxStatusIllegal(tx.transaction.status,CoinTxStatus::Created))?;
+    let mut tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    if tx.transaction.stage != CoinSendStage::Created {
+        Err(WalletError::TxStatusIllegal(tx.transaction.stage,CoinSendStage::Created))?;
     }
     
     tx.transaction.signatures.push(signature);
     models::coin_transfer::CoinTxView::update(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
-        CoinTxFilter::ByTxIndex(tx_index),
+        CoinTxFilter::ByOrderId(&order_id),
     )?;
 
     //collect enough signatures
@@ -59,8 +59,8 @@ pub async fn req(
         //给子账户转是relayer进行签名，不需要生成tx_raw
         if tx.transaction.tx_type == TxType::MainToSub{
             models::coin_transfer::CoinTxView::update(
-                CoinTxUpdater::Status(CoinTxStatus::SenderSigCompletedAndReceiverIsSub),
-                CoinTxFilter::ByTxIndex(tx_index),
+                CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
+                CoinTxFilter::ByOrderId(&order_id),
             )?;
         //给其他主账户转是用户自己签名，需要生成tx_raw    
         }else if tx.transaction.tx_type == TxType::Forced{
@@ -77,7 +77,6 @@ pub async fn req(
             .collect();
             let (tx_id, chain_tx_raw) = cli
             .gen_send_money_raw(
-                tx.tx_index as u64,
                 servant_sigs,
                 &tx.transaction.from,
                 &tx.transaction.to,
@@ -87,14 +86,14 @@ pub async fn req(
             )
             .await?;
             models::coin_transfer::CoinTxView::update(
-                CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinTxStatus::ReceiverApproved),
-                CoinTxFilter::ByTxIndex(tx_index),
+                CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
+                CoinTxFilter::ByOrderId(&order_id),
             )?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认        
         }else{                
             models::coin_transfer::CoinTxView::update(
-                CoinTxUpdater::Status(CoinTxStatus::SenderSigCompleted),
-                CoinTxFilter::ByTxIndex(tx_index),
+                CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
+                CoinTxFilter::ByOrderId(&order_id),
             )?;
         }
 

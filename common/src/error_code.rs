@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::data_structures::{wallet::CoinTxStatus, KeyRole2};
+use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
@@ -137,7 +137,7 @@ pub enum WalletError {
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
-    TxStatusIllegal(CoinTxStatus,CoinTxStatus),
+    TxStatusIllegal(CoinSendStage,CoinSendStage),
     #[error("balanceMustBeZero")]
     BalanceMustBeZero,
     #[error("subaccount {0} is not existent on chain")]

@@ -4,13 +4,18 @@ pub mod device_info;
 pub mod general;
 pub mod newbie_reward;
 pub mod secret_store;
-pub mod wallet;
+pub mod coin_transaction;
+pub mod wallet_namage_record;
 
 use std::str::FromStr;
 
-use crate::error_code::*;
+use crate::{env::CONF as global_conf, error_code::*};
+use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
+
+use self::{coin_transaction::CoinTransaction, secret_store::SecretStore};
+
 
 //only Main have key role
 #[derive(Deserialize, Serialize, Debug, EnumString, Display)]
@@ -75,9 +80,106 @@ pub enum OpStatus {
     Idle,
 }
 
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
-pub enum TxStatus {
+pub fn get_support_coin_list() -> Vec<CoinType> {
+    vec![
+        CoinType::BTC,
+        CoinType::ETH,
+        CoinType::USDT,
+        CoinType::USDC,
+        CoinType::CLY,
+        CoinType::DW20,
+    ]
+}
+
+pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
+    vec![
+        //CoinType::BTC,
+        CoinType::ETH,
+        CoinType::USDT,
+        //CoinType::USDC,
+        CoinType::DW20,
+    ]
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
+pub enum CoinType {
+    #[strum(ascii_case_insensitive,to_string = "btc")]
+    BTC,
+    #[strum(ascii_case_insensitive,to_string = "eth")]
+    ETH,
+    #[strum(ascii_case_insensitive,to_string = "usdt")]
+    USDT,
+    #[strum(ascii_case_insensitive,to_string = "usdc")]
+    USDC,
+    #[strum(ascii_case_insensitive,to_string = "cly")]
+    CLY,
+    #[strum(ascii_case_insensitive,to_string = "dw20")]
+    DW20,
+}
+
+impl CoinType {
+    pub fn to_account_id(&self) -> AccountId {
+        match self {
+            CoinType::BTC => AccountId::from_str("btc").unwrap(),
+            CoinType::ETH => AccountId::from_str("eth").unwrap(),
+            CoinType::USDT => AccountId::from_str("usdt").unwrap(),
+            CoinType::USDC => AccountId::from_str("usdc").unwrap(),
+            CoinType::CLY => AccountId::from_str("cly").unwrap(),
+            CoinType::DW20 => AccountId::from_str("dw20").unwrap(),
+        }
+    }
+
+    pub fn erc20_ca(&self) -> Option<String> {
+        match self {
+            CoinType::BTC => Some(global_conf.eth_wbtc_contract.clone()),
+            CoinType::ETH => None,
+            CoinType::USDT => Some(global_conf.eth_usdt_contract.clone()),
+            CoinType::USDC => Some(global_conf.eth_usdc_contract.clone()),
+            CoinType::CLY => None,
+            CoinType::DW20 => Some(global_conf.eth_dw20_contract.clone()),
+        }
+    }
+
+    //todo: config by env
+    pub fn erc20_decimal(&self) -> Option<u8> {
+        match self {
+            CoinType::BTC => Some(18),
+            //is token_decimal rather than coin_decimal
+            CoinType::ETH => Some(18),
+            CoinType::USDT => Some(18),
+            CoinType::USDC => Some(18),
+            CoinType::CLY => None,
+            CoinType::DW20 => Some(18),
+        }
+    }
+
+    pub fn nep21_decimal(&self) -> u8 {
+        match self {
+            CoinType::BTC => 18,
+            CoinType::ETH => 18,
+            CoinType::USDT => 18,
+            CoinType::USDC => 18,
+            CoinType::CLY => 18,
+            CoinType::DW20 => 18,
+        }
+    }
+
+    pub fn to_account_str(&self) -> String {
+        self.to_account_id().to_string()
+    }
+}
+
+#[derive(Deserialize,Serialize,PartialEq, Display,Clone, Debug, Eq, Hash,EnumString)]
+pub enum TxStatusOnChain {
+    NotLaunch,
     Pending,
     Failed,
     Successful,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone,Default)]
+pub struct AccountMessage {
+    pub newcomer_became_sevant: Vec<SecretStore>,
+    pub coin_tx: Vec<CoinTransaction>,
+    pub have_uncompleted_txs: bool
 }

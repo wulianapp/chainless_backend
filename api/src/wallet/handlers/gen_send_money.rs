@@ -1,7 +1,7 @@
 
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
-use common::data_structures::wallet::CoinTxStatus;
+use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
@@ -35,10 +35,10 @@ pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> Ba
 
 
     let GenSendMoneyRequest {
-        tx_index,
+        order_id,
     } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxView::find_single( models::coin_transfer::CoinTxFilter::ByTxIndex(tx_index))?;
+    let coin_tx = models::coin_transfer::CoinTxView::find_single( models::coin_transfer::CoinTxFilter::ByOrderId(&order_id))?;
     //不好卡就先不卡了、强制转账、给子账户转账
     /**** 
     if coin_tx.transaction.status != CoinTxStatus::ReceiverApproved {
@@ -60,7 +60,6 @@ pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> Ba
     let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let (tx_id, chain_raw_tx) = cli
             .gen_send_money_raw(
-                tx_index as u64,
                 servant_sigs,
                 &coin_tx.transaction.from,
                 &coin_tx.transaction.to,
@@ -71,7 +70,7 @@ pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> Ba
             .await?;
         models::coin_transfer::CoinTxView::update(
             CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;
     Ok(Some(tx_id))
 }

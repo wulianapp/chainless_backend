@@ -1,11 +1,10 @@
 use actix_web::HttpRequest;
-use common::data_structures::wallet::CoinTransaction;
-use common::data_structures::wallet::CoinTransaction2;
+use common::data_structures::coin_transaction::CoinTransaction;
+use common::data_structures::AccountMessage;
 use common::utils::math::coin_amount::raw2display;
 
 use crate::utils::token_auth;
 use crate::wallet::add_servant;
-use common::data_structures::wallet::AccountMessage;
 use common::error_code::AccountManagerError;
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoView};
@@ -38,28 +37,9 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<AccountMessage> {
     let mut tx_msg = coin_txs
         .into_iter()
         .map(|tx| {
-            let CoinTransaction { tx_id, coin_type, from, to, amount, expire_at, memo, status, coin_tx_raw, chain_tx_raw, signatures, tx_type, reserved_field1, reserved_field2, reserved_field3 } = tx.transaction;
-            let transaction =  CoinTransaction2 {
-                tx_index: tx.tx_index,
-                tx_id,
-                coin_type,
-                from,
-                to,
-                amount: raw2display(amount),
-                expire_at,
-                memo,
-                status,
-                coin_tx_raw,
-                chain_tx_raw,
-                signatures,
-                tx_type,
-                reserved_field1,
-                reserved_field2,
-                reserved_field3,
-            };
-            transaction
+            tx.transaction
         })
-        .collect::<Vec<CoinTransaction2>>();
+        .collect::<Vec<CoinTransaction>>();
 
     messages.coin_tx.append(&mut tx_msg);
     let uncompleted_txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(&user.user_info.main_account))?;

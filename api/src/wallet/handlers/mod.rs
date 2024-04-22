@@ -2,7 +2,7 @@ use std::{ops::Deref, str::FromStr};
 
 use blockchain::{coin::Coin, fees_call::FeesCall, multi_sig::{MultiSig, MultiSigRank, StrategyData}, ContractClient};
 use common::{
-    data_structures::{account_manager::UserInfo, device_info::DeviceInfo, wallet::CoinType, KeyRole2},
+    data_structures::{account_manager::UserInfo, device_info::DeviceInfo, CoinType, KeyRole2},
     error_code::{BackendError, BackendRes, WalletError}, utils::math::generate_random_hex_string,
 };
 use models::{

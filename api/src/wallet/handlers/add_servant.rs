@@ -1,7 +1,7 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
-use common::data_structures::wallet::WalletOperateType;
+use common::data_structures::wallet_namage_record::WalletOperateType;
 use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::account_manager::user_info;

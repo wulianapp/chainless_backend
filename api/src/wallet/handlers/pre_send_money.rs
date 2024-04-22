@@ -4,7 +4,9 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{CoinTx, MultiSig};
 use blockchain::ContractClient;
-use common::data_structures::wallet::{CoinTransaction, CoinTxStatus, CoinType, TxType};
+use common::data_structures::coin_transaction::{CoinTransaction, CoinSendStage, TxType};
+use common::data_structures::{CoinType};
+
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -38,7 +40,7 @@ impl PreSendMoneyRes {
 }
 ***/
 
-pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(u32,Option<String>)> {
+pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> BackendRes<(String,Option<String>)> {
     //todo: allow master only
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let PreSendMoneyRequest {
@@ -96,7 +98,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     }
 
     //封装根据状态生成转账对象的逻辑
-    let gen_tx_with_status = |status: CoinTxStatus| -> Result<CoinTxView>{
+    let gen_tx_with_status = |stage: CoinSendStage| -> Result<CoinTxView>{
         let coin_tx_raw = cli
             .gen_send_money_info(&from,
                  &to_account_id,
@@ -111,7 +113,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
             coin_tx_raw,
             memo,
             expire_at,
-            status,
+            stage,
         ))
     };
 
@@ -130,16 +132,14 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     ).await; 
 
     //fixme: this is unsafe
-    let next_tx_index = get_next_tx_index()?;
     debug!("before create order {},{},{}",line!(),need_sig_num,is_forced);
     //没有从公钥且强制转账的话，直接返回待签名数据
     if need_sig_num == 0 && is_forced{
         debug!("_0000_");
-        let mut coin_info = gen_tx_with_status( CoinTxStatus::ReceiverApproved)?;
+        let mut coin_info = gen_tx_with_status( CoinSendStage::ReceiverApproved)?;
 
         let (tx_id, chain_tx_raw) = cli
         .gen_send_money_raw(
-            next_tx_index as u64,
             vec![],
             &from,
             &to_account_id,
@@ -152,23 +152,23 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
-        Ok(Some((next_tx_index, Some(tx_id))))
+        Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
     }else if need_sig_num == 0  && !is_forced{
         debug!("_0001_");
-        let coin_info = gen_tx_with_status(CoinTxStatus::SenderSigCompleted)?;
+        let coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
         coin_info.insert()?;
-        Ok(Some((next_tx_index, None)))
+        Ok(Some((coin_info.transaction.order_id, None)))
     }else if need_sig_num != 0  && is_forced{
         debug!("_0002_");
-        let mut coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
+        let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
-        Ok(Some((next_tx_index, None)))
+        Ok(Some((coin_info.transaction.order_id, None)))
     }else if need_sig_num != 0  && !is_forced{
         debug!("_0003_");
-        let coin_info = gen_tx_with_status(CoinTxStatus::Created)?;
+        let coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.insert()?;
-        Ok(Some((next_tx_index, None)))
+        Ok(Some((coin_info.transaction.order_id, None)))
     }else {
         unreachable!("all case is considered")
     }

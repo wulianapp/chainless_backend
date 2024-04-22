@@ -1,5 +1,5 @@
 /// listen tx status on chain
-use common::{data_structures::wallet::TxStatusOnChain, *};
+use common::{data_structures::TxStatusOnChain, *};
 use models::{wallet_manage_record::{WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView}, PsqlOp};
 use tracing::debug;
 

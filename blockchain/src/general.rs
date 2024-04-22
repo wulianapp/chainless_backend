@@ -1,4 +1,4 @@
-use common::data_structures::wallet::TxStatusOnChain;
+use common::data_structures::TxStatusOnChain;
 use common::utils::math::hex_to_bs58;
 use near_crypto::{InMemorySigner, KeyType, PublicKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
@@ -153,16 +153,16 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
 
 
     let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
-        let mut status =   TxStatusOnChain::FinalizeAndSuccessful;
+        let mut status =   TxStatusOnChain::Successful;
         for outcome in tx_status.receipts_outcome {
             match outcome.outcome.status{
                 ExecutionStatusView::Unknown => {
                     unreachable!("");
-                    status = TxStatusOnChain::FinalizeAndFailed;
+                    status = TxStatusOnChain::Failed;
                     break;
                 },
                 ExecutionStatusView::Failure(_) => {
-                    status = TxStatusOnChain::FinalizeAndFailed;
+                    status = TxStatusOnChain::Failed;
                 },
                 ExecutionStatusView::SuccessValue(_) => {},
                 ExecutionStatusView::SuccessReceiptId(_) => {},
@@ -171,7 +171,7 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
         status
     }else if let FinalExecutionStatus::Failure(error) = tx_status.status{
         warn!("tx_id({}) is failed: {}",tx_id,error.to_string());
-        TxStatusOnChain::FinalizeAndFailed
+        TxStatusOnChain::Failed
     }else {
         TxStatusOnChain::Pending
     };

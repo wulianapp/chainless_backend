@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
-use common::data_structures::wallet::CoinTxStatus;
+use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -24,16 +24,16 @@ pub async fn req(
 
     //todo: check must be main device
     let CancelSendMoneyRequest {
-        tx_index,
+        order_id,
     } = request_data.0;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     //todo: chain status
-    if tx.transaction.status == CoinTxStatus::SenderReconfirmed{
+    if tx.transaction.stage == CoinSendStage::SenderReconfirmed{
         Err(WalletError::TxAlreadyConfirmed)?;
     }else{
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::Status(CoinTxStatus::SenderCanceled),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;
     }
     Ok(None::<String>)

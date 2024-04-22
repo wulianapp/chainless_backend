@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use actix_web::{web, HttpRequest};
-use common::data_structures::wallet::WalletOperateType;
+use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::wallet_manage_record::WalletManageRecordView;

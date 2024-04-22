@@ -95,7 +95,7 @@ impl EthContractClient<Erc20> {
 #[cfg(test)]
 mod tests {
 
-    use ::common::data_structures::wallet::{get_support_coin_list, get_support_coin_list_without_cly, CoinType};
+    use ::common::data_structures::{get_support_coin_list, get_support_coin_list_without_cly, CoinType};
 
     use super::*;
 

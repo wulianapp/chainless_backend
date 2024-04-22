@@ -7,7 +7,7 @@ use actix_web::web::service;
 use actix_web::{get, post, web, HttpRequest, Responder};
 
 use common::data_structures::secret_store::SecretStore;
-use common::data_structures::wallet::CoinType;
+use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 
 use crate::utils::respond::gen_extra_respond;
@@ -42,7 +42,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String} data.newcomer_became_sevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
 * @apiSuccess {Bool} data.have_pending_txs             作为发送方是否有待处理的交易   
 * @apiSuccess {object[]} data.coin_tx                转账消息
-* @apiSuccess {Number} data.coin_tx.tx_index          交易索引号.
+* @apiSuccess {Number} data.coin_tx.order_id          交易索引号.
 * @apiSuccess {object} data.coin_tx.transaction        交易详情.
 * @apiSuccess {String} [data.coin_tx.transaction.tx_id]        链上交易id.
 * @apiSuccess {String=BTC,ETH,USDT,USDC,DW20,CLY} data.coin_tx.transaction.coin_type      币种名字
@@ -51,10 +51,11 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String} data.coin_tx.transaction.amount               交易量
 * @apiSuccess {String} data.coin_tx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.coin_tx.transaction.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.stage                交易进度
 * @apiSuccess {String}  data.coin_tx.transaction.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.coin_tx.transaction.chain_tx_raw]          链上交互的原始数据
 * @apiSuccess {String[]} data.coin_tx.transaction.signatures         从设备对业务数据的签名
+* @apiSuccess {String}  data.coin_tx.transaction.chain_status        交易的链上状态
 * @apiSuccess {String=Normal,Forced,MainToSub,SubToMain,MainToBridge} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
 * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
 */
@@ -272,13 +273,13 @@ async fn pre_send_money_to_sub(
  * @apiVersion 0.0.1
  * @apiName reactPreSendMoney
  * @apiGroup Wallet
- * @apiBody {Number} txIndex    交易序列号
+ * @apiBody {Number} orderId    交易订单号
  * @apiBody {bool} isAgreed    是否同意接收
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/reactPreSendMoney
    -d ' {
-        "txIndex": 1,
+        "orderId": 1,
         "isAgreed": true
            }'
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
@@ -292,7 +293,7 @@ async fn pre_send_money_to_sub(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReactPreSendMoney {
-    tx_index: u32,
+    order_id: String,
     is_agreed: bool,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -310,14 +311,14 @@ async fn react_pre_send_money(
  * @apiVersion 0.0.1
  * @apiName reconfirmSendMoney
  * @apiGroup Wallet
- * @apiBody {Number} txIndex    交易序列号
+ * @apiBody {Number} orderId    交易订单号
  * @apiBody {String} confirmedSig    再确认就传签名结果,取消的话用cancelSendMoney的接口
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/reconfirmSendMoney
    -d ' {
         "deviceId":  "1",
-        "txIndex": 1,
+        "orderId": 1,
         "confirmedSig": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e6
                      83ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4e4c12e677ce
                 35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600"
@@ -333,7 +334,7 @@ async fn react_pre_send_money(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ReconfirmSendMoneyRequest {
-    tx_index: u32,
+    order_id: String,
     confirmed_sig: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -355,13 +356,13 @@ async fn reconfirm_send_money(
  * @apiVersion 0.0.1
  * @apiName CancelSendMoney
  * @apiGroup Wallet
- * @apiBody {Number} txIndex    交易序列号
+ * @apiBody {String} orderId    交易序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/cancelSendMoney
    -d ' {
         "deviceId":  "1",
-        "txIndex": 1,
+        "orderId": 1,
         "confirmedSig": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e6
                      83ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4e4c12e677ce
                 35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600"
@@ -377,7 +378,7 @@ async fn reconfirm_send_money(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelSendMoneyRequest {
-    tx_index: u32,
+    order_id: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/cancelSendMoney")]
@@ -440,13 +441,13 @@ async fn sub_send_to_main(
  * @apiVersion 0.0.1
  * @apiName UsploadServantSig
  * @apiGroup Wallet
- * @apiBody {Number} txIndex    交易序列号
+ * @apiBody {Number} orderId    交易订单号
  * @apiBody {String} signature  pubkey和签名结果的拼接
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/uploadServantSig
    -d ' {
-        "txIndex": 1,
+        "orderId": 1,
         "signature": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe
 3ac02e2bff9ee3e683ccf89e6a345b853fa985b9ec860b913616e3a9f7edd418a224f569e4
 e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
@@ -462,7 +463,7 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadTxSignatureRequest {
-    tx_index: u32,
+    order_id: String,
     signature: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -1013,7 +1014,7 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
 * @apiSuccess {String=0,1} status_code         status code.
 * @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object[]} data                交易详情数组.
-* @apiSuccess {Number} data.tx_index          交易索引号.
+* @apiSuccess {Number} data.order_id          交易索引号.
 * @apiSuccess {object} data.transaction        交易详情.
 * @apiSuccess {String} [data.tx_id]        链上交易id.
 * @apiSuccess {String=dw20,cly} data.coin_type      币种名字
@@ -1022,9 +1023,10 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
 * @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.status                交易状态
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.stage               交易进度
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
+* @apiSuccess {String}  data.coin_tx.chain_status        交易的链上状态
 * @apiSuccess {object[]} data.signatures       从设备签名详情
 * @apiSuccess {String} data.signatures.pubkey         签名公钥
 * @apiSuccess {String} data.signatures.sig            签名结果
@@ -1056,7 +1058,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
  * @apiVersion 0.0.1
  * @apiName GetTx
  * @apiGroup Wallet
- * @apiQuery {Number}                 index            交易序列号
+ * @apiQuery {Number}                 orderId            交易序列号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
@@ -1066,7 +1068,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String=0,1} status_code         status code.
 * @apiSuccess {String=Successfully,InternalError} msg
 * @apiSuccess {object} data               交易详情.
-* @apiSuccess {Number} data.tx_index          交易索引号.
+* @apiSuccess {Number} data.order_id          交易id号.
 * @apiSuccess {object} data.transaction        交易详情.
 * @apiSuccess {String} [data.tx_id]        链上交易id.
 * @apiSuccess {String=dw20,cly} data.coin_type      币种名字
@@ -1075,10 +1077,11 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 * @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.expire_at             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.status                
-    交易状态分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
+* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.stage             
+    交易进度分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
+* @apiSuccess {String}  data.coin_tx.chain_status        交易的链上状态
 * @apiSuccess {String}  data.need_sig_num         本次转账预估需要的签名数量
 * @apiSuccess {object[]} data.signed_device       从设备签名详情
 * @apiSuccess {String} data.signed_device.pubkey         签名公钥
@@ -1096,7 +1099,7 @@ async fn tx_list(req: HttpRequest,request_data: web::Query<TxListRequest>) -> im
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GetTxRequest {
-    index: u32,
+    order_id: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getTx")]
@@ -1264,7 +1267,7 @@ async fn get_need_sig_num(req: HttpRequest,
  * @apiVersion 0.0.1
  * @apiName GenSendMoney
  * @apiGroup Wallet
- * @apiBody {Number}     tx_index                交易订单号
+ * @apiBody {String}     order_id                交易订单号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/GenSendMoney
@@ -1283,7 +1286,7 @@ async fn get_need_sig_num(req: HttpRequest,
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GenSendMoneyRequest {
-    tx_index: u32,
+    order_id: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/genSendMoney")]
@@ -1454,11 +1457,13 @@ mod tests {
     use blockchain::multi_sig::{CoinTx, MultiSig};
     use common::data_structures::account_manager::UserInfo;
     use common::data_structures::secret_store::SecretStore;
-    use common::data_structures::wallet::{AccountMessage, CoinTxStatus, TxType};
+    use common::data_structures::{AccountMessage,};
+    use common::data_structures::coin_transaction::{CoinSendStage, TxType};
+
     use common::utils::math;
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
-    use common::data_structures::wallet::CoinType;
+    use common::data_structures::CoinType;
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
@@ -1598,26 +1603,26 @@ async fn test_wallet_add_remove_subaccount() {
         
         let res = test_search_message!(service, sender_servant).unwrap();
         let tx = res.coin_tx.first().unwrap();
-        assert_eq!(tx.status, CoinTxStatus::Created);
+        assert_eq!(tx.stage, CoinSendStage::Created);
         assert_eq!(tx.tx_type, TxType::Forced);
         //local sign
         let signature = common::encrypt::ed25519_gen_pubkey_sign(
             &sender_servant.wallet.prikey.unwrap(),
             &tx.coin_tx_raw,
         ).unwrap();
-        test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
+        test_upload_servant_sig!(service,sender_servant,tx.order_id,signature);
         
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-        assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+        assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
         assert_eq!(tx.tx_type, TxType::Forced);
         //local sign
         let signature = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
             tx.tx_id.as_ref().unwrap(),
         ).unwrap();
-        test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+        test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
         
     }
     
@@ -1723,14 +1728,14 @@ async fn test_wallet_add_remove_subaccount() {
 
         let res = test_search_message!(service, sender_master).unwrap();
         if let Some(tx) = res.coin_tx.first() {
-            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsSub);
+            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
             //local sign
             let signature = common::encrypt::ed25519_gen_pubkey_sign(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 //区别于普通转账，给子账户的签coin_tx_raw
                 &tx.coin_tx_raw,
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
         }
     }
 
@@ -1781,14 +1786,14 @@ async fn test_wallet_add_remove_subaccount() {
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
+            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
             //local sign
             let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
 
-            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
         
 
        
@@ -1878,17 +1883,19 @@ async fn test_wallet_add_remove_subaccount() {
             "ETH",
             "1.2"
         );
+        println!("__0002");
+
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-            assert_eq!(tx.status, CoinTxStatus::SenderSigCompletedAndReceiverIsBridge);
+            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
             //local sign
             let signature = common::encrypt::ed25519_sign_hex(
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
 
-            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
 
         tokio::time::sleep(std::time::Duration::from_millis(2000)).await;   
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr(&user_info.main_account).await.unwrap().unwrap();
@@ -2179,7 +2186,7 @@ async fn test_wallet_add_remove_subaccount() {
         //step3.1: 对于created状态的交易来说，主设备不处理，从设备上传签名
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(tx.stage, CoinSendStage::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
                 &sender_strategy.master_pubkey,
@@ -2188,7 +2195,7 @@ async fn test_wallet_add_remove_subaccount() {
         
         let res = test_search_message!(service, sender_servant).unwrap();
         let tx = res.coin_tx.first().unwrap();
-            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(tx.stage, CoinSendStage::Created);
             assert_eq!(
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
                 sender_strategy.servant_pubkeys.first().unwrap(),
@@ -2208,20 +2215,20 @@ async fn test_wallet_add_remove_subaccount() {
             );
 
             //upload_servant_sig
-           test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
+           test_upload_servant_sig!(service,sender_servant,tx.order_id,signature);
         
 
         //step5: receiver get notice and react it
         let res = test_search_message!(service, receiver).unwrap();
         let tx = res.coin_tx.first().unwrap();
 
-            assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
+            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
             assert_eq!(
                 receiver.wallet.pubkey.unwrap(),
                 receiver_strategy.master_pubkey,
                 "only master_key can ratify or refuse it"
             );
-            test_react_pre_send_money!(service,receiver,tx.tx_index,true);
+            test_react_pre_send_money!(service,receiver,tx.order_id,true);
         
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
@@ -2233,7 +2240,7 @@ async fn test_wallet_add_remove_subaccount() {
         //超过了就链上过期（非多签业务过期）
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+            assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
                 &sender_strategy.master_pubkey,
@@ -2255,7 +2262,7 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
         
 
         let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;
@@ -2317,7 +2324,7 @@ async fn test_wallet_add_remove_subaccount() {
         let res = test_search_message!(service, sender_master).unwrap();
         if let Some(tx) = res.coin_tx.first() {
             {
-            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(tx.stage, CoinSendStage::Created);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
                 &sender_strategy.master_pubkey,
@@ -2326,7 +2333,7 @@ async fn test_wallet_add_remove_subaccount() {
         }
         let res = test_search_message!(service, sender_servant).unwrap();
         if let Some(tx) = res.coin_tx.first() {
-            assert_eq!(tx.status, CoinTxStatus::Created);
+            assert_eq!(tx.stage, CoinSendStage::Created);
             assert_eq!(
                 sender_servant.wallet.pubkey.as_ref().unwrap(),
                 sender_strategy.servant_pubkeys.first().unwrap(),
@@ -2346,19 +2353,19 @@ async fn test_wallet_add_remove_subaccount() {
             );
 
             //upload_servant_sig
-           test_upload_servant_sig!(service,sender_servant,tx.tx_index,signature);
+           test_upload_servant_sig!(service,sender_servant,tx.order_id,signature);
         }
 
         //step5: receiver get notice and react it
         let res = test_search_message!(service, receiver).unwrap();
         if let Some(tx) = res.coin_tx.first() {
-            assert_eq!(tx.status, CoinTxStatus::SenderSigCompleted);
+            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
             assert_eq!(
                 receiver.wallet.pubkey.unwrap(),
                 receiver_strategy.master_pubkey,
                 "only master_key can ratify or refuse it"
             );
-            test_react_pre_send_money!(service,receiver,tx.tx_index,true);
+            test_react_pre_send_money!(service,receiver,tx.order_id,true);
         }
 
         let txs = test_tx_list!(service, sender_master,"sender",None::<String>,100,1).unwrap();
@@ -2369,7 +2376,7 @@ async fn test_wallet_add_remove_subaccount() {
         //超过了就链上过期（非多签业务过期）
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();        
-            assert_eq!(tx.status, CoinTxStatus::ReceiverApproved);
+            assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
             assert_eq!(
                 sender_master.wallet.pubkey.as_ref().unwrap(),
                 &sender_strategy.master_pubkey,
@@ -2381,7 +2388,7 @@ async fn test_wallet_add_remove_subaccount() {
                 sender_master.wallet.prikey.as_ref().unwrap(),
                 tx.tx_id.as_ref().unwrap(),
             ).unwrap();
-            test_reconfirm_send_money!(service,sender_master,tx.tx_index,signature);
+            test_reconfirm_send_money!(service,sender_master,tx.order_id,signature);
         
 
         let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;

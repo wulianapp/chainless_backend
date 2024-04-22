@@ -1,10 +1,12 @@
 use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
-use common::data_structures::wallet::CoinType;
+use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use serde::Deserialize;
+use serde::Serialize;
 //use log::debug;
 use tracing::debug;
 
@@ -18,10 +20,17 @@ use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PsqlOp};
 use crate::wallet::handlers::*;
 
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GenDepositRes {
+    pub cid: u64,
+    pub deadline: u64,
+    pub sig: String,
+}
+
 pub async fn req(
     req: HttpRequest,
     request_data: GenDepositSigRequest,
-) -> BackendRes<(String,u64,u64)> {
+) -> BackendRes<GenDepositRes> {
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
@@ -54,5 +63,9 @@ pub async fn req(
     ).await?;
     println!("sig {} ",sig);
 
-    Ok(Some((sig,deadline,cid)))
+    Ok(Some(GenDepositRes{
+        cid,
+        deadline,
+        sig,
+    }))
 }

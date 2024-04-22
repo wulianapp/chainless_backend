@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
-use common::data_structures::wallet::{CoinTxStatus, CoinType};
+use common::data_structures::coin_transaction::{CoinSendStage};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -21,13 +21,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         super::check_role(current_role,KeyRole2::Master)?;
 
     let ReactPreSendMoney {
-        tx_index,
+        order_id,
         is_agreed,
     } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByTxIndex(tx_index))?;
-    if coin_tx.transaction.status != CoinTxStatus::SenderSigCompleted {
-        Err(WalletError::TxStatusIllegal(coin_tx.transaction.status,CoinTxStatus::SenderSigCompleted))?;
+    let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    if coin_tx.transaction.stage != CoinSendStage::SenderSigCompleted {
+        Err(WalletError::TxStatusIllegal(coin_tx.transaction.stage,CoinSendStage::SenderSigCompleted))?;
     }
 
     //message max is 10，
@@ -51,25 +51,23 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         //todo: replace with new api(gen_chain_tx) whereby avert tx expire
         let (tx_id, chain_raw_tx) = cli
             .gen_send_money_raw(
-                tx_index as u64,
                 servant_sigs,
                 &coin_tx.transaction.from,
                 &coin_tx.transaction.to,
                 coin_tx.transaction.coin_type,
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,
-            )
-            .await?;
+            ).await?;
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinTxStatus::ReceiverApproved),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;
     } else {
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::Status(CoinTxStatus::ReceiverRejected),
-            CoinTxFilter::ByTxIndex(tx_index),
+            CoinTxUpdater::Stage(CoinSendStage::ReceiverRejected),
+            CoinTxFilter::ByOrderId(&order_id),
         )?;
     };
 
-    Ok(None::<String>)
+    Ok(None)
 }

@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
-use common::data_structures::wallet::CoinType;
+use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 //use log::debug;
