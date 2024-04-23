@@ -13,6 +13,7 @@ use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Mutex;
@@ -94,6 +95,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             };
             let freezn_amount = super::get_freezn_amount(account, &coin);
             let total_balance = balance_on_chain.parse().unwrap();
+            debug!("coin:{},total_balance:{},freezn_amount:{}",coin,total_balance,freezn_amount);
             let available_balance = total_balance - freezn_amount;
             let total_dollar_value = super::get_value(&coin, total_balance).await;
             let total_rmb_value = total_dollar_value / 7;

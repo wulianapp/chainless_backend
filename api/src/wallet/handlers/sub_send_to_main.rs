@@ -68,7 +68,7 @@ pub async fn req(
             coin_tx_raw,
             Some("sub_to_main_tmp".to_string()),
             u64::MAX,
-            CoinSendStage::SenderSigCompleted,
+            CoinSendStage::SenderReconfirmed,
         );
         coin_info.transaction.tx_type = TxType::SubToMain;
         coin_info.transaction.tx_id = Some(tx_id.clone());

@@ -411,7 +411,7 @@ macro_rules! test_create_main_account{
 macro_rules! test_search_message {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/searchMessage");
-        let res: BackendRespond<AccountMessage> = test_service_call!(
+        let res: BackendRespond<SearchMessageResponse> = test_service_call!(
             $service,
             "get",
             &url,

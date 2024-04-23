@@ -36,7 +36,13 @@ pub(crate) async fn req(
             .get_strategy(&main_account)
             .await?
             .ok_or(BackendError::InternalError("".to_string()))?;
-        let mut sub_pubkeys:Vec<String> = strategy.sub_confs.into_keys().collect();
+        let mut sub_pubkeys:Vec<String> = strategy
+        .sub_confs
+        .into_values()
+        .map(|x| {
+            x.pubkey
+        })
+        .collect();
         keys.append(&mut sub_pubkeys);
         let mut secrets = vec![];
         for key in keys {
