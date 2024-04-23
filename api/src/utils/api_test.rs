@@ -35,8 +35,7 @@ use models::secret_store::SecretStoreView;
 use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
-use crate::wallet::handlers::balance_list::AccountBalance;
-use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
+use crate::wallet::*;
 use crate::wallet::handlers::get_strategy::StrategyDataTmp;
 use crate::account_manager::handlers::user_info::UserInfoTmp;
 
@@ -1018,7 +1017,7 @@ macro_rules! test_get_secret {
 macro_rules! test_get_balance_list {
     ($service:expr, $app:expr,$kind:expr) => {{
         let url = format!("/wallet/balanceList?kind={}",$kind);
-        let res: BackendRespond<Vec<(String,Vec<AccountBalance>)>> = test_service_call!(
+        let res: BackendRespond<BalanceListResponse> = test_service_call!(
             $service,
             "get",
             &url,
@@ -1035,7 +1034,7 @@ macro_rules! test_get_balance_list {
 macro_rules! test_get_tx {
     ($service:expr, $app:expr,$order_id:expr) => {{
         let url = format!("/wallet/getTx?orderId={}",$order_id);
-        let res: BackendRespond<CoinTxViewTmp2> = test_service_call!(
+        let res: BackendRespond<GetTxResponse> = test_service_call!(
             $service,
             "get",
             &url,

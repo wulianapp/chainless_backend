@@ -216,9 +216,7 @@ mod tests {
     use common::data_structures::CoinType;
     use models::account_manager::UserInfoView;
     use tracing::{debug, error, info};
-    use crate::wallet::handlers::get_tx::CoinTxViewTmp2;
     use std::collections::HashMap;
-    use crate::wallet::handlers::balance_list::AccountBalance;
     use crate::account_manager::handlers::user_info::UserInfoTmp;
 
 

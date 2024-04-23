@@ -1,5 +1,5 @@
 use crate::utils::token_auth;
-use crate::wallet::CreateMainAccountRequest;
+use crate::wallet::{BalanceDetail, CreateMainAccountRequest};
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::fees_call::FeesCall;
@@ -16,19 +16,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Mutex;
-use crate::wallet::BalanceListRequest;
+use crate::wallet::{BalanceListRequest,BalanceListResponse};
 use common::error_code::BackendError::ChainError;
 
-#[derive(Deserialize, Serialize, Clone,Debug)]
-pub struct AccountBalance {
-    account_id: String,
-    coin: CoinType,
-    total_balance:String,
-    total_dollar_value:String,
-    total_rmb_value:String,
-    available_balance: String,
-    freezn_amount:String,
-}
+
 
 #[derive(Deserialize, Serialize, Clone)]
 pub enum AccountType {
@@ -38,7 +29,7 @@ pub enum AccountType {
    All,
 }
 
-pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<Vec<(CoinType,Vec<AccountBalance>)>> {
+pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRes<BalanceListResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
@@ -78,13 +69,15 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
         AccountType::Single(acc) => vec![acc],
     };
 
+    //let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
+    //let strategy = multi_cli.get_strategy(&main_account).await?;
 
     let mut coin_balance_map = vec![];
     for coin in coin_list {
         let mut account_balance = vec![];
         //let fees_cli = ContractClient::<FeesCall>::new().unwrap();
 
-        for account in  check_accounts.iter().as_ref(){
+        for (index,account) in  check_accounts.iter().enumerate(){
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
             let balance_on_chain = if user_info.user_info.secruity_is_seted {
                 coin_cli
@@ -94,12 +87,17 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
             } else {
                 "0".to_string()
             };
+            let hold_limit = if index == 0 {
+                None
+            }else{
+                Some("0.00".to_string())
+            };
             let freezn_amount = super::get_freezn_amount(account, &coin);
             let total_balance = balance_on_chain.parse().unwrap();
             let available_balance = total_balance - freezn_amount;
             let total_dollar_value = super::get_value(&coin, total_balance).await;
             let total_rmb_value = total_dollar_value / 7;
-            let balance = AccountBalance{
+            let balance = BalanceDetail{
                 account_id:account.clone(),
                 coin: coin.clone(),
                 total_balance: raw2display(total_balance),
@@ -107,6 +105,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
                 freezn_amount: raw2display(freezn_amount),
                 total_dollar_value: raw2display(total_dollar_value),
                 total_rmb_value: raw2display(total_rmb_value),
+                hold_limit
             };
             account_balance.push(balance);
         }

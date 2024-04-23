@@ -19,35 +19,12 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
-use crate::wallet::GetTxRequest;
+use crate::wallet::{GetTxRequest,GetTxResponse};
 
 use super::ServentSigDetail;
 
 
-#[derive(Deserialize, Serialize, Debug)]
-pub struct CoinTxViewTmp2 {
-    pub order_id: String,
-    pub tx_id: Option<String>,
-    pub coin_type: CoinType,
-    pub from: String, //uid
-    pub to: String,   //uid
-    pub amount: String,
-    pub expire_at: u64,
-    pub memo: Option<String>,
-    pub stage: CoinSendStage,
-    pub coin_tx_raw: String,
-    pub chain_tx_raw: Option<String>,
-    pub need_sig_num:u8,
-    pub signed_device: Vec<ServentSigDetail>,
-    pub unsigned_device: Vec<ServentSigDetail>,
-    pub tx_type: TxType,
-    pub chain_status: TxStatusOnChain,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-
-pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<CoinTxViewTmp2> {
+pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
     let GetTxRequest{order_id } = request_data;
@@ -87,7 +64,7 @@ pub async fn req(req: HttpRequest,request_data: GetTxRequest) -> BackendRes<Coin
         tx.transaction.amount
     ).await; 
 
-    let tx = CoinTxViewTmp2{
+    let tx = GetTxResponse{
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
         coin_type: tx.transaction.coin_type,
