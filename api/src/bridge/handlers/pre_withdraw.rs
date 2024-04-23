@@ -85,7 +85,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreWithdrawRequest) -> B
 
     //转跨链不需要is_forced标志位，本身就是强制的
     if need_sig_num == 0 {
-        let mut coin_info = gen_tx_with_status( CoinSendStage::SenderSigCompleted)?;
+        let mut coin_info = gen_tx_with_status( CoinSendStage::ReceiverApproved)?;
         let (tx_id, chain_tx_raw) = cli
         .gen_send_money_raw(
             vec![],

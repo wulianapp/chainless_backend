@@ -57,9 +57,11 @@ pub async fn req(
     if tx.transaction.signatures.len() as u8 >= need_sig_num {
         //区分receiver是否是子账户
         //给子账户转是relayer进行签名，不需要生成tx_raw
-        if tx.transaction.tx_type == TxType::MainToSub{
+        if tx.transaction.tx_type == TxType::MainToSub
+            || tx.transaction.tx_type == TxType::MainToBridge
+        {
             models::coin_transfer::CoinTxView::update(
-                CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
+                CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
         //给其他主账户转是用户自己签名，需要生成tx_raw    

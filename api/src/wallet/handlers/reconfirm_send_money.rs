@@ -65,39 +65,8 @@ pub async fn req(
             CoinTxFilter::ByOrderId(&order_id),
         )?;
 
-    }
-    /***
-     //跨链转出，在无链端按照普通转账处理
-    else if coin_tx.transaction.tx_type == TxType::MainToBridge {
-        let servant_sigs = coin_tx
-        .transaction
-        .signatures
-        .iter()
-        .map(|data| data.parse().unwrap())
-        .collect();
-        //todo: unwrap()
-        let master_sign : SignInfo= confirmed_sig.parse().unwrap();
-
-        let tx_id =  multi_cli
-        .internal_withdraw(
-            master_sign, 
-            servant_sigs,
-            &coin_tx.transaction.from,
-            &coin_tx.transaction.to,
-            coin_tx.transaction.coin_type,
-            coin_tx.transaction.amount,
-            coin_tx.transaction.expire_at,
-        )
-        .await?;
-
-        //todo:txid?
-        models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinTxStatus::SenderReconfirmed),
-            CoinTxFilter::ByTxIndex(tx_index),
-        )?;
-
-    }*/
-    else{           
+    }else{     
+        //跨链转出，在无链端按照普通转账处理      
         blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
             &confirmed_sig,

@@ -39,7 +39,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
 
 
     let check_accounts = match request_data.kind {
-        AccountType::Main => vec![main_account],
+        AccountType::Main => vec![main_account.clone()],
         AccountType::AllSub => {
             let strategy = mul_cli
             .get_strategy(&main_account)
@@ -69,9 +69,7 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
         AccountType::Single(acc) => vec![acc],
     };
 
-    //let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
-    //let strategy = multi_cli.get_strategy(&main_account).await?;
-
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
     let mut coin_balance_map = vec![];
     for coin in coin_list {
         let mut account_balance = vec![];
@@ -79,18 +77,20 @@ pub async fn req(req: HttpRequest,request_data: BalanceListRequest) -> BackendRe
 
         for (index,account) in  check_accounts.iter().enumerate(){
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
-            let balance_on_chain = if user_info.user_info.secruity_is_seted {
-                coin_cli
-                    .get_balance(account)
-                    .await?
-                    .unwrap_or("0".to_string())
+            let (balance_on_chain,hold_limit) = if user_info.user_info.secruity_is_seted {
+                let balance = coin_cli.get_balance(account)
+                    .await?.unwrap_or("0".to_string());
+                let hold_limit = if index == 0 {
+                    None
+                }else{
+                    let strategy = multi_cli.get_strategy(&main_account).await?;
+                    let sub_confs = strategy.unwrap().sub_confs;
+                    let hold_limit = sub_confs.get(account.as_str()).unwrap().hold_value_limit;
+                    Some(raw2display(hold_limit))
+                };
+                (balance,hold_limit)
             } else {
-                "0".to_string()
-            };
-            let hold_limit = if index == 0 {
-                None
-            }else{
-                Some("0.00".to_string())
+                ("0".to_string(),Some("0.0".to_string()))
             };
             let freezn_amount = super::get_freezn_amount(account, &coin);
             let total_balance = balance_on_chain.parse().unwrap();

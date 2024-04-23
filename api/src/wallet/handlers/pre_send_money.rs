@@ -96,6 +96,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyRequest) -> 
     if let Some(sub_conf) = strategy.sub_confs.get(&to_account_id){
       panic!("todo");
     }
+    //todo: 也不能转bridge
 
     //封装根据状态生成转账对象的逻辑
     let gen_tx_with_status = |stage: CoinSendStage| -> Result<CoinTxView>{

@@ -259,7 +259,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
 }
 
 /**
- * @api {post} /accountManager/login 登录
+ * @api {post} /accountManager/login 通过密码登录
  * @apiVersion 0.0.1
  * @apiName login
  * @apiGroup AccountManager
