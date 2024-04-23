@@ -114,6 +114,8 @@ impl fmt::Display for CoinTxFilter<'_> {
 #[derive(Clone, Debug)]
 pub enum CoinTxUpdater<'a> {
     Stage(CoinSendStage),
+    StageChainStatus(CoinSendStage,TxStatusOnChain),
+    TxidStageChainStatus(&'a str,CoinSendStage,TxStatusOnChain),
     ChainTxInfo(&'a str, &'a str, CoinSendStage),
     TxidTxRaw(&'a str, &'a str),
     Signature(Vec<String>),
@@ -123,6 +125,10 @@ impl fmt::Display for CoinTxUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             CoinTxUpdater::Stage(stage) => format!("stage='{}'", stage),
+            CoinTxUpdater::StageChainStatus(stage,status) 
+                => format!("stage='{}' and chain_status='{}'", stage,status),
+            CoinTxUpdater::TxidStageChainStatus(txid,stage,status) 
+                => format!("tx_id='{}' and stage='{}' and chain_status='{}'", txid,stage,status),
             CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, stage) => {
                 format!(
                     "(tx_id,chain_tx_raw,stage)=('{}','{}','{}')",

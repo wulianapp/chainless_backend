@@ -97,27 +97,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: PreSendMoneyToSubRequest
     ).await; 
 
     //转子账户不需要is_forced标志位，本身就是强制的
-    if need_sig_num == 0 {
-        let mut coin_info = gen_tx_with_status( CoinSendStage::ReceiverApproved)?;
-        let (tx_id, chain_tx_raw) = cli
-        .gen_send_money_raw(
-            vec![],
-            &from,
-            &to,
-            coin_type,
-            amount,
-            expire_at,
-        )
-        .await
-        .map_err(|err| ChainError(err.to_string()))?;
-        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
-        coin_info.transaction.tx_type = TxType::MainToSub;
-        coin_info.insert()?;
-        Ok(Some((coin_info.transaction.order_id,tx_id)))
+    let mut coin_info = if need_sig_num == 0 {
+        gen_tx_with_status( CoinSendStage::ReceiverApproved)?
     }else {
-        let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
-        coin_info.transaction.tx_type = TxType::MainToSub;
-        coin_info.insert()?;
-        Ok(None)
-    }
+        gen_tx_with_status(CoinSendStage::Created)?
+
+    };
+    coin_info.transaction.tx_type = TxType::MainToSub;
+    coin_info.insert()?;
+    Ok(Some((coin_info.transaction.order_id,coin_info.transaction.coin_tx_raw)))
 }

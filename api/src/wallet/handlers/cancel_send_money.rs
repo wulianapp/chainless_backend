@@ -36,5 +36,5 @@ pub async fn req(
             CoinTxFilter::ByOrderId(&order_id),
         )?;
     }
-    Ok(None::<String>)
+    Ok(None)
 }

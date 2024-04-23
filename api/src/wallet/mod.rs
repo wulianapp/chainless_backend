@@ -42,7 +42,7 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String} data.newcomer_became_sevant.encrypted_prikey_by_answer      安全问答加密私钥的输出
 * @apiSuccess {Bool} data.have_pending_txs             作为发送方是否有待处理的交易   
 * @apiSuccess {object[]} data.coin_tx                转账消息
-* @apiSuccess {Number} data.coin_tx.order_id          交易索引号.
+* @apiSuccess {Number} data.coin_tx.order_id          交易订单号.
 * @apiSuccess {object} data.coin_tx.transaction        交易详情.
 * @apiSuccess {String} [data.coin_tx.transaction.tx_id]        链上交易id.
 * @apiSuccess {String=BTC,ETH,USDT,USDC,DW20,CLY} data.coin_tx.transaction.coin_type      币种名字
@@ -62,8 +62,19 @@ use self::handlers::balance_list::AccountType;
 * @apiSuccess {String}  data.coin_tx.transaction.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.coin_tx.transaction.chain_tx_raw]          链上交互的原始数据
 * @apiSuccess {String[]} data.coin_tx.transaction.signatures         从设备对业务数据的签名
-* @apiSuccess {String}  data.coin_tx.transaction.chain_status        交易的链上状态
-* @apiSuccess {String=Normal,Forced,MainToSub,SubToMain,MainToBridge} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
+* @apiSuccess {String=   
+    NotLaunch(未上链),
+    Pending(上链待确认),
+    Failed(上链但执行失败),
+    Successful(上链确认成功),
+}  data.coin_tx.transaction.chain_status        交易的链上状态
+* @apiSuccess {String=
+    Normal(普通转账),
+    Forced(强制转账),
+    MainToSub(当前用户的主账户给子账户转账),
+    SubToMain(当前用户的子账户给主账户转账),
+    MainToBridge(跨链转出)
+} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
 * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
 */
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -73,7 +84,7 @@ pub struct CoinTransactionTmp1 {
     pub coin_type: CoinType,
     pub from: String, //uid
     pub to: String,   //uid
-    pub amount: u128,
+    pub amount: String,
     pub expire_at: u64,
     pub memo: Option<String>,
     pub stage: CoinSendStage,
@@ -113,7 +124,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
  * @apiSuccess {String[]} data.servant_pubkeys    主钱包的servant的公钥组
  * @apiSuccess {Object[]} data.subaccounts        子钱包的配置
  * @apiSuccess {String} data.subaccounts.0        子钱包的公钥组
- * @apiSuccess {Number} data.subaccounts.hold_value_limit   子钱包持仓限制
+ * @apiSuccess {Number} data.subaccounts.hold_value_limit   子钱包U本位持仓限制
  * @apiSuccess {Object[]} [data.multi_sig_ranks]        转账额度对应签名数的档位.
  * @apiSuccess {String} data.multi_sig_ranks.min       最小金额.
  * @apiSuccess {String} data.multi_sig_ranks.max_eq        最大金额.
@@ -139,7 +150,7 @@ async fn get_strategy(request: HttpRequest) -> impl Responder {
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
  * @apiSuccess {String=0,1} status_code         status code.
  * @apiSuccess {String=Successfully,InternalError} msg
- * @apiSuccess {String[]} data                          币种顺序
+ * @apiSuccess {String[]} data                          币种顺序,且不包含CLY
  * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
  */
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -153,7 +164,10 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 * @apiVersion 0.0.1
 * @apiName GetSecret
 * @apiGroup Wallet
-* @apiQuery {String=currentDevice,master,all}  type  想获取的密钥类型
+* @apiQuery {String}  [accountId] 
+    钱包id,如果不传则返回当前设备所属的所有密钥，
+    从设备返回主账户servent的密钥
+    主设备返回主账户master（index为0）和所有子账户的私钥
 * @apiHeader {String} Authorization  user's access token
 * @apiExample {curl} Example usage:
 *   curl -X POST http://120.232.251.101:8066/wallet/getSecret
@@ -174,16 +188,16 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum SecretType {
-    CurrentDevice,
     Master,
-    All,
+    Servant,
+    All
 }
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GetSecretRequest {
-    pub r#type: SecretType,
+    pub account_id: Option<String>
 }
-
+//todo: 不应该根据设备和账户直接查,考虑到表迁移，应该是根据pubkey来查
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/getSecret")]
 async fn get_secret(
@@ -274,7 +288,8 @@ async fn pre_send_money(
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1} status_code         status code.
 * @apiSuccess {String=Successfully,InternalError} msg
-* @apiSuccess {String} data                nothing.
+* @apiSuccess {Number} data.0                交易序列号.
+* @apiSuccess {String} [data.1]                待签名数据(coin_tx_raw).
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToSub
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -386,7 +401,7 @@ async fn reconfirm_send_money(
  * @apiVersion 0.0.1
  * @apiName CancelSendMoney
  * @apiGroup Wallet
- * @apiBody {String} orderId    交易序列号
+ * @apiBody {String} orderId    交易订单号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/cancelSendMoney
@@ -426,8 +441,8 @@ async fn cancel_send_money(
  * @apiVersion 0.0.1
  * @apiName SubSendToMain
  * @apiGroup Wallet
- * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
- * @apiBody {String} sub_sig    子账户签名（pubkey+sig）
+ * @apiBody {String} subSig    子账户签名结果
+ * @apiBody {String} subaccountId    子账户钱包id
  * @apiBody {String} coin       交易币种
  * @apiBody {String} amount     交易数量
  * @apiHeader {String} Authorization  user's access token
@@ -445,7 +460,7 @@ async fn cancel_send_money(
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1} status_code         status code.
 * @apiSuccess {String=Successfully,InternalError} msg
-* @apiSuccess {String} data                nothing.
+* @apiSuccess {String} data                链上交易txid（不用关注）.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -659,7 +674,7 @@ async fn servant_saved_secret(
 /**
  * @api {post} /wallet/addSubaccount 添加子钱包
  * @apiVersion 0.0.1
- * @apiName addSubaccount
+ * @apiName AddSubaccount
  * @apiGroup Wallet
  * @apiBody {String} subaccountPubkey                   从公钥
  * @apiBody {String} subaccountPrikeyEncrypedByPassword      密码加密后的从私钥
@@ -1066,10 +1081,29 @@ async fn balance_list(req: HttpRequest,request_data: web::Query<BalanceListReque
 * @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.CoinTx.transaction.expireAt             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
-* @apiSuccess {String=Created,SenderSigCompleted,ReceiverApproved,ReceiverRejected,SenderCanceled,SenderReconfirmed} data.CoinTx.transaction.stage               交易进度
+* @apiSuccess {String=
+    Created(转账订单创建),
+    SenderSigCompleted（发起方从设备收集到足够签名）,
+    ReceiverApproved   （接受者接受转账）,
+    ReceiverRejected    （接受者拒绝收款）,
+    SenderCanceled      （发送者取消发送）,
+    SenderReconfirmed   （发送者确认发送）
+} data.CoinTx.transaction.stage                交易进度
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
-* @apiSuccess {String}  data.coin_tx.chain_status        交易的链上状态
+* @apiSuccess {String=   
+    NotLaunch(未上链),
+    Pending(上链待确认),
+    Failed(上链但执行失败),
+    Successful(上链确认成功),
+}  data.coin_tx.transaction.chain_status        交易的链上状态
+* @apiSuccess {String=
+    Normal(普通转账),
+    Forced(强制转账),
+    MainToSub(当前用户的主账户给子账户转账),
+    SubToMain(当前用户的子账户给主账户转账),
+    MainToBridge(跨链转出)
+} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
 * @apiSuccess {object[]} data.signatures       从设备签名详情
 * @apiSuccess {String} data.signatures.pubkey         签名公钥
 * @apiSuccess {String} data.signatures.sig            签名结果
@@ -1801,7 +1835,7 @@ async fn test_wallet_add_remove_subaccount() {
 
         let res = test_search_message!(service, sender_master).unwrap();
         if let Some(tx) = res.coin_tx.first() {
-            assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
+            assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
             //local sign
             let signature = common::encrypt::ed25519_gen_pubkey_sign(
                 sender_master.wallet.prikey.as_ref().unwrap(),

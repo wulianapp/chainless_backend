@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
 use common::data_structures::coin_transaction::{CoinSendStage};
-use common::data_structures::KeyRole2;
+use common::data_structures::{KeyRole2, TxStatusOnChain};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::debug;
 
@@ -61,7 +61,9 @@ pub async fn req(
 
         //todo:txid?
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::ChainTxInfo(&tx_id, "", CoinSendStage::SenderReconfirmed),
+            CoinTxUpdater::TxidStageChainStatus(&tx_id,
+                 CoinSendStage::SenderReconfirmed,
+                 TxStatusOnChain::Pending),
             CoinTxFilter::ByOrderId(&order_id),
         )?;
 
@@ -72,7 +74,10 @@ pub async fn req(
             &confirmed_sig,
         ).await;
         models::coin_transfer::CoinTxView::update(
-            CoinTxUpdater::Stage(CoinSendStage::SenderReconfirmed),
+            CoinTxUpdater::StageChainStatus(
+                CoinSendStage::SenderReconfirmed,
+                TxStatusOnChain::Pending
+            ),
             CoinTxFilter::ByOrderId(&order_id),
         )?;     
     }

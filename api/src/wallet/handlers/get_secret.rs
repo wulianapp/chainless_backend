@@ -24,39 +24,26 @@ pub(crate) async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let main_account = super::get_main_account(user_id)?;
-    //
-    match request_data.r#type {
-        crate::wallet::SecretType::CurrentDevice => {
-            let pubkey =
-                DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?
-                    .device_info
-                    .hold_pubkey
-                    .ok_or(BackendError::InternalError(
-                        "this have no pubkey yet".to_string(),
-                    ))?;
-
-            let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey))?;
-            Ok(Some(vec![secret.secret_store]))
+    let GetSecretRequest {account_id} = request_data;
+    if let Some(account_id) = account_id{
+        let pubkey = cli.get_master_pubkey(&account_id).await?;
+        let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey))?;
+        Ok(Some(vec![secret.secret_store]))
+    }else {
+        let master_key = cli.get_master_pubkey(&main_account).await?;
+        let mut keys = vec![master_key];
+        let mut strategy = cli
+            .get_strategy(&main_account)
+            .await?
+            .ok_or(BackendError::InternalError("".to_string()))?;
+        let mut sub_pubkeys:Vec<String> = strategy.sub_confs.into_keys().collect();
+        keys.append(&mut sub_pubkeys);
+        let mut secrets = vec![];
+        for key in keys {
+            let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(&key))?;
+            secrets.push(secrete.secret_store);
         }
-        crate::wallet::SecretType::Master => {
-            let master_key = cli.get_master_pubkey(&main_account).await?;
-            let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(&master_key))?;
-            Ok(Some(vec![secret.secret_store]))
-        }
-        crate::wallet::SecretType::All => {
-            let master_key = cli.get_master_pubkey(&main_account).await?;
-            let mut keys = vec![master_key];
-            let mut strategy = cli
-                .get_strategy(&main_account)
-                .await?
-                .ok_or(BackendError::InternalError("".to_string()))?;
-            keys.append(&mut strategy.servant_pubkeys);
-            let mut secrets = vec![];
-            for key in keys {
-                let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(&key))?;
-                secrets.push(secrete.secret_store);
-            }
-            Ok(Some(secrets))
-        }
+        Ok(Some(secrets))
     }
+    
 }
