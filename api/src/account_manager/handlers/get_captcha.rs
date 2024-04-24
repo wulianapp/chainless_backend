@@ -8,12 +8,14 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 use tracing::{debug, info};
 
-use crate::account_manager::{self, user_info, GetCaptchaWithoutTokenRequest, GetCaptchaWithTokenRequest};
-use crate::utils::{captcha, token_auth};
+use crate::account_manager::{
+    self, user_info, GetCaptchaWithTokenRequest, GetCaptchaWithoutTokenRequest,
+};
+use crate::utils::captcha::Usage::*;
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
+use crate::utils::{captcha, token_auth};
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::utils::time::{now_millis, MINUTE1, MINUTE10};
-use crate::utils::captcha::Usage::*;
 
 //老的接口暂时不动它
 pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
@@ -22,8 +24,9 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
         contact,
         kind,
     } = request_data;
-    let kind: Usage = kind.parse().map_err(
-        |_err| BackendError::RequestParamInvalid("".to_string()))?;
+    let kind: Usage = kind
+        .parse()
+        .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
     //todo: only master device can reset password
 
     let contract_type = captcha::validate(&contact)?;
@@ -54,12 +57,15 @@ pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<Stri
     Ok(None::<String>)
 }
 
-
-
-fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> BackendRes<String> {
+fn get(
+    device_id: String,
+    contact: String,
+    kind: Usage,
+    user_id: Option<u32>,
+) -> BackendRes<String> {
     let contract_type = captcha::validate(&contact)?;
     //兼容已登陆和未登陆
-    let storage_key = match user_id{
+    let storage_key = match user_id {
         Some(id) => id.to_string(),
         None => contact.clone(),
     };
@@ -79,17 +85,18 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
         }
     }
 
- 
     let captcha = Captcha::new(storage_key, device_id, kind);
 
     if contract_type == ContactType::PhoneNumber {
-       //phone::send_sms(&code).unwrap()
-       Err(ExternalServiceError::PhoneCaptcha("Not support Phone nowadays".to_string()))?;
+        //phone::send_sms(&code).unwrap()
+        Err(ExternalServiceError::PhoneCaptcha(
+            "Not support Phone nowadays".to_string(),
+        ))?;
     } else {
-       //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供 
-       email::send_email(&captcha.code,&contact)?;
+        //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供
+        email::send_email(&captcha.code, &contact)?;
     };
-    
+
     captcha.store()?;
 
     //todo: delete expired captcha，so as to avoid use too much memory
@@ -97,16 +104,15 @@ fn get(device_id:String,contact:String,kind:Usage,user_id:Option<u32>) -> Backen
     Ok(None::<String>)
 }
 
-pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String>{
+pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
     let GetCaptchaWithoutTokenRequest {
         device_id,
         contact,
         kind,
     } = request_data;
-    let kind: Usage = kind.parse().map_err(
-        |_err| BackendError::RequestParamInvalid("".to_string()))?;
-
-
+    let kind: Usage = kind
+        .parse()
+        .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
 
     //重置登录密码
     match kind {
@@ -115,62 +121,70 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {
-                let find_device_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id));
-                if find_device_res.is_ok() && find_device_res.as_ref().unwrap().device_info.key_role.to_owned() == KeyRole2::Master {
-                   debug!("line {}",line!());
-                }else if find_device_res.is_err(){
+                let find_device_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
+                    &device_id, user_id,
+                ));
+                if find_device_res.is_ok()
+                    && find_device_res
+                        .as_ref()
+                        .unwrap()
+                        .device_info
+                        .key_role
+                        .to_owned()
+                        == KeyRole2::Master
+                {
+                    debug!("line {}", line!());
+                } else if find_device_res.is_err() {
                     Err(WalletError::UneligiableRole(
                         KeyRole2::Undefined,
                         KeyRole2::Master,
                     ))?;
-                }else {
+                } else {
                     Err(WalletError::UneligiableRole(
                         find_device_res.unwrap().device_info.key_role,
                         KeyRole2::Master,
                     ))?;
                 }
-                
             }
-           
-        
-            get(device_id,contact,kind,Some(find_user_res.id))                
-        },
+
+            get(device_id, contact, kind, Some(find_user_res.id))
+        }
         Register => {
             let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
-            get(device_id,contact,kind,None)
-        },
+            get(device_id, contact, kind, None)
+        }
         Login => {
             let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
             if find_res.is_err() {
                 Err(AccountManagerError::PhoneOrEmailNotRegister)?;
             }
-            get(device_id,contact,kind,Some(find_res.unwrap().id))
-        },
-        SetSecurity| UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
+            get(device_id, contact, kind, Some(find_res.unwrap().id))
+        }
+        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?
         }
     }
 }
 
-
-pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequest) -> BackendRes<String>{
+pub fn with_token_req(
+    request: HttpRequest,
+    request_data: GetCaptchaWithTokenRequest,
+) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&request)?;
-    let GetCaptchaWithTokenRequest {
-        contact,
-        kind,
-    } = request_data;
-    let kind: Usage = kind.parse().map_err(
-        |_err| BackendError::RequestParamInvalid("".to_string()))?;
+    let GetCaptchaWithTokenRequest { contact, kind } = request_data;
+    let kind: Usage = kind
+        .parse()
+        .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
     let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    
+
     match kind {
         ResetLoginPassword | Register | Login => {
             Err(AccountManagerError::CaptchaUsageNotAllowed)?;
-        },
+        }
         SetSecurity | UpdateSecurity => {
             if user.user_info.secruity_is_seted {
                 if device.device_info.key_role != KeyRole2::Master {
@@ -179,7 +193,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
                         KeyRole2::Master,
                     ))?;
                 }
-            }else {
+            } else {
                 //may be unnecessary
                 if device.device_info.key_role != KeyRole2::Undefined {
                     Err(WalletError::UneligiableRole(
@@ -188,7 +202,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
                     ))?;
                 }
             }
-        },
+        }
         NewcomerSwitchMaster => {
             if device.device_info.key_role != KeyRole2::Undefined {
                 Err(WalletError::UneligiableRole(
@@ -196,7 +210,7 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
                     KeyRole2::Undefined,
                 ))?;
             }
-        },
+        }
         ServantSwitchMaster => {
             if device.device_info.key_role != KeyRole2::Servant {
                 Err(WalletError::UneligiableRole(
@@ -207,6 +221,5 @@ pub fn with_token_req(request: HttpRequest,request_data: GetCaptchaWithTokenRequ
         }
     }
 
-    get(device_id,contact,kind,Some(user_id))
+    get(device_id, contact, kind, Some(user_id))
 }
-

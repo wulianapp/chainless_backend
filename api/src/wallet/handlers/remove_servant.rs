@@ -17,7 +17,6 @@ use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
 
-
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: RemoveServantRequest,
@@ -25,12 +24,11 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let RemoveServantRequest { servant_pubkey } = request_data;
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Undefined)?;
+    super::check_role(current_role, KeyRole2::Undefined)?;
 
     models::general::transaction_begin()?;
 
@@ -41,20 +39,15 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let cli = ContractClient::<MultiSig>::new()?;    //it is impossible to get none
+    let cli = ContractClient::<MultiSig>::new()?; //it is impossible to get none
     let mut current_strategy = cli
         .get_strategy(&main_account)
         .await?
-        .ok_or(
-            WalletError::MainAccountNotExist(main_account.clone())
-        )?;
+        .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);
-    cli.update_servant_pubkey(
-            &main_account,
-            current_strategy.servant_pubkeys,
-        )
+    cli.update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错

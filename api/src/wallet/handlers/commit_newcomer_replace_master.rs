@@ -10,7 +10,7 @@ use models::wallet_manage_record::WalletManageRecordView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{
-    CommitNewcomerSwitchMasterRequest, CreateMainAccountRequest,ReconfirmSendMoneyRequest,
+    CommitNewcomerSwitchMasterRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest,
 };
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -19,11 +19,11 @@ use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
+use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
-use common::error_code::BackendError::ChainError;
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -40,13 +40,11 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
 
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Undefined)?;
-
+    super::check_role(current_role, KeyRole2::Undefined)?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
@@ -111,10 +109,9 @@ pub(crate) async fn req(
         ))?;
     }
 
-
     let txid = multi_sig_cli
-    .update_master(&main_account,newcomer_pubkey.clone())
-    .await?;
+        .update_master(&main_account, newcomer_pubkey.clone())
+        .await?;
 
     //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
     //从一开始就记录的话、状态管理太多
@@ -124,7 +121,7 @@ pub(crate) async fn req(
         &newcomer_pubkey,
         &device.id,
         &device.brand,
-        vec![txid]
+        vec![txid],
     );
     record.insert()?;
 

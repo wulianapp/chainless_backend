@@ -19,7 +19,7 @@ fn is_valid() -> Result<(), EmailError> {
     unimplemented!()
 }
 
-pub fn send_email(code: &str,to_mail:&str) -> BackendRes<String> {
+pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
     // 替换为您的 Gmail 邮箱地址和密码
     let email_address = "cs2-test@chainless.top";
     let email_password = "vkHyW2dvynF8YuG1xN";
@@ -79,7 +79,7 @@ mod tests {
             "1".to_string(),
             Usage::Register,
         );
-        let res = send_email("123456",&code.owner).unwrap();
+        let res = send_email("123456", &code.owner).unwrap();
         println!("res {:?}", res);
     }
 }

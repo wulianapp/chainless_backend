@@ -8,8 +8,8 @@ use common::data_structures::account_manager::UserInfo;
 
 use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use serde::Serialize;
 use anyhow::{Ok, Result};
+use serde::Serialize;
 
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
@@ -37,7 +37,8 @@ impl fmt::Display for UserUpdater<'_> {
             UserUpdater::LoginPwdHash(pwd) => format!("login_pwd_hash='{}'", pwd),
             UserUpdater::AccountIds(ids) => {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
-                format!("account_ids={} ", new_servant_str)            }
+                format!("account_ids={} ", new_servant_str)
+            }
             UserUpdater::SecruityInfo(anwser_indexes, secruity_is_seted, main_account) => format!(
                 "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
                 anwser_indexes, secruity_is_seted, main_account
@@ -168,14 +169,10 @@ impl PsqlOp for UserInfoView {
         query_res.iter().map(gen_view).collect()
     }
 
-    fn update(
-        new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>,
-    ) -> Result<u64> {
+    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value,
-            filter
+            new_value, filter
         );
         debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;

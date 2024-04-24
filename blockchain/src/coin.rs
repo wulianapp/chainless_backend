@@ -14,7 +14,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::{CoinType};
+use common::data_structures::CoinType;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -170,10 +170,11 @@ mod tests {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(from, &coin_type.to_account_str()).await.unwrap();
+        let mut transaction = gen_transaction(from, &coin_type.to_account_str())
+            .await
+            .unwrap();
         transaction.actions = transfer_actions;
         println!("{:?}", transaction);
-        
 
         let raw_bytes = borsh::to_vec(&transaction.clone()).unwrap();
         hex::encode(&raw_bytes)

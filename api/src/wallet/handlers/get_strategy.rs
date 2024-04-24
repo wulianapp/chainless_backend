@@ -5,20 +5,19 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
 
 use crate::{utils::token_auth, wallet::MultiSigRankExternal};
+use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
-use common::error_code::BackendError::ChainError;
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
     pub multi_sig_ranks: Vec<MultiSigRankTmp>,
     pub master_pubkey: String,
     pub servant_pubkeys: Vec<String>,
-    pub subaccounts: HashMap<String,SubAccConf>,
+    pub subaccounts: HashMap<String, SubAccConf>,
 }
 
-#[derive(Deserialize, Serialize, Clone,Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct MultiSigRankTmp {
     min: String,
     max_eq: String,
@@ -35,21 +34,21 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
 
     Ok(strategy.map(|data| {
         //let subaccounts = data.subaccounts.iter().map(|x| x.to_string()).collect();
-        let rank_external = data.multi_sig_ranks
-        .iter()
-        .map(|rank| {
-            MultiSigRankTmp {
+        let rank_external = data
+            .multi_sig_ranks
+            .iter()
+            .map(|rank| MultiSigRankTmp {
                 min: raw2display(rank.min),
                 max_eq: raw2display(rank.max_eq),
                 sig_num: rank.sig_num,
-            }
-        }).collect();
+            })
+            .collect();
 
         StrategyDataTmp {
             multi_sig_ranks: rank_external,
             master_pubkey,
             servant_pubkeys: data.servant_pubkeys,
-            subaccounts:data.sub_confs,
+            subaccounts: data.sub_confs,
         }
     }))
 }

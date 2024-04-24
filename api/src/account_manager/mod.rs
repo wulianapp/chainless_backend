@@ -12,8 +12,6 @@ use tracing::{debug, Level};
 
 use crate::utils::respond::gen_extra_respond;
 
-
-
 /**
  * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,
  * @apiVersion 0.0.1
@@ -39,11 +37,14 @@ pub struct GetCaptchaWithoutTokenRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithoutToken")]
-async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutTokenRequest>) -> impl Responder {
+async fn get_captcha_without_token(
+    request_data: web::Json<GetCaptchaWithoutTokenRequest>,
+) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_captcha::without_token_req(request_data.into_inner()))
+    gen_extra_respond(handlers::get_captcha::without_token_req(
+        request_data.into_inner(),
+    ))
 }
-
 
 /**
  * @api {post} /accountManager/getCaptchaWithToken 登陆后申请验证码
@@ -62,16 +63,20 @@ async fn get_captcha_without_token(request_data: web::Json<GetCaptchaWithoutToke
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GetCaptchaWithTokenRequest {
-    contact:String,
+    contact: String,
     kind: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithToken")]
-async fn get_captcha_with_token(request: HttpRequest,
-    request_data: web::Json<GetCaptchaWithTokenRequest>) 
--> impl Responder {
+async fn get_captcha_with_token(
+    request: HttpRequest,
+    request_data: web::Json<GetCaptchaWithTokenRequest>,
+) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_captcha::with_token_req(request,request_data.into_inner()))
+    gen_extra_respond(handlers::get_captcha::with_token_req(
+        request,
+        request_data.into_inner(),
+    ))
 }
 
 /**
@@ -104,26 +109,22 @@ async fn contact_is_used(
     gen_extra_respond(handlers::contact_is_used::req(request_data.into_inner()))
 }
 
-
-
-
-
 /**
- * @api {get} /accountManager/checkCaptcha 验证验证码
- * @apiVersion 0.0.1
- * @apiName CheckCaptcha
- * @apiGroup AccountManager
- * @apiBody {String} contact   邮箱或者手机号
- * @apiBody {String} captcha   验证码值
- * @apiBody {String="Register","Login","ResetLoginPassword","SetSecurity","ResetLoginPassword","ServantSwitchMaster","NewcomerSwitchMaster"} usage    验证码用途
+* @api {get} /accountManager/checkCaptcha 验证验证码
+* @apiVersion 0.0.1
+* @apiName CheckCaptcha
+* @apiGroup AccountManager
+* @apiBody {String} contact   邮箱或者手机号
+* @apiBody {String} captcha   验证码值
+* @apiBody {String="Register","Login","ResetLoginPassword","SetSecurity","ResetLoginPassword","ServantSwitchMaster","NewcomerSwitchMaster"} usage    验证码用途
 
- * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
- * @apiSuccess {String=0,1,} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError} msg
- * @apiSuccess {bool} data                验证码是否存在
- * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
- */
+* @apiExample {curl} Example usage:
+* curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
+* @apiSuccess {String=0,1,} status_code         status code.
+* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {bool} data                验证码是否存在
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
+*/
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CheckCaptchaRequest {
@@ -133,10 +134,11 @@ pub struct CheckCaptchaRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/checkCaptcha")]
-async fn check_captcha(
-    request_data: web::Query<CheckCaptchaRequest>,
-) -> impl Responder {
-    debug!("request_data {}", serde_json::to_string(&request_data.0).unwrap());
+async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Responder {
+    debug!(
+        "request_data {}",
+        serde_json::to_string(&request_data.0).unwrap()
+    );
     gen_extra_respond(handlers::check_captcha::req(request_data.into_inner()))
 }
 
@@ -290,7 +292,6 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
     gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
 }
 
-
 /**
  * @api {get} /accountManager/getUserDeviceRole 获取当前用户当前设备的角色信息
  * @apiVersion 0.0.1
@@ -314,12 +315,12 @@ pub struct GetUserDeviceRoleRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/accountManager/getUserDeviceRole")]
-async fn get_user_device_role(request_data: web::Query<GetUserDeviceRoleRequest>) -> impl Responder {
+async fn get_user_device_role(
+    request_data: web::Query<GetUserDeviceRoleRequest>,
+) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(handlers::get_user_device_role::req(request_data.into_inner()).await)
 }
-
-
 
 /**
  * @api {post} /accountManager/loginByCaptcha   通过验证码登录
@@ -376,7 +377,7 @@ pub struct ResetPasswordRequest {
     contact: String,
     captcha: String,
     new_password: String,
-    device_id: String
+    device_id: String,
 }
 
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
@@ -390,7 +391,7 @@ async fn reset_password(
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
-        cfg
+    cfg
         //.service(get_captcha)
         .service(contact_is_used)
         .service(register_by_email)

@@ -9,7 +9,10 @@ use models::{
 };
 
 use crate::{
-    utils::{captcha::{Captcha, Usage}, token_auth},
+    utils::{
+        captcha::{Captcha, Usage},
+        token_auth,
+    },
     wallet::{GetSecretRequest, UpdateSecurityRequest},
 };
 use common::{
@@ -23,12 +26,12 @@ pub(crate) async fn req(
     request_data: UpdateSecurityRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user_info,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (user_info, current_strategy, device) =
+        super::get_session_state(user_id, &device_id).await?;
     let main_account = user_info.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
+    super::check_role(current_role, KeyRole2::Master)?;
 
     let UpdateSecurityRequest {
         anwser_indexes,

@@ -20,22 +20,25 @@ pub async fn req(
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (_user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Servant)?;
-    
+    super::check_role(current_role, KeyRole2::Servant)?;
+
     let UploadTxSignatureRequest {
         order_id,
         signature,
     } = request_data.0;
 
     //todo: two update action is unnecessary
-    let mut tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    let mut tx =
+        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     if tx.transaction.stage != CoinSendStage::Created {
-        Err(WalletError::TxStatusIllegal(tx.transaction.stage,CoinSendStage::Created))?;
+        Err(WalletError::TxStatusIllegal(
+            tx.transaction.stage,
+            CoinSendStage::Created,
+        ))?;
     }
-    
+
     tx.transaction.signatures.push(signature);
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
@@ -45,15 +48,14 @@ pub async fn req(
     //collect enough signatures
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
 
-    let strategy = multi_cli.get_strategy(&tx.transaction.from)
-    .await?
-    .unwrap();
+    let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
 
     let need_sig_num = super::get_servant_need(
         &strategy.multi_sig_ranks,
         &tx.transaction.coin_type,
-        tx.transaction.amount
-    ).await;
+        tx.transaction.amount,
+    )
+    .await;
     if tx.transaction.signatures.len() as u8 >= need_sig_num {
         //区分receiver是否是子账户
         //给子账户转是relayer进行签名，不需要生成tx_raw
@@ -64,41 +66,40 @@ pub async fn req(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
-        //给其他主账户转是用户自己签名，需要生成tx_raw    
-        }else if tx.transaction.tx_type == TxType::Forced{
+        //给其他主账户转是用户自己签名，需要生成tx_raw
+        } else if tx.transaction.tx_type == TxType::Forced {
             let cli = ContractClient::<MultiSig>::new()?;
-    
+
             let servant_sigs = tx
-            .transaction
-            .signatures
-            .iter()
-            .map(|data| PubkeySignInfo {
-                pubkey: data[..64].to_string(),
-                signature: data[64..].to_string(),
-            })
-            .collect();
+                .transaction
+                .signatures
+                .iter()
+                .map(|data| PubkeySignInfo {
+                    pubkey: data[..64].to_string(),
+                    signature: data[64..].to_string(),
+                })
+                .collect();
             let (tx_id, chain_tx_raw) = cli
-            .gen_send_money_raw(
-                servant_sigs,
-                &tx.transaction.from,
-                &tx.transaction.to,
-                tx.transaction.coin_type,
-                tx.transaction.amount,
-                tx.transaction.expire_at,
-            )
-            .await?;
+                .gen_send_money_raw(
+                    servant_sigs,
+                    &tx.transaction.from,
+                    &tx.transaction.to,
+                    tx.transaction.coin_type,
+                    tx.transaction.amount,
+                    tx.transaction.expire_at,
+                )
+                .await?;
             models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
-        //非子账户非强制的话，签名收集够了则需要收款方进行确认        
-        }else{                
+        //非子账户非强制的话，签名收集够了则需要收款方进行确认
+        } else {
             models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
         }
-
     }
     Ok(None)
 }

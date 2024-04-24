@@ -12,30 +12,30 @@ use crate::account_manager::{GetUserDeviceRoleRequest, UserInfoRequest};
 use crate::utils::token_auth;
 
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2> {
-    let GetUserDeviceRoleRequest{device_id, contact} = request_data;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
-    .map_err(|err| {
-        if err.to_string().contains("data isn't existed"){
+    let GetUserDeviceRoleRequest { device_id, contact } = request_data;
+    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)).map_err(|err| {
+        if err.to_string().contains("data isn't existed") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
-        }else{
+        } else {
             BackendError::DBError(err.to_string())
         }
     })?;
-    if user.user_info.main_account.eq(""){
+    if user.user_info.main_account.eq("") {
         return Ok(Some(KeyRole2::Undefined));
-    } 
+    }
     //todo:
-    let mut device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
+    let mut device =
+        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
     if let Err(err) = device {
-        if err.to_string().contains("data isn't existed"){
+        if err.to_string().contains("data isn't existed") {
             return Ok(Some(KeyRole2::Undefined));
-        }else{
+        } else {
             return Err(BackendError::DBError(err.to_string()));
         }
     }
 
-    let (_,current_strategy,device) = 
-    crate::wallet::handlers::get_session_state(user.id,&device_id).await?;
+    let (_, current_strategy, device) =
+        crate::wallet::handlers::get_session_state(user.id, &device_id).await?;
     let role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
     Ok(Some(role))
 }

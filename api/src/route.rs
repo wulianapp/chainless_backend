@@ -10,11 +10,11 @@ extern crate lazy_static;
 
 pub mod account_manager;
 pub mod airdrop;
+pub mod bridge;
 pub mod general;
 pub mod newbie_reward;
 pub mod utils;
 pub mod wallet;
-pub mod bridge;
 
 use actix_cors::Cors;
 use actix_web::{http, middleware, App, HttpServer};

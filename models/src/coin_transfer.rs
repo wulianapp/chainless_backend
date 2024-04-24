@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::secret_store::{SecretFilter, SecretStoreView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use common::data_structures::coin_transaction::{CoinTransaction, CoinSendStage, TxRole, TxType};
 use anyhow::{Ok, Result};
+use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxRole, TxType};
 use common::data_structures::{CoinType, TxStatusOnChain};
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -68,7 +68,7 @@ pub enum CoinTxFilter<'b> {
     BySenderUncompleted(&'b str),
     //todo: replace with u128
     ByOrderId(&'b str),
-    ByTxRolePage(TxRole,&'b str,Option<&'b str>,u32,u32),
+    ByTxRolePage(TxRole, &'b str, Option<&'b str>, u32, u32),
 }
 
 impl fmt::Display for CoinTxFilter<'_> {
@@ -88,7 +88,6 @@ impl fmt::Display for CoinTxFilter<'_> {
             ),
             CoinTxFilter::ByOrderId(id) => format!("order_id='{}' ", id),
             CoinTxFilter::ByTxRolePage(role,account,counterparty,per_page,page) => {
-                
                 let offset = if *page == 1u32 {
                     0
                 }else{
@@ -114,8 +113,8 @@ impl fmt::Display for CoinTxFilter<'_> {
 #[derive(Clone, Debug)]
 pub enum CoinTxUpdater<'a> {
     Stage(CoinSendStage),
-    StageChainStatus(CoinSendStage,TxStatusOnChain),
-    TxidStageChainStatus(&'a str,CoinSendStage,TxStatusOnChain),
+    StageChainStatus(CoinSendStage, TxStatusOnChain),
+    TxidStageChainStatus(&'a str, CoinSendStage, TxStatusOnChain),
     ChainTxInfo(&'a str, &'a str, CoinSendStage),
     TxidTxRaw(&'a str, &'a str),
     Signature(Vec<String>),
@@ -125,24 +124,21 @@ impl fmt::Display for CoinTxUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             CoinTxUpdater::Stage(stage) => format!("stage='{}'", stage),
-            CoinTxUpdater::StageChainStatus(stage,status) 
-                => format!("(stage,chain_status)=('{}','{}')", stage,status),
-            CoinTxUpdater::TxidStageChainStatus(txid,stage,status) 
-                => format!("(tx_id,stage,chain_status)=('{}','{}','{}')", txid,stage,status),
+            CoinTxUpdater::StageChainStatus(stage, status) => {
+                format!("(stage,chain_status)=('{}','{}')", stage, status)
+            }
+            CoinTxUpdater::TxidStageChainStatus(txid, stage, status) => format!(
+                "(tx_id,stage,chain_status)=('{}','{}','{}')",
+                txid, stage, status
+            ),
             CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, stage) => {
                 format!(
                     "(tx_id,chain_tx_raw,stage)=('{}','{}','{}')",
-                    tx_id,
-                    chain_tx_raw,
-                    stage
+                    tx_id, chain_tx_raw, stage
                 )
             }
             CoinTxUpdater::TxidTxRaw(tx_id, chain_tx_raw) => {
-                format!(
-                    "(tx_id,chain_tx_raw)=('{}','{}')",
-                    tx_id,
-                    chain_tx_raw,
-                )
+                format!("(tx_id,chain_tx_raw)=('{}','{}')", tx_id, chain_tx_raw,)
             }
             CoinTxUpdater::Signature(sigs) => {
                 format!("signatures={}", vec_str2array_text(sigs.to_owned()))
@@ -188,7 +184,7 @@ impl PsqlOp for CoinTxView {
         //let user_info_raw = execute_res.first().unwrap();
 
         let gen_view = |row: &Row| -> Result<CoinTxView> {
-            Ok(CoinTxView{
+            Ok(CoinTxView {
                 transaction: CoinTransaction {
                     order_id: row.get(0),
                     tx_id: row.get(1),
@@ -211,17 +207,13 @@ impl PsqlOp for CoinTxView {
                 created_at: row.get(17),
             })
         };
-        execute_res
-            .iter()
-            .map(gen_view)
-            .collect()
+        execute_res.iter().map(gen_view).collect()
     }
 
     fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<u64> {
         let sql = format!(
             "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            update_data,
-            filter
+            update_data, filter
         );
         info!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;

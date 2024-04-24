@@ -12,12 +12,11 @@ use models::secret_store::{SecretFilter, SecretUpdater};
 
 use crate::wallet::{AddServantRequest, NewcommerSwitchServantRequest};
 use blockchain::ContractClient;
+use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
-use common::error_code::BackendError::ChainError;
-
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -25,15 +24,12 @@ pub(crate) async fn req(
 ) -> BackendRes<String> {
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-  
-    let (user,current_strategy,device) = 
-        super::get_session_state(user_id,&device_id).await?;
-        let main_account = user.main_account;
-        super::have_no_uncompleted_tx(&main_account)?;
-        let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-        super::check_role(current_role,KeyRole2::Master)?;
 
-      
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let main_account = user.main_account;
+    super::have_no_uncompleted_tx(&main_account)?;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role, KeyRole2::Master)?;
 
     let NewcommerSwitchServantRequest {
         old_servant_pubkey,
@@ -43,17 +39,14 @@ pub(crate) async fn req(
         new_device_id,
     } = request_data;
 
-    let undefined_device = DeviceInfoView::find_single(
-        DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id
-        ))?;
-    if undefined_device.device_info.key_role !=  KeyRole2::Undefined{
-        Err(BackendError::InternalError(
-            format!("your new_device_id's role  is {},and should be Undefined",
-            undefined_device.device_info.key_role)
-        ))?;
-    }   
-
- 
+    let undefined_device =
+        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id))?;
+    if undefined_device.device_info.key_role != KeyRole2::Undefined {
+        Err(BackendError::InternalError(format!(
+            "your new_device_id's role  is {},and should be Undefined",
+            undefined_device.device_info.key_role
+        )))?;
+    }
 
     models::general::transaction_begin()?;
     //check if stored already
@@ -89,11 +82,13 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
+    let multi_sig_cli =
+        ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
     //it is impossible to get none
     let mut current_strategy = multi_sig_cli
         .get_strategy(&main_account)
-        .await.map_err(|err| ChainError(err.to_string()))?
+        .await
+        .map_err(|err| ChainError(err.to_string()))?
         .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
     //delete older and than add new
     current_strategy
@@ -104,7 +99,8 @@ pub(crate) async fn req(
 
     multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
-        .await.map_err(|err| ChainError(err.to_string()))?;
+        .await
+        .map_err(|err| ChainError(err.to_string()))?;
 
     models::general::transaction_commit()?;
     Ok(None::<String>)

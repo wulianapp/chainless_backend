@@ -15,7 +15,6 @@ pub mod secret_store;
 pub mod device_info;
 pub mod wallet_manage_record;
 
-
 //#[macro_use]
 //extern crate log;
 #[macro_use]
@@ -30,12 +29,12 @@ extern crate rustc_serialize;
 
 use postgres::{Client, NoTls, Row};
 
+use anyhow::anyhow;
+use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt::{Debug, Display};
 use std::sync::Mutex;
-use anyhow::Result;
-use anyhow::anyhow;
 
 static TRY_TIMES: u8 = 5;
 
@@ -63,7 +62,11 @@ lazy_static! {
 }
 fn connect_db() -> Result<Client> {
     let global_conf = &common::env::CONF;
-    info!("{}: start postgresql,mode {}", common::utils::time::current_date(),global_conf.service_mode.to_string());
+    info!(
+        "{}: start postgresql,mode {}",
+        common::utils::time::current_date(),
+        global_conf.service_mode.to_string()
+    );
     let url = format!(
         "host=localhost user=postgres port=8068 password=postgres dbname=backend_{}",
         global_conf.service_mode
@@ -78,8 +81,7 @@ fn connect_db() -> Result<Client> {
 pub fn query(raw_sql: &str) -> Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
     //todo:
-    let mut client = crate::CLIENTDB.lock()
-    .map_err(|e|  anyhow!(e.to_string()))?;
+    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
     loop {
         debug!("raw_sql {}", raw_sql);
         match client.query(raw_sql, &[]) {
@@ -104,8 +106,7 @@ pub fn query(raw_sql: &str) -> Result<Vec<Row>> {
 
 pub fn execute(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB
-        .lock().map_err(|e| anyhow!(e.to_string()))?;
+    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
     loop {
         debug!("raw_sql {}", raw_sql);
         match client.execute(raw_sql, &[]) {
@@ -143,11 +144,11 @@ pub trait PsqlOp {
         if data_len == 0 {
             //todo:return db error type
             let error_info = "DBError::DataNotFound: data isn't existed";
-            error!("{}",error_info);
+            error!("{}", error_info);
             Err(anyhow!(error_info.to_string()))
         } else if data_len > 1 {
             let error_info = "DBError::RepeatedData: data is repeated";
-            error!("{}",error_info);
+            error!("{}", error_info);
             Err(anyhow!(error_info.to_string()))
         } else {
             Ok(get_res.pop().unwrap())
@@ -157,27 +158,24 @@ pub trait PsqlOp {
         todo!()
     }
 
-    fn update(
-        new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>,
-    ) -> Result<u64>;
+    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64>;
 
     fn update_single(
         new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>
+        filter: Self::FilterContent<'_>,
     ) -> Result<()>
     where
         Self: Sized,
     {
-        let mut row_num  = Self::update(new_value,filter)?;
+        let mut row_num = Self::update(new_value, filter)?;
         if row_num == 0 {
             //todo:return db error type
             let error_info = "DBError::DataNotFound: data isn't existed";
-            error!("{}",error_info);
+            error!("{}", error_info);
             Err(anyhow!(error_info.to_string()))
         } else if row_num > 1 {
             let error_info = "DBError::RepeatedData: data is repeated";
-            error!("{}",error_info);
+            error!("{}", error_info);
             Err(anyhow!(error_info.to_string()))
         } else {
             Ok(())

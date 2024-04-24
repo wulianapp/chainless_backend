@@ -1,12 +1,12 @@
 extern crate rustc_serialize;
 
-use postgres::Row;
-use std::fmt;
-use std::fmt::Display;
 use common::data_structures::SecretKeyState;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use postgres::Row;
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
+use std::fmt;
+use std::fmt::Display;
 
 use crate::{vec_str2array_text, PsqlOp};
 use anyhow::{Ok, Result};
@@ -117,8 +117,7 @@ impl PsqlOp for SecretStoreView {
     fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<u64> {
         let sql = format!(
             "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value,
-            filter
+            new_value, filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
@@ -144,11 +143,7 @@ impl PsqlOp for SecretStoreView {
                 encrypted_prikey_by_password,\
                 encrypted_prikey_by_answer\
          ) values ('{}','{}',{},'{}','{}');",
-            pubkey,
-            state,
-            user_id,
-            encrypted_prikey_by_password,
-            encrypted_prikey_by_answer
+            pubkey, state, user_id, encrypted_prikey_by_password, encrypted_prikey_by_answer
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;

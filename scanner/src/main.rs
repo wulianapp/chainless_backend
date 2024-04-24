@@ -1,30 +1,32 @@
 /// listen tx status on chain
 use common::{data_structures::TxStatusOnChain, *};
-use models::{wallet_manage_record::{WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView}, PsqlOp};
+use models::{
+    wallet_manage_record::{
+        WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView,
+    },
+    PsqlOp,
+};
 use tracing::debug;
-
-
 
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
-    loop{
+    loop {
         //check manage_opcord
-        let ops = WalletManageRecordView::find(
-            WalletManageRecordFilter::ByStatus(
-                &TxStatusOnChain::Pending
-            )
-        ).unwrap();
+        let ops = WalletManageRecordView::find(WalletManageRecordFilter::ByStatus(
+            &TxStatusOnChain::Pending,
+        ))
+        .unwrap();
 
-        for op in ops  {
+        for op in ops {
             //todo: 目前的txid是bs58的待修复
             let tx_id = op.record.tx_ids.last().unwrap();
-            debug!("start check tx {}",tx_id);
+            debug!("start check tx {}", tx_id);
             let status = blockchain::general::tx_status(tx_id).await.unwrap();
-            if status != TxStatusOnChain::Pending{
+            if status != TxStatusOnChain::Pending {
                 let _ = WalletManageRecordView::update_single(
-                    WalletManageRecordUpdater::Status(status), 
-                    WalletManageRecordFilter::ByRecordId(&op.record.record_id)
+                    WalletManageRecordUpdater::Status(status),
+                    WalletManageRecordFilter::ByRecordId(&op.record.record_id),
                 );
                 tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
             }
@@ -33,7 +35,6 @@ async fn main() {
         }
 
         //todo: check transaction
-
 
         //todo: check bridge bind address
     }

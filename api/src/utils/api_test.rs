@@ -23,22 +23,21 @@ use models::{account_manager, secret_store, PsqlOp};
 use serde_json::json;
 
 use actix_web::Error;
-use blockchain::multi_sig::{StrategyData};
-use common::encrypt::{ed25519_key_gen};
+use blockchain::multi_sig::StrategyData;
 use blockchain::multi_sig::{CoinTx, MultiSig};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
+use common::encrypt::ed25519_key_gen;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::{self, gen_random_verify_code};
 use models::secret_store::SecretStoreView;
 // use log::{info, LevelFilter,debug,error};
+use crate::account_manager::handlers::user_info::UserInfoTmp;
+use crate::wallet::handlers::get_strategy::StrategyDataTmp;
+use crate::wallet::*;
 use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
-use crate::wallet::*;
-use crate::wallet::handlers::get_strategy::StrategyDataTmp;
-use crate::account_manager::handlers::user_info::UserInfoTmp;
-
 
 #[derive(Debug)]
 pub struct TestWallet {
@@ -195,17 +194,21 @@ pub fn simulate_receiver() -> TestWulianApp2 {
     }
 }
 
-
-pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWulianApp2,TestWulianApp2){
+pub fn gen_some_accounts_with_new_key() -> (
+    TestWulianApp2,
+    TestWulianApp2,
+    TestWulianApp2,
+    TestWulianApp2,
+) {
     let sender_master_secret = ed25519_key_gen();
     let sender_sub_secret = ed25519_key_gen();
     let sender_servant_secret = ed25519_key_gen();
     let sender_newcommer_secret = ed25519_key_gen();
     let receiver_master_secret = ed25519_key_gen();
     let receiver_sub_secret = ed25519_key_gen();
- 
+
     let mut sender_master = simulate_sender_master();
-    let sender_account = format!("test{}@gmail.com",gen_random_verify_code());
+    let sender_account = format!("test{}@gmail.com", gen_random_verify_code());
     sender_master.user.contact = sender_account.clone();
     sender_master.wallet = TestWallet {
         main_account: sender_master_secret.1.clone(),
@@ -215,9 +218,8 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
         sub_prikey: Some(vec![sender_sub_secret.0.clone()]),
     };
 
-
     let mut receiver = simulate_receiver();
-    receiver.user.contact = format!("test{}@gmail.com",gen_random_verify_code());
+    receiver.user.contact = format!("test{}@gmail.com", gen_random_verify_code());
     receiver.wallet = TestWallet {
         main_account: receiver_master_secret.1.clone(),
         pubkey: Some(receiver_master_secret.1),
@@ -245,8 +247,8 @@ pub fn gen_some_accounts_with_new_key() ->(TestWulianApp2,TestWulianApp2,TestWul
         subaccount: vec![],
         sub_prikey: None,
     };
-    let all_accounts = (sender_master,sender_servant,sender_newcommer,receiver);
-    println!("{:#?}",all_accounts);
+    let all_accounts = (sender_master, sender_servant, sender_newcommer, receiver);
+    println!("{:#?}", all_accounts);
     all_accounts
 }
 
@@ -289,7 +291,7 @@ macro_rules! test_service_call {
             .try_into_bytes()
             .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("api {}, body_str {}",$api, body_str);
+        println!("api {}, body_str {}", $api, body_str);
         serde_json::from_str::<_>(&body_str).unwrap()
     }};
 }
@@ -330,7 +332,6 @@ macro_rules! test_register {
             $app.user.token = Some(res.data.unwrap());
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_get_captcha_with_token {
@@ -418,7 +419,7 @@ macro_rules! test_search_message {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
         res.data
     }};
 }
@@ -434,7 +435,7 @@ macro_rules! test_get_strategy {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
         res.data
     }};
 }
@@ -450,7 +451,7 @@ macro_rules! test_user_info {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
         res.data
     }};
 }
@@ -466,11 +467,10 @@ macro_rules! test_get_fees_priority {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
         res.data
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_tx_list {
@@ -482,7 +482,7 @@ macro_rules! test_tx_list {
             },
             None =>{
                 format!("/wallet/txList?txRole={}&perPage={}&page={}",
-                $role,$per_page,$page)            
+                $role,$per_page,$page)
             }
         };
         let res: BackendRespond<Vec<$crate::wallet::handlers::tx_list::CoinTxViewTmp>> = test_service_call!(
@@ -530,7 +530,7 @@ macro_rules! test_servant_saved_secret {
             None::<String>,
             Some($servant.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
     }};
 }
 
@@ -573,8 +573,6 @@ macro_rules! test_remove_subaccount {
     }};
 }
 
-
-
 #[macro_export]
 macro_rules! test_remove_servant {
     ($service:expr, $master:expr, $servant:expr) => {{
@@ -611,7 +609,6 @@ macro_rules! test_update_strategy {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_set_fees_priority{
     ($service:expr, $master:expr) => {{
@@ -628,7 +625,6 @@ macro_rules! test_set_fees_priority{
         assert_eq!(res.status_code,0);
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_update_security {
@@ -662,8 +658,6 @@ macro_rules! test_update_security {
         assert_eq!(res.status_code,0);
     }};
 }
-
-
 
 #[macro_export]
 macro_rules! test_pre_send_money {
@@ -730,7 +724,6 @@ macro_rules! test_pre_send_money_to_sub {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_pre_send_money_to_bridge {
     ($service:expr, $sender_master:expr,$coin:expr,$amount:expr) => {{
@@ -755,7 +748,6 @@ macro_rules! test_pre_send_money_to_bridge {
         res.data
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_reconfirm_send_money {
@@ -793,8 +785,6 @@ macro_rules! test_upload_servant_sig {
     }};
 }
 
-
-
 #[macro_export]
 macro_rules! test_newcommer_switch_servant {
     ($service:expr, $sender_master:expr,$sender_servant:expr,$sender_new_device:expr) => {{
@@ -817,7 +807,6 @@ macro_rules! test_newcommer_switch_servant {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_gen_newcommer_switch_master {
 
@@ -838,8 +827,6 @@ macro_rules! test_gen_newcommer_switch_master {
         res.data
     }};
 }
-
-
 
 #[macro_export]
 macro_rules! test_gen_servant_switch_master {
@@ -882,7 +869,6 @@ macro_rules! test_sub_send_to_master {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_update_subaccount_hold_limit {
     ($service:expr,$sender_master:expr,$subaccount:expr,$limit:expr) => {{
@@ -902,7 +888,6 @@ macro_rules! test_update_subaccount_hold_limit {
         res.data
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_react_pre_send_money {
@@ -951,7 +936,6 @@ macro_rules! test_commit_newcommer_switch_master {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_commit_servant_switch_master {
     ($service:expr, $sender_servant:expr,$gen_res:expr,$add_key_sig:expr,$delete_key_sig:expr) => {{
@@ -977,8 +961,6 @@ macro_rules! test_commit_servant_switch_master {
     }};
 }
 
-
-
 #[macro_export]
 macro_rules! test_faucet_claim {
     ($service:expr, $app:expr) => {{
@@ -990,11 +972,9 @@ macro_rules! test_faucet_claim {
             None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
     }};
 }
-
-
 
 //query
 #[macro_export]
@@ -1016,7 +996,7 @@ macro_rules! test_get_secret {
 #[macro_export]
 macro_rules! test_get_balance_list {
     ($service:expr, $app:expr,$kind:expr) => {{
-        let url = format!("/wallet/balanceList?kind={}",$kind);
+        let url = format!("/wallet/balanceList?kind={}", $kind);
         let res: BackendRespond<BalanceListResponse> = test_service_call!(
             $service,
             "get",
@@ -1029,11 +1009,10 @@ macro_rules! test_get_balance_list {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_get_tx {
     ($service:expr, $app:expr,$order_id:expr) => {{
-        let url = format!("/wallet/getTx?orderId={}",$order_id);
+        let url = format!("/wallet/getTx?orderId={}", $order_id);
         let res: BackendRespond<GetTxResponse> = test_service_call!(
             $service,
             "get",
@@ -1045,7 +1024,6 @@ macro_rules! test_get_tx {
         res.data
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_get_device_list {
@@ -1062,6 +1040,3 @@ macro_rules! test_get_device_list {
         res.data
     }};
 }
-
-
-

@@ -1,9 +1,15 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
-use common::{data_structures::{wallet_namage_record::WalletOperateType, KeyRole2}, error_code::BackendError, utils::math::coin_amount::display2raw};
+use common::{
+    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    error_code::BackendError,
+    utils::math::coin_amount::display2raw,
+};
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView}, wallet_manage_record::WalletManageRecordView, PsqlOp
+    device_info::{DeviceInfoFilter, DeviceInfoView},
+    wallet_manage_record::WalletManageRecordView,
+    PsqlOp,
 };
 
 use crate::utils::token_auth;
@@ -16,22 +22,18 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
 
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
 
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
+    super::check_role(current_role, KeyRole2::Master)?;
 
-    let UpdateStrategy {
-        strategy,
-    } = request_data.0;
-  
+    let UpdateStrategy { strategy } = request_data.0;
 
     //fixme:
     let strategy = strategy
         .into_iter()
-        .map(|x| -> Result<MultiSigRank,String> {
+        .map(|x| -> Result<MultiSigRank, String> {
             let rank = MultiSigRank {
                 min: display2raw(&x.min)?,
                 max_eq: display2raw(&x.max_eq)?,
@@ -39,7 +41,7 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
             };
             Ok(rank)
         })
-        .collect::<Result<Vec<_>,String>>()
+        .collect::<Result<Vec<_>, String>>()
         .map_err(|err| BackendError::RequestParamInvalid(err))?;
 
     //add wallet info
@@ -52,11 +54,9 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         &device.hold_pubkey.unwrap(),
         &device.id,
         &device.brand,
-        vec![txid]
+        vec![txid],
     );
-    record.insert()?;    
-
-
+    record.insert()?;
 
     Ok(None::<String>)
 }

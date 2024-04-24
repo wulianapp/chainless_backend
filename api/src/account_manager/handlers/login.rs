@@ -33,28 +33,28 @@ fn clear_retry_times(user_id:u32) {
 fn record_once_retry(user_id: u32) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     let now = now_millis();
-    debug!("0001___{}",now);
+    debug!("0001___{}", now);
     retry_storage.entry(user_id).or_default().push(now);
 }
 
-fn is_locked(user_id: u32) -> (bool,u8,u64) {
+fn is_locked(user_id: u32) -> (bool, u8, u64) {
     let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
     if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
-            let unlock_time = *records.last().unwrap() + MINUTE30; 
-            debug!("0002___{}",unlock_time);
+            let unlock_time = *records.last().unwrap() + MINUTE30;
+            debug!("0002___{}", unlock_time);
             if now_millis() < unlock_time {
-                (true,0,unlock_time as u64 / 1000)
+                (true, 0, unlock_time as u64 / 1000)
             } else {
                 //clear retry records
                 let _ = retry_storage.remove(&user_id);
-                (false,0,0)
+                (false, 0, 0)
             }
         } else {
-            (false,5 - 1 - records.len() as u8,0)
+            (false, 5 - 1 - records.len() as u8, 0)
         }
     } else {
-        (false,5 - 1,0)
+        (false, 5 - 1, 0)
     }
 }
 
@@ -70,15 +70,15 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     let user_at_stored =
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
-    let (is_lock,remain_chance,unlock_time) = is_locked(user_at_stored.id);
-    if is_lock{
+    let (is_lock, remain_chance, unlock_time) = is_locked(user_at_stored.id);
+    if is_lock {
         Err(AccountLocked(unlock_time))?;
     }
 
     if password != user_at_stored.user_info.login_pwd_hash {
         record_once_retry(user_at_stored.id);
         Err(PasswordIncorrect(remain_chance))?;
-    }else {
+    } else {
         let retry_storage = &mut LOGIN_RETRY.lock().unwrap();
         let _ = retry_storage.remove(&user_at_stored.id);
     }
@@ -99,7 +99,6 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
     Ok(Some(token))
 }
 
-
 pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<String> {
     debug!("{:?}", request_data);
     let LoginByCaptchaRequest {
@@ -112,12 +111,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     let user_at_stored =
         account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
 
-    Captcha::check_user_code(
-        &user_at_stored.id.to_string(), 
-        &captcha, 
-        Usage::Login
-    )?;
-
+    Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
 
     //todo: distinguish repeat and not found
     let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(

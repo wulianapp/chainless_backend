@@ -1,6 +1,6 @@
+use anyhow::Result;
 use common::data_structures::get_support_coin_list;
 use common::error_code::BackendError;
-use anyhow::Result;
 use common::utils::time::now_millis;
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -21,10 +21,10 @@ use serde_json::json;
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use lazy_static::lazy_static;
 use near_crypto::InMemorySigner;
+use near_crypto::Signature;
 use near_primitives::account::Account;
 use near_primitives::borsh::BorshSerialize;
 use near_primitives::types::AccountId;
-use near_crypto::Signature;
 
 use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
@@ -57,7 +57,7 @@ impl Default for MultiSigRank {
         MultiSigRank {
             min: 0,
             //fixme: number out of range when u128::MAX
-            max_eq: 1_000_000_000_000_000_000_000_000u128,//one million
+            max_eq: 1_000_000_000_000_000_000_000_000u128, //one million
             sig_num: 0,
         }
     }
@@ -68,7 +68,7 @@ pub struct StrategyData {
     pub master_pubkey: String,
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub servant_pubkeys: Vec<String>,
-    pub sub_confs: HashMap<String,SubAccConf>,
+    pub sub_confs: HashMap<String, SubAccConf>,
 }
 
 impl ContractClient<MultiSig> {
@@ -76,15 +76,15 @@ impl ContractClient<MultiSig> {
     pub fn new() -> Result<Self> {
         let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
         let contract = &common::env::CONF.multi_sig_contract;
-        println!("___{}",prikey_str);
+        println!("___{}", prikey_str);
         let pri_key: SecretKey = prikey_str.parse()?;
         let pubkey = get_pubkey(&pri_key.to_string())?;
         let account_id = AccountId::from_str(&pubkey)?;
 
         let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
-        println!("0002___{}",prikey_str);
-       let account_id = AccountId::from_str(relayer_account)?;
-        println!("0003___{}",account_id);
+        println!("0002___{}", prikey_str);
+        let account_id = AccountId::from_str(relayer_account)?;
+        println!("0003___{}", account_id);
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {
@@ -94,17 +94,17 @@ impl ContractClient<MultiSig> {
         })
     }
 
-    pub async fn get_total_value(&self, account_str: &str) -> Result<u128>{
+    pub async fn get_total_value(&self, account_str: &str) -> Result<u128> {
         let coins = get_support_coin_list();
         let mut total_value = 0;
         let fees_cli = ContractClient::<FeesCall>::new().unwrap();
         for coin in coins {
             let coin_cli = ContractClient::<Coin>::new(coin.clone())?;
             let balance = coin_cli.get_balance(account_str).await?;
-            let balance:u128 = balance.unwrap_or("0".to_string()).parse()?;
+            let balance: u128 = balance.unwrap_or("0".to_string()).parse()?;
             //get price from contract
-            let (base,quote) = fees_cli.get_coin_price(&coin).await.unwrap();
-            total_value +=  balance * quote / base;
+            let (base, quote) = fees_cli.get_coin_price(&coin).await.unwrap();
+            total_value += balance * quote / base;
         }
         Ok(total_value)
     }
@@ -126,7 +126,8 @@ impl ContractClient<MultiSig> {
 
     pub async fn get_master_pubkey_list(&self, account_str: &str) -> Result<Vec<String>> {
         let list = get_access_key_list(account_str).await?.keys;
-        let list  = list.iter()
+        let list = list
+            .iter()
             .map(|key| hex::encode(key.public_key.key_data()))
             .collect();
         Ok(list)
@@ -177,11 +178,21 @@ impl ContractClient<MultiSig> {
     ) -> Result<String> {
         //create account by send token
         println!("0001a");
-        let register_main_tx_id = self.register_account_with_name(main_account_id,main_account_pubkey).await?;
+        let register_main_tx_id = self
+            .register_account_with_name(main_account_id, main_account_pubkey)
+            .await?;
         debug!("register_main_tx_id {}", register_main_tx_id);
-        let register_tx_id = self.register_account_with_name(subaccount_id,subaccount_pubkey).await?;
+        let register_tx_id = self
+            .register_account_with_name(subaccount_id, subaccount_pubkey)
+            .await?;
         debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(subaccount_id,SubAccConf{ pubkey: subaccount_pubkey.to_string(),hold_value_limit: 100000_000_000_000_000_000_000})]);
+        let sub_confs = HashMap::from([(
+            subaccount_id,
+            SubAccConf {
+                pubkey: subaccount_pubkey.to_string(),
+                hold_value_limit: 100000_000_000_000_000_000_000,
+            },
+        )]);
         println!("0001b");
         self.set_strategy(
             main_account_id,
@@ -198,22 +209,28 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("remove_tx_index", &args_str).await
     }
 
-    pub async fn add_subaccount(&self, main_acc: &str, subacc: HashMap<&str,SubAccConf>) -> Result<String> {
+    pub async fn add_subaccount(
+        &self,
+        main_acc: &str,
+        subacc: HashMap<&str, SubAccConf>,
+    ) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
-        assert_eq!(subacc.len(),1,"tmp limit");
-        for (account_id,conf) in subacc.clone().into_iter() {
-            let _register_tx_id = self.register_account_with_name(account_id,&conf.pubkey).await?;
+        assert_eq!(subacc.len(), 1, "tmp limit");
+        for (account_id, conf) in subacc.clone().into_iter() {
+            let _register_tx_id = self
+                .register_account_with_name(account_id, &conf.pubkey)
+                .await?;
         }
 
         //let subacc = AccountId::from_str(subacc).unwrap();
         let sub_confs = subacc
-        .into_iter()
-        .map(|(acc_str,conf)| {
-            //todo:
-            (AccountId::from_str(acc_str).unwrap(),conf)
-        })
-        .collect::<HashMap<AccountId,SubAccConf>>();
-        debug!("pre_add sub_confs {:?}",sub_confs);
+            .into_iter()
+            .map(|(acc_str, conf)| {
+                //todo:
+                (AccountId::from_str(acc_str).unwrap(), conf)
+            })
+            .collect::<HashMap<AccountId, SubAccConf>>();
+        debug!("pre_add sub_confs {:?}", sub_confs);
 
         let args_str = json!({
             "main_account_id": main_acc,
@@ -232,7 +249,8 @@ impl ContractClient<MultiSig> {
             "accounts": vec![subacc]
         })
         .to_string();
-        self.commit_by_relayer("remove_subaccounts", &args_str).await
+        self.commit_by_relayer("remove_subaccounts", &args_str)
+            .await
     }
 
     pub async fn remove_account_strategy(&self, acc: String) -> Result<String> {
@@ -247,16 +265,16 @@ impl ContractClient<MultiSig> {
         account_id: &str,
         master_pubkey: &str,
         servant_pubkeys: Vec<String>,
-        sub_confs: HashMap<&str,SubAccConf>,
+        sub_confs: HashMap<&str, SubAccConf>,
         rank_arr: Vec<MultiSigRank>,
     ) -> Result<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id)?;
         let sub_confs = sub_confs
             .into_iter()
-            .map(|(acc_str,conf)| (AccountId::from_str(acc_str).unwrap(),conf))
-            .collect::<HashMap<AccountId,SubAccConf>>();
-        debug!("set_strategy {:?}",rank_arr);
-        
+            .map(|(acc_str, conf)| (AccountId::from_str(acc_str).unwrap(), conf))
+            .collect::<HashMap<AccountId, SubAccConf>>();
+        debug!("set_strategy {:?}", rank_arr);
+
         let args_str = json!({
             "user_account_id": user_account_id,
             "master_pubkey": master_pubkey,
@@ -283,12 +301,11 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("update_rank", &args_str).await
     }
 
-
     pub async fn update_subaccount_hold_limit(
         &self,
         main_account: &str,
         subaccount: &str,
-        hold_limit: u128
+        hold_limit: u128,
     ) -> Result<String> {
         let main_account: AccountId = AccountId::from_str(main_account)?;
         let subaccount: AccountId = AccountId::from_str(subaccount)?;
@@ -298,19 +315,18 @@ impl ContractClient<MultiSig> {
             "hold_limit": hold_limit
         })
         .to_string();
-        self.commit_by_relayer("update_subaccount_hold_limit", &args_str).await
+        self.commit_by_relayer("update_subaccount_hold_limit", &args_str)
+            .await
     }
 
     async fn register_account(&self, user_id: &str) -> Result<String> {
         self.commit_by_relayer("register_account", user_id).await
     }
 
-    async fn register_account_with_name(&self, 
-        account_id: &str,
-        pubkey:&str,
-    ) -> Result<String> {
-        let arg_str = format!("{}:{}",account_id,pubkey);
-        self.commit_by_relayer("register_account_with_name", &arg_str).await
+    async fn register_account_with_name(&self, account_id: &str, pubkey: &str) -> Result<String> {
+        let arg_str = format!("{}:{}", account_id, pubkey);
+        self.commit_by_relayer("register_account_with_name", &arg_str)
+            .await
     }
 
     pub async fn update_servant_pubkey(
@@ -345,20 +361,14 @@ impl ContractClient<MultiSig> {
             .await
     }
 
-
-    pub async fn update_master(
-        &self,
-        account_id: &str,
-        master_pubkey: String,
-    ) -> Result<String> {
+    pub async fn update_master(&self, account_id: &str, master_pubkey: String) -> Result<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id)?;
         let args_str = json!({
             "user_account_id": user_account_id,
             "master_pubkey": master_pubkey,
         })
         .to_string();
-        self.commit_by_relayer("update_master", &args_str)
-            .await
+        self.commit_by_relayer("update_master", &args_str).await
     }
 
     //todo: 检查持仓限制
@@ -404,7 +414,7 @@ impl ContractClient<MultiSig> {
             amount: transfer_amount,
         };
 
-        /*** 
+        /***
          //todo: checkout and return error
         let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
         let public_key_bytes: Vec<u8> = hex::decode(sub_sig.pubkey).unwrap();
@@ -514,9 +524,8 @@ impl ContractClient<MultiSig> {
         Ok(coin_tx_hex_str)
     }
 
-
-      //转账给跨链桥
-       //todo: 弃用
+    //转账给跨链桥
+    //todo: 弃用
     pub async fn internal_withdraw(
         &self,
         master_sig: PubkeySignInfo,
@@ -542,8 +551,7 @@ impl ContractClient<MultiSig> {
             "coin_tx": coin_tx,
         })
         .to_string();
-        self.commit_by_relayer("internal_withdraw", &args_str)
-            .await
+        self.commit_by_relayer("internal_withdraw", &args_str).await
     }
 }
 
@@ -552,14 +560,14 @@ pub struct PubkeySignInfo {
     pub pubkey: String,
     pub signature: String,
 }
-impl FromStr for PubkeySignInfo{
+impl FromStr for PubkeySignInfo {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         //todo
-        if s.len() < 64{
+        if s.len() < 64 {
             Err(BackendError::RequestParamInvalid(s.to_string()))?;
         }
-        Ok( PubkeySignInfo{
+        Ok(PubkeySignInfo {
             pubkey: s[..64].to_string(),
             signature: s[64..].to_string(),
         })
@@ -572,15 +580,14 @@ pub struct AccountSignInfo {
     pub signature: String,
 }
 
-impl AccountSignInfo{
-    pub fn new(account_id: &str,signature: &str) -> Self{
-        Self{
+impl AccountSignInfo {
+    pub fn new(account_id: &str, signature: &str) -> Self {
+        Self {
             account_id: account_id.to_owned(),
-            signature: signature.to_owned()
+            signature: signature.to_owned(),
         }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CoinTx {
@@ -636,10 +643,9 @@ pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> Result<Str
     if let Signature::ED25519(sig) = signature {
         let near_sig_bytes = sig.to_bytes();
         Ok(hex::encode(&near_sig_bytes))
-    }else {
+    } else {
         unreachable!("")
     }
-
 }
 
 pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<String> {
@@ -652,7 +658,7 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<S
     if let Signature::ED25519(sig) = signature {
         let near_sig_bytes = sig.to_bytes();
         Ok(hex::encode(&near_sig_bytes))
-    }else {
+    } else {
         unreachable!("")
     }
 }
@@ -713,10 +719,7 @@ mod tests {
 
         //增加之前判断是否有
         if !master_list.contains(&newcomer_pubkey.to_string()) {
-            let res = client
-                .add_key(main_account, newcomer_pubkey)
-                .await
-                .unwrap();
+            let res = client.add_key(main_account, newcomer_pubkey).await.unwrap();
             let signature = common::encrypt::ed25519_sign_hex(master_prikey, &res.0).unwrap();
             let _test = crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
         } else {
@@ -740,13 +743,13 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_get_master_keys(){
+    async fn test_get_master_keys() {
         let multi_sig_cli = ContractClient::<MultiSig>::new().unwrap();
         let account_id = "test".to_string();
         let res = multi_sig_cli.get_master_pubkey_list(&account_id).await;
-        println!("{:?}",res);
+        println!("{:?}", res);
     }
-    /*** 
+    /***
     #[tokio::test]
     async fn test_multi_sig_strategy() {
         let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
@@ -829,8 +832,7 @@ mod tests {
     }
         **/
 
-
-    /*** 
+    /***
     #[tokio::test]
     async fn test_multi_sig_send_money_to_bridge() {
         let pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc";

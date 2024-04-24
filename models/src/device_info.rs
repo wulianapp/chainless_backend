@@ -74,9 +74,12 @@ impl fmt::Display for DeviceInfoFilter<'_> {
             DeviceInfoFilter::ByUser(user_id) => format!("user_id={} ", user_id),
             DeviceInfoFilter::ByDeviceUser(device_id, user_id) => {
                 format!("id='{}' and user_id={} ", device_id, user_id)
-            },
+            }
             DeviceInfoFilter::ByDeviceContact(device_id, contact) => {
-                format!("id='{}' and (email='{}' or phone_numbe='{}') ", device_id, contact,contact)
+                format!(
+                    "id='{}' and (email='{}' or phone_numbe='{}') ",
+                    device_id, contact, contact
+                )
             }
             DeviceInfoFilter::ByUserDeviceHoldSecret(user_id, device_id, saved) => format!(
                 "user_id={} and id='{}' and holder_confirm_saved={} ",
@@ -90,7 +93,7 @@ impl fmt::Display for DeviceInfoFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug,Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct DeviceInfoView {
     pub device_info: DeviceInfo,
     pub updated_at: String,
@@ -136,8 +139,7 @@ impl PsqlOp for DeviceInfoView {
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get device: raw sql {}", sql);
-        let gen_view = |row: &Row| -> Result<DeviceInfoView> 
-        {
+        let gen_view = |row: &Row| -> Result<DeviceInfoView> {
             Ok(DeviceInfoView {
                 device_info: DeviceInfo {
                     id: row.get(0),
@@ -153,19 +155,12 @@ impl PsqlOp for DeviceInfoView {
             })
         };
 
-        execute_res
-            .iter()
-            .map(gen_view)
-            .collect()
+        execute_res.iter().map(gen_view).collect()
     }
-    fn update(
-        new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>,
-    ) -> Result<u64> {
+    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64> {
         let sql = format!(
             "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value,
-            filter
+            new_value, filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;

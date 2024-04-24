@@ -21,7 +21,6 @@ use common::utils::time::{now_millis, MINUTE10};
 use phonenumber::Mode;
 use strum_macros::{Display, EnumString, ToString};
 
-
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
 }
@@ -32,7 +31,7 @@ pub enum ContactType {
     Email,
 }
 
-#[derive(PartialEq, Clone, Debug, Eq, Hash,EnumString,ToString)]
+#[derive(PartialEq, Clone, Debug, Eq, Hash, EnumString, ToString)]
 pub enum Usage {
     Register,
     Login,
@@ -49,7 +48,7 @@ pub enum Usage {
     NewcomerSwitchMaster,
 }
 
-/*** 
+/***
 impl FromStr for Usage {
     type Err = BackendError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -69,7 +68,7 @@ impl FromStr for Usage {
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
     if input.contains("@") {
-        /*** 
+        /***
         let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
         if email_re.is_match(input) {
             Ok(ContactType::Email)
@@ -82,12 +81,11 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
         } else {
             Err(PhoneOrEmailIncorrect)
         }
-
-    }else {
+    } else {
         //这里和前端的有效判断不一致先放开
         let number = phonenumber::parse(None, input);
         //if phonenumber::is_valid(&number){
-        /***    
+        /***
         if number.is_ok() {
             Ok(ContactType::PhoneNumber)
         } else {
@@ -99,13 +97,13 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
 }
 
 pub fn get_captcha(user: &str, kind: &Usage) -> Result<Option<Captcha>, BackendError> {
-    debug!("get_captcha_find_{}_{}",user,kind.to_string());
+    debug!("get_captcha_find_{}_{}", user, kind.to_string());
 
     let code_storage = &CODE_STORAGE
         .lock()
         .map_err(|e| InternalError(e.to_string()))?;
 
-        debug!("get_all_captcha {:?}",code_storage);
+    debug!("get_all_captcha {:?}", code_storage);
     let value = code_storage
         .get(&(user.to_owned(), kind.to_owned()))
         .as_ref()
@@ -129,10 +127,10 @@ pub struct Captcha {
 pub fn distill_code_from_contact(contact: &str) -> String {
     if contact.contains("+86") {
         contact[contact.len() - 6..].to_string()
-    } else if contact.parse::<u32>().is_ok(){
+    } else if contact.parse::<u32>().is_ok() {
         //contact.to_string()
         "000000".to_string()
-    }else {
+    } else {
         let re = Regex::new(r"test(.*?)@").unwrap();
         let mut code = gen_random_verify_code().to_string();
         if let Some(captures) = re.captures(contact) {
@@ -170,7 +168,7 @@ impl Captcha {
             .lock()
             .map_err(|e| InternalError(e.to_string()))?;
         code_storage.insert((self.owner.to_string(), self.kind.clone()), self.clone());
-        debug!("_eddy_store_{:?}",code_storage);
+        debug!("_eddy_store_{:?}", code_storage);
 
         Ok(())
     }
@@ -185,12 +183,12 @@ impl Captcha {
 
     pub fn check_user_code(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
         if common::env::CONF.service_mode != ServiceMode::Product
-        && common::env::CONF.service_mode != ServiceMode::Dev
-        && code.eq("000000")
+            && common::env::CONF.service_mode != ServiceMode::Dev
+            && code.eq("000000")
         {
             return Ok(());
         }
-        
+
         if let Some(data) = get_captcha(user, &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?
@@ -199,8 +197,8 @@ impl Captcha {
             } else {
                 //delete worn captcha
                 let code_storage = &mut CODE_STORAGE
-                .lock()
-                .map_err(|e| InternalError(e.to_string()))?;
+                    .lock()
+                    .map_err(|e| InternalError(e.to_string()))?;
                 code_storage.remove(&(user.to_string(), kind.clone()));
                 Ok(())
             }
@@ -212,12 +210,12 @@ impl Captcha {
     //todo: 验证验证码的时候不能进行验证码删除
     pub fn check_user_code2(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
         if common::env::CONF.service_mode != ServiceMode::Product
-        && common::env::CONF.service_mode != ServiceMode::Dev
-        && code.eq("000000")
+            && common::env::CONF.service_mode != ServiceMode::Dev
+            && code.eq("000000")
         {
             return Ok(());
         }
-        
+
         if let Some(data) = get_captcha(user, &kind)? {
             if data.code != code {
                 Err(CaptchaIncorrect)?

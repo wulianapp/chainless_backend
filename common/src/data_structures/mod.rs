@@ -1,10 +1,10 @@
 pub mod account_manager;
 pub mod airdrop;
+pub mod coin_transaction;
 pub mod device_info;
 pub mod general;
 pub mod newbie_reward;
 pub mod secret_store;
-pub mod coin_transaction;
 pub mod wallet_namage_record;
 
 use std::str::FromStr;
@@ -15,7 +15,6 @@ use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
 
 use self::{coin_transaction::CoinTransaction, secret_store::SecretStore};
-
 
 //only Main have key role
 #[derive(Deserialize, Serialize, Debug, EnumString, Display)]
@@ -31,7 +30,7 @@ pub enum KeyRole {
     Newcommer(String),
 }
 
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq,Clone)]
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum KeyRole2 {
     Master,
     Servant,
@@ -61,7 +60,7 @@ pub enum SecretKeyState {
 
 type DeviceType = Option<KeyRole>;
 
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq,Clone)]
+#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum DeviceState {
     Active,
     Inactive,
@@ -101,19 +100,19 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display,PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum CoinType {
-    #[strum(ascii_case_insensitive,to_string = "btc")]
+    #[strum(ascii_case_insensitive, to_string = "btc")]
     BTC,
-    #[strum(ascii_case_insensitive,to_string = "eth")]
+    #[strum(ascii_case_insensitive, to_string = "eth")]
     ETH,
-    #[strum(ascii_case_insensitive,to_string = "usdt")]
+    #[strum(ascii_case_insensitive, to_string = "usdt")]
     USDT,
-    #[strum(ascii_case_insensitive,to_string = "usdc")]
+    #[strum(ascii_case_insensitive, to_string = "usdc")]
     USDC,
-    #[strum(ascii_case_insensitive,to_string = "cly")]
+    #[strum(ascii_case_insensitive, to_string = "cly")]
     CLY,
-    #[strum(ascii_case_insensitive,to_string = "dw20")]
+    #[strum(ascii_case_insensitive, to_string = "dw20")]
     DW20,
 }
 
@@ -169,7 +168,7 @@ impl CoinType {
     }
 }
 
-#[derive(Deserialize,Serialize,PartialEq, Display,Clone, Debug, Eq, Hash,EnumString)]
+#[derive(Deserialize, Serialize, PartialEq, Display, Clone, Debug, Eq, Hash, EnumString)]
 pub enum TxStatusOnChain {
     NotLaunch,
     Pending,
@@ -177,9 +176,9 @@ pub enum TxStatusOnChain {
     Successful,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone,Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
 pub struct AccountMessage {
     pub newcomer_became_sevant: Vec<SecretStore>,
     pub coin_tx: Vec<CoinTransaction>,
-    pub have_uncompleted_txs: bool
+    pub have_uncompleted_txs: bool,
 }

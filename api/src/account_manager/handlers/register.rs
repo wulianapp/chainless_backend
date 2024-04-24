@@ -24,7 +24,6 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
-
     //check userinfo form db
     let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
     if !find_res.is_empty() {
@@ -52,8 +51,8 @@ async fn register(
 
     if let Some(code) = predecessor_invite_code {
         let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code))
-        .map_err(|_e| InviteCodeNotExist)?;
-        if !predecessor.user_info.secruity_is_seted{
+            .map_err(|_e| InviteCodeNotExist)?;
+        if !predecessor.user_info.secruity_is_seted {
             Err(PredecessorNotSetSecurity)?;
         }
         view.user_info.predecessor = Some(predecessor.id);

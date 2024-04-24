@@ -7,6 +7,7 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
+use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -14,17 +15,16 @@ use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
+use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
-use crate::wallet::{AddSubaccountRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest};
-use common::error_code::BackendError::ChainError;
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;    
+    let main_account = super::get_main_account(user_id)?;
     let AddSubaccountRequest {
         subaccount_pubkey,
         subaccount_prikey_encryped_by_password,
@@ -32,13 +32,12 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         hold_value_limit,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
- 
-    let (_,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
 
-    //todo: 24小时内只能三次增加的限制    
+    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role, KeyRole2::Master)?;
+
+    //todo: 24小时内只能三次增加的限制
 
     //store user info
     //let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
@@ -59,18 +58,22 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     secret.insert()?;
 
     let multi_cli = ContractClient::<MultiSig>::new()?;
-    let sub_confs = HashMap::from([(subaccount_id.as_str(),SubAccConf{ pubkey: subaccount_pubkey,hold_value_limit})]);
-    let txid = multi_cli
-        .add_subaccount(&main_account, sub_confs)
-        .await?;
-    
+    let sub_confs = HashMap::from([(
+        subaccount_id.as_str(),
+        SubAccConf {
+            pubkey: subaccount_pubkey,
+            hold_value_limit,
+        },
+    )]);
+    let txid = multi_cli.add_subaccount(&main_account, sub_confs).await?;
+
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::AddSubaccount,
         &device.hold_pubkey.unwrap(),
         &device.id,
         &device.brand,
-        vec![txid]
+        vec![txid],
     );
     record.insert()?;
 

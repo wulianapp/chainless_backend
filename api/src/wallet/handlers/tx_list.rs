@@ -1,12 +1,16 @@
 use crate::utils::token_auth;
 use crate::wallet::CreateMainAccountRequest;
+use crate::wallet::TxListRequest;
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::{get_support_coin_list, coin_transaction::{CoinTransaction,TxType}, CoinType};
 use common::data_structures::TxStatusOnChain;
+use common::data_structures::{
+    coin_transaction::{CoinTransaction, TxType},
+    get_support_coin_list, CoinType,
+};
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -20,10 +24,8 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
-use crate::wallet::TxListRequest;
 
 use super::ServentSigDetail;
-
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxViewTmp {
@@ -45,34 +47,52 @@ pub struct CoinTxViewTmp {
     pub created_at: String,
 }
 
-
-pub async fn req(req: HttpRequest,request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
+pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
-    let TxListRequest{ tx_role, counterparty, per_page, page } = request_data;
+    let TxListRequest {
+        tx_role,
+        counterparty,
+        per_page,
+        page,
+    } = request_data;
     let tx_role = tx_role.parse().unwrap();
-    let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(tx_role,&main_account,counterparty.as_deref(),per_page,page))?;
-    let txs: Vec<CoinTxViewTmp> = txs.into_iter().map(|tx|{
-        CoinTxViewTmp{
-            order_id: tx.transaction.order_id,
-            tx_id: tx.transaction.tx_id,
-            coin_type: tx.transaction.coin_type,
-            from: tx.transaction.from,
-            to: tx.transaction.to,
-            amount: raw2display(tx.transaction.amount),
-            expire_at: tx.transaction.expire_at,
-            memo: tx.transaction.memo,
-            stage: tx.transaction.stage,
-            coin_tx_raw: tx.transaction.coin_tx_raw,
-            chain_tx_raw: tx.transaction.chain_tx_raw,
-            //todo
-            signatures: tx.transaction.signatures.iter().map(|s| s.parse().unwrap()).collect(),
-            tx_type: tx.transaction.tx_type,
-            chain_status: tx.transaction.chain_status,
-            updated_at: tx.updated_at,
-            created_at: tx.created_at,
-        }
-    }).collect();
-   
+    let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(
+        tx_role,
+        &main_account,
+        counterparty.as_deref(),
+        per_page,
+        page,
+    ))?;
+    let txs: Vec<CoinTxViewTmp> = txs
+        .into_iter()
+        .map(|tx| {
+            CoinTxViewTmp {
+                order_id: tx.transaction.order_id,
+                tx_id: tx.transaction.tx_id,
+                coin_type: tx.transaction.coin_type,
+                from: tx.transaction.from,
+                to: tx.transaction.to,
+                amount: raw2display(tx.transaction.amount),
+                expire_at: tx.transaction.expire_at,
+                memo: tx.transaction.memo,
+                stage: tx.transaction.stage,
+                coin_tx_raw: tx.transaction.coin_tx_raw,
+                chain_tx_raw: tx.transaction.chain_tx_raw,
+                //todo
+                signatures: tx
+                    .transaction
+                    .signatures
+                    .iter()
+                    .map(|s| s.parse().unwrap())
+                    .collect(),
+                tx_type: tx.transaction.tx_type,
+                chain_status: tx.transaction.chain_status,
+                updated_at: tx.updated_at,
+                created_at: tx.created_at,
+            }
+        })
+        .collect();
+
     Ok(Some(txs))
 }

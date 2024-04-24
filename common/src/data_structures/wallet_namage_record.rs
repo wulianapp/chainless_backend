@@ -2,15 +2,15 @@ use std::fmt;
 use std::str::FromStr;
 
 use super::secret_store::SecretStore;
+use super::*;
+use crate::env::CONF as global_conf;
 use anyhow::Error;
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
-use crate::env::CONF as global_conf;
-use super::*;
 
 //const PREDECESSOR_SUBFIX: &str = ".node0";
-#[derive(Deserialize,Serialize,PartialEq, Clone, Debug, Eq, Hash,EnumString,ToString)]
+#[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash, EnumString, ToString)]
 pub enum WalletOperateType {
     //两个txid，服务端重试
     CreateAccount,
@@ -27,11 +27,11 @@ pub enum WalletOperateType {
     //三个txid、用户重试
     ServantSwitchMaster,
     //三个txid、用户重试
-    NewcomerSwitchMaster
+    NewcomerSwitchMaster,
 }
 
-#[derive(Deserialize, Serialize,PartialEq, Clone, Debug, Eq, Hash)]
-pub struct WalletManageRecord{
+#[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash)]
+pub struct WalletManageRecord {
     pub record_id: String,
     pub user_id: String,
     pub operation_type: WalletOperateType,

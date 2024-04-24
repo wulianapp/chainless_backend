@@ -18,19 +18,17 @@ pub async fn req(
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let _device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
-    let (_user,current_strategy,device) = super::get_session_state(user_id,&device_id).await?;
+    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
+    super::check_role(current_role, KeyRole2::Master)?;
 
     //todo: check must be main device
-    let CancelSendMoneyRequest {
-        order_id,
-    } = request_data.0;
+    let CancelSendMoneyRequest { order_id } = request_data.0;
     let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     //todo: chain status
-    if tx.transaction.stage == CoinSendStage::SenderReconfirmed{
+    if tx.transaction.stage == CoinSendStage::SenderReconfirmed {
         Err(WalletError::TxAlreadyConfirmed)?;
-    }else{
+    } else {
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
             CoinTxFilter::ByOrderId(&order_id),

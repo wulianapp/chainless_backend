@@ -2,27 +2,26 @@
 #![allow(dead_code)]
 
 mod airdrop;
+pub mod bridge_on_near;
 pub mod coin;
+pub mod erc20_on_eth;
 pub mod general;
 mod hello;
 pub mod multi_sig;
 mod newbie_reward;
-pub mod bridge_on_near;
-pub mod erc20_on_eth;
 
 pub mod bridge_on_eth;
-pub mod fees_call;
 pub mod eth_cli;
+pub mod fees_call;
 
-use common::{
-    error_code::{BackendError, ExternalServiceError},
-};
+use common::error_code::{BackendError, ExternalServiceError};
 use ethers::providers::JsonRpcError;
 use general::{gen_transaction_with_caller, pubkey_from_hex_str};
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
+use anyhow::Result;
 use common::error_code;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
@@ -39,7 +38,6 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
 use tracing::{debug, error, info};
-use anyhow::{Result};
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
 
@@ -52,8 +50,11 @@ lazy_static! {
 }
 
 //todo: deal with error detail
-pub async fn rpc_call<M>(method: M) -> Result<M::Response,near_jsonrpc_client::errors::JsonRpcError<M::Error>> 
-where M: methods::RpcMethod,
+pub async fn rpc_call<M>(
+    method: M,
+) -> Result<M::Response, near_jsonrpc_client::errors::JsonRpcError<M::Error>>
+where
+    M: methods::RpcMethod,
 {
     for index in 0..5 {
         match crate::CHAIN_CLIENT.call(&method).await {
@@ -64,7 +65,7 @@ where M: methods::RpcMethod,
                 }
             }
         }
-    };
+    }
     //Err(anyhow::anyhow!("call rpc failed, and max retries exceeded"))
     panic!("")
 }
@@ -89,14 +90,12 @@ impl<T> ContractClient<T> {
             (
                 args.to_string(),
                 //匿名账户可以通过转账的方式创建
-                vec![Action::Transfer(TransferAction {
-                    deposit: 1u128,
-                })],
+                vec![Action::Transfer(TransferAction { deposit: 1u128 })],
                 1,
             )
-        //根据指定名字创建用户，需要配置顶级账户    
-        }else if method_name == "register_account_with_name"{
-            let args:Vec<&str> = args.split(":").collect();
+        //根据指定名字创建用户，需要配置顶级账户
+        } else if method_name == "register_account_with_name" {
+            let args: Vec<&str> = args.split(":").collect();
             let account_id = args[0];
             let pubkey = args[1];
 
@@ -108,7 +107,7 @@ impl<T> ContractClient<T> {
                 },
             }));
             let create_action = Action::CreateAccount(CreateAccountAction {});
-            (account_id.to_string(), vec![create_action,add_action], 1)
+            (account_id.to_string(), vec![create_action, add_action], 1)
         } else if method_name == "add_key" {
             let add_action = Action::AddKey(Box::new(AddKeyAction {
                 public_key: pubkey_from_hex_str(args)?,
@@ -142,10 +141,10 @@ impl<T> ContractClient<T> {
         )
         .await?;
         transaction.actions = actions;
-       Ok(transaction)
+        Ok(transaction)
     }
 
-    /*** 
+    /***
     async fn gen_create_account_tx(&self, receiver: &AccountId) -> Result<Transaction> {
         let deposit_actions: Vec<Action> =
             vec![Action::Transfer(TransferAction { deposit: 0u128 })];

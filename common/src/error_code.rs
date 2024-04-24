@@ -5,7 +5,6 @@ use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
 
-
 #[derive(Error, Debug)]
 pub enum BackendError {
     #[error("internal error: {0}")]
@@ -33,7 +32,7 @@ impl From<AnyhowError> for BackendError {
             BackendError::DBError(error.to_string())
         } else if error.to_string().contains("ChainError:") {
             BackendError::ChainError(error.to_string())
-        }else {
+        } else {
             BackendError::InternalError(error.to_string())
         }
     }
@@ -108,8 +107,7 @@ impl ErrorCode for AccountManagerError {
             Self::UserIdNotExist => 2014,
             Self::CaptchaUsageNotAllowed => 2015,
             Self::PredecessorNotSetSecurity => 2016,
-            Self::UserNotSetSecurity => 2017
-
+            Self::UserNotSetSecurity => 2017,
         }
     }
 }
@@ -141,7 +139,7 @@ pub enum WalletError {
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
-    TxStatusIllegal(CoinSendStage,CoinSendStage),
+    TxStatusIllegal(CoinSendStage, CoinSendStage),
     #[error("balanceMustBeZero")]
     BalanceMustBeZero,
     #[error("subaccount {0} is not existent on chain")]
@@ -164,7 +162,7 @@ impl ErrorCode for WalletError {
             Self::InsufficientAvailableBalance => 3010,
             Self::NotSetSecurity => 3011,
             Self::TxAlreadyConfirmed => 3012,
-            Self::TxStatusIllegal(_,_) => 3013,
+            Self::TxStatusIllegal(_, _) => 3013,
             Self::BalanceMustBeZero => 3014,
             Self::SubAccountNotExist(_) => 3015,
             Self::MustHaveSubaccount => 3016,

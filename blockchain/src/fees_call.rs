@@ -1,4 +1,3 @@
-
 use common::utils::math::coin_amount::raw2display;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
@@ -15,7 +14,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::{CoinType};
+use common::data_structures::CoinType;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -34,7 +33,7 @@ impl ContractClient<FeesCall> {
         let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
         //cvault0001.chainless
         let contract = &common::env::CONF.fees_call_contract;
-        println!("___{}",prikey_str);
+        println!("___{}", prikey_str);
         let pri_key: SecretKey = prikey_str.parse()?;
         let pubkey = get_pubkey(&pri_key.to_string())?;
 
@@ -48,49 +47,54 @@ impl ContractClient<FeesCall> {
         })
     }
 
-    pub async fn set_fees_priority(&self,account_id:&str,tokens:Vec<CoinType>) -> Result<String>{
+    pub async fn set_fees_priority(
+        &self,
+        account_id: &str,
+        tokens: Vec<CoinType>,
+    ) -> Result<String> {
         //todo: verify user's ecdsa signature
         let account_id = AccountId::from_str(&account_id)?;
-        let tokens:Vec<AccountId> = tokens.iter().map(|coin|{
-            coin.to_account_id()
-        }).collect();
+        let tokens: Vec<AccountId> = tokens.iter().map(|coin| coin.to_account_id()).collect();
         let args_str = json!({
             "user_id":  account_id,
             "tokens": tokens,
-        }).to_string();
-        self.commit_by_relayer("set_user_tokens_admin", &args_str).await
+        })
+        .to_string();
+        self.commit_by_relayer("set_user_tokens_admin", &args_str)
+            .await
     }
 
-
-    pub async fn get_fees_priority(&self,account_id:&str) -> Result<Vec<CoinType>>{
+    pub async fn get_fees_priority(&self, account_id: &str) -> Result<Vec<CoinType>> {
         let user_account_id = AccountId::from_str(account_id).unwrap();
         let args_str = json!({
             "id": user_account_id,
-        }).to_string();
+        })
+        .to_string();
         //contract return default priority when not set
-        let tokens:Option<Vec<String>> = self.query_call("get_user_tokens", &args_str).await?;
+        let tokens: Option<Vec<String>> = self.query_call("get_user_tokens", &args_str).await?;
         let tokens = tokens
-        .unwrap()
-        .iter()
-        .map(|x| x.parse::<CoinType>().map_err(|e| anyhow::anyhow!(e)))
-        .collect::<Result<Vec<CoinType>>>()?;
+            .unwrap()
+            .iter()
+            .map(|x| x.parse::<CoinType>().map_err(|e| anyhow::anyhow!(e)))
+            .collect::<Result<Vec<CoinType>>>()?;
         Ok(tokens)
     }
 
     //后台不做乘法计算，允许这里精度丢失
-    pub async fn get_coin_price(&self,coin: &CoinType) -> Result<(u128,u128)>{
+    pub async fn get_coin_price(&self, coin: &CoinType) -> Result<(u128, u128)> {
         let args_str = json!({
             "id":  coin.to_account_id(),
-        }).to_string();
-        let (base_amount,quote_amount):(String,String) = self.query_call("get_price", &args_str).await?.unwrap();
-        let base_amount:u128 = base_amount.parse().unwrap();
-        let quote_amount:u128 = quote_amount.parse().unwrap();
-        Ok((base_amount,quote_amount))
+        })
+        .to_string();
+        let (base_amount, quote_amount): (String, String) =
+            self.query_call("get_price", &args_str).await?.unwrap();
+        let base_amount: u128 = base_amount.parse().unwrap();
+        let quote_amount: u128 = quote_amount.parse().unwrap();
+        Ok((base_amount, quote_amount))
     }
 
-    
-    pub async fn get_coin_price_custom(&self,coin: &CoinType) -> Result<f32>{
-        let (base_amount,quote_amount) = self.get_coin_price(coin).await?;
+    pub async fn get_coin_price_custom(&self, coin: &CoinType) -> Result<f32> {
+        let (base_amount, quote_amount) = self.get_coin_price(coin).await?;
         let price = quote_amount as f32 / base_amount as f32;
         Ok(price)
     }
@@ -111,15 +115,18 @@ mod tests {
         ];
         let fees_cli = ContractClient::<FeesCall>::new().unwrap();
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
-        println!("prioritys1 {:?} ",prioritys);
+        println!("prioritys1 {:?} ", prioritys);
         let json_string = serde_json::to_string(&prioritys).unwrap();
-        println!("prioritys_json1 {:?} ",json_string);
+        println!("prioritys_json1 {:?} ", json_string);
 
-        let set_res = fees_cli.set_fees_priority("user.node0",default_prioritys).await.unwrap();
-        println!("set_res {} ",set_res);
+        let set_res = fees_cli
+            .set_fees_priority("user.node0", default_prioritys)
+            .await
+            .unwrap();
+        println!("set_res {} ", set_res);
 
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
-        println!("prioritys2 {:?} ",prioritys);
+        println!("prioritys2 {:?} ", prioritys);
     }
 
     #[tokio::test]
@@ -133,9 +140,8 @@ mod tests {
         ];
         let fees_cli = ContractClient::<FeesCall>::new().unwrap();
         for coin in coins {
-            let price= fees_cli.get_coin_price_custom(&coin).await.unwrap();
-            println!("{}: price {} ",coin,price);
+            let price = fees_cli.get_coin_price_custom(&coin).await.unwrap();
+            println!("{}: price {} ", coin, price);
         }
     }
-
 }

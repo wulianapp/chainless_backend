@@ -8,19 +8,17 @@ use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
 //#[derive(Serialize)]
+use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::SecretKeyState;
+use common::data_structures::TxStatusOnChain;
 use common::data_structures::*;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use derive_more::{AsRef, Deref};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
-use derive_more::{AsRef, Deref};
-use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::TxStatusOnChain;
-
 
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
 use anyhow::Result;
-  
 
 #[derive(Debug)]
 pub enum WalletManageRecordUpdater<'a> {
@@ -32,10 +30,10 @@ impl fmt::Display for WalletManageRecordUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             WalletManageRecordUpdater::TxIds(ids) => {
-            format!("tx_ids={} ", vec_str2array_text(ids.deref().to_owned()))
+                format!("tx_ids={} ", vec_str2array_text(ids.deref().to_owned()))
             }
             WalletManageRecordUpdater::Status(key) => {
-                format!("status='{}' ",key.to_string())
+                format!("status='{}' ", key.to_string())
             }
         };
         write!(f, "{}", description)
@@ -61,7 +59,7 @@ impl fmt::Display for WalletManageRecordFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug,AsRef,Clone)]
+#[derive(Deserialize, Serialize, Debug, AsRef, Clone)]
 pub struct WalletManageRecordView {
     #[as_ref]
     pub record: WalletManageRecord,
@@ -71,13 +69,12 @@ pub struct WalletManageRecordView {
 
 impl WalletManageRecordView {
     pub fn new_with_specified(
-        user_id: &str, 
-        operation_type: WalletOperateType, 
+        user_id: &str,
+        operation_type: WalletOperateType,
         operator_pubkey: &str,
         operator_device_id: &str,
         operator_device_brand: &str,
-        tx_ids:Vec<String>
-    
+        tx_ids: Vec<String>,
     ) -> Self {
         WalletManageRecordView {
             record: WalletManageRecord {
@@ -119,8 +116,7 @@ impl PsqlOp for WalletManageRecordView {
         );
         let execute_res = crate::query(sql.as_str())?;
         debug!("get device: raw sql {}", sql);
-        let gen_view = |row: &Row| -> Result<WalletManageRecordView> 
-        {
+        let gen_view = |row: &Row| -> Result<WalletManageRecordView> {
             Ok(WalletManageRecordView {
                 record: WalletManageRecord {
                     record_id: row.get(0),
@@ -137,23 +133,16 @@ impl PsqlOp for WalletManageRecordView {
             })
         };
 
-        execute_res
-            .iter()
-            .map(gen_view)
-            .collect()
+        execute_res.iter().map(gen_view).collect()
     }
-    fn update(
-        new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>,
-    ) -> Result<u64> {
+    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64> {
         let sql = format!(
             "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value,
-            filter
+            new_value, filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-       //assert_ne!(execute_res, 0);
+        //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
@@ -180,14 +169,14 @@ impl PsqlOp for WalletManageRecordView {
                 tx_ids,\
                 status\
          ) values ('{}','{}','{}','{}','{}','{}',{},'{}');",
-         record_id,
-         user_id,
-         operation_type.to_string(),
-         operator_pubkey,
-         operator_device_id,
-         operator_device_brand,
-         vec_str2array_text(tx_ids),
-         status.to_string()
+            record_id,
+            user_id,
+            operation_type.to_string(),
+            operator_pubkey,
+            operator_device_id,
+            operator_device_brand,
+            vec_str2array_text(tx_ids),
+            status.to_string()
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
@@ -211,23 +200,25 @@ mod tests {
         let record = WalletManageRecordView::new_with_specified(
             "123",
             WalletOperateType::AddServant,
-              "11111",
-              "apple_device_id",
-                "apple",
-                vec![
-                    "JBjvhpc3Uze77eVVoa4LvyAo1k6YQchMzsTd2pdADHvw".to_string(),
-                "6sXahQSvCNkj7Y3uRhVcGHD1BPZcAHVtircBUj7L9NhY".to_string()]
+            "11111",
+            "apple_device_id",
+            "apple",
+            vec![
+                "JBjvhpc3Uze77eVVoa4LvyAo1k6YQchMzsTd2pdADHvw".to_string(),
+                "6sXahQSvCNkj7Y3uRhVcGHD1BPZcAHVtircBUj7L9NhY".to_string(),
+            ],
         );
         record.insert().unwrap();
 
-        let record_by_find =
-        WalletManageRecordView::find_single(
-            WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id)).unwrap();
+        let record_by_find = WalletManageRecordView::find_single(
+            WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id),
+        )
+        .unwrap();
         println!("{:?}", record_by_find);
 
-       // assert_eq!(record..record_id device_by_find.record);
+        // assert_eq!(record..record_id device_by_find.record);
 
-       WalletManageRecordView::update(
+        WalletManageRecordView::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id),
         )

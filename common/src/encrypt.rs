@@ -1,27 +1,23 @@
-
 use crate::error_code::BackendError;
 use crate::error_code::BackendRes;
+use anyhow::Ok;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::str::FromStr;
-use anyhow::Ok;
 use tracing::error;
 //use ed25519_dalek::Signer;
+use anyhow::Result;
+use bs58;
 use ed25519_dalek::Signer as DalekSigner;
+use ed25519_dalek::Verifier;
 use hex::ToHex;
 use rand::rngs::OsRng;
-use serde_json::json;
-use bs58;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tracing::debug;
-use anyhow::Result;
-use ed25519_dalek::Verifier;
-
 
 pub fn bs58_to_hex(input: &str) -> Result<String> {
-    let decoded = bs58::decode(
-        input.as_bytes()
-    ).into_vec()?;
+    let decoded = bs58::decode(input.as_bytes()).into_vec()?;
     Ok(decoded.encode_hex())
 }
 
@@ -39,13 +35,13 @@ fn ed25519_sign_bytes(prikey_hex: &str, data: &[u8]) -> Result<String> {
 
 pub fn ed25519_sign_hex(prikey_hex: &str, data: &str) -> Result<String> {
     let bytes: Vec<u8> = hex::decode(data)?;
-    ed25519_sign_bytes(prikey_hex,&bytes)
+    ed25519_sign_bytes(prikey_hex, &bytes)
 }
 
 //no case use it now
 pub fn ed25519_sign_raw(prikey_hex: &str, data: &str) -> Result<String> {
     let bytes: Vec<u8> = data.as_bytes().to_vec();
-    ed25519_sign_bytes(prikey_hex,&bytes)
+    ed25519_sign_bytes(prikey_hex, &bytes)
 }
 
 //pubkey+real_sig
@@ -55,7 +51,7 @@ pub fn ed25519_gen_pubkey_sign(prikey_hex: &str, data_hex: &str) -> Result<Strin
     let secret_key = ed25519_dalek::Keypair::from_bytes(&prikey_bytes)?;
     let sig = secret_key.sign(&data);
     let pubkey = hex::encode(secret_key.public.as_bytes());
-    let pub_sig = format!("{}{}",pubkey,sig);
+    let pub_sig = format!("{}{}", pubkey, sig);
     Ok(pub_sig)
 }
 
@@ -68,13 +64,13 @@ pub fn ed25519_key_gen() -> (String, String) {
     (prikey, pubkey)
 }
 
-pub fn ed25519_verify(data:&str,pubkey_hex:&str,sig:&str) -> Result<bool> {
+pub fn ed25519_verify(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
     let public_key_bytes: Vec<u8> = hex::decode(pubkey_hex)?;
     let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes)?;
     let signature = ed25519_dalek::Signature::from_str(sig)?;
-    if public_key.verify(data.as_bytes(), &signature).is_ok(){
+    if public_key.verify(data.as_bytes(), &signature).is_ok() {
         Ok(true)
-    }else {   
+    } else {
         Ok(false)
     }
 }
@@ -108,31 +104,33 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> String {
 */
 #[cfg(test)]
 mod tests {
+    use super::*;
     use ed25519_dalek::ed25519::signature::Signature;
     use near_crypto::{ED25519SecretKey, PublicKey};
-    use super::*;
 
     #[test]
-    fn test_bs58_to_hex(){
+    fn test_bs58_to_hex() {
         let data = "24eeXypYZLjg4oUGhtqZ8BUaiBvsUQKXE6HV5tkj7yWx";
         let hex = bs58_to_hex(data).unwrap();
-        assert_eq!(hex,"0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9");
+        assert_eq!(
+            hex,
+            "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9"
+        );
     }
 
     #[test]
-    fn test_hex_to_bs58(){
+    fn test_hex_to_bs58() {
         let data = "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9";
         let hex = hex_to_bs58(data).unwrap();
-        assert_eq!(hex,"24eeXypYZLjg4oUGhtqZ8BUaiBvsUQKXE6HV5tkj7yWx");
+        assert_eq!(hex, "24eeXypYZLjg4oUGhtqZ8BUaiBvsUQKXE6HV5tkj7yWx");
     }
 
     #[test]
-    fn test_sign(){
-        let (prikey,pubkey) = ed25519_key_gen();
+    fn test_sign() {
+        let (prikey, pubkey) = ed25519_key_gen();
         let input_hex = "hello";
         let sig = ed25519_sign_raw(&prikey, input_hex).unwrap();
-        let verify_res = ed25519_verify(input_hex,&pubkey,&sig).unwrap();
+        let verify_res = ed25519_verify(input_hex, &pubkey, &sig).unwrap();
         assert!(verify_res);
     }
-   
 }

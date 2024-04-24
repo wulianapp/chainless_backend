@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
-use common::data_structures::coin_transaction::{CoinSendStage};
+use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
@@ -14,20 +14,23 @@ use models::PsqlOp;
 pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user,current_strategy,device) = 
-        super::get_session_state(user_id,&device_id).await?;
-        let _main_account = user.main_account;
-        let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-        super::check_role(current_role,KeyRole2::Master)?;
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let _main_account = user.main_account;
+    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    super::check_role(current_role, KeyRole2::Master)?;
 
     let ReactPreSendMoney {
         order_id,
         is_agreed,
     } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    let coin_tx =
+        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     if coin_tx.transaction.stage != CoinSendStage::SenderSigCompleted {
-        Err(WalletError::TxStatusIllegal(coin_tx.transaction.stage,CoinSendStage::SenderSigCompleted))?;
+        Err(WalletError::TxStatusIllegal(
+            coin_tx.transaction.stage,
+            CoinSendStage::SenderSigCompleted,
+        ))?;
     }
 
     //message max is 10，
@@ -57,7 +60,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
                 coin_tx.transaction.coin_type,
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,
-            ).await?;
+            )
+            .await?;
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
             CoinTxFilter::ByOrderId(&order_id),

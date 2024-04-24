@@ -15,14 +15,13 @@ use models::secret_store::{SecretFilter, SecretUpdater};
 
 use crate::wallet::AddServantRequest;
 use blockchain::ContractClient;
+use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
 use models::PsqlOp;
 use tracing::error;
-use common::error_code::BackendError::ChainError;
 
 use super::get_role;
-
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -34,13 +33,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_id,
         holder_device_brand: _,
     } = request_data;
-    let (user,current_strategy,device) = 
-    super::get_session_state(user_id,&device_id).await?;
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
-    
+
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role,KeyRole2::Master)?;
+    super::check_role(current_role, KeyRole2::Master)?;
 
     models::general::transaction_begin()?;
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
@@ -87,7 +85,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         &device.hold_pubkey.unwrap(),
         &device.id,
         &device.brand,
-        vec![txid]
+        vec![txid],
     );
     record.insert()?;
 

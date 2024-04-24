@@ -20,10 +20,10 @@ use common::data_structures::secret_store::SecretStore;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
+use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
-use common::error_code::BackendError::ChainError;
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -38,25 +38,24 @@ pub(crate) async fn req(
         subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         anwser_indexes,
-        captcha
+        captcha,
     } = request_data;
 
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
-
     //store user info
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
-    
-    if !user_info.user_info.main_account.eq(""){
-        Err(BackendError::InternalError("main_account is already existent".to_string()))?;
+
+    if !user_info.user_info.main_account.eq("") {
+        Err(BackendError::InternalError(
+            "main_account is already existent".to_string(),
+        ))?;
     }
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     //todo:
     let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
-
-
 
     models::general::transaction_begin()?;
     account_manager::UserInfoView::update_single(
@@ -85,18 +84,22 @@ pub(crate) async fn req(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;
 
-
     let txid = multi_sig_cli
         .init_strategy(
             &master_pubkey,
-            &main_account_id, 
+            &main_account_id,
             &subaccount_pubkey,
-            &subaccount_id
-        ).await?;
-    //todo: 通过get_user进行检查、在里面了就不调用了    
+            &subaccount_id,
+        )
+        .await?;
+    //todo: 通过get_user进行检查、在里面了就不调用了
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
     let set_res = bridge_cli.set_user_batch(&main_account_id).await;
-    println!("set_user_batch txid {} ,{}",set_res.unwrap(),main_account_id);
+    println!(
+        "set_user_batch txid {} ,{}",
+        set_res.unwrap(),
+        main_account_id
+    );
 
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
@@ -104,7 +107,7 @@ pub(crate) async fn req(
         &master_pubkey,
         &device_id,
         &device_brand,
-        vec![txid]
+        vec![txid],
     );
     record.insert()?;
 

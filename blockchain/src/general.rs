@@ -12,32 +12,31 @@ use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
 
-use near_jsonrpc_client::{JsonRpcClient};
+use near_jsonrpc_client::JsonRpcClient;
 use near_jsonrpc_primitives::types::transactions::TransactionInfo;
-
 
 use hex;
 //use log::debug;
-use tracing::{debug, error, warn};
 use anyhow::{anyhow, Ok, Result};
+use tracing::{debug, error, warn};
 
 //todo: contract_addr type change into AccountId
 pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Result<Transaction> {
     let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id: signer.account_id.clone(),
-                public_key: signer.public_key.clone(),
-            },
-        }).await?;
+        block_reference: BlockReference::latest(),
+        request: near_primitives::views::QueryRequest::ViewAccessKey {
+            account_id: signer.account_id.clone(),
+            public_key: signer.public_key.clone(),
+        },
+    })
+    .await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ =>    Err(anyhow::anyhow!("failed to extract current nonce"))?
+        _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
     };
 
-    Ok(
-    Transaction {
+    Ok(Transaction {
         signer_id: signer.account_id.clone(),
         public_key: signer.public_key.clone(),
         nonce: current_nonce + 1,
@@ -53,20 +52,19 @@ pub async fn gen_transaction_with_caller(
     contract_addr: &str,
 ) -> Result<Transaction> {
     let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id: caller_account_id.clone(),
-                public_key: caller_pubkey.clone(),
-            },
-        })
-        .await?;
+        block_reference: BlockReference::latest(),
+        request: near_primitives::views::QueryRequest::ViewAccessKey {
+            account_id: caller_account_id.clone(),
+            public_key: caller_pubkey.clone(),
+        },
+    })
+    .await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
-        _ =>  Err(anyhow::anyhow!("failed to extract current nonce"))?,
+        _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
     };
-    Ok(
-    Transaction {
+    Ok(Transaction {
         signer_id: caller_account_id,
         public_key: caller_pubkey,
         nonce: current_nonce + 1,
@@ -82,21 +80,24 @@ pub async fn gen_transaction_with_caller_with_nonce(
     contract_addr: &str,
     add_nonce: u8,
 ) -> Result<Transaction> {
-    debug!("line_{}___{},{},{},{}",line!(),caller_account_id.to_string(),
-    caller_pubkey.to_string(),
-    contract_addr.to_string(),
-    add_nonce.to_string()
+    debug!(
+        "line_{}___{},{},{},{}",
+        line!(),
+        caller_account_id.to_string(),
+        caller_pubkey.to_string(),
+        contract_addr.to_string(),
+        add_nonce.to_string()
     );
     let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id: caller_account_id.clone(),
-                public_key: caller_pubkey.clone(),
-            },
-        })
-        .await?;
- 
-    debug!("line_{}___{}",line!(),caller_account_id.to_string());
+        block_reference: BlockReference::latest(),
+        request: near_primitives::views::QueryRequest::ViewAccessKey {
+            account_id: caller_account_id.clone(),
+            public_key: caller_pubkey.clone(),
+        },
+    })
+    .await?;
+
+    debug!("line_{}___{}", line!(), caller_account_id.to_string());
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
@@ -127,21 +128,20 @@ pub fn pubkey_from_hex_str(key: &str) -> Result<PublicKey> {
 pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
     let account_id = AccountId::from_str(account_str)?;
     let mut access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKeyList { account_id: account_id.clone() },
-        })
-        .await?;
+        block_reference: BlockReference::latest(),
+        request: near_primitives::views::QueryRequest::ViewAccessKeyList {
+            account_id: account_id.clone(),
+        },
+    })
+    .await?;
 
     match access_key_query_response.kind {
         QueryResponseKind::AccessKeyList(list) => Ok(list),
-        _ =>  Err(anyhow::anyhow!("failed to extract current nonce"))?,
+        _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
     }
 }
 
-
-
 pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
-   
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
             tx_hash: tx_id.parse().unwrap(),
@@ -151,28 +151,27 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
 
     let tx_status = crate::rpc_call(tx_status_request).await?;
 
-
     let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
-        let mut status =   TxStatusOnChain::Successful;
+        let mut status = TxStatusOnChain::Successful;
         for outcome in tx_status.receipts_outcome {
-            match outcome.outcome.status{
+            match outcome.outcome.status {
                 ExecutionStatusView::Unknown => {
                     unreachable!("");
                     status = TxStatusOnChain::Failed;
                     break;
-                },
+                }
                 ExecutionStatusView::Failure(_) => {
                     status = TxStatusOnChain::Failed;
-                },
-                ExecutionStatusView::SuccessValue(_) => {},
-                ExecutionStatusView::SuccessReceiptId(_) => {},
+                }
+                ExecutionStatusView::SuccessValue(_) => {}
+                ExecutionStatusView::SuccessReceiptId(_) => {}
             }
         }
         status
-    }else if let FinalExecutionStatus::Failure(error) = tx_status.status{
-        warn!("tx_id({}) is failed: {}",tx_id,error.to_string());
+    } else if let FinalExecutionStatus::Failure(error) = tx_status.status {
+        warn!("tx_id({}) is failed: {}", tx_id, error.to_string());
         TxStatusOnChain::Failed
-    }else {
+    } else {
         TxStatusOnChain::Pending
     };
     Ok(status)
@@ -184,12 +183,13 @@ pub async fn safe_gen_transaction(
     contract_addr: &str,
 ) -> Result<Transaction> {
     let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
-            block_reference: BlockReference::latest(),
-            request: near_primitives::views::QueryRequest::ViewAccessKey {
-                account_id: AccountId::from_str(caller_account_id).unwrap(),
-                public_key: PublicKey::from_str(caller_pubkey).unwrap(),
-            },
-        }).await?;
+        block_reference: BlockReference::latest(),
+        request: near_primitives::views::QueryRequest::ViewAccessKey {
+            account_id: AccountId::from_str(caller_account_id).unwrap(),
+            public_key: PublicKey::from_str(caller_pubkey).unwrap(),
+        },
+    })
+    .await?;
 
     let current_nonce = match access_key_query_response.kind {
         QueryResponseKind::AccessKey(access_key) => access_key.nonce,
@@ -221,7 +221,7 @@ pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
     let tx_hex = hex::decode(tx_str).unwrap();
     let sign_hex = hex::decode(sig_str).unwrap();
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
-    debug!("line={}, tx={:?}, hex {}",line!(),transaction,sig_str);
+    debug!("line={}, tx={:?}, hex {}", line!(), transaction, sig_str);
     //let signature = Signature::try_from_slice(&sign_hex).unwrap();
     let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
     let rest = broadcast_tx_commit(transaction, signature).await;
@@ -268,27 +268,30 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_gen_transaction_with_caller_with_nonce(){
+    async fn test_gen_transaction_with_caller_with_nonce() {
         let caller_account_id = AccountId::from_str("test").unwrap();
-        let pubkey_hex = AccountId::from_str("b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7").unwrap();
+        let pubkey_hex =
+            AccountId::from_str("b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7")
+                .unwrap();
         let caller_pubkey = PublicKey::from_near_implicit_account(&pubkey_hex).unwrap();
         let receiver_id = "7daa0e49.test";
         let res = gen_transaction_with_caller_with_nonce(
             caller_account_id,
             caller_pubkey,
             receiver_id,
-            1
-        ).await.unwrap();
-        println!("res {:?}",res);
+            1,
+        )
+        .await
+        .unwrap();
+        println!("res {:?}", res);
     }
 
     #[tokio::test]
-    async fn test_get_access_key_list(){
-        loop{
+    async fn test_get_access_key_list() {
+        loop {
             let res = get_access_key_list("node0").await;
-            println!("res {:?}",res); 
+            println!("res {:?}", res);
             tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         }
-
     }
 }

@@ -24,30 +24,29 @@ pub struct UserInfoTmp {
     pub kyc_is_verified: bool,
     pub secruity_is_seted: bool,
     pub main_account: String,
-    pub role:String,
-    pub name:Option<String>,
+    pub role: String,
+    pub name: Option<String>,
     //todo: birthday
-    pub birth:Option<String>,
-
+    pub birth: Option<String>,
     //pub op_status: OpStatus,
 }
 
 pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
-    let (user_id,device_id,_) = token_auth::validate_credentials2(&request)?;
-    let _devices = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id,user_id))?;
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&request)?;
+    let _devices =
+        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
     let res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
-    
+
     //todo:
-    let role = if res.user_info.main_account.eq(""){
+    let role = if res.user_info.main_account.eq("") {
         KeyRole2::Undefined
-    }else{
-        let (_,current_strategy,device) = 
-        crate::wallet::handlers::get_session_state(user_id,&device_id).await?;
-        let current_role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
+    } else {
+        let (_, current_strategy, device) =
+            crate::wallet::handlers::get_session_state(user_id, &device_id).await?;
+        let current_role =
+            crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
         current_role
     };
-
-
 
     let info = UserInfoTmp {
         id: res.id,
@@ -63,8 +62,7 @@ pub async fn req(request: HttpRequest) -> BackendRes<UserInfoTmp> {
         main_account: res.user_info.main_account,
         role: role.to_string(),
         name: Some("Bob".to_string()),
-        birth: Some("1993-04-01".to_string())
-
+        birth: Some("1993-04-01".to_string()),
     };
     Ok(Some(info))
 }
