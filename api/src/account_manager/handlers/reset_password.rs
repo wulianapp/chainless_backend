@@ -54,7 +54,7 @@ pub async fn req(
     Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::ResetLoginPassword)?;
 
     //modify user's password  at db
-    account_manager::UserInfoView::update(
+    account_manager::UserInfoView::update_single(
         UserUpdater::LoginPwdHash(&new_password),
         UserFilter::ById(user_at_stored.id),
     )?;

@@ -68,7 +68,7 @@ pub(crate) async fn req(req: HttpRequest,request_data:GenSendMoneyRequest) -> Ba
                 coin_tx.transaction.expire_at,
             )
             .await?;
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
             CoinTxFilter::ByOrderId(&order_id),
         )?;

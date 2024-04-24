@@ -60,7 +60,7 @@ pub async fn req(
         .await?;
 
         //todo:txid?
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::TxidStageChainStatus(&tx_id,
                  CoinSendStage::SenderReconfirmed,
                  TxStatusOnChain::Pending),
@@ -73,7 +73,7 @@ pub async fn req(
             coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
             &confirmed_sig,
         ).await;
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::StageChainStatus(
                 CoinSendStage::SenderReconfirmed,
                 TxStatusOnChain::Pending

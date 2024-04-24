@@ -161,7 +161,7 @@ impl PsqlOp for DeviceInfoView {
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<()> {
+    ) -> Result<u64> {
         let sql = format!(
             "update device_info set {} where {}",
             new_value,
@@ -169,9 +169,9 @@ impl PsqlOp for DeviceInfoView {
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res, 0);
+        //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
-        Ok(())
+        Ok(execute_res)
     }
 
     fn insert(&self) -> Result<()> {

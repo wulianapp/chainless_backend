@@ -217,7 +217,7 @@ impl PsqlOp for CoinTxView {
             .collect()
     }
 
-    fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<()> {
+    fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<u64> {
         let sql = format!(
             "UPDATE coin_transaction SET {} where {}",
             update_data,
@@ -225,9 +225,9 @@ impl PsqlOp for CoinTxView {
         );
         info!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res, 0);
+        //assert_ne!(execute_res, 0);
         info!("success update orders {} rows", execute_res);
-        Ok(())
+        Ok(execute_res)
     }
 
     fn insert(&self) -> Result<()> {

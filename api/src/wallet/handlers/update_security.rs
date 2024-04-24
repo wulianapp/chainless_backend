@@ -38,20 +38,20 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //todo: must be master
-    UserInfoView::update(
+    UserInfoView::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),
         UserFilter::ById(user_id),
     )?;
 
     for secret in secrets {
-        SecretStoreView::update(
+        SecretStoreView::update_single(
             SecretUpdater::EncrypedPrikey(
                 &secret.encrypted_prikey_by_password,
                 &secret.encrypted_prikey_by_answer,
             ),
             SecretFilter::ByPubkey(&secret.pubkey),
         )?;
-        DeviceInfoView::update(
+        DeviceInfoView::update_single(
             DeviceInfoUpdater::HolderSaved(false),
             DeviceInfoFilter::ByHoldKey(&secret.pubkey),
         )?;

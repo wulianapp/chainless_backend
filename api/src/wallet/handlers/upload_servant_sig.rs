@@ -37,7 +37,7 @@ pub async fn req(
     }
     
     tx.transaction.signatures.push(signature);
-    models::coin_transfer::CoinTxView::update(
+    models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
     )?;
@@ -60,7 +60,7 @@ pub async fn req(
         if tx.transaction.tx_type == TxType::MainToSub
             || tx.transaction.tx_type == TxType::MainToBridge
         {
-            models::coin_transfer::CoinTxView::update(
+            models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
@@ -87,13 +87,13 @@ pub async fn req(
                 tx.transaction.expire_at,
             )
             .await?;
-            models::coin_transfer::CoinTxView::update(
+            models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认        
         }else{                
-            models::coin_transfer::CoinTxView::update(
+            models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
             )?;

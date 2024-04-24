@@ -67,23 +67,23 @@ pub(crate) async fn req(
         );
         secret_info.insert()?;
     } else {
-        SecretStoreView::update(
+        SecretStoreView::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&new_servant_pubkey),
         )?;
     }
 
-    SecretStoreView::update(
+    SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&old_servant_pubkey),
     )?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update(
+    DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),
     )?;
-    DeviceInfoView::update(
+    DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
     )?;

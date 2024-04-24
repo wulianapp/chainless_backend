@@ -31,7 +31,7 @@ pub async fn req(
     if tx.transaction.stage == CoinSendStage::SenderReconfirmed{
         Err(WalletError::TxAlreadyConfirmed)?;
     }else{
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
             CoinTxFilter::ByOrderId(&order_id),
         )?;

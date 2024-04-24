@@ -59,7 +59,7 @@ pub(crate) async fn req(
 
 
     models::general::transaction_begin()?;
-    account_manager::UserInfoView::update(
+    account_manager::UserInfoView::update_single(
         UserUpdater::SecruityInfo(&anwser_indexes, true, &main_account_id),
         UserFilter::ById(user_id),
     )?;
@@ -80,7 +80,7 @@ pub(crate) async fn req(
     );
     sub_account_secret.insert()?;
 
-    DeviceInfoView::update(
+    DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
     )?;

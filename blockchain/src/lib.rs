@@ -208,7 +208,7 @@ impl<T> ContractClient<T> {
             .relayer
             .sign(transaction.get_hash_and_size().0.as_ref());
 
-        let tx = SignedTransaction::new(signature, transaction);
+        let tx = SignedTransaction::new(signature, transaction.clone());
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
             signed_transaction: tx.clone(),
         };
@@ -220,6 +220,9 @@ impl<T> ContractClient<T> {
             Err(ExternalServiceError::Chain(error.to_string()))?
         }
         let txid = rep.transaction.hash.to_string();
+
+        let hash = transaction.get_hash_and_size().0.as_bytes().to_owned();
+        let txid = hex::encode(hash);
         Ok(txid)
     }
 

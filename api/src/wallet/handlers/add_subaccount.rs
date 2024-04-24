@@ -45,7 +45,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     //user_info.user_info.account_ids.push(pubkey.clone());
 
     models::general::transaction_begin()?;
-    //account_manager::UserInfoView::update(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
+    //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 

@@ -114,7 +114,7 @@ impl PsqlOp for SecretStoreView {
 
         execute_res.iter().map(gen_view).collect()
     }
-    fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<()> {
+    fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<u64> {
         let sql = format!(
             "update secret_store set {} where {}",
             new_value,
@@ -122,9 +122,9 @@ impl PsqlOp for SecretStoreView {
         );
         debug!("start update orders {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res, 0);
+        //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
-        Ok(())
+        Ok(execute_res)
     }
 
     fn insert(&self) -> Result<()> {

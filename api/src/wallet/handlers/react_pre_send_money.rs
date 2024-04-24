@@ -58,12 +58,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,
             ).await?;
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
             CoinTxFilter::ByOrderId(&order_id),
         )?;
     } else {
-        models::coin_transfer::CoinTxView::update(
+        models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::ReceiverRejected),
             CoinTxFilter::ByOrderId(&order_id),
         )?;

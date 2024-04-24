@@ -22,7 +22,7 @@ async fn main() {
             debug!("start check tx {}",tx_id);
             let status = blockchain::general::tx_status(tx_id).await.unwrap();
             if status != TxStatusOnChain::Pending{
-                let _ = WalletManageRecordView::update(
+                let _ = WalletManageRecordView::update_single(
                     WalletManageRecordUpdater::Status(status), 
                     WalletManageRecordFilter::ByRecordId(&op.record.record_id)
                 );

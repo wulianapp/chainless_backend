@@ -60,7 +60,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
 
 
     models::general::transaction_begin()?;
-    SecretStoreView::update(
+    SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
     )?;

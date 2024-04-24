@@ -74,14 +74,14 @@ pub(crate) async fn req(
             );
             secret_info.insert()?;
         } else {
-            SecretStoreView::update(
+            SecretStoreView::update_single(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
             )?;
         }
 
         //更新设备信息
-        DeviceInfoView::update(
+        DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         )?;
@@ -100,7 +100,7 @@ pub(crate) async fn req(
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update(
+        DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeUndefined(old_master),
             DeviceInfoFilter::ByHoldKey(old_master),
         )?;

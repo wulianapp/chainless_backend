@@ -142,9 +142,13 @@ pub trait PsqlOp {
         let data_len = get_res.len();
         if data_len == 0 {
             //todo:return db error type
-            Err(anyhow!("data isn't existed".to_string()))
+            let error_info = "DBError::DataNotFound: data isn't existed";
+            error!("{}",error_info);
+            Err(anyhow!(error_info.to_string()))
         } else if data_len > 1 {
-            Err(anyhow!("data is repeated".to_string()))
+            let error_info = "DBError::RepeatedData: data is repeated";
+            error!("{}",error_info);
+            Err(anyhow!(error_info.to_string()))
         } else {
             Ok(get_res.pop().unwrap())
         }
@@ -156,7 +160,29 @@ pub trait PsqlOp {
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<()>;
+    ) -> Result<u64>;
+
+    fn update_single(
+        new_value: Self::UpdateContent<'_>,
+        filter: Self::FilterContent<'_>
+    ) -> Result<()>
+    where
+        Self: Sized,
+    {
+        let mut row_num  = Self::update(new_value,filter)?;
+        if row_num == 0 {
+            //todo:return db error type
+            let error_info = "DBError::DataNotFound: data isn't existed";
+            error!("{}",error_info);
+            Err(anyhow!(error_info.to_string()))
+        } else if row_num > 1 {
+            let error_info = "DBError::RepeatedData: data is repeated";
+            error!("{}",error_info);
+            Err(anyhow!(error_info.to_string()))
+        } else {
+            Ok(())
+        }
+    }
 
     fn insert(&self) -> Result<()>;
 }

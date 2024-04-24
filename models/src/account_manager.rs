@@ -171,7 +171,7 @@ impl PsqlOp for UserInfoView {
     fn update(
         new_value: Self::UpdateContent<'_>,
         filter: Self::FilterContent<'_>,
-    ) -> Result<()> {
+    ) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} where {}",
             new_value,
@@ -179,9 +179,9 @@ impl PsqlOp for UserInfoView {
         );
         debug!("start update users {} ", sql);
         let execute_res = crate::execute(sql.as_str())?;
-        assert_ne!(execute_res, 0);
+        //assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
-        Ok(())
+        Ok(execute_res)
     }
 
     fn insert(&self) -> Result<()> {
