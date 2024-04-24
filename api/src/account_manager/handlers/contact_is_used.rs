@@ -28,7 +28,7 @@ pub fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserSimpleInfo> {
                     secruity_is_seted: false,
                 }))
             } else {
-                Err(BackendError::DBError(err.to_string()))
+                Err(BackendError::InternalError(err.to_string()))
             }
         }
     }

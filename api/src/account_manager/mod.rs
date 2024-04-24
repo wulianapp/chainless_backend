@@ -23,8 +23,8 @@ use crate::utils::respond::gen_extra_respond;
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
- * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {String=0,1,2,2006,2008,2011,3008} status_code         状态码.
+ * @apiSuccess {String} msg 状态信息     错误信息
  * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
@@ -55,8 +55,8 @@ async fn get_captcha_without_token(
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
- * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {String=0,1,2,2011,3008} status_code         状态码.
+ * @apiSuccess {Stringt} msg                状态详情
  * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
@@ -87,8 +87,8 @@ async fn get_captcha_with_token(
  * @apiQuery {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
- * @apiSuccess {String=0,1,} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError} msg
+ * @apiSuccess {String=0,1} status_code         状态码.
+ * @apiSuccess {String} msg 状态信息
  * @apiSuccess {Object} data                            联系方式的状态.
  * @apiSuccess {bool} data.contact_is_register            是否已经注册.
  * @apiSuccess {bool} data.secruity_is_seted              是否进行安全问答.
@@ -120,8 +120,8 @@ async fn contact_is_used(
 
 * @apiExample {curl} Example usage:
 * curl -X GET "http://120.232.251.101:8066/accountManager/contactIsUsed?contact=test000001@gmail.com"
-* @apiSuccess {String=0,1,} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String=0,1,2,2008} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
 * @apiSuccess {bool} data                验证码是否存在
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
 */
@@ -150,8 +150,8 @@ async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Re
  * @apiBody {String} contact   邮箱或者手机号
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo"
- * @apiSuccess {String=0,1,} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError} msg
+ * @apiSuccess {String=0,1,} status_code         状态码.
+ * @apiSuccess {String} msg 状态信息
  * @apiSuccess {object} data                user_info
  * @apiSuccess {Number} data.id                    用户id
  * @apiSuccess {String} data.phone_number         用户手机号
@@ -179,8 +179,6 @@ async fn user_info(request: HttpRequest) -> impl Responder {
 }
 
 /**
-  __apiBody {String} encryptedPrikey    私钥两次私钥加密后密文的拼接
-  ———apiBody {String} pubkey     公钥的hex表达
 * @api {post} /accountManager/registerByEmail 通过邮箱注册账户
 * @apiVersion 0.0.1
 * @apiName registerByEmail
@@ -195,8 +193,8 @@ async fn user_info(request: HttpRequest) -> impl Responder {
     curl -X POST http://120.232.251.101:8066/accountManager/registerByEmail -H "Content-Type: application/json" -d
   '{"deviceId": "123","email": "test000001@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
-* @apiSuccess {String=0,1,2002,2003,2004} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
+* @apiSuccess {String=0,1,2002,2003,2004,2006,2013,2016} status_code         状态码.
+* @apiSuccess {String} msg                 状态详情 
 * @apiSuccess {String} data                token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
@@ -220,8 +218,6 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 }
 
 /**
- * * ——apiBody {String} pubkey     公钥的hex表达
- *  __apiBody {String} encryptedPrikey     私钥两次私钥加密后密文的拼接
 * @api {post} /accountManager/registerByPhone 通过手机注册账户
 * @apiVersion 0.0.1
 * @apiName registerByPhone
@@ -236,9 +232,9 @@ async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> i
 *    curl -X POST http://120.232.251.101:8066/accountManager/registerByPhone -H "Content-Type: application/json" -d
   '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
-* @apiSuccess {String=0,1,2002,2003,2004} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
-* @apiSuccess {String} data                token值.
+* @apiSuccess {String=0,1,2002,2003,2004,2006,2013,2016} status_code         状态码.
+* @apiSuccess {String} msg          状态详情
+* @apiSuccess {String} data         token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
 #[derive(Deserialize, Serialize, Clone)]
@@ -272,8 +268,8 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
-* @apiSuccess {String=0,1,2012,2009} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
+* @apiSuccess {String=0,1,2008,2009,2012} status_code         状态码.
+* @apiSuccess {String} msg                  状态详情 
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
@@ -287,9 +283,10 @@ pub struct LoginRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/accountManager/login")]
-async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
+//todo: rename with loginByPassword
+async fn login_by_password(request_data: web::Json<LoginRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::login::req(request_data.into_inner()).await)
+    gen_extra_respond(handlers::login::req_by_password(request_data.into_inner()).await)
 }
 
 /**
@@ -302,8 +299,8 @@ async fn login(request_data: web::Json<LoginRequest>) -> impl Responder {
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8066/accountManager/getUserDeviceRole -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
-* @apiSuccess {String=0,1,2012,2009} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
+* @apiSuccess {String=0,1,2008} status_code         状态码.
+* @apiSuccess {String} msg  状态详情
  * @apiSuccess {String=Master,Servant,Undefined} data               角色信息.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getUserDeviceRole
  */
@@ -334,8 +331,8 @@ async fn get_user_device_role(
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
-* @apiSuccess {String=0,1,2012,2009} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,AccountLocked,PasswordIncorrect} msg
+* @apiSuccess {String=0,1,2002,2003,2004,2008} status_code         状态码.
+* @apiSuccess {String} msg  状态详情
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
@@ -366,8 +363,8 @@ async fn login_by_captcha(request_data: web::Json<LoginByCaptchaRequest>) -> imp
 * @apiExample {curl} Example usage:
   curl -X POST http://120.232.251.101:8066/accountManager/resetPassword -H "Content-Type: application/json"
  -d '{"deviceId": "123","contact": "test000001@gmail.com","captcha":"287695","newPassword":"123456788"}'
-* @apiSuccess {String=0,1,2002,2003,2004} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect} msg
+* @apiSuccess {String=0,1,2002,2003,2004,2008,3008} status_code         状态码.
+* @apiSuccess {String} msg                 状态详情 
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */
@@ -396,7 +393,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(contact_is_used)
         .service(register_by_email)
         .service(register_by_phone)
-        .service(login)
+        .service(login_by_password)
         .service(login_by_captcha)
         .service(user_info)
         .service(get_captcha_with_token)

@@ -31,8 +31,8 @@ use crate::utils::respond::gen_extra_respond;
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError} msg
+* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
 */
@@ -68,8 +68,8 @@ async fn pre_withdraw(
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/bridge/commitWithdraw -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
- * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         状态码.
+ * @apiSuccess {String=RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {String} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8066/bridge/bindEthAddr
  */
@@ -98,8 +98,8 @@ async fn bind_eth_addr(
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/bridge/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
- * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+ * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         状态码.
+ * @apiSuccess {String=RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {String} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */
@@ -131,8 +131,8 @@ async fn gen_bind_eth_addr_sig(
 * @apiExample {curl} Example usage:
 *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
 *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
-* @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         status code.
-* @apiSuccess {String=Successfully,InternalError,RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
+* @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         状态码.
+* @apiSuccess {String=RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
 * @apiSuccess {object} data                  签名和过期时间戳.
 * @apiSuccess {String} data.sig                签名.
 * @apiSuccess {Number} data.deadline                过期时间戳.
@@ -164,8 +164,8 @@ async fn gen_deposit_sig(
  * @apiGroup Bridge
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/bridge/getBindedEthAddr"
- * @apiSuccess {String=0,1,} status_code         status code.
- * @apiSuccess {String=Successfully,InternalError} msg
+ * @apiSuccess {String=0,1,} status_code         状态码.
+ * @apiSuccess {String} msg 状态信息
  * @apiSuccess {String=null} data                当前绑定的eth地址，
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */

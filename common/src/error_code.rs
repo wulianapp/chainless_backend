@@ -27,14 +27,8 @@ pub enum BackendError {
 
 impl From<AnyhowError> for BackendError {
     fn from(error: AnyhowError) -> Self {
-        //db的错误可控，链的太多了
-        if error.to_string().contains("DbError:") {
-            BackendError::DBError(error.to_string())
-        } else if error.to_string().contains("ChainError:") {
-            BackendError::ChainError(error.to_string())
-        } else {
-            BackendError::InternalError(error.to_string())
-        }
+        //组件的错误，全部为用户无关的
+        BackendError::InternalError(error.to_string())
     }
 }
 

@@ -13,13 +13,17 @@ use crate::utils::token_auth;
 
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)).map_err(|err| {
-        if err.to_string().contains("data isn't existed") {
+
+    let user = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact)
+    ).map_err(|e| {
+        if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
         } else {
-            BackendError::DBError(err.to_string())
+            BackendError::InternalError(e.to_string())
         }
     })?;
+
     if user.user_info.main_account.eq("") {
         return Ok(Some(KeyRole2::Undefined));
     }
@@ -27,10 +31,10 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     let mut device =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
     if let Err(err) = device {
-        if err.to_string().contains("data isn't existed") {
+        if err.to_string().contains("DBError::DataNotFound") {
             return Ok(Some(KeyRole2::Undefined));
         } else {
-            return Err(BackendError::DBError(err.to_string()));
+            return Err(BackendError::InternalError(err.to_string()));
         }
     }
 

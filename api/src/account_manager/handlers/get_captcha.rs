@@ -17,45 +17,6 @@ use crate::utils::{captcha, token_auth};
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::utils::time::{now_millis, MINUTE1, MINUTE10};
 
-//老的接口暂时不动它
-pub async fn req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
-    let GetCaptchaWithoutTokenRequest {
-        device_id,
-        contact,
-        kind,
-    } = request_data;
-    let kind: Usage = kind
-        .parse()
-        .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
-    //todo: only master device can reset password
-
-    let contract_type = captcha::validate(&contact)?;
-    if let Some(data) = captcha::get_captcha(&contact, &kind)? {
-        let past_time = now_millis() - data.created_at;
-        if past_time <= MINUTE1 {
-            let remain_time = MINUTE1 - past_time;
-            let remain_secs = (remain_time / 1000) as u8;
-            Err(CaptchaRequestTooFrequently(remain_secs))?;
-        } else if past_time <= MINUTE10 {
-            debug!("send new code cover former code");
-        } else {
-            //delete and regenerate new captcha
-            let _ = data.delete();
-        }
-    }
-
-    let code = Captcha::new(contact, device_id, kind);
-    if contract_type == ContactType::PhoneNumber {
-        //phone::send_sms(&code).unwrap()
-    } else {
-        //email::send_email(&code).unwrap()
-    };
-    code.store()?;
-
-    //todo: delete expired captcha，so as to avoid use too much memory
-    debug!("send code {:?}", code);
-    Ok(None::<String>)
-}
 
 fn get(
     device_id: String,
@@ -89,16 +50,16 @@ fn get(
 
     if contract_type == ContactType::PhoneNumber {
         //phone::send_sms(&code).unwrap()
-        Err(ExternalServiceError::PhoneCaptcha(
+        Err(BackendError::InternalError(
             "Not support Phone nowadays".to_string(),
         ))?;
     } else {
         //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供
+        //todo: 异步处理
         email::send_email(&captcha.code, &contact)?;
     };
 
     captcha.store()?;
-
     //todo: delete expired captcha，so as to avoid use too much memory
     debug!("send code {:?}", captcha);
     Ok(None::<String>)
@@ -112,7 +73,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     } = request_data;
     let kind: Usage = kind
         .parse()
-        .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
+        .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
 
     //重置登录密码
     match kind {
@@ -157,14 +118,19 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             get(device_id, contact, kind, None)
         }
         Login => {
-            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
-            if find_res.is_err() {
-                Err(AccountManagerError::PhoneOrEmailNotRegister)?;
+            match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)) {
+                Ok(info) => get(device_id, contact, kind, Some(info.id)),
+                Err(err) => {
+                    if err.to_string().contains("DBError::DataNotFound") {
+                        Err(AccountManagerError::PhoneOrEmailNotRegister)?
+                    } else {
+                        Err(BackendError::InternalError(err.to_string()))?
+                    }
+                }
             }
-            get(device_id, contact, kind, Some(find_res.unwrap().id))
         }
         SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
-            Err(AccountManagerError::CaptchaUsageNotAllowed)?
+            Err(BackendError::RequestParamInvalid("".to_string()))?
         }
     }
 }
@@ -183,7 +149,7 @@ pub fn with_token_req(
 
     match kind {
         ResetLoginPassword | Register | Login => {
-            Err(AccountManagerError::CaptchaUsageNotAllowed)?;
+            Err(BackendError::RequestParamInvalid("".to_string()))?
         }
         SetSecurity | UpdateSecurity => {
             if user.user_info.secruity_is_seted {

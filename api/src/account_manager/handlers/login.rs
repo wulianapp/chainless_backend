@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use common::error_code::AccountManagerError::{
-    AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
+    self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister
 };
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use tracing::debug;
@@ -10,7 +10,7 @@ use tracing::debug;
 use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::BackendRes;
+use common::error_code::{BackendError, BackendRes};
 use common::utils::time::{now_millis, MINUTE30};
 use models::account_manager::UserFilter;
 use models::{account_manager, PsqlOp};
@@ -58,7 +58,7 @@ fn is_locked(user_id: u32) -> (bool, u8, u64) {
     }
 }
 
-pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
+pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     debug!("{:?}", request_data);
     let LoginRequest {
         device_id,
@@ -66,9 +66,17 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         contact,
         password,
     } = request_data;
-    //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
-    let user_at_stored =
-        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+        
+    let user_at_stored = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact)
+    ).map_err(|e| {
+        if e.to_string().contains("DBError::DataNotFound") {
+            AccountManagerError::PhoneOrEmailNotRegister.into()
+        } else {
+            BackendError::InternalError(e.to_string())
+        }
+    })?;
+
 
     let (is_lock, remain_chance, unlock_time) = is_locked(user_at_stored.id);
     if is_lock {
@@ -83,16 +91,11 @@ pub async fn req(request_data: LoginRequest) -> BackendRes<String> {
         let _ = retry_storage.remove(&user_at_stored.id);
     }
 
-    //todo: distinguish repeat and not found
-    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
+    let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    device.safe_insert(DeviceInfoFilter::ByDeviceUser(
         &device_id,
         user_at_stored.id,
-    ));
-    if find_res.is_err() {
-        let device =
-            DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
-        device.insert()?;
-    }
+    ))?;
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);
@@ -107,22 +110,26 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         contact,
         captcha,
     } = request_data;
-    //let user_at_stored = account_manager::get_user(UserFilter::ByPhoneOrEmail(contact))?.ok_or(PhoneOrEmailNotRegister)?;
-    let user_at_stored =
-        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+
+    let user_at_stored = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact)
+    ).map_err(|e| {
+        if e.to_string().contains("DBError::DataNotFound") {
+            AccountManagerError::PhoneOrEmailNotRegister.into()
+        } else {
+            BackendError::InternalError(e.to_string())
+        }
+    })?;
 
     Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
 
-    //todo: distinguish repeat and not found
-    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
-        &device_id,
-        user_at_stored.id,
-    ));
-    if find_res.is_err() {
-        let device =
+    let device =
             DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
-        device.insert()?;
-    }
+    device.safe_insert(DeviceInfoFilter::ByDeviceUser(
+            &device_id,
+            user_at_stored.id,
+    ))?;
+
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand);

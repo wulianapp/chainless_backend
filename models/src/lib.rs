@@ -38,6 +38,13 @@ use std::sync::Mutex;
 
 static TRY_TIMES: u8 = 5;
 
+/****
+ 
+            DBError::RepeatedData,
+            DBError::DataNotFound,
+            DBError::KeyAlreadyExsit,
+ */
+
 ///time limit scope
 #[derive(Deserialize, Debug, PartialEq, Clone, Serialize)]
 pub enum TimeScope {
@@ -183,6 +190,22 @@ pub trait PsqlOp {
     }
 
     fn insert(&self) -> Result<()>;
+
+    //insert after check key
+    fn safe_insert(&self,filter: Self::FilterContent<'_>) -> Result<()>
+    where
+        Self: Sized,
+    {
+        let find_res: Vec<Self> = Self::find(filter)?;
+        if find_res.is_empty(){
+            self.insert()
+        }else {
+            //let error_info = "DBError::KeyAlreadyExsit: key already existed";
+            //error!("{}", error_info);
+            //Err(anyhow!(error_info.to_string()))
+            Ok(())
+        }
+    }
 }
 
 pub trait FormatSql {

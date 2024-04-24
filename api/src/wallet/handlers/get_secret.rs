@@ -10,7 +10,7 @@ use models::{
 
 use crate::wallet::SecretType;
 use crate::{utils::token_auth, wallet::GetSecretRequest};
-use common::error_code::BackendError::ChainError;
+use common::error_code::{BackendError::ChainError, WalletError};
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{AccountManagerError, BackendError, BackendRes},
@@ -40,7 +40,7 @@ pub(crate) async fn req(
                     .device_info
                     .hold_pubkey
                     .as_deref()
-                    .ok_or(AccountManagerError::UserNotSetSecurity)?;
+                    .ok_or(WalletError::NotSetSecurity)?;
                 let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey))?;
                 Ok(Some(vec![secrete.secret_store]))
             }

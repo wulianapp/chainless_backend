@@ -28,7 +28,7 @@ pub(crate) async fn req(
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Undefined)?;
+    super::check_role(current_role, KeyRole2::Master)?;
 
     models::general::transaction_begin()?;
 

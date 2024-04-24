@@ -149,11 +149,14 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
         } else if strategy.servant_pubkeys.contains(&key.to_string()) {
             KeyRole2::Servant
         } else {
+            /*** 
+            //如果从设备被删之后，就变成了新设备
             error!(
-                "unnormal device: key {} is not belong to current account",
-                key
+                "unnormal device: key {} is not belong to current account",key
             );
             unreachable!("unnormal device");
+            */
+            KeyRole2::Undefined
         }
     } else {
         KeyRole2::Undefined
