@@ -163,7 +163,7 @@ impl PsqlOp for DeviceInfoView {
         filter: Self::FilterContent<'_>,
     ) -> Result<u64> {
         let sql = format!(
-            "update device_info set {} where {}",
+            "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value,
             filter
         );

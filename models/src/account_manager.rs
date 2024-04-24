@@ -173,7 +173,7 @@ impl PsqlOp for UserInfoView {
         filter: Self::FilterContent<'_>,
     ) -> Result<u64> {
         let sql = format!(
-            "UPDATE users SET {} where {}",
+            "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value,
             filter
         );

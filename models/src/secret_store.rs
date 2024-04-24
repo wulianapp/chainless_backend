@@ -116,7 +116,7 @@ impl PsqlOp for SecretStoreView {
     }
     fn update(new_value: SecretUpdater, filter: SecretFilter) -> Result<u64> {
         let sql = format!(
-            "update secret_store set {} where {}",
+            "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value,
             filter
         );

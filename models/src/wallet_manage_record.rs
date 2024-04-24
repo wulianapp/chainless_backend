@@ -147,7 +147,7 @@ impl PsqlOp for WalletManageRecordView {
         filter: Self::FilterContent<'_>,
     ) -> Result<u64> {
         let sql = format!(
-            "update wallet_manage_record set {} where {}",
+            "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value,
             filter
         );

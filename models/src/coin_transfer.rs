@@ -219,7 +219,7 @@ impl PsqlOp for CoinTxView {
 
     fn update(update_data: CoinTxUpdater, filter: CoinTxFilter) -> Result<u64> {
         let sql = format!(
-            "UPDATE coin_transaction SET {} where {}",
+            "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
             update_data,
             filter
         );
