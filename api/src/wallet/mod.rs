@@ -164,8 +164,9 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 * @apiVersion 0.0.1
 * @apiName GetSecret
 * @apiGroup Wallet
-* @apiQuery {String}  [accountId] 
-    钱包id,如果不传则返回当前设备所属的所有密钥，
+* @apiQuery {String=All,Single}  type  请求的类型:All获取主、从、子所有
+* @apiQuery {String}  [accountId]      钱包id，如果type为All则该字段被无视，single的时候，
+    如果不传则返回当前设备所属的所有密钥，
     从设备返回主账户servent的密钥
     主设备返回主账户master（index为0）和所有子账户的私钥
 * @apiHeader {String} Authorization  user's access token
@@ -186,15 +187,14 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 */
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub enum SecretType {
-    Master,
-    Servant,
+    Single,
     All
 }
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GetSecretRequest {
+    pub r#type: SecretType,
     pub account_id: Option<String>
 }
 //todo: 不应该根据设备和账户直接查,考虑到表迁移，应该是根据pubkey来查

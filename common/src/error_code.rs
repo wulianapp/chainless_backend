@@ -88,6 +88,8 @@ pub enum AccountManagerError {
     CaptchaUsageNotAllowed,
     #[error("PredecessorNotSetSecurity")]
     PredecessorNotSetSecurity,
+    #[error("UserNotSetSecurity")]
+    UserNotSetSecurity,
 }
 
 impl ErrorCode for AccountManagerError {
@@ -105,7 +107,9 @@ impl ErrorCode for AccountManagerError {
             Self::InviteCodeNotExist => 2013,
             Self::UserIdNotExist => 2014,
             Self::CaptchaUsageNotAllowed => 2015,
-            Self::PredecessorNotSetSecurity => 2016
+            Self::PredecessorNotSetSecurity => 2016,
+            Self::UserNotSetSecurity => 2017
+
         }
     }
 }
