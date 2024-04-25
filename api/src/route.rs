@@ -29,7 +29,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);
         App::new()
-            .wrap(middleware::Logger::default())
+            //.wrap(middleware::Logger::default())
+            .wrap(middleware::Logger::new("new request:  %{r}a %U %s %b %{User-Agent}i %{Referer}i RequestId:%{X-Request-Id}i %{X-Session-Id}i %{X-Forwarded-For}i %{body}b"))
             .wrap(
                 Cors::default()
                     .allow_any_origin()

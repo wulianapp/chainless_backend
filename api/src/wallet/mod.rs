@@ -117,7 +117,7 @@ async fn search_message(request: HttpRequest) -> impl Responder {
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3011} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {Object} data                          策略详情.
 * @apiSuccess {String} data.master_pubkey        主钱包的maser的公钥
@@ -148,7 +148,7 @@ async fn get_strategy(request: HttpRequest) -> impl Responder {
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,3011} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String[]} data                          币种顺序,且不包含CLY
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
