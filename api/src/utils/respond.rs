@@ -2,7 +2,7 @@ use actix_web::{HttpResponse, Responder};
 use common::error_code::{BackendError, ErrorCode};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use tracing::debug;
+use tracing::{debug,error, warn};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 
@@ -16,7 +16,7 @@ pub struct BackendRespond<T: Serialize> {
 
 pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
     debug!(
-        "generate_ok_respond: {}",
+        "return_ok_respond: {}",
         serde_json::to_string(&info).unwrap()
     );
     HttpResponse::Ok().json(BackendRespond {
@@ -27,7 +27,11 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
 }
 
 pub fn generate_error_respond<E: ErrorCode + Display>(error: E) -> HttpResponse {
-    debug!("return_error_respond: {}", error.to_string());
+    if error.code() == 1 {
+        error!("return_error_respond: {}", error.to_string());
+    }else {
+        warn!("return_error_respond: {}", error.to_string());
+    }
     HttpResponse::Ok().json(BackendRespond {
         msg: error.to_string(),
         status_code: error.code(),

@@ -1857,8 +1857,20 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        let servant_info = test_user_info!(service, sender_servant).unwrap();
+        assert_eq!(servant_info.role,"Servant");
+        let sender_info = test_get_strategy!(service, sender_master).unwrap();
+        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_servant.wallet.pubkey.as_ref().unwrap());
+
         test_newcommer_switch_servant!(service, sender_master, sender_servant, sender_newcommer);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        //更换后身份互换
+        let user_info = test_user_info!(service, sender_servant).unwrap();
+        assert_eq!(user_info.role,"Undefined");
+        let user_info = test_user_info!(service, sender_newcommer).unwrap();
+        assert_eq!(user_info.role,"Servant");
+        let sender_info = test_get_strategy!(service, sender_master).unwrap();
+        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_newcommer.wallet.pubkey.as_ref().unwrap());
     }
 
     #[actix_web::test]
@@ -1896,7 +1908,20 @@ mod tests {
             delete_key_sig
         );
         let device_lists: Vec<DeviceInfo> = test_get_device_list!(service, sender_servant).unwrap();
-        println!("{},,,{:?}", line!(), device_lists);
+        println!("{:#?}", device_lists);
+
+        let user_info = test_user_info!(service, sender_master).unwrap();
+        //println!("{:#?}", user_info);
+        assert_eq!(user_info.role,"Servant");
+
+        let user_info = test_user_info!(service, sender_servant).unwrap();
+        //println!("{:#?}", user_info);
+        assert_eq!(user_info.role,"Master");
+
+        let sender_info = test_get_strategy!(service, sender_master).unwrap();
+        //println!("{},,,{:?}", line!(), sender_info);
+        assert_eq!(sender_info.master_pubkey.as_str(),sender_servant.wallet.pubkey.as_ref().unwrap());
+        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_master.wallet.pubkey.as_ref().unwrap());
     }
 
     #[actix_web::test]

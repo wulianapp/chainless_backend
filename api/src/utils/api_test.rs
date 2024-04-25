@@ -39,7 +39,7 @@ use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TestWallet {
     pub main_account: String,
     pub pubkey: Option<String>,
@@ -47,12 +47,12 @@ pub struct TestWallet {
     pub subaccount: Vec<String>,
     pub sub_prikey: Option<Vec<String>>,
 }
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TestDevice {
     pub id: String,
     pub brand: String,
 }
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TestUser {
     pub contact: String,
     pub password: String,
@@ -60,7 +60,7 @@ pub struct TestUser {
     pub token: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TestWulianApp2 {
     pub user: TestUser,
     pub device: TestDevice,
@@ -789,10 +789,10 @@ macro_rules! test_upload_servant_sig {
 macro_rules! test_newcommer_switch_servant {
     ($service:expr, $sender_master:expr,$sender_servant:expr,$sender_new_device:expr) => {{
         let payload = json!({
-            "oldServantPubkey": $sender_servant.wallet.pubkey.unwrap(),
-            "newServantPubkey": $sender_new_device.wallet.pubkey.unwrap(),
-            "newServantPrikeyEncrypedByPassword": $sender_new_device.wallet.prikey.clone().unwrap(),
-            "newServantPrikeyEncrypedByAnswer": $sender_new_device.wallet.prikey.unwrap(),
+            "oldServantPubkey": $sender_servant.wallet.pubkey.as_ref().unwrap(),
+            "newServantPubkey": $sender_new_device.wallet.pubkey.as_ref().unwrap(),
+            "newServantPrikeyEncrypedByPassword": $sender_new_device.wallet.prikey.as_ref().unwrap(),
+            "newServantPrikeyEncrypedByAnswer": $sender_new_device.wallet.prikey.as_ref().unwrap(),
             "newDeviceId": $sender_new_device.device.id
         });
         let res: BackendRespond<(String,String)> = test_service_call!(

@@ -94,7 +94,6 @@ pub(crate) async fn req(
         warn!("old_master<{}>  is already deleted ", old_master);
     } else {
         //此类账户理论上不应该出现，除非是绕过了后台进行了操作
-        error!("main account is unnormal");
         Err(BackendError::InternalError(
             "main account is unnormal".to_string(),
         ))?;

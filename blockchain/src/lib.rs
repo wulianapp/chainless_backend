@@ -194,6 +194,7 @@ impl<T> ContractClient<T> {
     }
 
     async fn commit_by_relayer(&self, method_name: &str, args: &str) -> Result<String> {
+        debug!("method_name: {},args: {}",method_name,args);
         let transaction = self
             .gen_tx(
                 &self.relayer.account_id,

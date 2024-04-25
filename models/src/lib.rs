@@ -196,6 +196,7 @@ pub trait PsqlOp {
     where
         Self: Sized,
     {
+        let filter_str = filter.to_string();
         let find_res: Vec<Self> = Self::find(filter)?;
         if find_res.is_empty(){
             self.insert()
@@ -203,7 +204,22 @@ pub trait PsqlOp {
             //let error_info = "DBError::KeyAlreadyExsit: key already existed";
             //error!("{}", error_info);
             //Err(anyhow!(error_info.to_string()))
+            info!("data {} already exist",filter_str);
             Ok(())
+        }
+    }
+
+    fn try_insert(&self,filter: Self::FilterContent<'_>) -> Result<()>
+    where
+        Self: Sized,
+    {
+        let find_res: Vec<Self> = Self::find(filter)?;
+        if find_res.is_empty(){
+            self.insert()
+        }else {
+            let error_info = "DBError::KeyAlreadyExsit: key already existed";
+            error!("{}", error_info);
+            Err(anyhow!(error_info.to_string()))
         }
     }
 }
