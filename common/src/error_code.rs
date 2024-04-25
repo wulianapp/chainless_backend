@@ -128,7 +128,7 @@ pub enum WalletError {
     ExceedSubAccountHoldLimit,
     #[error("transfer amount big than available balance")]
     InsufficientAvailableBalance,
-    #[error("ReceiverNotSetSecurity")]
+    #[error("NotSetSecurity")]
     NotSetSecurity,
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,

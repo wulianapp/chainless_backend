@@ -357,7 +357,7 @@ impl ContractClient<MultiSig> {
             "master_pubkey": master_pubkey,
         })
         .to_string();
-        self.commit_by_relayer("update_servant_pubkey", &args_str)
+        self.commit_by_relayer("update_servant_pubkey_and_master", &args_str)
             .await
     }
 

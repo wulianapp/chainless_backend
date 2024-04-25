@@ -40,7 +40,7 @@ pub(crate) async fn req(
                     .device_info
                     .hold_pubkey
                     .as_deref()
-                    .ok_or(WalletError::NotSetSecurity)?;
+                    .ok_or(WalletError::PubkeyNotExist)?;
                 let secrete = SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey))?;
                 Ok(Some(vec![secrete.secret_store]))
             }
