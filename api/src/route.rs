@@ -18,12 +18,14 @@ pub mod wallet;
 
 use actix_cors::Cors;
 use actix_web::{http, middleware, App, HttpServer};
+use env_logger::Env;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     common::log::init_logger();
     let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
-
+    //env_logger::init();
+    env_logger::from_env(Env::default().default_filter_or("info")).init();
     HttpServer::new(move || {
         //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);
         App::new()

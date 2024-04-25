@@ -23,6 +23,7 @@ use tracing::{error, warn};
 
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
+use common::error_code::BackendError::*;
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -114,6 +115,9 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
 
 pub fn get_main_account(user_id: u32) -> Result<String, BackendError> {
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    if user.user_info.main_account.eq(""){
+        Err(WalletError::NotSetSecurity)?
+    }
     Ok(user.user_info.main_account)
 }
 

@@ -36,6 +36,11 @@ pub async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let (user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
+
+    if main_account.eq(""){
+        Err(WalletError::NotSetSecurity)?
+    }
+    
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
 

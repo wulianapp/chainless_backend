@@ -13,11 +13,11 @@ use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::*;
 use models::secret_store::*;
 use models::PsqlOp;
+use super::*;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))
-        .map_err(|_e| AccountManagerError::UserIdNotExist)?;
+    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
 
     let mut messages = SearchMessageResponse::default();
     //if newcomer device not save,notify it to do
