@@ -140,6 +140,12 @@ pub enum WalletError {
     SubAccountNotExist(String),
     #[error("MustHaveSubaccount")]
     MustHaveSubaccount,
+    #[error("ReceiverNotSetSecurity")]
+    ReceiverNotSetSecurity,
+    #[error("Receiver cann't be subaccount")]
+    ReceiverIsSubaccount,
+    #[error("Receiver must be subaccount")]
+    ReceiverIsNotSubaccount,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -160,6 +166,9 @@ impl ErrorCode for WalletError {
             Self::BalanceMustBeZero => 3014,
             Self::SubAccountNotExist(_) => 3015,
             Self::MustHaveSubaccount => 3016,
+            Self::ReceiverNotSetSecurity => 3017,
+            Self::ReceiverIsSubaccount => 3018,
+            Self::ReceiverIsNotSubaccount => 3019,
         }
     }
 }

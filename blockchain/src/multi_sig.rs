@@ -519,7 +519,7 @@ impl ContractClient<MultiSig> {
             expire_at,
             memo: None,
         };
-        let coin_tx_json = serde_json::to_string(&coin_tx_info).unwrap();
+        let coin_tx_json = serde_json::to_string(&coin_tx_info)?;
         let coin_tx_hex_str = hex::encode(coin_tx_json.as_bytes());
         Ok(coin_tx_hex_str)
     }

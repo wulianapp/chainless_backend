@@ -24,6 +24,8 @@ use tracing::{error, warn};
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
+use common::error_code::{AccountManagerError,WalletError::*};
+
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -106,8 +108,9 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
     let freezn_amount = get_freezn_amount(account_id, coin);
     let total: u128 = balance.parse().unwrap();
     if total < freezn_amount {
-        //todo:
-        Err(WalletError::ExceedSubAccountHoldLimit)?
+        Err(BackendError::InternalError(
+            format!("{}(total) more than {}(freezn_amount)",total,freezn_amount)
+        ))?
     } else {
         Ok(Some(total - freezn_amount))
     }
@@ -168,12 +171,16 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
 }
 
 //获取当前会话的用户信息、多签配置、设备信息的属性数据
+//且已经进行过了多签
 pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = &user.user_info.main_account;
+    if user.user_info.main_account.eq(""){
+        Err(WalletError::NotSetSecurity)?
+    }
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let current_strategy = multi_sig_cli
         .get_strategy(main_account)

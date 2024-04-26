@@ -15,7 +15,7 @@ use tracing::{debug, info};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
+use common::error_code::{AccountManagerError, BackendError, BackendRes,WalletError,WalletError::*};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
 use models::coin_transfer::{get_next_tx_index, CoinTxView};
@@ -24,21 +24,7 @@ use models::PsqlOp;
 use crate::wallet::PreSendMoneyRequest;
 use anyhow::Result;
 
-/***
-#[derive(Deserialize, Serialize, Debug)]
-pub struct PreSendMoneyRes{
-    tx_index:u32,
-    txid:Option<String>
-}
-impl PreSendMoneyRes {
-    fn new(tx_index:u32,txid:Option<String>) -> Self{
-        PreSendMoneyRes{
-            tx_index,
-            txid
-        }
-    }
-}
-***/
+
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -61,7 +47,7 @@ pub(crate) async fn req(
     let to_account_id = if to.contains("mail") || to.contains('+') {
         let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
         if !receiver.user_info.secruity_is_seted {
-            Err(WalletError::NotSetSecurity)?;
+            Err(WalletError::ReceiverNotSetSecurity)?;
         }
         receiver.user_info.main_account
     } else {
@@ -69,11 +55,10 @@ pub(crate) async fn req(
         to
     };
 
-    let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let from = main_account.clone();
+    let from =  user.main_account.clone();
     let coin_type = CoinType::from_str(&coin).unwrap();
 
     let available_balance = super::get_available_amount(&from, &coin_type).await?;
@@ -84,11 +69,11 @@ pub(crate) async fn req(
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new()?;
     let strategy = cli
-        .get_strategy(&main_account)
+        .get_strategy(&from)
         .await?
-        .ok_or(WalletError::SenderNotFound)?;
-    if let Some(sub_conf) = strategy.sub_confs.get(&to_account_id) {
-        panic!("todo");
+        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
+    if strategy.sub_confs.get(&to_account_id).is_some() {
+        Err(WalletError::ReceiverIsSubaccount)?;
     }
     //todo: 也不能转bridge
 
@@ -108,15 +93,7 @@ pub(crate) async fn req(
         ))
     };
 
-    //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
-    //将转子账户的接口单独剥离出去
-    //let servant_is_empty =  strategy.servant_pubkeys.is_empty();
-    let to_is_sub = strategy.sub_confs.get(&to_account_id).is_some();
-    if to_is_sub {
-        Err(BackendError::InternalError(
-            "to cannt be subaccount".to_string(),
-        ))?;
-    }
+   
 
     let need_sig_num = super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
 
@@ -128,8 +105,8 @@ pub(crate) async fn req(
         is_forced
     );
     //没有从公钥且强制转账的话，直接返回待签名数据
+    info!("need_sig_num: {},is_forced {} ",need_sig_num,is_forced);
     if need_sig_num == 0 && is_forced {
-        debug!("_0000_");
         let mut coin_info = gen_tx_with_status(CoinSendStage::ReceiverApproved)?;
 
         let (tx_id, chain_tx_raw) = cli
@@ -141,18 +118,15 @@ pub(crate) async fn req(
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
     } else if need_sig_num == 0 && !is_forced {
-        debug!("_0001_");
         let coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && is_forced {
-        debug!("_0002_");
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && !is_forced {
-        debug!("_0003_");
         let coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))

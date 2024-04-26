@@ -175,7 +175,7 @@ async fn get_fees_priority(request: HttpRequest) -> impl Responder {
 * -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3011,3004} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {Object[]} data                                    备份加密密钥信息.
 * @apiSuccess {String} data.pubkey                             对应的公钥
@@ -237,7 +237,7 @@ async fn get_secret(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3017,3010,3018} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {object} data                     订单结果.
 * @apiSuccess {Number} data.0                交易序列号.
@@ -291,7 +291,7 @@ async fn pre_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3010,3019} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {Number} data.0                交易序列号.
 * @apiSuccess {String} [data.1]                待签名数据(coin_tx_raw).

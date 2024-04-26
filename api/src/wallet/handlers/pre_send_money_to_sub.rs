@@ -55,9 +55,8 @@ pub(crate) async fn req(
     let cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
-        .await
-        .map_err(|err| ChainError(err.to_string()))?
-        .ok_or(WalletError::SenderNotFound)?;
+        .await?
+        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to) {
         debug!("to[{}] is subaccount of from[{}]", to, from);
         let coin_value = super::get_value(&coin_type, amount).await;
@@ -66,7 +65,7 @@ pub(crate) async fn req(
             Err(WalletError::ExceedSubAccountHoldLimit)?;
         }
     } else {
-        panic!("todo:");
+        Err(WalletError::ReceiverIsNotSubaccount)?;
     }
 
     let gen_tx_with_status =
@@ -86,14 +85,6 @@ pub(crate) async fn req(
             ))
         };
 
-    //交易收到是否从设备为空、是否强制转账、是否是转子账户三种因素的影响
-    //将转子账户的接口单独剥离出去
-    let to_is_sub = strategy.sub_confs.get(&to).is_some();
-    if !to_is_sub {
-        Err(BackendError::InternalError(
-            "must be subaccount".to_string(),
-        ))?;
-    }
     let need_sig_num = super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
 
     //转子账户不需要is_forced标志位，本身就是强制的
