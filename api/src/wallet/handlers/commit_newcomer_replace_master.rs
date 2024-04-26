@@ -45,7 +45,7 @@ pub(crate) async fn req(
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Undefined)?;
-    super::check_have_base_fee(&main_account)?;
+    super::check_have_base_fee(&main_account).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;

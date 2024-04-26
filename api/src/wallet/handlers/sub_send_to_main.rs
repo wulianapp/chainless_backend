@@ -48,9 +48,7 @@ pub async fn req(
 
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
-        .await?;
-    let tx_id = bs58_to_hex(&tx_id)?;
-    
+        .await?;    
     let mut coin_info = CoinTxView::new_with_specified(
         coin_type,
         sub_sig.account_id,

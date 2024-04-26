@@ -37,7 +37,7 @@ use near_primitives::{
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
-use tracing::{debug, error, info};
+use tracing::{debug, error, field::debug, info};
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
 
@@ -223,6 +223,7 @@ impl<T> ContractClient<T> {
 
         let hash = transaction.get_hash_and_size().0.as_bytes().to_owned();
         let txid = hex::encode(hash);
+        debug!("call commit_by_relayer2 txid {}", txid);
         Ok(txid)
     }
 

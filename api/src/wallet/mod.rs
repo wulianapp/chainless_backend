@@ -2380,7 +2380,7 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let secrets = test_get_secret!(service, sender_master, "all").unwrap();
+        let secrets = test_get_secret!(service, sender_master, "All").unwrap();
         println!("res {:?}", secrets);
 
         //re-encrypt prikey
