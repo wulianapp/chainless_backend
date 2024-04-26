@@ -138,6 +138,53 @@ async fn get_strategy(request: HttpRequest) -> impl Responder {
 }
 
 /**
+* @api {get} /wallet/estimateTransferFee 预估手续费
+* @apiVersion 0.0.1
+* @apiName GstimateTransferFee
+* @apiGroup Wallet
+* @apiQuery {String=BTC,ETH,USDT,USDC,DW20,CLY}  coin  币种
+* @apiQuery {String}  amount    数量
+* @apiHeader {String} Authorization  user's access token
+* @apiExample {curl} Example usage:
+*   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
+* -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+   OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+   iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3010} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
+* @apiSuccess {Object} data                          预估详情.
+* @apiSuccess {String} data.coin            抵扣的币种
+* @apiSuccess {String} data.amount          抵扣的数量
+* @apiSuccess {String} data.balance_enough  是否足以抵消，如果为false则说明所有币种都不足以抵消，      .
+* @apiSampleRequest http://120.232.251.101:8066/wallet/estimateTransferFee
+*/
+
+#[derive(Deserialize, Serialize, Clone,Default,Debug)]
+pub struct EstimateTransferFeeResponse {
+    pub coin: CoinType,
+    pub amount: String,
+    pub balance_enough: bool,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EstimateTransferFeeRequest {
+    pub coin: String,
+    pub amount: String,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/estimateTransferFee")]
+async fn estimate_transfer_fee(request: HttpRequest,  
+    request_data: web::Query<EstimateTransferFeeRequest>,
+) -> impl Responder {
+    debug!(
+        "req_params:: {}",
+        serde_json::to_string(&request_data.0).unwrap()
+    );
+    gen_extra_respond(handlers::estimate_transfer_fee::req(request,request_data.into_inner()).await)
+}
+
+/**
 * @api {get} /wallet/getFeesPriority 获取抵扣手续费的币种顺序
 * @apiVersion 0.0.1
 * @apiName GetFeesPriority
@@ -337,7 +384,7 @@ async fn pre_send_money_to_sub(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3013} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reactPreSendMoney
@@ -381,7 +428,7 @@ async fn react_pre_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3011} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
@@ -402,7 +449,7 @@ async fn reconfirm_send_money(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data).await)
+    gen_extra_respond(handlers::reconfirm_send_money::req(request, request_data.into_inner()).await)
 }
 
 /**
@@ -424,7 +471,7 @@ async fn reconfirm_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3011,3013} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/canceSendMoney
@@ -469,7 +516,7 @@ async fn cancel_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3011} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                链上交易txid（不用关注）.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
@@ -514,7 +561,7 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,3008,3011} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/wallet/uploadServantSig
@@ -562,7 +609,7 @@ async fn upload_servant_sig(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
@@ -608,7 +655,7 @@ async fn add_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/newcommerSwitchServant
@@ -649,7 +696,7 @@ async fn newcommer_switch_servant(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
@@ -1589,6 +1636,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(cancel_send_money)
         .service(gen_send_money)
         .service(get_need_sig_num)
+        .service(estimate_transfer_fee)
         .service(faucet_claim);
     //.service(remove_subaccount);
 }
@@ -2394,16 +2442,22 @@ mod tests {
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
+        test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         let balances = test_get_balance_list!(service, sender_master, "Main").unwrap();
         println!("list {:?}", balances);
 
-        let secrets = test_get_secret!(service, sender_master, "all").unwrap();
+        let secrets = test_get_secret!(service, sender_master, "All").unwrap();
         println!("secrets {:?}", secrets);
 
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:?}", txs);
+
+        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "ETH", "1.0").unwrap();
+        assert_eq!(estimate_res.coin.to_string(),"dw20");
+        assert!(estimate_res.amount.parse::<f32>().unwrap() < 5.0);
+        assert!(estimate_res.amount.parse::<f32>().unwrap() > 4.0);
     }
 
     #[actix_web::test]

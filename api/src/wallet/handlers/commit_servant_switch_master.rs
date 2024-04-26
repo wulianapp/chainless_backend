@@ -45,6 +45,8 @@ pub(crate) async fn req(
     let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
+    super::check_have_base_fee(&main_account)?;
+
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;

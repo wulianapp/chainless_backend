@@ -210,19 +210,25 @@ pub async fn get_fees_priority(main_account:&str) -> BackendRes<Vec<CoinType>>{
     let fees_priority = fees_call_cli.get_fees_priority(&main_account).await?;
     Ok(Some(fees_priority))
 }
-//5u
-//fixme: 查一次最多调用 1 + 5 * 2 的费用
-pub async fn check_base_fee(main_account:&str) -> Result<(),BackendError> {
+
+//fixme: 查一次最多rpc调用 1 + 5 * 2
+//检查所有的手续费币是否全部小于1u 
+pub async fn check_have_base_fee(main_account:&str) -> Result<(),BackendError> {
     let fee_coins = get_fees_priority(main_account)
     .await?
     .ok_or(InternalError("not set fees priority".to_string()))?;
 
-    for coin  in fee_coins {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
-        let balance = coin_cli.get_balance(main_account).await?
-        .unwrap_or("0".to_string());
-        let balance = balance.parse().map_err(|e:ParseIntError| e.to_string())?;
-        let value = get_value(&coin, balance).await;
+    for fee_coin  in fee_coins {
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
+        let balance = coin_cli.get_balance(main_account).await?;
+        if balance.is_none(){
+            continue;
+        }
+        let mut balance = balance.unwrap().parse().map_err(|e:ParseIntError| e.to_string())?;
+        let freezn_amount = get_freezn_amount(&main_account, &fee_coin);
+        balance = balance - freezn_amount;
+
+        let value = get_value(&fee_coin, balance).await;
         if value > MIN_BASE_FEE{
             return Ok(());
         }

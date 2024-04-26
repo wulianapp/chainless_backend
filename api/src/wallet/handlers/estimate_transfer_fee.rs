@@ -45,10 +45,12 @@ pub(crate) async fn req(
     let mut estimate_res = Default::default();
     for (index,fee_coin)  in fee_coins.into_iter().enumerate() {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
-        let balance = coin_cli.get_balance(&main_account).await?
-        .unwrap_or("0".to_string());
+        let balance = coin_cli.get_balance(&main_account).await?;
+        if balance.is_none(){
+            continue;
+        }
 
-        let mut balance = balance.parse().map_err(|e:ParseIntError| e.to_string())?;
+        let mut balance = balance.unwrap().parse().map_err(|e:ParseIntError| e.to_string())?;
         let freezn_amount = super::get_freezn_amount(&main_account, &fee_coin);
         balance = balance - freezn_amount;
 
