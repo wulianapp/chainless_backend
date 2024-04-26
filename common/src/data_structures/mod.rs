@@ -100,8 +100,9 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq,Default)]
 pub enum CoinType {
+    #[default]
     #[strum(ascii_case_insensitive, to_string = "btc")]
     BTC,
     #[strum(ascii_case_insensitive, to_string = "eth")]

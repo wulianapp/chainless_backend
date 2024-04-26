@@ -33,13 +33,14 @@ pub async fn req(
     let mut tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     if tx.transaction.stage != CoinSendStage::Created {
-        Err(WalletError::TxStatusIllegal(
+        Err(WalletError::TxStageIllegal(
             tx.transaction.stage,
             CoinSendStage::Created,
         ))?;
     }
 
     tx.transaction.signatures.push(signature);
+    //fixme: repeat update twice
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),

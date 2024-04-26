@@ -44,21 +44,20 @@ pub async fn req(
     let cli = ContractClient::<MultiSig>::new()?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
-    let coin_type: CoinType = coin.parse().unwrap();
+    let coin_type: CoinType = coin.parse().map_err(|e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
 
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
         .await?;
     let tx_id = bs58_to_hex(&tx_id)?;
-    //todo:
-    let coin_tx_raw = "".to_string();
+    
     let mut coin_info = CoinTxView::new_with_specified(
         coin_type,
         sub_sig.account_id,
         main_account,
         amount,
-        coin_tx_raw,
-        Some("sub_to_main_tmp".to_string()),
+        "".to_string(),
+        None,
         u64::MAX,
         CoinSendStage::SenderReconfirmed,
     );

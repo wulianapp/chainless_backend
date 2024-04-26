@@ -27,19 +27,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
     let coin_tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     if coin_tx.transaction.stage != CoinSendStage::SenderSigCompleted {
-        Err(WalletError::TxStatusIllegal(
+        Err(WalletError::TxStageIllegal(
             coin_tx.transaction.stage,
             CoinSendStage::SenderSigCompleted,
         ))?;
     }
 
     //message max is 10，
-    //let FinalizeSha = request_data.clone();
     if is_agreed {
         //todo:check user_id's main account_id is receiver
 
         let cli = blockchain::ContractClient::<MultiSig>::new()?;
-        let _strategy = cli.get_strategy(&coin_tx.transaction.from).await.unwrap();
         let servant_sigs = coin_tx
             .transaction
             .signatures

@@ -1,4 +1,4 @@
-use std::{ops::Deref, str::FromStr};
+use std::{num::ParseIntError, ops::Deref, str::FromStr, string::ParseError};
 
 use anyhow::Result;
 use blockchain::{
@@ -60,6 +60,9 @@ pub mod update_security;
 pub mod update_strategy;
 pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
+pub mod estimate_transfer_fee;
+
+const MIN_BASE_FEE:u128 = 1_000_000_000_000_000_000;
 
 pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,
@@ -185,7 +188,8 @@ pub async fn get_session_state(
     let current_strategy = multi_sig_cli
         .get_strategy(main_account)
         .await?
-        .ok_or(WalletError::MainAccountNotExist(main_account.to_owned()))?;
+        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
+
     //注册过的一定有设备信息
     let mut device =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
@@ -195,6 +199,82 @@ pub async fn get_session_state(
 }
 
 pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {
+    if current != require {
+        Err(WalletError::UneligiableRole(current, require))?;
+    }
+    Ok(())
+}
+
+pub async fn get_fees_priority(main_account:&str) -> BackendRes<Vec<CoinType>>{
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+    let fees_priority = fees_call_cli.get_fees_priority(&main_account).await?;
+    Ok(Some(fees_priority))
+}
+//5u
+//fixme: 查一次最多调用 1 + 5 * 2 的费用
+pub async fn check_base_fee(main_account:&str) -> Result<(),BackendError> {
+    let fee_coins = get_fees_priority(main_account)
+    .await?
+    .ok_or(InternalError("not set fees priority".to_string()))?;
+
+    for coin  in fee_coins {
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
+        let balance = coin_cli.get_balance(main_account).await?
+        .unwrap_or("0".to_string());
+        let balance = balance.parse().map_err(|e:ParseIntError| e.to_string())?;
+        let value = get_value(&coin, balance).await;
+        if value > MIN_BASE_FEE{
+            return Ok(());
+        }
+    }
+    Err(WalletError::InsufficientAvailableBalance.into())
+}
+
+/***
+pub async fn estimate_transfer_fee(
+        main_account:&str,
+        coin:&CoinType,
+        amount: u128
+    ) -> Result<(CoinType,u128,bool),BackendError> {
+    let fee_coins = get_fees_priority(main_account).await?.ok_or(InternalError("not set fees priority".to_string()))?;
+    let transfer_value = get_value(coin, amount).await;
+    let fee_value = transfer_value * 999 / 1000 + MIN_BASE_FEE;
+    //todo:
+    let mut default_fee = (coin.to_owned(),0,false);
+
+    for (index,coin)  in fee_coins.iter().enumerate() {
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
+        let balance = coin_cli.get_balance(main_account).await?
+        .unwrap_or("0".to_string());
+        let balance = balance.parse().map_err(|e:ParseIntError| e.to_string())?;
+        let balance_value = get_value(&coin, balance).await;
+
+        //fixme: 
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let (base_amount, quote_amount) = fees_cli.get_coin_price(coin).await.unwrap();
+
+        if balance_value  > fee_value{
+            return Ok((coin.to_owned(),fee_value * base_amount / quote_amount,true));
+        }
+
+        if index == 1 {
+            default_fee = (coin.to_owned(),fee_value * base_amount / quote_amount,false)
+        }
+    }
+    Ok(default_fee)
+}
+**/
+
+// 1/1000
+pub async fn check_protocal_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {
+    if current != require {
+        Err(WalletError::UneligiableRole(current, require))?;
+    }
+    Ok(())
+}
+
+//base_fee + protocal_fee
+pub fn check_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }

@@ -33,7 +33,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_id,
         holder_device_brand: _,
     } = request_data;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
 
@@ -61,10 +61,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     //it is impossible to get none
-    let mut current_strategy = multi_sig_cli
-        .get_strategy(&main_account)
-        .await?
-        .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
+
     current_strategy
         .servant_pubkeys
         .push(servant_pubkey.clone());

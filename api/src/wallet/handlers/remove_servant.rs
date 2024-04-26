@@ -24,7 +24,7 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let RemoveServantRequest { servant_pubkey } = request_data;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -39,11 +39,7 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let cli = ContractClient::<MultiSig>::new()?; //it is impossible to get none
-    let mut current_strategy = cli
-        .get_strategy(&main_account)
-        .await?
-        .ok_or(WalletError::MainAccountNotExist(main_account.clone()))?;
+    let cli = ContractClient::<MultiSig>::new()?;
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);

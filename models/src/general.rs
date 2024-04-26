@@ -19,6 +19,15 @@ pub fn transaction_commit() -> Result<(), BackendError> {
     Ok(())
 }
 
+pub fn transaction_rollback() -> Result<(), BackendError> {
+    crate::CLIENTDB
+        .lock()
+        .map_err(|e| InternalError(e.to_string()))?
+        .simple_query("rollback")
+        .map_err(|e| DBError(e.to_string()))?;
+    Ok(())
+}
+
 pub fn table_clear(table_name: &str) -> Result<(), BackendError> {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::CLIENTDB

@@ -994,6 +994,22 @@ macro_rules! test_get_secret {
 }
 
 #[macro_export]
+macro_rules! test_estimate_transfer_fee {
+    ($service:expr, $app:expr,$coin:expr,$amount:expr) => {{
+        let url = format!("/wallet/estimateTransferFee?coin={}&amount={}", $coin,$amount);
+        let res: BackendRespond<EstimateTransferFeeResponse> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
 macro_rules! test_get_balance_list {
     ($service:expr, $app:expr,$kind:expr) => {{
         let url = format!("/wallet/balanceList?kind={}", $kind);

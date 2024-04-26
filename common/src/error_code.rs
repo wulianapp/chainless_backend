@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use thiserror::Error;
 
 use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
@@ -133,7 +135,7 @@ pub enum WalletError {
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
-    TxStatusIllegal(CoinSendStage, CoinSendStage),
+    TxStageIllegal(CoinSendStage, CoinSendStage),
     #[error("balanceMustBeZero")]
     BalanceMustBeZero,
     #[error("subaccount {0} is not existent on chain")]
@@ -162,7 +164,7 @@ impl ErrorCode for WalletError {
             Self::InsufficientAvailableBalance => 3010,
             Self::NotSetSecurity => 3011,
             Self::TxAlreadyConfirmed => 3012,
-            Self::TxStatusIllegal(_, _) => 3013,
+            Self::TxStageIllegal(_, _) => 3013,
             Self::BalanceMustBeZero => 3014,
             Self::SubAccountNotExist(_) => 3015,
             Self::MustHaveSubaccount => 3016,
