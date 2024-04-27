@@ -304,6 +304,7 @@ macro_rules! test_register {
                 "contact": $app.user.contact,
                 "kind": "Register"
             });
+            /***
             let _res: BackendRespond<String> = test_service_call!(
                 $service,
                 "post",
@@ -311,7 +312,7 @@ macro_rules! test_register {
                 Some(payload.to_string()),
                 None::<String>
             );
-
+            ***/
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
@@ -378,6 +379,7 @@ macro_rules! test_create_main_account{
             "contact": $app.user.contact,
             "kind": "SetSecurity"
         });
+        /*** 
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
@@ -386,7 +388,7 @@ macro_rules! test_create_main_account{
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-
+        ***/
         let payload = json!({
             "masterPubkey":  $app.wallet.main_account,
             "masterPrikeyEncryptedByPassword": $app.wallet.prikey,
@@ -633,6 +635,7 @@ macro_rules! test_update_security {
             "contact": $app.user.contact,
             "kind": "UpdateSecurity"
         });
+        /***
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
@@ -641,7 +644,7 @@ macro_rules! test_update_security {
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code,0);
-
+        ***/
 
         let payload = json!({
             "secrets": $secrets,

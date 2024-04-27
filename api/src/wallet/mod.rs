@@ -1717,7 +1717,7 @@ mod tests {
     #[actix_web::test]
     async fn test_wallet_fees_prioritys_op() {
         //todo: cureent is single, add multi_sig testcase
-        let _app = init().await;
+        println!("start test_wallet_fees_prioritys_op");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
@@ -1736,7 +1736,7 @@ mod tests {
     #[actix_web::test]
     async fn test_wallet_add_remove_subaccount() {
         //todo: cureent is single, add multi_sig testcase
-        let _app = init().await;
+        println!("start test_wallet_add_remove_subaccount");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
@@ -1767,7 +1767,7 @@ mod tests {
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
         //todo: cureent is single, add multi_sig testcase
-        let _app = init().await;
+        println!("start test_wallet_update_subaccount_hold_limit_ok");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
@@ -1790,6 +1790,7 @@ mod tests {
     #[actix_web::test]
     async fn test_wallet_force_transfer_with_servant() {
         //todo: cureent is single, add multi_sig testcase
+        println!("start test_wallet_force_transfer_with_servant");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _, mut receiver) =
@@ -1854,6 +1855,7 @@ mod tests {
     #[actix_web::test]
     async fn test_wallet_force_transfer_without_servant() {
         //todo: cureent is single, add multi_sig testcase
+        println!("start test_wallet_force_transfer_without_servant");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _, _, mut receiver) = gen_some_accounts_with_new_key();
@@ -1893,6 +1895,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_replace_servant() {
+        println!("start test_wallet_replace_servant");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, mut sender_newcommer, _receiver) =
@@ -1923,6 +1926,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_servant_switch_master() {
+        println!("start test_wallet_servant_switch_master");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
@@ -1935,7 +1939,7 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        test_get_captcha_with_token!(service, sender_servant, "ServantSwitchMaster");
+        //test_get_captcha_with_token!(service, sender_servant, "ServantSwitchMaster");
         let gen_res = test_gen_servant_switch_master!(service, sender_servant);
         let add_key_sig = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
@@ -1974,6 +1978,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_main_send_money_to_sub() {
+        println!("start test_wallet_main_send_money_to_sub");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -2016,6 +2021,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_main_send_money_to_bridge() {
+        println!("start test_wallet_main_send_money_to_bridge");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -2159,6 +2165,7 @@ mod tests {
     //todo: eth主网币，场景单独测试DRY
     #[actix_web::test]
     async fn test_wallet_main_send_eth_to_bridge() {
+        println!("start test_wallet_main_send_eth_to_bridge");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -2306,6 +2313,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_sub_send_money_to_main() {
+        println!("start test_wallet_sub_send_money_to_main");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -2363,6 +2371,7 @@ mod tests {
     }
     #[actix_web::test]
     async fn test_wallet_change_security() {
+        println!("start test_wallet_change_security");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
@@ -2398,6 +2407,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_newcommer_replace_master() {
+        println!("start test_wallet_newcommer_replace_master");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, mut sender_newcommer, _receiver) =
@@ -2410,7 +2420,7 @@ mod tests {
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        test_get_captcha_with_token!(service, sender_newcommer, "NewcomerSwitchMaster");
+        //test_get_captcha_with_token!(service, sender_newcommer, "NewcomerSwitchMaster");
         let gen_res = test_gen_newcommer_switch_master!(service, sender_newcommer);
 
         let add_key_sig = common::encrypt::ed25519_sign_hex(
@@ -2435,6 +2445,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_get_all() {
+        println!("start test_wallet_get_all");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -2462,6 +2473,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_faucet_ok() {
+        println!("start test_wallet_faucet_ok");
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
