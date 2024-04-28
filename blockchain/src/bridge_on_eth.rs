@@ -45,7 +45,7 @@ pub struct DepositOrderInfo {
 
 impl EthContractClient<Bridge> {
     pub fn new() -> EthContractClient<Bridge> {
-        let ca = Address::from_str("0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f").unwrap();
+        let ca = Address::from_str("0xd4F31C684490fb6386AE55d23E548B6323529686").unwrap();
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
         let prikey = "e05eb9eb3223d310252755e1c2fd65d03a3f9b45955186b4bea78c292cdcaa2b";
         let wallet = prikey
@@ -116,7 +116,7 @@ impl EthContractClient<Bridge> {
         let cid = U256::from(cid);
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
-        let signature = hex::decode(signature).unwrap();
+        let signature: Vec<u8> = hex::decode(signature).unwrap();
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
 
         println!(

@@ -135,8 +135,8 @@ impl CoinType {
             CoinType::ETH => None,
             CoinType::USDT => Some(global_conf.eth_usdt_contract.clone()),
             CoinType::USDC => Some(global_conf.eth_usdc_contract.clone()),
-            CoinType::CLY => None,
-            CoinType::DW20 => Some(global_conf.eth_dw20_contract.clone()),
+            CoinType::CLY => Some(global_conf.eth_cly_contract.clone()),
+            CoinType::DW20 => None
         }
     }
 
@@ -148,8 +148,8 @@ impl CoinType {
             CoinType::ETH => Some(18),
             CoinType::USDT => Some(18),
             CoinType::USDC => Some(18),
-            CoinType::CLY => None,
-            CoinType::DW20 => Some(18),
+            CoinType::CLY => Some(18),
+            CoinType::DW20 => None,
         }
     }
 

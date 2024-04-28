@@ -84,6 +84,7 @@ pub struct EnvConf {
     pub eth_usdt_contract: String,
     pub eth_usdc_contract: String,
     pub eth_dw20_contract: String,
+    pub eth_cly_contract: String,
 }
 
 impl Default for EnvConf {
@@ -113,6 +114,7 @@ impl Default for EnvConf {
             eth_usdt_contract: "0x1234".to_string(),
             eth_usdc_contract: "0x1234".to_string(),
             eth_dw20_contract: "0x1234".to_string(),
+            eth_cly_contract: "0x1234".to_string(),
             login_by_password_retry_time: 5,
         }
     }
@@ -164,6 +166,10 @@ lazy_static! {
 
         if let Some(value) = env::var_os("BACKEND_ERC20_WBTC_CONTRACT"){
             conf.eth_wbtc_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_ERC20_CLY_CONTRACT"){
+            conf.eth_cly_contract = value.to_str().unwrap().parse().unwrap();
         }
 
         if let Some(value) = env::var_os("BACKEND_MULTI_SIG_RELAYER_PRIKEY"){

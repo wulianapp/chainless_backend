@@ -31,13 +31,14 @@ impl ContractClient<FeesCall> {
     //fixme: gen once object
     pub fn new() -> Result<Self> {
         let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
+        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
         //cvault0001.chainless
         let contract = &common::env::CONF.fees_call_contract;
         println!("___{}", prikey_str);
         let pri_key: SecretKey = prikey_str.parse()?;
         let pubkey = get_pubkey(&pri_key.to_string())?;
 
-        let account_id = AccountId::from_str(&pubkey)?;
+        let account_id = AccountId::from_str(relayer_account)?;
 
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {

@@ -61,7 +61,7 @@ pub async fn req(
     let bridge_cli = ContractClient::<Bridge>::new().unwrap();
 
     let (sig, deadline, cid) = bridge_cli
-        .sign_deposit_info(&eth_depositor, coin, amount, &main_account)
+        .sign_deposit_info(coin, amount, &main_account)
         .await?;
     println!("sig {} ", sig);
 

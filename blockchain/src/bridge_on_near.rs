@@ -90,7 +90,6 @@ struct DepositStruct {
     chainless_id: String,
     symbol: String,
     amount: U256,
-    owner: Address,
     contract: Address,
     deadline: U256,
 }
@@ -149,7 +148,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(now_millis()),
             chainless_id: near_account_id.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
+            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
                 .parse()
                 .unwrap(),
         };
@@ -173,7 +172,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(1500),
             chainless_id: near_account_id.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
+            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
                 .parse()
                 .unwrap(),
         };
@@ -195,7 +194,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(1500),
             chainless_id: main_account.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
+            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
                 .parse()
                 .unwrap(),
         };
@@ -320,7 +319,6 @@ impl ContractClient<Bridge> {
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
     pub async fn sign_deposit_info(
         &self,
-        owner: &str,
         coin: CoinType,
         amount: u128,
         account_id: &str,
@@ -344,8 +342,7 @@ impl ContractClient<Bridge> {
             chainless_id: account_id.parse().unwrap(),
             symbol: coin.to_string(),
             amount,
-            owner: owner.parse().unwrap(),
-            contract: "0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f"
+            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
                 .parse()
                 .unwrap(),
             deadline: U256::from(deadline),
@@ -429,7 +426,6 @@ mod tests {
 
         let sig = bridge_cli
             .sign_deposit_info(
-                "0xcb5afaa026d3de65de0ddcfb1a464be8960e334c",
                 CoinType::USDT,
                 100,
                 "node0",
@@ -467,7 +463,6 @@ mod tests {
 
         let (sig, deadline, cid) = bridge_cli
             .sign_deposit_info(
-                "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
                 CoinType::USDT,
                 111,
                 "test",
@@ -504,14 +499,14 @@ mod tests {
         let relayer_eth_addr = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
         let current_balance = crate::eth_cli::general::get_eth_balance(relayer_eth_addr).await;
         println!("current eth balance: {}", current_balance);
-        let deposit_amount = 40_000_000_000_000_000_000u128; //40
+        let deposit_amount = 10_000_000_000_000_000_000_000u128; //10k
         let replayer_acccount_id = "test";
 
         let bridge_cli = ContractClient::<Bridge>::new().unwrap();
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await;
         println!(
-            "get_binded_eth_addr {} ",
-            current_binded_eth_addr.unwrap().unwrap()
+            "get_binded_eth_addr {:?} ",
+            current_binded_eth_addr.unwrap()
         );
 
         let set_res = bridge_cli.set_user_batch("test").await;
@@ -530,15 +525,11 @@ mod tests {
 
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::CLY) {
+            if coin.eq(&CoinType::DW20) {
                 continue;
             }
 
-            if !coin.eq(&CoinType::ETH) {
-                continue;
-            }
-
-            let coin_cli = ContractClient::<crate::coin::Coin>::new(coin.clone()).unwrap();
+            let coin_cli: ContractClient<crate::coin::Coin> = ContractClient::<crate::coin::Coin>::new(coin.clone()).unwrap();
             let balance1: Option<String> = coin_cli.get_balance("test").await.unwrap();
             println!(
                 "test_coin_{}_balance1_——————{:?}",
@@ -548,7 +539,6 @@ mod tests {
 
             let (sig, deadline, cid) = bridge_cli
                 .sign_deposit_info(
-                    relayer_eth_addr,
                     coin.clone(),
                     deposit_amount,
                     replayer_acccount_id,
@@ -559,10 +549,10 @@ mod tests {
 
             tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-            let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test2").await;
+            let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await;
             println!(
-                "current_bind_res {} ",
-                current_binded_eth_addr.unwrap().unwrap()
+                "current_binded_eth_addr {:?} ",
+                current_binded_eth_addr.unwrap()
             );
 
             let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();

@@ -22,7 +22,7 @@ abigen!(
 
 impl EthContractClient<Erc20> {
     pub fn new() -> EthContractClient<Erc20> {
-        let ca = Address::from_str("0x4a9B370a2Bb04E1E0D78c928254a4673618FD73f").unwrap();
+        let ca = Address::from_str("0xd4F31C684490fb6386AE55d23E548B6323529686").unwrap();
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
         let prikey = "e05eb9eb3223d310252755e1c2fd65d03a3f9b45955186b4bea78c292cdcaa2b";
         let wallet = prikey
@@ -122,23 +122,24 @@ mod tests {
 
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::CLY) {
+            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::DW20) {
                 continue;
             }
             let erc20_addr = coin.erc20_ca().unwrap();
             let balance = cli.balance_of(&erc20_addr, address).await.unwrap();
             println!("coin {} balance__{}", coin.to_string(), balance);
             let spender = hex::encode(cli.contract_addr);
-            let amount = 1000000000000000 * 10u128.pow(18);
+            let amount = 10000000000000000 * 10u128.pow(18);
+            
             let _approve_res = cli
                 .relayer_approve(&erc20_addr, &spender, amount)
                 .await
                 .unwrap();
+            
             let allow_amount = cli
                 .allowance(&erc20_addr, relayer_addr, &spender)
-                .await
-                .unwrap();
-            println!("allow_amount__{}", allow_amount);
+                .await.unwrap();
+            println!("coin: {} ,allow_amount__{}",coin,allow_amount);
         }
     }
 }
