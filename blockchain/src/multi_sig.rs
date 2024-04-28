@@ -2,7 +2,7 @@ use anyhow::Result;
 use common::data_structures::get_support_coin_list;
 use common::error_code::BackendError;
 use common::utils::time::now_millis;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::Debug;
 use std::str::FromStr;
 use tracing::error;
@@ -36,7 +36,6 @@ use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
-use std::collections::BTreeMap;
 
 
 pub struct MultiSig {}
@@ -70,7 +69,7 @@ pub struct StrategyData {
     pub master_pubkey: String,
     pub multi_sig_ranks: Vec<MultiSigRank>,
     pub servant_pubkeys: Vec<String>,
-    pub sub_confs: HashMap<String, SubAccConf>,
+    pub sub_confs: BTreeMap<String, SubAccConf>,
 }
 
 impl ContractClient<MultiSig> {
@@ -215,7 +214,7 @@ impl ContractClient<MultiSig> {
     pub async fn add_subaccount(
         &self,
         main_acc: &str,
-        subacc: HashMap<&str, SubAccConf>,
+        subacc: BTreeMap<&str, SubAccConf>,
     ) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
         assert_eq!(subacc.len(), 1, "tmp limit");
@@ -232,7 +231,7 @@ impl ContractClient<MultiSig> {
                 //todo:
                 (AccountId::from_str(acc_str).unwrap(), conf)
             })
-            .collect::<HashMap<AccountId, SubAccConf>>();
+            .collect::<BTreeMap<AccountId, SubAccConf>>();
         debug!("pre_add sub_confs {:?}", sub_confs);
 
         let args_str = json!({
@@ -275,7 +274,7 @@ impl ContractClient<MultiSig> {
         let sub_confs = sub_confs
             .into_iter()
             .map(|(acc_str, conf)| (AccountId::from_str(acc_str).unwrap(), conf))
-            .collect::<HashMap<AccountId, SubAccConf>>();
+            .collect::<BTreeMap<AccountId, SubAccConf>>();
         debug!("set_strategy {:?}", rank_arr);
 
         let args_str = json!({

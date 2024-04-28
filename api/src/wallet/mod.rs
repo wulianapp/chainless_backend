@@ -1800,11 +1800,27 @@ mod tests {
         let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
         let first_subaccount_id = sub_accoounts.first().unwrap();
 
-        let (new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
-        test_add_subaccount!(service, sender_master, new_sub_pubkey);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let strategy = test_get_strategy!(service, sender_master).unwrap();
-        println!("___{:?}", strategy);
+        let mut strategy = test_get_strategy!(service, sender_master).unwrap();
+        /***
+        //test subaccount order
+        let mut index = 0;
+        loop {
+            let (new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
+            test_add_subaccount!(service, sender_master, new_sub_pubkey);
+            tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+            index += 1;
+            if index == 5 {
+                break;
+            }
+        }
+
+        loop {
+            strategy = test_get_strategy!(service, sender_master).unwrap();
+            tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            println!("___{:#?}", strategy.subaccounts);
+        }
+        **/
+     
         let sub_accoounts: Vec<String> = strategy.subaccounts.into_keys().collect();
         let second_sub = sub_accoounts.last().unwrap();
         //assert_eq!(strategy.subaccounts.get(&new_sub_pubkey).unwrap().hold_value_limit,1000_);

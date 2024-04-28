@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
@@ -58,7 +58,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     secret.insert()?;
 
     let multi_cli = ContractClient::<MultiSig>::new()?;
-    let sub_confs = HashMap::from([(
+    let sub_confs = BTreeMap::from([(
         subaccount_id.as_str(),
         SubAccConf {
             pubkey: subaccount_pubkey,

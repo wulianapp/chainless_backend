@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use actix_web::HttpRequest;
 
@@ -14,7 +14,7 @@ pub struct StrategyDataTmp {
     pub multi_sig_ranks: Vec<MultiSigRankTmp>,
     pub master_pubkey: String,
     pub servant_pubkeys: Vec<String>,
-    pub subaccounts: HashMap<String, SubAccConf>,
+    pub subaccounts: BTreeMap<String, SubAccConf>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
