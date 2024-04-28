@@ -52,6 +52,7 @@ pub struct EnvConf {
     pub fees_call_contract: String,
     pub bridge_near_contract: String,
     pub bridge_eth_contract: String,
+    pub bridge_admin_prikey: String,
     /// ws servie prot
     pub multi_sig_relayer_prikey: String,
     //relayer_account_id
@@ -110,6 +111,7 @@ impl Default for EnvConf {
             fees_call_contract: "fees_call".to_string(),
             bridge_near_contract: "cvault0001.chainless".to_string(),
             bridge_eth_contract: "0x1234".to_string(),
+            bridge_admin_prikey: "".to_string(),
             eth_wbtc_contract: "0x1234".to_string(),
             eth_usdt_contract: "0x1234".to_string(),
             eth_usdc_contract: "0x1234".to_string(),
@@ -150,6 +152,10 @@ lazy_static! {
 
         if let Some(value) = env::var_os("BACKEND_BRIDGE_ETH_CONTRACT"){
             conf.bridge_eth_contract = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_BRIDGE_ADMIN_PRIKEY"){
+            conf.bridge_admin_prikey = value.to_str().unwrap().parse().unwrap();
         }
 
         if let Some(value) = env::var_os("BACKEND_ERC20_USDT_CONTRACT"){

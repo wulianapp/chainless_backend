@@ -762,7 +762,7 @@ async fn servant_saved_secret(request: HttpRequest) -> impl Responder {
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1,3007} status_code         状态码.
-* @apiSuccess {String=HaveUncompleteTx} msg
+* @apiSuccess {String} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
@@ -2118,7 +2118,7 @@ mod tests {
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-        assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
+        assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
         //local sign
         let signature = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
@@ -2137,8 +2137,7 @@ mod tests {
         println!("current_bind_res {} ", current_binded_eth_addr);
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         let erc20_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new();
-        let usdt_addr = "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499";
+            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new(&CoinType::USDT);
         let eth_bridge_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
         loop {
@@ -2160,7 +2159,7 @@ mod tests {
                     user_info.main_account, balance_on_near
                 );
                 let balance_on_eth = erc20_cli
-                    .balance_of(usdt_addr, &current_binded_eth_addr)
+                    .balance_of(&current_binded_eth_addr)
                     .await
                     .unwrap();
                 println!(
@@ -2202,7 +2201,7 @@ mod tests {
                 user_info.main_account, balance_on_near
             );
             let balance_on_eth = erc20_cli
-                .balance_of(usdt_addr, &current_binded_eth_addr)
+                .balance_of(&current_binded_eth_addr)
                 .await
                 .unwrap();
             println!(
@@ -2280,10 +2279,7 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
-        let erc20_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new();
-        let usdt_addr = "0xB2FbF84E5D220492E41FAd42C2c9679872ba3499";
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();        
         let eth_bridge_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
         loop {

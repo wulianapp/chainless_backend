@@ -81,7 +81,7 @@ pub async fn gen_random_account_id(
             warn!("account_id {} already register on chain", account_id);
         }
     }
-    Err(BackendError::InternalError("".to_string()))
+    Err(BackendError::InternalError("gen random account_id reach limit".to_string()))
 }
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {

@@ -119,6 +119,18 @@ impl ContractClient<Bridge> {
         })
     }
 
+    fn eth_contract() -> String
+    {
+        common::env::CONF.bridge_eth_contract.clone()
+
+    }
+
+    fn eth_admin_prikey() -> String
+    {
+        common::env::CONF.bridge_admin_prikey.clone()
+
+    }
+
     pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
         let receiver: AccountId = AccountId::from_str(receiver).unwrap();
         let args_str = json!({
@@ -148,9 +160,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(now_millis()),
             chainless_id: near_account_id.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
-                .parse()
-                .unwrap(),
+            contract: Self::eth_contract().parse().unwrap(),
         };
 
         let prikey = self.relayer.secret_key.unwrap_as_ed25519().0;
@@ -172,7 +182,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(1500),
             chainless_id: near_account_id.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
+            contract: Self::eth_contract()
                 .parse()
                 .unwrap(),
         };
@@ -194,7 +204,7 @@ impl ContractClient<Bridge> {
             cid: U256::from(1500),
             chainless_id: main_account.parse().unwrap(),
             owner: eth_addr.parse().unwrap(),
-            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
+            contract: Self::eth_contract()
                 .parse()
                 .unwrap(),
         };
@@ -333,16 +343,14 @@ impl ContractClient<Bridge> {
             U256::from(amount)
         };
         //todo: 签名的订单只有这个有权限
-        let prikey =
-            hex::decode("6c7d02e6742c673e8c5b9f9e85966a84706c08a6741d84c1467822b6d681d56f")
-                .unwrap();
+        let prikey = hex::decode(&Self::eth_admin_prikey()).unwrap();
         let wallet = LocalWallet::from_bytes(&prikey).unwrap();
         let data = DepositStruct {
             cid: U256::from(cid),
             chainless_id: account_id.parse().unwrap(),
             symbol: coin.to_string(),
             amount,
-            contract: "0xd4F31C684490fb6386AE55d23E548B6323529686"
+            contract: Self::eth_contract()
                 .parse()
                 .unwrap(),
             deadline: U256::from(deadline),
