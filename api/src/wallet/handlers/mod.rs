@@ -61,6 +61,8 @@ pub mod update_strategy;
 pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
 pub mod estimate_transfer_fee;
+pub mod single_balance;
+
 
 const MIN_BASE_FEE:u128 = 1_000_000_000_000_000_000;
 

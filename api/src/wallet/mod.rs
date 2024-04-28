@@ -1147,6 +1147,56 @@ async fn balance_list(
     gen_extra_respond(handlers::balance_list::req(req, request_data.0).await)
 }
 
+
+/**
+ * @api {get} /wallet/singleBalance 获取单账户单币种的余额
+ * @apiVersion 0.0.1
+ * @apiName SingleBalance
+ * @apiGroup Wallet
+ * @apiQuery {String=BTC,ETH,USDT,USDC,CLY,DW20} coin 币种名称
+ * @apiQuery {String} [account_id] 钱包id,默认主账户
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/balanceList?kind=Main
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
+* @apiSuccess {String} data               余额详情
+* @apiSuccess {String} data.total_balance                      总余额.
+* @apiSuccess {String} data.total_dolar_value                    总美元价值.
+* @apiSuccess {String} data.total_rmb_value                      总人民币价值.
+* @apiSuccess {String} [data.hold_limit]                      持仓上限.主账户为空
+* @apiSampleRequest http://120.232.251.101:8066/wallet/getBalance
+*/
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SingleBalanceRequest {
+    coin: String,
+    account_id: Option<String>,
+}
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct SingleBalanceResponse {
+    total_balance: String,
+    total_dollar_value: String,
+    total_rmb_value: String,
+    hold_limit: Option<String>,
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/wallet/singleBalance")]
+async fn single_balance(
+    req: HttpRequest,
+    request_data: web::Query<SingleBalanceRequest>,
+) -> impl Responder {
+    debug!(
+        "req_params::  {}",
+        serde_json::to_string(&request_data.0).unwrap()
+    );
+    gen_extra_respond(handlers::single_balance::req(req, request_data.0).await)
+}
+
 /**
  * @api {get} /wallet/txList 账单列表详情
  * @apiVersion 0.0.1
@@ -1621,6 +1671,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(servant_saved_secret)
         .service(device_list)
         .service(balance_list)
+        .service(single_balance)
         .service(gen_newcomer_switch_master)
         .service(commit_newcomer_switch_master)
         .service(gen_servant_switch_master)

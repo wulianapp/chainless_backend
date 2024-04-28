@@ -499,7 +499,7 @@ mod tests {
         let relayer_eth_addr = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
         let current_balance = crate::eth_cli::general::get_eth_balance(relayer_eth_addr).await;
         println!("current eth balance: {}", current_balance);
-        let deposit_amount = 10_000_000_000_000_000_000_000u128; //10k
+        let mut deposit_amount = 10_000_000_000_000_000_000_000u128; //10k
         let replayer_acccount_id = "test";
 
         let bridge_cli = ContractClient::<Bridge>::new().unwrap();
@@ -527,6 +527,9 @@ mod tests {
         for coin in coins {
             if coin.eq(&CoinType::DW20) {
                 continue;
+            }
+            if coin.eq(&CoinType::ETH){
+                deposit_amount = 1_100_000_000_000_000_000u128;//4
             }
 
             let coin_cli: ContractClient<crate::coin::Coin> = ContractClient::<crate::coin::Coin>::new(coin.clone()).unwrap();

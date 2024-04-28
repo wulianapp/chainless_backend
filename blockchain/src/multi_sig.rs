@@ -36,6 +36,8 @@ use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
+use std::collections::BTreeMap;
+
 
 pub struct MultiSig {}
 
@@ -80,6 +82,7 @@ impl ContractClient<MultiSig> {
         let pri_key: SecretKey = prikey_str.parse()?;
         let pubkey = get_pubkey(&pri_key.to_string())?;
         let account_id = AccountId::from_str(&pubkey)?;
+        println!("0001__pubkey__{}", account_id);
 
         let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
         println!("0002___{}", prikey_str);
@@ -186,7 +189,7 @@ impl ContractClient<MultiSig> {
             .register_account_with_name(subaccount_id, subaccount_pubkey)
             .await?;
         debug!("register_tx_id {}", register_tx_id);
-        let sub_confs = HashMap::from([(
+        let sub_confs = BTreeMap::from([(
             subaccount_id,
             SubAccConf {
                 pubkey: subaccount_pubkey.to_string(),
@@ -265,7 +268,7 @@ impl ContractClient<MultiSig> {
         account_id: &str,
         master_pubkey: &str,
         servant_pubkeys: Vec<String>,
-        sub_confs: HashMap<&str, SubAccConf>,
+        sub_confs: BTreeMap<&str, SubAccConf>,
         rank_arr: Vec<MultiSigRank>,
     ) -> Result<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id)?;

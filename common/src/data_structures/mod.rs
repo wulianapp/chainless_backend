@@ -92,7 +92,7 @@ pub fn get_support_coin_list() -> Vec<CoinType> {
 
 pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     vec![
-        //CoinType::BTC,
+        CoinType::BTC,
         CoinType::ETH,
         CoinType::USDT,
         //CoinType::USDC,

@@ -127,7 +127,6 @@ async fn gen_bind_eth_addr_sig(
 * @apiGroup Bridge
 * @apiBody {String="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
 * @apiBody {String} amount 提现数量
-* @apiBody {String} ethDepositor 充值方的eth地址
 * @apiExample {curl} Example usage:
 *   curl -X POST http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken -H "Content-Type: application/json" -d
 *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
@@ -144,8 +143,7 @@ async fn gen_bind_eth_addr_sig(
 #[serde(rename_all = "camelCase")]
 pub struct GenDepositSigRequest {
     coin: String,
-    amount: String,
-    eth_depositor: String,
+    amount: String
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/bridge/genDepositSig")]

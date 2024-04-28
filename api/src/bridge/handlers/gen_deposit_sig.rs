@@ -46,8 +46,7 @@ pub async fn req(
 
     let GenDepositSigRequest {
         coin,
-        amount,
-        eth_depositor,
+        amount
     } = request_data.clone();
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
 
