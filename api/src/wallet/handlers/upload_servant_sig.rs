@@ -41,6 +41,7 @@ pub async fn req(
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
+    models::general::transaction_begin()?;
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
@@ -102,5 +103,6 @@ pub async fn req(
             )?;
         }
     }
+    models::general::transaction_commit()?;
     Ok(None)
 }

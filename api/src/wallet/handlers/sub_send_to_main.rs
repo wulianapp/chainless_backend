@@ -46,6 +46,7 @@ pub async fn req(
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
     let coin_type: CoinType = coin.parse().map_err(|e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
 
+    models::general::transaction_begin()?;
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
         .await?;    
@@ -62,5 +63,6 @@ pub async fn req(
     coin_info.transaction.tx_type = TxType::SubToMain;
     coin_info.transaction.tx_id = Some(tx_id.clone());
     coin_info.insert()?;
+    models::general::transaction_commit()?;
     Ok(Some(tx_id))
 }

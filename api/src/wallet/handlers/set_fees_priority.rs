@@ -60,5 +60,6 @@ pub async fn req(
         "main_account {}: set_fees_priority txid {}",
         main_account, call_res
     );
+    //todo: record txid
     Ok(None)
 }

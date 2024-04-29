@@ -33,6 +33,7 @@ pub async fn req(
     let limit = display2raw(&limit).map_err(|err| BackendError::RequestParamInvalid(err))?;
 
     //add wallet info
+    models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new()?;
 
     let txid = cli
@@ -47,6 +48,6 @@ pub async fn req(
         vec![txid],
     );
     record.insert()?;
-
+    models::general::transaction_commit()?;
     Ok(None::<String>)
 }

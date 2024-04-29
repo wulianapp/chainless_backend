@@ -45,8 +45,8 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         .map_err(|err| BackendError::RequestParamInvalid(err))?;
 
     //add wallet info
+    models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new()?;
-
     let txid = cli.update_rank(&main_account, strategy).await?;
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
@@ -57,6 +57,6 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         vec![txid],
     );
     record.insert()?;
-
+    models::general::transaction_commit()?;
     Ok(None::<String>)
 }
