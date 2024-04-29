@@ -489,7 +489,7 @@ mod tests {
             current_binded_eth_addr.unwrap().unwrap()
         );
 
-        let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
+        let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new().unwrap();
         let deposit_res = cli
             .deposit("test", "usdt", 100000u128, &sig, deadline, cid)
             .await
@@ -538,9 +538,11 @@ mod tests {
             if coin.eq(&CoinType::DW20) {
                 continue;
             }
-            if coin.eq(&CoinType::ETH){
-                deposit_amount = 1_100_000_000_000_000_000u128;//4
-            }
+            let deposit_amount = if coin.eq(&CoinType::ETH){
+                1_100_000_000_000_000_000u128
+            }else{
+                deposit_amount
+            };
 
             let coin_cli: ContractClient<crate::coin::Coin> = ContractClient::<crate::coin::Coin>::new(coin.clone()).unwrap();
             let balance1: Option<String> = coin_cli.get_balance("test").await.unwrap();
@@ -568,7 +570,7 @@ mod tests {
                 current_binded_eth_addr.unwrap()
             );
 
-            let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new();
+            let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new().unwrap();
             let deposit_res = if coin.eq(&CoinType::ETH) {
                 cli.deposit_eth(replayer_acccount_id, deposit_amount, &sig, deadline, cid)
                     .await
@@ -590,12 +592,12 @@ mod tests {
             loop {
                 let balance2: Option<String> =
                     coin_cli.get_balance(replayer_acccount_id).await.unwrap();
-                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 println!(
                     "test_coin_{}_balance2_——————{:?}",
                     coin.to_string(),
                     balance2
                 );
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 if balance1.ne(&balance2) {
                     break;
                 }

@@ -75,33 +75,6 @@ pub fn ed25519_verify(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
     }
 }
 
-/***
-pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> String {
-    let prikey: SecretKey = prikey_str.parse().unwrap();
-    let prikey_bytes = prikey.unwrap_as_ed25519().0;
-    let data = hex::decode(data_str).unwrap();
-
-    let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
-    let main_device_pubkey = get_pubkey(&near_secret.to_string());
-    let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-    let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
-    let signature = signer.sign(&data);
-    let near_sig_bytes = signature.try_to_vec().unwrap();
-    let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    hex::encode(ed25519_sig_bytes)
-}
-
-pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> String {
-    let near_secret: SecretKey = SecretKey::ED25519(ED25519SecretKey(prikey_bytes));
-    let main_device_pubkey = get_pubkey(&near_secret.to_string());
-    let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-    let signer = InMemorySigner::from_secret_key(signer_account_id, near_secret);
-    let signature = signer.sign(data);
-    let near_sig_bytes = signature.try_to_vec().unwrap();
-    let ed25519_sig_bytes = near_sig_bytes.as_slice()[1..].to_vec();
-    hex::encode(ed25519_sig_bytes)
-}
-*/
 #[cfg(test)]
 mod tests {
     use super::*;

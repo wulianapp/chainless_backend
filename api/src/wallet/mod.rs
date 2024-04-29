@@ -2132,7 +2132,7 @@ mod tests {
         println!("bind_res {} ", bind_res);
 
         //step3: master: pre_send_money
-        test_pre_send_money_to_bridge!(service, sender_master, "USDT", "1.2");
+        test_pre_send_money_to_bridge!(service, sender_master, "BTC", "1.2");
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
@@ -2153,11 +2153,11 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::BTC).unwrap();
         let erc20_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new(&CoinType::USDT);
+            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new(&CoinType::BTC);
         let eth_bridge_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
+            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
         loop {
             let (_, orders) = bridge_cli
                 .list_withdraw_order(&user_info.main_account)
@@ -2167,8 +2167,6 @@ mod tests {
             println!("orders {:?}", orders);
 
             let orders2 = test_bridge_list_order!(service, sender_master).unwrap();
-           
-           
             println!("orders {:#?}", orders2);
 
 
@@ -2306,7 +2304,7 @@ mod tests {
         println!("current_bind_res {} ", current_binded_eth_addr);
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();        
         let eth_bridge_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
+            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
         loop {
             let (_, orders) = bridge_cli
                 .list_withdraw_order(&user_info.main_account)
@@ -2406,7 +2404,7 @@ mod tests {
         let coin_tx = SubAccCoinTx {
             amount: 5_000_000_000_000_000_000,
             //todo:
-            coin_id: "eth".to_string(),
+            coin_id: "usdt".to_string(),
         };
         let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
 
@@ -2537,10 +2535,10 @@ mod tests {
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:?}", txs);
 
-        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "USDT", "1.0").unwrap();
-        assert_eq!(estimate_res.coin.to_string(),"dw20");
-        assert!(estimate_res.amount.parse::<f32>().unwrap() < 5.0);
-        assert!(estimate_res.amount.parse::<f32>().unwrap() > 4.0);
+        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "BTC", "1.0").unwrap();
+        assert_eq!(estimate_res.coin.to_string(),"usdt");
+        assert!(estimate_res.amount.parse::<f32>().unwrap() < 70.0);
+        assert!(estimate_res.amount.parse::<f32>().unwrap() > 60.0);
     }
 
     #[actix_web::test]

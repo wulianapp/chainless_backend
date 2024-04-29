@@ -119,14 +119,7 @@ pub enum CoinType {
 
 impl CoinType {
     pub fn to_account_id(&self) -> AccountId {
-        match self {
-            CoinType::BTC => AccountId::from_str("btc").unwrap(),
-            CoinType::ETH => AccountId::from_str("eth").unwrap(),
-            CoinType::USDT => AccountId::from_str("usdt").unwrap(),
-            CoinType::USDC => AccountId::from_str("usdc").unwrap(),
-            CoinType::CLY => AccountId::from_str("cly").unwrap(),
-            CoinType::DW20 => AccountId::from_str("dw20").unwrap(),
-        }
+        AccountId::from_str(&self.to_string()).unwrap()
     }
 
     pub fn erc20_ca(&self) -> Option<String> {
@@ -162,10 +155,6 @@ impl CoinType {
             CoinType::CLY => 18,
             CoinType::DW20 => 18,
         }
-    }
-
-    pub fn to_account_str(&self) -> String {
-        self.to_account_id().to_string()
     }
 }
 

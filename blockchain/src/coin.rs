@@ -109,9 +109,8 @@ impl ContractClient<Coin> {
             .unwrap();
         let pubkey = get_pubkey(&pri_key.to_string())?;
         //bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a
-        debug!("dw20 punkey {}", pubkey);
+        debug!("coin relayer punkey {}", pubkey);
         let account_id: AccountId = AccountId::from_str(&pubkey)?;
-
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {
             deployed_at: coin.to_account_id(),
@@ -170,7 +169,7 @@ mod tests {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(from, &coin_type.to_account_str())
+        let mut transaction = gen_transaction(from, &coin_type.to_string())
             .await
             .unwrap();
         transaction.actions = transfer_actions;

@@ -44,22 +44,21 @@ pub struct DepositOrderInfo {
 }
 
 impl EthContractClient<Bridge> {
-    pub fn new() -> EthContractClient<Bridge> {
-        let ca = Address::from_str(&ENV_CONF.bridge_eth_contract).unwrap();
+    pub fn new() -> Result<EthContractClient<Bridge>> {
+        let ca = Address::from_str(&ENV_CONF.bridge_eth_contract)?;
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
         let prikey = "e05eb9eb3223d310252755e1c2fd65d03a3f9b45955186b4bea78c292cdcaa2b";
         let wallet = prikey
-            .parse::<LocalWallet>()
-            .unwrap()
+            .parse::<LocalWallet>()?
             .with_chain_id(1500u32);
         let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
 
         let cli = Arc::new(SignerMiddleware::new(provider, wallet));
-        EthContractClient {
+        Ok(EthContractClient {
             client: cli,
             contract_addr: ca,
             phantom: PhantomData,
-        }
+        })
     }
 
     pub async fn deposit(
@@ -229,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_token() {
-        let cli = EthContractClient::<Bridge>::new();
+        let cli = EthContractClient::<Bridge>::new().unwrap();
         let token = cli.token_info("usdt").await.unwrap();
         println!("{:?}", token);
     }

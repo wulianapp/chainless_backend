@@ -85,9 +85,9 @@ impl EthContractClient<Erc20> {
 #[cfg(test)]
 mod tests {
 
-    use ::common::data_structures::{
+    use ::common::{data_structures::{
         get_support_coin_list, get_support_coin_list_without_cly, CoinType,
-    };
+    }, utils::math::coin_amount::raw2display};
 
     use super::*;
 
@@ -136,6 +136,20 @@ mod tests {
                 .allowance( relayer_addr, &spender)
                 .await.unwrap();
             println!("coin: {} ,allow_amount__{}",coin,allow_amount);
+        }
+    }
+
+    #[tokio::test]
+    async fn tools_addr_balance() {
+        let address = "0x2f3fb26c1aea9df4ebb3a43b4ff063e74566dcaf";
+        let coins = get_support_coin_list();
+        for coin in coins {
+            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::DW20) {
+                continue;
+            }
+            let cli = EthContractClient::<Erc20>::new(&coin);
+            let balance: u128 = cli.balance_of(address).await.unwrap();
+            println!("coin {} balance__{}", coin.to_string(), raw2display(balance));
         }
     }
 }
