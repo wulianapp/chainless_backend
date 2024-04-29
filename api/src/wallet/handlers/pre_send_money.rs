@@ -11,7 +11,7 @@ use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
@@ -64,8 +64,10 @@ pub(crate) async fn req(
     let available_balance = super::get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
+        error!("{},  {}(amount)  big_than1 {}(available_balance) ",coin_type,amount,available_balance);
         Err(WalletError::InsufficientAvailableBalance)?;
     }
+
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new()?;
     let strategy = cli

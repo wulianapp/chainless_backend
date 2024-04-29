@@ -1864,7 +1864,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _, mut receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -1889,7 +1889,7 @@ mod tests {
             service,
             sender_master,
             receiver.user.contact,
-            "ETH",
+            "USDT",
             "1.2",
             true,
             None::<String>
@@ -1928,7 +1928,7 @@ mod tests {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _, _, mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         //let receive = a336dc50a8cef019d92c3c80c92a2a9d3842c95576d544286d166f1501a2351b
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
@@ -1946,7 +1946,7 @@ mod tests {
             service,
             sender_master,
             receiver.user.contact,
-            "ETH",
+            "USDT",
             "1",
             true,
             Some("000000".to_string())
@@ -2052,7 +2052,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -2070,7 +2070,7 @@ mod tests {
             service,
             sender_master,
             subaccount.first().unwrap(),
-            "ETH",
+            "USDT",
             "1.2"
         );
 
@@ -2095,7 +2095,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -2245,7 +2245,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -2282,7 +2282,7 @@ mod tests {
         println!("bind_res {} ", bind_res);
 
         //step3: master: pre_send_money
-        test_pre_send_money_to_bridge!(service, sender_master, "ETH", "1.2");
+        test_pre_send_money_to_bridge!(service, sender_master, "USDT", "1.2");
         println!("__0002");
 
         let res = test_search_message!(service, sender_master).unwrap();
@@ -2304,7 +2304,7 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();        
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();        
         let eth_bridge_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new();
         loop {
@@ -2432,7 +2432,7 @@ mod tests {
             "json_str {} coin_tx_hex_str {},sig_res {}",
             coin_tx_str, coin_tx_hex_str, signature
         );
-        test_sub_send_to_master!(service, sender_master, subaccount_id, signature, "ETH", "5");
+        test_sub_send_to_master!(service, sender_master, subaccount_id, signature, "USDT", "5");
     }
 
     #[derive(Deserialize, Serialize, Clone)]
@@ -2448,7 +2448,7 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -2537,7 +2537,7 @@ mod tests {
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:?}", txs);
 
-        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "ETH", "1.0").unwrap();
+        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "USDT", "1.0").unwrap();
         assert_eq!(estimate_res.coin.to_string(),"dw20");
         assert!(estimate_res.amount.parse::<f32>().unwrap() < 5.0);
         assert!(estimate_res.amount.parse::<f32>().unwrap() > 4.0);
@@ -2588,7 +2588,7 @@ mod tests {
         let (sender_master, sender_servant, _sender_newcommer, receiver) =
             gen_some_accounts_with_new_key();
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(&sender_master.wallet.main_account, 13u128)
             .await
@@ -2650,7 +2650,7 @@ mod tests {
             service,
             sender_master,
             receiver.user.contact,
-            "ETH",
+            "USDT",
             "12",
             false
         );
@@ -2791,7 +2791,7 @@ mod tests {
             service,
             sender_master,
             receiver.wallet.main_account,
-            "ETH",
+            "USDT",
             "2",
             true,
             None::<String>
