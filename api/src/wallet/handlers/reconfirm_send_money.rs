@@ -37,6 +37,11 @@ pub async fn req(
         .await?
         .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
     
+    //todo: check sig before push it to blockchain
+    if confirmed_sig.len() != 128 {
+        Err(BackendError::RequestParamInvalid("confirmed_sig is invalid".to_string()))?;
+    }
+
     models::general::transaction_begin()?;
     if strategy.sub_confs.get(&coin_tx.transaction.to).is_some() {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);

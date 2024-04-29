@@ -1,8 +1,6 @@
 //! account manager http service
 
 pub mod handlers;
-mod transaction;
-
 use actix_web::web::service;
 use actix_web::{get, post, web, HttpRequest, Responder};
 
@@ -1734,6 +1732,7 @@ mod tests {
     use models::account_manager::UserInfoView;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
+    use crate::bridge::ListWithdrawOrderResponse;
 
     /***
 
@@ -1800,6 +1799,10 @@ mod tests {
         let first_subaccount_id = sub_accoounts.first().unwrap();
 
         let mut strategy = test_get_strategy!(service, sender_master).unwrap();
+        let (new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
+        test_add_subaccount!(service, sender_master, new_sub_pubkey);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
         /***
         //test subaccount order
         let mut index = 0;
@@ -2162,6 +2165,13 @@ mod tests {
                 .unwrap()
                 .unwrap();
             println!("orders {:?}", orders);
+
+            let orders2 = test_bridge_list_order!(service, sender_master).unwrap();
+           
+           
+            println!("orders {:#?}", orders2);
+
+
             if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
                 println!("orders or signers is empty");
                 let balance_on_near = coin_cli

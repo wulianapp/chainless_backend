@@ -4,6 +4,7 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
 
@@ -175,11 +176,71 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::get_binded_eth_addr::req(request).await)
 }
 
+
+/**
+* @api {get} /bridge/listOrder 查询无链上的跨链订单列表
+* @apiVersion 0.0.1
+* @apiName ListOrder
+* @apiGroup Bridge
+* @apiHeader {String} Authorization  user's access token
+* @apiExample {curl} Example usage:
+*   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
+* -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+   OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+   iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3011} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
+* @apiSuccess {Object} data                          订单列表详情.
+* @apiSuccess {String} data.order_id        订单id
+* @apiSuccess {String=1500} data.chain_id   外链id 
+* @apiSuccess {String=Withdraw,Deposit} data.order_type     订单类型
+* @apiSuccess {String} data.account_id       无链钱包id
+* @apiSuccess {String} data.symbol   子钱包U本位持仓限制
+* @apiSuccess {String} data.amount   数量
+* @apiSuccess {String} data.address  外链地址
+* @apiSuccess {Object[]} data.signers       签名详情.
+* @apiSuccess {Number} data.signers.number       eth的当时所在高度
+* @apiSuccess {String} data.signers.signer       签名者id
+* @apiSuccess {String} [data.signers.signature]  签名结果
+* @apiSuccess {String} [data.signature]   充值签名，提现的时候为空
+* @apiSuccess {String=Default,Pending,Signed} data.status   订单状态
+* @apiSuccess {String} data.updated_at   更新时间
+* @apiSuccess {String} data.created_at   创建时间
+* @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
+*/
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct SignedOrderResponse {
+    pub number: u64,
+    pub signer: String,
+    pub signature: Option<String>,
+}
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct ListWithdrawOrderResponse {
+    pub order_id: u128,
+    pub chain_id: u128,            //外链id
+    pub order_type: String,     //Withdraw,Deposit
+    pub account_id: String,     //无链id
+    pub symbol: CoinType,            //代币符号
+    pub amount: String,              //
+    pub address: String,           //外链地址
+    pub signers: Vec<SignedOrderResponse>, //签名详情
+    pub signature: Option<String>, //充值签名
+    pub status: String,            //订单状态
+    pub updated_at: String,            //更新时间
+    pub created_at: String,            //创建时间
+}
+#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[get("/bridge/listOrder")]
+async fn list_order(request: HttpRequest) -> impl Responder {
+    gen_extra_respond(handlers::list_order::req(request).await)
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(bind_eth_addr)
         .service(gen_bind_eth_addr_sig)
         .service(gen_deposit_sig)
         .service(get_binded_eth_addr)
+        .service(list_order)
         .service(pre_withdraw);
 }
 

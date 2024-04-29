@@ -1044,6 +1044,24 @@ macro_rules! test_get_tx {
     }};
 }
 
+
+#[macro_export]
+macro_rules! test_bridge_list_order {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/bridge/listOrder");
+        let res: BackendRespond<Vec<ListWithdrawOrderResponse>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        println!("ListWithdrawOrderResponse {:#?}", res);
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
 #[macro_export]
 macro_rules! test_get_device_list {
     ($service:expr, $app:expr) => {{

@@ -6,7 +6,7 @@ use tracing::{debug,error, warn};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize,Debug)]
 pub struct BackendRespond<T: Serialize> {
     pub status_code: u16,
     pub msg: String,

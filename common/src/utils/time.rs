@@ -32,3 +32,11 @@ pub fn time2unix(time_str: String) -> u64 {
         .unwrap();
     dt.timestamp_millis() as u64
 }
+
+pub fn timestamp2utc(unix_timestamp: u64) -> String {
+    //todo:
+    let unix_timestamp = (unix_timestamp / 1_000_000_000) as i64;
+    let naive_datetime = chrono::NaiveDateTime::from_timestamp(unix_timestamp, 0);
+    let utc_time = DateTime::<Utc>::from_utc(naive_datetime, Utc);
+    utc_time.to_string()
+}

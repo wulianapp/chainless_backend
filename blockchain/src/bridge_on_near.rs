@@ -37,19 +37,19 @@ pub struct SignedOrder {
     pub signature: Option<String>,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
 pub enum Status {
     Default,
     Pending,
     Signed,
 }
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
 pub enum OrderType {
     Withdraw,
     Deposit,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
 pub struct BridgeOrder {
     pub chain_id: u128,            //外链id
     pub order_type: OrderType,     //Withdraw,Deposit
@@ -311,6 +311,7 @@ impl ContractClient<Bridge> {
         self.query_call("list_order", &args_str).await
     }
 
+    /***
     pub async fn list_deposit_order(
         &self,
         account_id: &str,
@@ -325,6 +326,7 @@ impl ContractClient<Bridge> {
         .to_string();
         self.query_call("list_order", &args_str).await
     }
+    ***/
 
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
     pub async fn sign_deposit_info(
