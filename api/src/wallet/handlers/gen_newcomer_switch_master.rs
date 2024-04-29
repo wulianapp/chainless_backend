@@ -1,7 +1,7 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::secret_store::SecretStoreView;
 //use log::info;
@@ -52,11 +52,11 @@ pub(crate) async fn req(
     let master_list = client.get_master_pubkey_list(&main_account).await?;
 
     if master_list.len() != 1 {
-        error!("unnormal account， it's account have more than 1 master");
-        return Err(common::error_code::BackendError::InternalError(
-            "".to_string(),
+        return Err(BackendError::InternalError(
+            "unnormal account,it's account have more than 1 master".to_string(),
         ));
     }
+    
     let master = master_list.first().unwrap();
 
     let (add_key_txid, add_key_raw) = client.add_key(&main_account, &newcomer_pubkey).await?;

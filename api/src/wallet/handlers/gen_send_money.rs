@@ -35,12 +35,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
     let coin_tx = models::coin_transfer::CoinTxView::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
     )?;
-    //不好卡就先不卡了、强制转账、给子账户转账
-    /****
-    if coin_tx.transaction.status != CoinTxStatus::ReceiverApproved {
-        Err(WalletError::TxStatusIllegal(coin_tx.transaction.status,CoinTxStatus::ReceiverApproved))?;
-    }
-    **/
 
     let servant_sigs = coin_tx
         .transaction

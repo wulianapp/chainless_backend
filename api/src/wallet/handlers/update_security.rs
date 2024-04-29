@@ -41,6 +41,7 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //todo: must be master
+    models::general::transaction_begin()?;
     UserInfoView::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),
         UserFilter::ById(user_id),
@@ -63,5 +64,6 @@ pub(crate) async fn req(
             )?;
         }
     }
+    models::general::transaction_commit()?;
     Ok(None)
 }

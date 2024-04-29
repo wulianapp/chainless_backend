@@ -23,7 +23,7 @@ use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+use tracing::{debug, error, info, warn};
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -50,14 +50,23 @@ pub(crate) async fn req(
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
 
-    if master_list.len() != 1 {
-        error!("unnormal account， it's account have more than 1 master");
-        return Err(common::error_code::BackendError::InternalError(
-            "".to_string(),
-        ));
-    }
-    let old_master = master_list.first().unwrap();
+    //get old_master
+    let old_master = if master_list.len() == 1 {
+        debug!("start switch servant to master");
+        master_list.first().unwrap().to_owned()
+    }else if master_list.len() == 2 {
+        warn!("unnormal account,it's account have 2 master");
+        let mut local_list = master_list.clone();
+        local_list.retain(|x| x.ne(&newcomer_pubkey));
+        local_list.first().unwrap().to_owned()
+    }else {
+        Err(BackendError::InternalError(
+            "main account is unnormal".to_string(),
+        ))?;
+        unreachable!("");
+    };
 
+    models::general::transaction_begin()?;
     //增加之前判断是否有
     if !master_list.contains(&newcomer_pubkey.to_string()) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
@@ -85,26 +94,23 @@ pub(crate) async fn req(
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         )?;
     } else {
-        error!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
-        Err(BackendError::InternalError(
-            "newcomer_pubkey already is master".to_string(),
-        ))?;
+        let err: String = format!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
+        Err(BackendError::InternalError(err))?;
     }
 
     //除了同时包含servant_key和旧的master之外的情况全部认为异常不处理
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
     if master_list.len() == 2
         && master_list.contains(&newcomer_pubkey)
-        && master_list.contains(old_master)
+        && master_list.contains(&old_master)
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
         DeviceInfoView::update_single(
-            DeviceInfoUpdater::BecomeUndefined(old_master),
-            DeviceInfoFilter::ByHoldKey(old_master),
+            DeviceInfoUpdater::BecomeUndefined(&old_master),
+            DeviceInfoFilter::ByHoldKey(&old_master),
         )?;
     } else {
-        error!("main account is unnormal");
         Err(BackendError::InternalError(
             "main account is unnormal".to_string(),
         ))?;
@@ -125,6 +131,6 @@ pub(crate) async fn req(
         vec![txid],
     );
     record.insert()?;
-
+    models::general::transaction_commit()?;
     Ok(None::<String>)
 }

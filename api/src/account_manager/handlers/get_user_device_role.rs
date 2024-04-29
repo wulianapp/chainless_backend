@@ -28,9 +28,9 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
         return Ok(Some(KeyRole2::Undefined));
     }
     //todo:
-    let mut device =
+    let mut find_res =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
-    if let Err(err) = device {
+    if let Err(err) = find_res {
         if err.to_string().contains("DBError::DataNotFound") {
             return Ok(Some(KeyRole2::Undefined));
         } else {

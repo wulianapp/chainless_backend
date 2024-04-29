@@ -56,6 +56,9 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         per_page,
         page,
     } = request_data;
+    if per_page > 1000 {
+        Err(BackendError::RequestParamInvalid("per_page is too big".to_string()))?;
+    }
     let tx_role = tx_role.parse().unwrap();
     let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(
         tx_role,

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use common::data_structures::get_support_coin_list;
 use common::error_code::BackendError;
 use common::utils::time::now_millis;
@@ -126,6 +126,7 @@ impl ContractClient<MultiSig> {
         Ok(hex::encode(key))
     }
 
+    //key列表是定序的,但是不以时间顺序
     pub async fn get_master_pubkey_list(&self, account_str: &str) -> Result<Vec<String>> {
         let list = get_access_key_list(account_str).await?.keys;
         let list = list
@@ -133,6 +134,15 @@ impl ContractClient<MultiSig> {
             .map(|key| hex::encode(key.public_key.key_data()))
             .collect();
         Ok(list)
+    }
+
+
+    pub async fn get_single_master_pubkey_list(&self, account_str: &str) -> Result<String> {
+        let list = self.get_master_pubkey_list(account_str).await?;
+        if list.len() != 1 {
+            Err(anyhow!("unnormal account， it's account have more than 1 master"))?;
+        }
+        Ok(list[0].clone())
     }
 
     //add_master

@@ -1,7 +1,6 @@
 use std::fmt::Display;
 
 use thiserror::Error;
-
 use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
@@ -37,6 +36,12 @@ impl From<AnyhowError> for BackendError {
 impl From<String> for BackendError {
     fn from(error: String) -> Self {
         BackendError::InternalError(error.to_string())
+    }
+}
+
+impl From<Box<dyn std::error::Error>> for BackendError {
+    fn from(err: Box<dyn std::error::Error>) -> Self {
+        BackendError::InternalError(err.to_string())
     }
 }
 
@@ -148,6 +153,10 @@ pub enum WalletError {
     ReceiverIsSubaccount,
     #[error("Receiver must be subaccount")]
     ReceiverIsNotSubaccount,
+    #[error("main_account {0} is already existent on chain")]
+    MainAccountAlreadyExist(String),
+    #[error("order_id {0} is nonexist")]
+    OrderNotFound(String),
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -171,6 +180,8 @@ impl ErrorCode for WalletError {
             Self::ReceiverNotSetSecurity => 3017,
             Self::ReceiverIsSubaccount => 3018,
             Self::ReceiverIsNotSubaccount => 3019,
+            Self::MainAccountAlreadyExist(_) => 3020,
+            Self::OrderNotFound(_) => 3021,
         }
     }
 }

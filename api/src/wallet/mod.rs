@@ -19,6 +19,11 @@ use crate::account_manager::{
 use tracing::{debug, span, Level};
 
 use self::handlers::balance_list::AccountType;
+use common::data_structures::{
+    coin_transaction::{CoinSendStage, CoinTransaction, TxType},
+    get_support_coin_list, TxStatusOnChain,
+};
+use handlers::ServentSigDetail;
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -892,7 +897,7 @@ async fn update_strategy(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,2,3007,3008} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/setFeesPriority
@@ -930,8 +935,8 @@ async fn set_fees_priority(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
-* @apiSuccess {String=HaveUncompleteTx} msg
+* @apiSuccess {String=0,1,2,3007,3008} status_code         状态码.
+* @apiSuccess {String} msg  状态详情
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
 */
@@ -976,8 +981,8 @@ async fn update_subaccount_hold_limit(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
-* @apiSuccess {String=HaveUncompleteTx} msg
+* @apiSuccess {String=0,1,2,2002,2003,2004,3007,3008} status_code         状态码.
+* @apiSuccess {String} msg  
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
@@ -1033,7 +1038,7 @@ async fn update_security(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,2,2002,2003,2004,3019} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/createMainAccount
@@ -1286,7 +1291,7 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,2,3021} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {object} data               交易详情.
 * @apiSuccess {Number} data.order_id          交易id号.
@@ -1329,12 +1334,6 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 pub struct GetTxRequest {
     order_id: String,
 }
-
-use common::data_structures::{
-    coin_transaction::{CoinSendStage, CoinTransaction, TxType},
-    get_support_coin_list, TxStatusOnChain,
-};
-use handlers::ServentSigDetail;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GetTxResponse {
@@ -1410,7 +1409,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,2002,2003,2004,3007,3008} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                         待签名数据
 * @apiSuccess {String} data.add_key_txid                增加主公钥对应的tx_id
@@ -1534,7 +1533,7 @@ async fn get_need_sig_num(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                 待签名的交易id.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genSendMoney
@@ -1575,7 +1574,7 @@ async fn gen_send_money(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008,3010} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
@@ -1625,7 +1624,7 @@ async fn commit_newcomer_switch_master(
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
+* @apiSuccess {String=0,1,3007,3008,3010} status_code         状态码.
 * @apiSuccess {String=HaveUncompleteTx} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitServantSwitchMaster

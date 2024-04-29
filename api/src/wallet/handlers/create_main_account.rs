@@ -4,12 +4,12 @@ use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole2;
-use common::error_code::{BackendError, BackendRes};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use common::utils::math::generate_random_hex_string;
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::SecretStoreView;
 use models::wallet_manage_record::WalletManageRecordView;
-//use log::info;
+use tracing::debug;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{CreateMainAccountRequest, ReconfirmSendMoneyRequest};
@@ -47,8 +47,8 @@ pub(crate) async fn req(
     let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
 
     if !user_info.user_info.main_account.eq("") {
-        Err(BackendError::InternalError(
-            "main_account is already existent".to_string(),
+        Err(WalletError::MainAccountAlreadyExist(
+            user_info.user_info.main_account.clone(),
         ))?;
     }
 
@@ -92,15 +92,6 @@ pub(crate) async fn req(
             &subaccount_id,
         )
         .await?;
-    
-    //注册的时候就把允许跨链的状态设置了
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
-    let set_res = bridge_cli.set_user_batch(&main_account_id).await;
-    println!(
-        "set_user_batch txid {} ,{}",
-        set_res.unwrap(),
-        main_account_id
-    );
 
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
@@ -112,9 +103,16 @@ pub(crate) async fn req(
     );
     record.insert()?;
 
-    //todo: 跨链桥更新状态
+    //注册的时候就把允许跨链的状态设置了
+    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
+    debug!(
+        "set_user_batch txid {} ,{}",
+        set_res,
+        main_account_id
+    );
 
     models::general::transaction_commit()?;
-    info!("new wallet {:?}  successfully", user_info);
-    Ok(None::<String>)
+    info!("new wallet {:#?}  successfully", user_info);
+    Ok(None)
 }

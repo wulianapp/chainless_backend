@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
+use common::data_structures::CoinType;
 
 use crate::utils::token_auth;
 use crate::wallet::GetNeedSigNumRequest;
@@ -14,19 +15,13 @@ use common::{
 use serde::{Deserialize, Serialize};
 
 pub(crate) async fn req(req: HttpRequest, request_data: GetNeedSigNumRequest) -> BackendRes<u8> {
-    let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
+    let (user_id,device_id,_) = token_auth::validate_credentials2(&req)?;
     let GetNeedSigNumRequest { coin, amount } = request_data;
+    let (user, strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
-    let strategy = multi_cli.get_strategy(&main_account).await?;
-    if strategy.is_none() {
-        Err(WalletError::NotSetSecurity)?;
-    }
-
-    let coin_type = coin.parse().unwrap();
+    let coin_type: CoinType = coin.parse().map_err(|e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     let need_sig_num =
-        super::get_servant_need(&strategy.unwrap().multi_sig_ranks, &coin_type, amount).await;
+        super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
     Ok(Some(need_sig_num))
 }

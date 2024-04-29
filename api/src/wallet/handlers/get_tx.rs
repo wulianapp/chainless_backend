@@ -30,7 +30,15 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    let tx = CoinTxView::find_single(
+        CoinTxFilter::ByOrderId(&order_id)
+    ).map_err(|e|{
+        if e.to_string().contains("DBError::DataNotFound") {
+            WalletError::OrderNotFound(order_id).into()
+        }else {
+            BackendError::InternalError(e.to_string())
+        }
+    })?;
 
     let signed_device: Vec<ServentSigDetail> = tx
         .transaction

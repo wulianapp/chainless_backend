@@ -24,7 +24,7 @@ use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::{account_manager, secret_store, PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 //todo：这里后边加上channel的异步处理，再加一张表用来记录所有非交易的交互的状态，先pending，再更新状态
 pub(crate) async fn req(
@@ -49,9 +49,9 @@ pub(crate) async fn req(
 
 
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
-    let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
-    let old_master = master_list.first().unwrap();
-
+   
+    //todo: 检查防止用servantA的token操作servantB进行switch
+    //外部注入和token解析结果对比
     let servant_pubkey =
         DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?
             .device_info
@@ -60,13 +60,22 @@ pub(crate) async fn req(
                 "this haven't be servant yet".to_string(),
             ))?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
-    if master_list.len() != 1 {
-        error!("unnormal account， it's account have more than 1 master");
-        return Err(common::error_code::BackendError::InternalError(
-            "".to_string(),
-        ));
-    }
-
+    
+    //get old_master
+    let old_master = if master_list.len() == 1 {
+        debug!("start switch servant to master");
+        master_list.first().unwrap().to_owned()
+    }else if master_list.len() == 2 {
+        warn!("unnormal account,it's account have 2 master");
+        let mut local_list = master_list.clone();
+        local_list.retain(|x| x.ne(&servant_pubkey));
+        local_list.first().unwrap().to_owned()
+    }else {
+        Err(BackendError::InternalError(
+            "main account is unnormal".to_string(),
+        ))?;
+        unreachable!("");
+    };
     models::general::transaction_begin()?;
 
     //增加之前判断是否有
@@ -85,12 +94,12 @@ pub(crate) async fn req(
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
     if master_list.len() == 2
         && master_list.contains(&servant_pubkey)
-        && master_list.contains(old_master)
+        && master_list.contains(&old_master)
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         DeviceInfoView::update_single(
-            DeviceInfoUpdater::BecomeServant(old_master),
-            DeviceInfoFilter::ByHoldKey(old_master),
+            DeviceInfoUpdater::BecomeServant(&old_master),
+            DeviceInfoFilter::ByHoldKey(&old_master),
         )?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {
         warn!("old_master<{}>  is already deleted ", old_master);
