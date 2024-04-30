@@ -2115,7 +2115,7 @@ mod tests {
         let sig = bridge_cli
             .sign_bind_info(
                 &user_info.main_account,
-                "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+                "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
             .await;
         println!("sign_bind sig {} ", sig);
@@ -2124,7 +2124,7 @@ mod tests {
         let bind_res = bridge_cli
             .bind_eth_addr(
                 &user_info.main_account,
-                "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
+                "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
                 &sig,
             )
             .await
@@ -2153,11 +2153,16 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
+
+        let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
+        println!("txs__ {:#?}", txs);
+
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::BTC).unwrap();
         let erc20_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new(&CoinType::BTC);
         let eth_bridge_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
+        let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
                 .list_withdraw_order(&user_info.main_account)
@@ -2169,6 +2174,11 @@ mod tests {
             let orders2 = test_bridge_list_order!(service, sender_master).unwrap();
             println!("orders {:#?}", orders2);
 
+            index += 1;
+            if index == 30 {
+                assert!(false,"reach check limit");
+                break;
+            }
 
             if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
                 println!("orders or signers is empty");
@@ -2243,21 +2253,21 @@ mod tests {
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
-        coin_cli
-            .send_coin(&sender_master.wallet.main_account, 13u128)
-            .await
-            .unwrap();
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
-        test_faucet_claim!(service, sender_master);
+        //test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         //test_get_captcha_with_token!(service,sender_master,"PreSendMoneyToBridge");
 
         let user_info = test_user_info!(service, sender_master).unwrap();
         println!("{:#?}", user_info);
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
+        coin_cli
+            .send_coin(&user_info.main_account, 13_000_000_000_000_000_000u128)
+            .await
+            .unwrap();
         //: bind eth addr before send money
         let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new().unwrap();
         let sig = bridge_cli
@@ -2280,12 +2290,12 @@ mod tests {
         println!("bind_res {} ", bind_res);
 
         //step3: master: pre_send_money
-        test_pre_send_money_to_bridge!(service, sender_master, "USDT", "1.2");
+        test_pre_send_money_to_bridge!(service, sender_master, "ETH", "0.012");
         println!("__0002");
 
         let res = test_search_message!(service, sender_master).unwrap();
         let tx = res.coin_tx.first().unwrap();
-        assert_eq!(tx.stage, CoinSendStage::SenderSigCompleted);
+        assert_eq!(tx.stage, CoinSendStage::ReceiverApproved);
         //local sign
         let signature = common::encrypt::ed25519_sign_hex(
             sender_master.wallet.prikey.as_ref().unwrap(),
@@ -2302,9 +2312,10 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();        
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();        
         let eth_bridge_cli =
             blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
+        let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
                 .list_withdraw_order(&user_info.main_account)
@@ -2327,7 +2338,11 @@ mod tests {
                 "usdt_balance_on_eth: {}——————{}",
                 current_binded_eth_addr, balance_on_eth
             );
-
+            index += 1;
+            if index == 30 {
+                assert!(false,"reach check limit");
+                break;
+            }
             if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
                 println!("orders or signers is empty");
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;

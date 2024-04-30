@@ -38,7 +38,7 @@ pub async fn req(
         .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
     
     //todo: check sig before push it to blockchain
-    if confirmed_sig.len() != 128 {
+    if confirmed_sig.len() != 192 && confirmed_sig.len() != 128{
         Err(BackendError::RequestParamInvalid("confirmed_sig is invalid".to_string()))?;
     }
 

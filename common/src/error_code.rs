@@ -24,6 +24,8 @@ pub enum BackendError {
     AccountManager(#[from] AccountManagerError),
     #[error("{0}")]
     Wallet(#[from] WalletError),
+    #[error("{0}")]
+    Bridge(#[from] BridgeError),
 }
 
 impl From<AnyhowError> for BackendError {
@@ -56,6 +58,7 @@ impl ErrorCode for BackendError {
             BackendError::ExternalService(err) => err.code(),
             BackendError::AccountManager(err) => err.code(),
             BackendError::Wallet(err) => err.code(),
+            BackendError::Bridge(err) => err.code(),
         }
     }
 }
@@ -187,6 +190,20 @@ impl ErrorCode for WalletError {
 }
 
 #[derive(Error, Debug)]
+pub enum BridgeError {
+    #[error("Haven't set bind eth address")]
+    NotBindEthAddr,
+}
+
+impl ErrorCode for BridgeError {
+    fn code(&self) -> u16 {
+        match self {
+            Self::NotBindEthAddr => 4000,
+        }
+    }
+}
+
+#[derive(Error, Debug)]
 pub enum ExternalServiceError {
     #[error("EmailCaptcha Service error: {0}")]
     EmailCaptcha(String),
@@ -208,6 +225,9 @@ impl ErrorCode for ExternalServiceError {
         }
     }
 }
+
+
+
 
 pub trait ErrorCode {
     fn code(&self) -> u16;

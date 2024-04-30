@@ -2,17 +2,18 @@ use std::str::FromStr;
 
 use actix_web::HttpRequest;
 
+use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{CoinType, KeyRole2};
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
+use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
 use models::coin_transfer::{get_next_tx_index, CoinTxView};
@@ -34,6 +35,9 @@ pub(crate) async fn req(
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
+    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let eth_addr = bridge_cli.get_binded_eth_addr(&main_account).await?;
+    let to = eth_addr.ok_or(BridgeError::NotBindEthAddr)?;
 
     let PreWithdrawRequest {
         coin,
@@ -46,11 +50,11 @@ pub(crate) async fn req(
 
     let coin_type = CoinType::from_str(&coin).unwrap();
     let from = main_account.clone();
-    let to = common::env::CONF.bridge_near_contract.clone();
 
     let available_balance = get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
+        error!("{},  {}(amount)  big_than1 {}(available_balance) ",coin_type,amount,available_balance);
         Err(WalletError::InsufficientAvailableBalance)?;
     }
 

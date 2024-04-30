@@ -32,7 +32,7 @@ use crate::utils::respond::gen_extra_respond;
    -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
+* @apiSuccess {String=0,1,4000} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
