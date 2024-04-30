@@ -4,9 +4,11 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use blockchain::bridge_on_near::Status;
 use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
+use blockchain::bridge_on_near;
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -208,6 +210,22 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data.created_at   创建时间
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
 */
+#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
+pub enum OrderStatusResponse {
+    ChainLessDefault,
+    ChainLessPending,
+    ChainLessSigned,
+    EthereumClaimed
+}
+impl From<bridge_on_near::Status> for OrderStatusResponse {
+    fn from(value: bridge_on_near::Status) -> Self {
+        match value {
+            Status::Default => Self::ChainLessDefault,
+            Status::Pending => Self::ChainLessPending,
+            Status::Signed => Self::ChainLessSigned,
+        }
+    }
+}
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub struct SignedOrderResponse {
     pub number: u64,
