@@ -14,6 +14,8 @@ pub mod secret_store;
 //pub mod wallet;
 pub mod device_info;
 pub mod wallet_manage_record;
+pub mod eth_bridge_order;
+
 
 //#[macro_use]
 //extern crate log;

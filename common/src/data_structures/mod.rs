@@ -6,6 +6,7 @@ pub mod general;
 pub mod newbie_reward;
 pub mod secret_store;
 pub mod wallet_namage_record;
+pub mod bridge;
 
 use std::str::FromStr;
 

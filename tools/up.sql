@@ -112,3 +112,20 @@ create table wallet_manage_record
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );
+
+create table ethereum_bridge_order
+(
+    id text,
+    order_type text,
+    chainless_acc text,--Active,Inactive
+    eth_addr text,
+    coin text, --huawei,apple
+    amount text,
+    reserved_field1 text,
+    reserved_field2 text,
+    reserved_field3 text,
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp,
+     --一台设备登陆多个账号
+    CONSTRAINT bridge_order_type_and_id PRIMARY KEY (id, order_type)
+);

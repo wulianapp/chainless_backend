@@ -1,3 +1,4 @@
+use common::data_structures::bridge::OrderType;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -42,11 +43,6 @@ pub enum Status {
     Default,
     Pending,
     Signed,
-}
-#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
-pub enum OrderType {
-    Withdraw,
-    Deposit,
 }
 
 #[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
