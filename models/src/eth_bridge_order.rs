@@ -1,6 +1,6 @@
 extern crate rustc_serialize;
 
-use common::data_structures::{bridge::{EthBridgeOrder, OrderType}, CoinType};
+use common::data_structures::{bridge::{EthBridgeOrder, OrderType as BridgeOrderType}, CoinType};
 use postgres::Row;
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
@@ -31,14 +31,15 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
 
 #[derive(Clone, Debug)]
 pub enum BridgeOrderFilter<'b> {
-    ByPubkey(&'b str),
+    ByTypeAndId(BridgeOrderType,&'b str),
     BySittingPubkey(&'b str),
 }
 
 impl fmt::Display for BridgeOrderFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            BridgeOrderFilter::ByPubkey(key) => format!("pubkey='{}' ", key),
+            BridgeOrderFilter::ByTypeAndId(order_type,id) => 
+            format!("order_type='{}' and id='{}' ",order_type.to_string(),id),
             BridgeOrderFilter::BySittingPubkey(key) => format!("state='Sitting' and pubkey='{}' ", key),
         };
         write!(f, "{}", description)
@@ -57,7 +58,7 @@ impl EthBridgeOrderView {
         id: &str,
         chainless_acc: &str,
         eth_add: &str,
-        order_type: OrderType,
+        order_type: BridgeOrderType,
         coin: CoinType,
         amount: u128
     ) -> Self {
@@ -65,7 +66,7 @@ impl EthBridgeOrderView {
             order: EthBridgeOrder {
                 id: id.to_string(),
                 order_type,
-                chainless_acc: eth_add.to_owned(),
+                chainless_acc: chainless_acc.to_owned(),
                 eth_addr: eth_add.to_owned(),
                 coin,
                 amount,
@@ -106,11 +107,11 @@ impl PsqlOp for EthBridgeOrderView {
             Ok(EthBridgeOrderView {
                 order: EthBridgeOrder {
                     id: row.get(0),
-                    order_type: row.get::<usize, String>(1).parse()?,
+                    order_type: row.get::<usize, String>(1).parse().unwrap(),
                     chainless_acc: row.get(2),
                     eth_addr: row.get(3),
-                    coin: row.get::<usize, String>(4).parse()?,
-                    amount: row.get::<usize, String>(5).parse()?,
+                    coin: row.get::<usize, String>(4).parse().unwrap(),
+                    amount: row.get::<usize, String>(5).parse().unwrap(),
                     reserved_field1: row.get(6),
                     reserved_field2: row.get(7),
                     reserved_field3: row.get(8),
@@ -163,8 +164,8 @@ impl PsqlOp for EthBridgeOrderView {
          order_type.to_string(), 
          chainless_acc, 
          eth_addr, 
+         coin,
          amount.to_string(),
-         coin.to_string(),
          reserved_field1,reserved_field2,reserved_field3
         );
         debug!("row sql {} rows", sql);
@@ -185,23 +186,20 @@ mod tests {
     use std::env;
 
     #[test]
-    fn test_db_secret_store() {
+    fn test_db_bridge_order() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
         crate::general::table_all_clear();
 
         let secret =
-            EthBridgeOrderView::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
+            EthBridgeOrderView::new_with_specified("0123456789", "test.node0", 
+            "0x123", BridgeOrderType::Withdraw,CoinType::DW20,10000u128);
         secret.insert().unwrap();
-        let secret_by_find =
-            EthBridgeOrderView::find_single(BridgeOrderFilter::BySittingPubkey("0123456789")).unwrap();
-        println!("{:?}", secret_by_find);
-        assert_eq!(secret_by_find.order, secret.order);
-
-        EthBridgeOrderView::update(
-            SecretUpdater::State(SecretKeyState::Abandoned),
-            BridgeOrderFilter::BySittingPubkey("01"),
-        )
-        .unwrap();
+        let find_res =
+            EthBridgeOrderView::find_single(
+                BridgeOrderFilter::ByTypeAndId(BridgeOrderType::Withdraw,"0123456789")
+            ).unwrap();
+        println!("{:?}", find_res);
+        assert_eq!(find_res.order.amount, 10000);
     }
 }

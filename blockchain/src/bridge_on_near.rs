@@ -1,4 +1,4 @@
-use common::data_structures::bridge::OrderType;
+use common::data_structures::bridge::OrderType as BridgeOrderType;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -48,7 +48,7 @@ pub enum Status {
 #[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
 pub struct BridgeOrder {
     pub chain_id: u128,            //外链id
-    pub order_type: OrderType,     //Withdraw,Deposit
+    pub order_type: BridgeOrderType,     //Withdraw,Deposit
     pub account_id: AccountId,     //无链id
     pub symbol: String,            //代币符号
     pub amount: u128,              //

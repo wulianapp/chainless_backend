@@ -54,5 +54,7 @@ pub fn table_all_clear() {
     table_clear("users").unwrap();
     table_clear("coin_transaction").unwrap();
     table_clear("device_info").unwrap();
-    table_clear("secret_store").unwrap()
+    table_clear("secret_store").unwrap();
+    table_clear("ethereum_bridge_order").unwrap();
+
 }
