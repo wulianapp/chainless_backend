@@ -1,9 +1,14 @@
 
 ## 监控链上行为
 
-Todo
+### run
 ```
-1、监控在eth端的提现、充值行为
-2、监控relayer在chainless的行为，并重试
-3、监控用户签名的操作，记录状态
+//监控用户内部转账、记录、重试
+./target/debug/scanner --task chainless_wallet_manage
+
+//监控设备管理操作、记录、重试
+./target/debug/scanner --task chainless_coin_transfer
+
+//监控用户签名的操作，记录状态
+./target/debug/scanner --task eth_bridge
 ```

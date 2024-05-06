@@ -28,11 +28,12 @@ pub async  fn start() -> Result<()>{
 
             debug!("start check tx {}", tx_id);
             let status = blockchain::general::tx_status(&tx_id).await?;
-            CoinTxView::update_single(
-                CoinTxUpdater::StageChainStatus(tx.transaction.stage,status),
-                CoinTxFilter::ByOrderId(&tx.transaction.order_id),
-            )?;
-        
+            if status != TxStatusOnChain::Pending {
+                CoinTxView::update_single(
+                    CoinTxUpdater::StageChainStatus(tx.transaction.stage,status),
+                    CoinTxFilter::ByOrderId(&tx.transaction.order_id),
+                )?;
+            }    
             //todo: try to call again,if main2sub or sub2main
         }
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;

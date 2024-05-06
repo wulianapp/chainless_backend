@@ -163,6 +163,7 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
                 }
                 ExecutionStatusView::Failure(_) => {
                     status = TxStatusOnChain::Failed;
+                    break;
                 }
                 ExecutionStatusView::SuccessValue(_) => {}
                 ExecutionStatusView::SuccessReceiptId(_) => {}
