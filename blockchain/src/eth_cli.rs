@@ -56,6 +56,9 @@ pub mod general {
         types::Address,
     };
     use std::str::FromStr;
+    use anyhow::Result;
+    use ethers::prelude::*;
+
 
     pub async fn get_eth_balance(addr: &str) -> u128 {
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
@@ -63,5 +66,22 @@ pub mod general {
         let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
         let balance_before = provider.get_balance(addr, None).await.unwrap();
         balance_before.as_u128()
+    }
+
+    pub async fn get_current_height() -> Result<u64> {
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        let height = provider.get_block_number().await?;
+        Ok(height.as_u64())
+    }
+
+
+    pub async fn get_block<T: Into<BlockId> + Send + Sync>(
+        height_or_hash: T,
+    ) -> Result<Option<Block<H256>>> {
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        match provider.get_block(height_or_hash).await? {
+            None => Ok(None),
+            Some(block) => Ok(Some(block)),
+        }
     }
 }

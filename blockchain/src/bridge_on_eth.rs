@@ -248,7 +248,7 @@ impl EthContractClient<Bridge> {
         })
     }
     
-    pub async fn filter_deposit_event(&mut self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
+    pub async fn filter_deposit_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
         let deposit_orders: Vec<DepositFilter> = contract.deposit_filter()
             .at_block_hash(H256::from_str(block_hash).unwrap())
@@ -263,7 +263,7 @@ impl EthContractClient<Bridge> {
                 id: order.deposit_id.to_string(),
                 order_type: OrderType::Deposit,
                 chainless_acc:order.chainless_id.clone(),
-                eth_addr: order.user.to_string(),
+                eth_addr: hex::encode(order.user.as_bytes()),
                 coin:order.symbol.parse()?,
                 amount:order.amount.as_u128(),
                 timestamp:order.deadline.as_u128()
@@ -272,7 +272,7 @@ impl EthContractClient<Bridge> {
         Ok(diposit_order)
     }
 
-    pub async fn filter_withdraw_event(&mut self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
+    pub async fn filter_withdraw_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
         let deposit_orders: Vec<WithdrawFilter> = contract.withdraw_filter()
             .at_block_hash(H256::from_str(block_hash).unwrap())
@@ -287,7 +287,7 @@ impl EthContractClient<Bridge> {
                 id: order.id.to_string(),
                 order_type: OrderType::Withdraw,
                 chainless_acc:order.extra.clone(),
-                eth_addr: order.sender.to_string(),
+                eth_addr: hex::encode(order.sender.as_bytes()),
                 coin:order.symbol.parse()?,
                 amount:order.amount.as_u128(),
                 timestamp:order.timestamp.as_u128()

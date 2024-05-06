@@ -32,15 +32,15 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
 #[derive(Clone, Debug)]
 pub enum BridgeOrderFilter<'b> {
     ByTypeAndId(BridgeOrderType,&'b str),
-    BySittingPubkey(&'b str),
+    Limit(u32),
 }
 
 impl fmt::Display for BridgeOrderFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             BridgeOrderFilter::ByTypeAndId(order_type,id) => 
-            format!("order_type='{}' and id='{}' ",order_type.to_string(),id),
-            BridgeOrderFilter::BySittingPubkey(key) => format!("state='Sitting' and pubkey='{}' ", key),
+            format!("where order_type='{}' and id='{}' ",order_type.to_string(),id),
+            BridgeOrderFilter::Limit(num) => format!("order by created_at desc limit {} ", num),
         };
         write!(f, "{}", description)
     }
@@ -57,21 +57,23 @@ impl EthBridgeOrderView {
     pub fn new_with_specified(
         id: &str,
         chainless_acc: &str,
-        eth_add: &str,
+        eth_addr: &str,
         order_type: BridgeOrderType,
         coin: CoinType,
-        amount: u128
+        amount: u128,
+        status: &str,
+        height: u64
     ) -> Self {
         EthBridgeOrderView {
             order: EthBridgeOrder {
                 id: id.to_string(),
                 order_type,
                 chainless_acc: chainless_acc.to_owned(),
-                eth_addr: eth_add.to_owned(),
+                eth_addr: eth_addr.to_owned(),
                 coin,
                 amount,
-                reserved_field1: "".to_string(),
-                reserved_field2: "".to_string(),
+                status: status.to_string(),
+                height,
                 reserved_field3: "".to_string(),
             },
             updated_at: "".to_string(),
@@ -93,12 +95,12 @@ impl PsqlOp for EthBridgeOrderView {
             eth_addr,\
             coin,\
             amount,\
-            reserved_field1,\
-            reserved_field2,\
+            status,\
+            height,\
             reserved_field3,\
          cast(updated_at as text), \
          cast(created_at as text) \
-         from ethereum_bridge_order where {}",
+         from ethereum_bridge_order {}",
             filter
         );
         let execute_res = crate::query(sql.as_str())?;
@@ -112,8 +114,8 @@ impl PsqlOp for EthBridgeOrderView {
                     eth_addr: row.get(3),
                     coin: row.get::<usize, String>(4).parse().unwrap(),
                     amount: row.get::<usize, String>(5).parse().unwrap(),
-                    reserved_field1: row.get(6),
-                    reserved_field2: row.get(7),
+                    status: row.get(6),
+                    height: row.get::<usize, i64>(7) as u64,
                     reserved_field3: row.get(8),
                 },
                 updated_at: row.get(9),
@@ -144,8 +146,8 @@ impl PsqlOp for EthBridgeOrderView {
             eth_addr,
             amount,
             coin,
-            reserved_field1,
-            reserved_field2,
+            status,
+            height,
             reserved_field3,
         } = &self.order;
         let sql = format!(
@@ -156,17 +158,17 @@ impl PsqlOp for EthBridgeOrderView {
                 eth_addr,\
                 coin,\
                 amount,\
-                reserved_field1,\
-                reserved_field2,\
+                status,\
+                height,\
                 reserved_field3\
-         ) values ('{}','{}','{}','{}','{}','{}','{}','{}','{}');",
+         ) values ('{}','{}','{}','{}','{}','{}','{}',{},'{}');",
          id, 
          order_type.to_string(), 
          chainless_acc, 
          eth_addr, 
          coin,
          amount.to_string(),
-         reserved_field1,reserved_field2,reserved_field3
+         status,height,reserved_field3
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
@@ -193,7 +195,13 @@ mod tests {
 
         let secret =
             EthBridgeOrderView::new_with_specified("0123456789", "test.node0", 
-            "0x123", BridgeOrderType::Withdraw,CoinType::DW20,10000u128);
+            "0x123", 
+            BridgeOrderType::Withdraw,
+            CoinType::DW20,
+            10000u128,
+             "Pending",
+             0u64   
+        );
         secret.insert().unwrap();
         let find_res =
             EthBridgeOrderView::find_single(

@@ -51,7 +51,7 @@ pub struct EthBridgeOrder{
     pub coin: CoinType,            //代币符号
     pub amount: u128,              //转账数量
     //pub status: String,            //订单状态
-    pub reserved_field1: String,   
-    pub reserved_field2: String,            
+    pub status: String,   //pending,confirmed
+    pub height: u64,           
     pub reserved_field3: String,                     
 }
