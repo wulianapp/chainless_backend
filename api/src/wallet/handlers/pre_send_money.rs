@@ -44,7 +44,7 @@ pub(crate) async fn req(
 
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
-    let to_account_id = if to.contains("mail") || to.contains('+') {
+    let to_account_id = if to.contains("@") || to.contains('+') {
         let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))?;
         if !receiver.user_info.secruity_is_seted {
             Err(WalletError::ReceiverNotSetSecurity)?;
