@@ -1,6 +1,8 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
+use common::data_structures::wallet_namage_record::WalletOperateType;
+use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::utils::token_auth;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
@@ -23,7 +25,7 @@ pub(crate) async fn req(
     request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
 
     let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
@@ -91,9 +93,21 @@ pub(crate) async fn req(
 
     current_strategy.servant_pubkeys.push(new_servant_pubkey);
 
-    multi_sig_cli
+    let tx_id = multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
     models::general::transaction_commit()?;
+
+    //todo: generate txid before call contract
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::NewcomerSwitchServant,
+        &old_servant_pubkey,
+        &device_id,
+        &device_brand,
+        vec![tx_id],
+    );
+    record.insert()?;
+
     Ok(None::<String>)
 }

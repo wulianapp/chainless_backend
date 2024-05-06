@@ -5,7 +5,7 @@ use blockchain::{
     multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{CoinType, KeyRole2},
+    data_structures::{wallet_namage_record::WalletOperateType, CoinType, KeyRole2},
     error_code::BackendError,
 };
 use models::{
@@ -53,13 +53,23 @@ pub async fn req(
         })
         .collect::<Result<Vec<CoinType>, BackendError>>()?;
 
-    let call_res = fees_call_cli
+    let tx_id = fees_call_cli
         .set_fees_priority(&main_account, fees_priority)
         .await?;
     debug!(
         "main_account {}: set_fees_priority txid {}",
-        main_account, call_res
+        main_account, tx_id
     );
-    //todo: record txid
+
+    //todo: generate txid before call contract
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::SetFeesPriority,
+        &current_strategy.master_pubkey,
+        &device_id,
+        &device_brand,
+        vec![tx_id],
+    );
+    record.insert()?;
     Ok(None)
 }

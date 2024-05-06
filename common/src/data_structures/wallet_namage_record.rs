@@ -17,9 +17,15 @@ pub enum WalletOperateType {
     //一个txid，服务端重试
     AddServant,
     //一个txid，服务端重试
+    NewcomerSwitchServant,
+    //一个txid，服务端重试
     AddSubaccount,
     //一个txid，服务端重试
     RemoveServant,
+    //一个txid，服务端重试
+    RemoveSubaccount,
+    //一个txid，服务端重试
+    SetFeesPriority,
     //一个txid，服务端重试
     UpdateStrategy,
     //一个txid，服务端重试

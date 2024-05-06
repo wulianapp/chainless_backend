@@ -47,16 +47,20 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     //add wallet info
     models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new()?;
-    let txid = cli.update_rank(&main_account, strategy).await?;
+    let tx_id = cli.update_rank(&main_account, strategy).await?;
+    models::general::transaction_commit()?;
+
+
+    //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::UpdateStrategy,
         &device.hold_pubkey.unwrap(),
         &device.id,
         &device.brand,
-        vec![txid],
+        vec![tx_id],
     );
     record.insert()?;
-    models::general::transaction_commit()?;
+
     Ok(None::<String>)
 }

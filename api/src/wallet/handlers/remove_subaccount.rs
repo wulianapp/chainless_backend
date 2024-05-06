@@ -3,8 +3,10 @@ use std::collections::HashMap;
 use actix_web::{web, HttpRequest};
 use blockchain::coin::Coin;
 use common::data_structures::get_support_coin_list;
+use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
 use crate::wallet::{CreateMainAccountRequest, ReconfirmSendMoneyRequest, RemoveSubaccountRequest};
@@ -23,7 +25,7 @@ use models::{account_manager, secret_store, PsqlOp};
 use tracing::info;
 
 pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let main_account = super::get_main_account(user_id)?;
     let RemoveSubaccountRequest { account_id } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
@@ -61,9 +63,21 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         SecretFilter::ByPubkey(sub_pubkey),
     )?;
     let multi_cli = ContractClient::<MultiSig>::new()?;
-    multi_cli
+    let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)
         .await?;
     models::general::transaction_commit()?;
+    
+    //todo: generate txid before call contract
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::RemoveSubaccount,
+        &current_strategy.master_pubkey,
+        &device_id,
+        &device_brand,
+        vec![tx_id],
+    );
+    record.insert()?;
+
     Ok(None::<String>)
 }

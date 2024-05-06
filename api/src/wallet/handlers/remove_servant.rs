@@ -1,6 +1,8 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
+use common::data_structures::wallet_namage_record::WalletOperateType;
+use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::utils::token_auth;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
@@ -22,7 +24,7 @@ pub(crate) async fn req(
     request_data: RemoveServantRequest,
 ) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let RemoveServantRequest { servant_pubkey } = request_data;
     let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
@@ -38,20 +40,31 @@ pub(crate) async fn req(
         SecretFilter::ByPubkey(&servant_pubkey),
     )?;
 
-    //add wallet info
-    let cli = ContractClient::<MultiSig>::new()?;
-    current_strategy
-        .servant_pubkeys
-        .retain(|x| x != &servant_pubkey);
-    cli.update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
-        .await?;
-
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update(
         DeviceInfoUpdater::BecomeUndefined(&servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&servant_pubkey),
     )?;
 
+    //add wallet info
+    let cli = ContractClient::<MultiSig>::new()?;
+    current_strategy
+        .servant_pubkeys
+        .retain(|x| x != &servant_pubkey);
+    let tx_id = cli.update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
+        .await?;
+
     models::general::transaction_commit()?;
+
+    //todo: generate txid before call contract
+    let record = WalletManageRecordView::new_with_specified(
+        &user_id.to_string(),
+        WalletOperateType::RemoveServant,
+        &current_strategy.master_pubkey,
+        &device_id,
+        &device_brand,
+        vec![tx_id],
+    );
+    record.insert()?;
     Ok(None::<String>)
 }

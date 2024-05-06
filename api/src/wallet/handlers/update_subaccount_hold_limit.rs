@@ -39,6 +39,9 @@ pub async fn req(
     let txid = cli
         .update_subaccount_hold_limit(&main_account, &subaccount, limit)
         .await?;
+    models::general::transaction_commit()?;
+
+    //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::UpdateSubaccountHoldLimit,
@@ -48,6 +51,5 @@ pub async fn req(
         vec![txid],
     );
     record.insert()?;
-    models::general::transaction_commit()?;
     Ok(None::<String>)
 }
