@@ -36,6 +36,7 @@ pub async fn start() -> Result<()>{
         info!("current chain height1 {},wait for new block", current_height);
         let current_confirmed_height = current_height - CONFIRM_HEIGHT;
 
+        //todo: 8区块的时候confirm，之前pending
         //it is impossible for big than current_confirmed_height
         if last_process_height >= current_confirmed_height{
             info!("current chain height2 {},wait for new block", current_height);
@@ -54,8 +55,6 @@ pub async fn start() -> Result<()>{
                 let block_hash = hex::encode(block_hash.as_bytes());
                 //info!("check block_hash {}", block_hash);
 
-                //fixme:和engine一样的原因，getlog接口不稳定,多次获取确认
-
                 let deposit_orders = bridge
                     .filter_deposit_event(&block_hash)
                     .await
@@ -73,7 +72,7 @@ pub async fn start() -> Result<()>{
                         order.order_type,
                         order.coin,
                         order.amount,
-                        "Pending",
+                        "Confirmed",
                         height
                         );
                         order.insert()?;
@@ -98,7 +97,7 @@ pub async fn start() -> Result<()>{
                          order.order_type,
                          order.coin,
                          order.amount,
-                         "Pending",
+                         "Confirmed",
                          height
                          );
                          order.insert()?;

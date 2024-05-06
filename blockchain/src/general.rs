@@ -142,6 +142,7 @@ pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
 }
 
 pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
+    let tx_id = hex_to_bs58(tx_id)?;
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
             tx_hash: tx_id.parse().unwrap(),

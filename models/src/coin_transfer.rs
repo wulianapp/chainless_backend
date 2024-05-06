@@ -69,11 +69,23 @@ pub enum CoinTxFilter<'b> {
     //todo: replace with u128
     ByOrderId(&'b str),
     ByTxRolePage(TxRole, &'b str, Option<&'b str>, u32, u32),
+    ByChainStatus(TxStatusOnChain),
 }
 
 impl fmt::Display for CoinTxFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        /***
+         * 
+         *    Normal,
+    Forced,
+    MainToSub,
+    SubToMain,
+    MainToBridge,
+        */
         let description = match self {
+            CoinTxFilter::ByChainStatus(status) => format!(
+                "chain_status='{}'", status
+            ),
             CoinTxFilter::ByUser(uid) => format!("sender='{}' or receiver='{}'", uid, uid),
             CoinTxFilter::BySender(uid) => format!("sender='{}'", uid),
             CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),

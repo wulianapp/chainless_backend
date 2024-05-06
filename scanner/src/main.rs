@@ -63,12 +63,14 @@ async fn main()  -> Result<()>{
             let _res = task::eth_bridge::start().await?;
             
         },
-        "chainless_relayer" => {
-            info!("start task listening on chainless_relayer");
+        "chainless_wallet_manage" => {
+            info!("start task listening on chainless_wallet_manage");
 
         },
-        "chainless_user" => {
-            info!("start task listening on chainless_user");
+        "chainless_coin_transfer" => {
+            info!("start task listening on chainless_coin_transfer");
+            let _res = task::chainless_coin_transfer::start().await?;
+
         },
         _ => panic!("unknown task"),
     }

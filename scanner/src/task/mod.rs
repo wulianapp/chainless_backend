@@ -1,3 +1,3 @@
-pub mod chainless_relayer;
-pub mod chainless_user;
+pub mod chainless_wallet_manage;
+pub mod chainless_coin_transfer;
 pub mod eth_bridge;
