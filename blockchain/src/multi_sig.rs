@@ -36,6 +36,8 @@ use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
+use common::utils::math::*;
+
 
 
 pub struct MultiSig {}
@@ -58,7 +60,7 @@ impl Default for MultiSigRank {
         MultiSigRank {
             min: 0,
             //fixme: number out of range when u128::MAX
-            max_eq: 1_000_000_000_000_000_000_000_000u128, //one million
+            max_eq: 1_000_000u128 * BASE_DECIMAL, //one million
             sig_num: 0,
         }
     }
@@ -202,7 +204,7 @@ impl ContractClient<MultiSig> {
             subaccount_id,
             SubAccConf {
                 pubkey: subaccount_pubkey.to_string(),
-                hold_value_limit: 100000_000_000_000_000_000_000,
+                hold_value_limit: 100_000 * BASE_DECIMAL,
             },
         )]);
         println!("0001b");

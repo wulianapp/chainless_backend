@@ -25,6 +25,8 @@ use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
 use common::error_code::{AccountManagerError,WalletError::*};
+use common::utils::math::*;
+
 
 
 pub mod add_servant;
@@ -64,7 +66,7 @@ pub mod estimate_transfer_fee;
 pub mod single_balance;
 
 
-const MIN_BASE_FEE:u128 = 1_000_000_000_000_000_000;
+const MIN_BASE_FEE:u128 = 1u128 * BASE_DECIMAL;
 
 pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,

@@ -17,8 +17,10 @@ use common::{data_structures::CoinType, error_code::{BackendError::ChainError, W
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{AccountManagerError, BackendError, BackendRes},
+    utils::math::*
 };
 use serde::{Deserialize, Serialize};
+
 
 use super::{get_fees_priority, MIN_BASE_FEE};
 
@@ -38,7 +40,12 @@ pub(crate) async fn req(
 
     let fee_coins = super::get_fees_priority(&main_account).await?.ok_or(BackendError::InternalError("not set fees priority".to_string()))?;
     let transfer_value = super::get_value(&coin, amount).await;
-    let fee_value = transfer_value / 1000 + MIN_BASE_FEE;
+    //todo: config max_value
+    let fee_value = if transfer_value >= 20_000u128 * BASE_DECIMAL {
+        transfer_value / 1000 + MIN_BASE_FEE
+    }else{
+        20u128 * BASE_DECIMAL / 1000 + MIN_BASE_FEE
+    };
     info!("coin: {} ,transfer_value: {},fee_value: {}",coin,raw2display(transfer_value),raw2display(fee_value));
 
     //todo:

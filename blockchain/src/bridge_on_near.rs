@@ -392,6 +392,8 @@ impl ContractClient<Bridge> {
 mod tests {
 
     use common::data_structures::get_support_coin_list;
+    use common::utils::math::*;
+
 
     use crate::{eth_cli::EthContractClient, multi_sig::MultiSig};
 
@@ -505,7 +507,7 @@ mod tests {
         let relayer_eth_addr = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
         let current_balance = crate::eth_cli::general::get_eth_balance(relayer_eth_addr).await;
         println!("current eth balance: {}", current_balance);
-        let mut deposit_amount = 10_000_000_000_000_000_000_000u128; //10k
+        let mut deposit_amount = 10_000u128 * BASE_DECIMAL; //10k
         let replayer_acccount_id = "test";
 
         let bridge_cli = ContractClient::<Bridge>::new().unwrap();
@@ -535,7 +537,7 @@ mod tests {
                 continue;
             }
             let deposit_amount = if coin.eq(&CoinType::ETH){
-                1_100_000_000_000_000_000u128
+                1u128 * BASE_DECIMAL
             }else{
                 deposit_amount
             };

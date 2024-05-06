@@ -1733,6 +1733,7 @@ mod tests {
     use std::collections::HashMap;
     use tracing::{debug, error, info};
     use crate::bridge::ListWithdrawOrderResponse;
+    use common::utils::math::*;
 
     /***
 
@@ -1852,7 +1853,7 @@ mod tests {
         println!("___{:?}", strategy);
         assert_eq!(
             strategy.subaccounts.get(subacc).unwrap().hold_value_limit,
-            12_000_000_000_000_000_000u128
+            12u128 * BASE_DECIMAL
         );
     }
 
@@ -2265,7 +2266,7 @@ mod tests {
         println!("{:#?}", user_info);
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         coin_cli
-            .send_coin(&user_info.main_account, 13_000_000_000_000_000_000u128)
+            .send_coin(&user_info.main_account, 13u128 * BASE_DECIMAL)
             .await
             .unwrap();
         //: bind eth addr before send money
@@ -2411,13 +2412,13 @@ mod tests {
         let subaccount_id = sub_accoounts.first().unwrap();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli
-            .send_coin(&subaccount_id, 13_000_000_000_000_000_000u128)
+            .send_coin(&subaccount_id, 13u128 * BASE_DECIMAL)
             .await
             .unwrap();
 
         //sub to main
         let coin_tx = SubAccCoinTx {
-            amount: 5_000_000_000_000_000_000,
+            amount: 5u128 * BASE_DECIMAL,
             //todo:
             coin_id: "usdt".to_string(),
         };

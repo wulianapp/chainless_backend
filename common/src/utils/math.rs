@@ -2,6 +2,10 @@ use base58::{FromBase58, ToBase58};
 use hex::FromHex;
 use rand::Rng;
 
+pub const BASE_DECIMAL: u128 = 1_000_000_000_000_000_000; //18
+pub const DISPLAY_DECIMAL: u128 = 100_000_000; //8
+pub const DEDUCT_DECIMAL: u128 = 10_000_000_000; //10
+
 pub fn bs58_to_hex(bs58_private_key: &str) -> Result<String, base58::FromBase58Error> {
     let bytes = bs58_private_key.from_base58()?;
     let hex_string = hex::encode(bytes);
@@ -20,9 +24,7 @@ pub fn gen_random_verify_code() -> u32 {
 
 pub mod coin_amount {
     use std::ops::{Div, Mul};
-    pub const BASE_DECIMAL: u128 = 1_000_000_000_000_000_000; //18
-    pub const DISPLAY_DECIMAL: u128 = 100_000_000; //8
-    pub const DEDUCT_DECIMAL: u128 = 10_000_000_000; //10
+    use super::*;
 
     pub fn raw2display(raw: u128) -> String {
         //截取后方的10位
@@ -69,6 +71,7 @@ pub fn generate_random_hex_string(size: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::coin_amount::*;
+    use super::*;
     #[test]
     fn test_generate_random_hex_string() {
         let value = super::generate_random_hex_string(64);
