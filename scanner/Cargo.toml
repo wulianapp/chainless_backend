@@ -25,6 +25,8 @@ tracing-subscriber = { workspace = true }
 ed25519-dalek = { workspace = true }
 strum_macros = { workspace = true }
 strum = { workspace = true }
+clap = { workspace = true }
+
 
 
 
