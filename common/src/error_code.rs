@@ -35,8 +35,21 @@ impl From<AnyhowError> for BackendError {
     }
 }
 
+pub fn to_internal_error<T: std::error::Error>(error: T) -> BackendError {
+    BackendError::InternalError(error.to_string())
+}
+pub fn to_param_invalid_error<T: std::error::Error>(error: T) -> BackendError {
+    BackendError::RequestParamInvalid(error.to_string())
+}
+
 impl From<String> for BackendError {
     fn from(error: String) -> Self {
+        BackendError::InternalError(error.to_string())
+    }
+}
+
+impl From<&str> for BackendError {
+    fn from(error: &str) -> Self {
         BackendError::InternalError(error.to_string())
     }
 }

@@ -1,13 +1,13 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::KeyRole2;
+use common::data_structures::{KeyRole2, PubkeySignInfo};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
@@ -29,6 +29,11 @@ pub async fn req(
         signature,
     } = request_data.0;
 
+    //check signature's signer is  equal to device_holdkey
+    let sign_info: PubkeySignInfo = signature.as_str().parse()?;
+    if sign_info.pubkey != device.hold_pubkey.unwrap() {
+        Err(BackendError::RequestParamInvalid(signature.clone()))?;
+    }
     //todo: two update action is unnecessary
     let mut tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;

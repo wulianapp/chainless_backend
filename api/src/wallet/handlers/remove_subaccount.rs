@@ -34,16 +34,15 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    if current_strategy.sub_confs.get(&account_id).is_none() {
-        Err(WalletError::SubAccountNotExist(account_id.clone()))?;
-    }
-
-    let sub_pubkey = &current_strategy.sub_confs.get(&account_id).unwrap().pubkey;
-
     //reserve one subaccount at least
     if current_strategy.sub_confs.len() == 1 {
         Err(WalletError::MustHaveSubaccount)?;
     }
+
+    let sub_pubkey = match  current_strategy.sub_confs.get(&account_id) {
+        Some(conf) => &conf.pubkey,
+        None =>   Err(WalletError::SubAccountNotExist(account_id.clone()))?,
+    };
 
     //check balance if is zero
     let coin_list = get_support_coin_list();

@@ -1,51 +1,50 @@
-use common::error_code::BackendError;
-use common::error_code::BackendError::{DBError, InternalError};
+use anyhow::{Result};
 
-pub fn transaction_begin() -> Result<(), BackendError> {
+pub fn transaction_begin() -> Result<(),String> {
     crate::CLIENTDB
         .lock()
-        .map_err(|e| InternalError(e.to_string()))?
+        .map_err(|e| e.to_string())?
         .simple_query("begin")
-        .map_err(|e| DBError(e.to_string()))?;
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-pub fn transaction_commit() -> Result<(), BackendError> {
+pub fn transaction_commit() -> Result<(),String> {
     crate::CLIENTDB
         .lock()
-        .map_err(|e| InternalError(e.to_string()))?
+        .map_err(|e| e.to_string())?
         .simple_query("commit")
-        .map_err(|e| DBError(e.to_string()))?;
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-pub fn transaction_rollback() -> Result<(), BackendError> {
+pub fn transaction_rollback() -> Result<(),String> {
     crate::CLIENTDB
         .lock()
-        .map_err(|e| InternalError(e.to_string()))?
+        .map_err(|e| e.to_string())?
         .simple_query("rollback")
-        .map_err(|e| DBError(e.to_string()))?;
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-pub fn table_clear(table_name: &str) -> Result<(), BackendError> {
+pub fn table_clear(table_name: &str) -> Result<(),String> {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::CLIENTDB
         .lock()
-        .map_err(|e| InternalError(e.to_string()))?
+        .map_err(|e| e.to_string())?
         .execute(sql.as_str(), &[])
-        .map_err(|e| DBError(e.to_string()))?;
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-fn select_db(db_name: &str) -> Result<(), BackendError> {
+fn select_db(db_name: &str) -> Result<(),String> {
     //fixme: 数据会丢,另外切数据库失败
     let sql = format!("\\c {}", db_name);
     crate::CLIENTDB
         .lock()
-        .map_err(|e| InternalError(e.to_string()))?
+        .map_err(|e| e.to_string())?
         .execute(sql.as_str(), &[])
-        .map_err(|e| DBError(e.to_string()))?;
+        .map_err(|e| e.to_string())?;
     Ok(())
 }
 

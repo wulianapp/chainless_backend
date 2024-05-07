@@ -18,7 +18,7 @@ use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes,WalletError,WalletError::*};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::{get_next_tx_index, CoinTxView};
+use models::coin_transfer::{CoinTxView};
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyRequest;

@@ -14,15 +14,13 @@ pub mod bridge_on_eth;
 pub mod eth_cli;
 pub mod fees_call;
 
-use common::error_code::{BackendError, ExternalServiceError};
 use ethers::providers::JsonRpcError;
 use general::{gen_transaction_with_caller, pubkey_from_hex_str};
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
-use anyhow::Result;
-use common::error_code;
+use anyhow::{anyhow, Result};
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
@@ -217,7 +215,7 @@ impl<T> ContractClient<T> {
 
         let rep = crate::rpc_call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
-            Err(ExternalServiceError::Chain(error.to_string()))?
+            Err(anyhow!(error.to_string()))?
         }
         let txid = rep.transaction.hash.to_string();
 
@@ -252,8 +250,8 @@ impl<T> ContractClient<T> {
             println!("query_res1 {}", amount_str);
             Ok(serde_json::from_str::<Option<R>>(&amount_str)?)
         } else {
-            Err(BackendError::InternalError(
-                "kind must be contract call".to_string(),
+            Err(anyhow!(
+                "kind must be contract call".to_string()
             ))?
         }
     }

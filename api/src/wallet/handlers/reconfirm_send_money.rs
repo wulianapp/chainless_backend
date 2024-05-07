@@ -1,8 +1,8 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig};
 use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::{KeyRole2, TxStatusOnChain};
+use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::{debug, info};
 
@@ -22,7 +22,6 @@ pub async fn req(
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    //todo: check must be main device
     let ReconfirmSendMoneyRequest {
         order_id,
         confirmed_sig,

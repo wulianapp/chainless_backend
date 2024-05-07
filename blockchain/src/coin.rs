@@ -41,7 +41,7 @@ fn decode_action(acts: &Vec<Action>) -> Result<NRC20TransferArgs, String> {
     if acts.len() != 1 {
         Err("Only support one action")?;
     }
-    if let FunctionCall(act) = acts.first().unwrap() {
+    if let FunctionCall(act) = &acts[0] {
         let FunctionCallAction {
             method_name,
             deposit,
@@ -71,7 +71,7 @@ pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std
     Err("tmp".to_string())?
 }
 
-async fn get_balance(account: &AccountId) -> u128 {
+async fn get_balance(account: &AccountId) -> Result<u128> {
     let request = methods::query::RpcQueryRequest {
         block_reference: BlockReference::Finality(Finality::Final),
         request: QueryRequest::CallFunction {
@@ -86,14 +86,13 @@ async fn get_balance(account: &AccountId) -> u128 {
             ),
         },
     };
-    let rep = crate::rpc_call(request).await.unwrap();
+    let rep = crate::rpc_call(request).await?;
 
     if let QueryResponseKind::CallResult(result) = rep.kind {
-        let amount_str: String = String::from_utf8(result.result)
-            .unwrap()
+        let amount_str: String = String::from_utf8(result.result)?
             .split('\"')
             .collect();
-        u128::from_str(&amount_str).unwrap()
+        Ok(u128::from_str(&amount_str)?)
     } else {
         unreachable!()
     }
@@ -105,8 +104,7 @@ impl ContractClient<Coin> {
         //multi_sig7_test
         //relayer_test=b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7
         let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
-            .parse()
-            .unwrap();
+            .parse()?;
         let pubkey = get_pubkey(&pri_key.to_string())?;
         //bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a
         debug!("coin relayer punkey {}", pubkey);
@@ -120,7 +118,7 @@ impl ContractClient<Coin> {
     }
 
     pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
-        let receiver: AccountId = AccountId::from_str(receiver).unwrap();
+        let receiver: AccountId = AccountId::from_str(receiver)?;
         let args_str = json!({
             "receiver_id":  receiver,
             "amount": amount.to_string(),
@@ -130,7 +128,7 @@ impl ContractClient<Coin> {
     }
 
     pub async fn get_balance(&self, account_id: &str) -> Result<Option<String>> {
-        let user_account_id = AccountId::from_str(account_id).unwrap();
+        let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({"account_id": user_account_id}).to_string();
         self.query_call("ft_balance_of", &args_str).await
     }

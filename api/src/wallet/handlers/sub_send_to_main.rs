@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::CoinType;

@@ -30,7 +30,7 @@ pub async fn req(req: HttpRequest, request_data: BindEthAddrRequest) -> BackendR
         user_eth_sig,
     } = request_data.clone();
 
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let bridge_cli = ContractClient::<Bridge>::new()?;
 
     //todo: 应该校验用户的签名而不是自己的
     /***
@@ -41,8 +41,7 @@ pub async fn req(req: HttpRequest, request_data: BindEthAddrRequest) -> BackendR
 
     let bind_res = bridge_cli
         .bind_eth_addr(&main_account, &eth_addr, &user_eth_sig)
-        .await
-        .unwrap();
+        .await?;
     println!("bind_res {} ", bind_res);
 
     Ok(None)

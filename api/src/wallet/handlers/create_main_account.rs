@@ -104,7 +104,7 @@ pub(crate) async fn req(
     record.insert()?;
 
     //注册的时候就把允许跨链的状态设置了
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let bridge_cli = ContractClient::<Bridge>::new()?;
     let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
     debug!(
         "set_user_batch txid {} ,{}",

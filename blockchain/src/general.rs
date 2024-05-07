@@ -68,7 +68,7 @@ pub async fn gen_transaction_with_caller(
         signer_id: caller_account_id,
         public_key: caller_pubkey,
         nonce: current_nonce + 1,
-        receiver_id: contract_addr.parse().unwrap(),
+        receiver_id: contract_addr.parse()?,
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
     })
@@ -145,7 +145,7 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
     let tx_id = hex_to_bs58(tx_id)?;
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
-            tx_hash: tx_id.parse().unwrap(),
+            tx_hash: tx_id.parse().map_err(|_e| anyhow!("tx_id to tx_hash".to_string()))?,
             sender_account_id: "node0".parse()?,
         },
     };
@@ -187,8 +187,8 @@ pub async fn safe_gen_transaction(
     let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
         block_reference: BlockReference::latest(),
         request: near_primitives::views::QueryRequest::ViewAccessKey {
-            account_id: AccountId::from_str(caller_account_id).unwrap(),
-            public_key: PublicKey::from_str(caller_pubkey).unwrap(),
+            account_id: AccountId::from_str(caller_account_id)?,
+            public_key: PublicKey::from_str(caller_pubkey)?,
         },
     })
     .await?;
@@ -199,46 +199,48 @@ pub async fn safe_gen_transaction(
     };
 
     Ok(Transaction {
-        signer_id: AccountId::from_str(caller_account_id).unwrap(),
-        public_key: PublicKey::from_str(caller_pubkey).unwrap(),
+        signer_id: AccountId::from_str(caller_account_id)?,
+        public_key: PublicKey::from_str(caller_pubkey)?,
         nonce: current_nonce + 1,
-        receiver_id: contract_addr.parse().unwrap(),
+        receiver_id: contract_addr.parse()?,
         block_hash: access_key_query_response.block_hash,
         actions: vec![],
     })
 }
 
 //user-api shouldn't use this directly
-pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) {
-    let tx_hex = hex::decode(tx_str).unwrap();
-    let sign_hex = hex::decode(sig_str).unwrap();
-    let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
+pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) -> Result<()>{
+    let tx_hex = hex::decode(tx_str)?;
+    let sign_hex = hex::decode(sig_str)?;
+    let transaction = Transaction::deserialize(&mut tx_hex.as_slice())?;
     debug!("{:?}", transaction);
-    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
-    let rest = broadcast_tx_commit(transaction, signature).await;
+    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex)?;
+    let rest = broadcast_tx_commit(transaction, signature).await?;
     debug!("broadcast_tx_commit_from_raw {:?}", rest.status);
+    Ok(())
 }
 
-pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) {
-    let tx_hex = hex::decode(tx_str).unwrap();
-    let sign_hex = hex::decode(sig_str).unwrap();
-    let transaction = Transaction::deserialize(&mut tx_hex.as_slice()).unwrap();
+pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) -> Result<()>{
+    let tx_hex = hex::decode(tx_str)?;
+    let sign_hex = hex::decode(sig_str)?;
+    let transaction = Transaction::deserialize(&mut tx_hex.as_slice())?;
     debug!("line={}, tx={:?}, hex {}", line!(), transaction, sig_str);
     //let signature = Signature::try_from_slice(&sign_hex).unwrap();
-    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex).unwrap();
+    let signature = Signature::from_parts(KeyType::ED25519, &sign_hex)?;
     let rest = broadcast_tx_commit(transaction, signature).await;
     debug!("broadcast_tx_commit_from_raw {:?}", rest);
+    Ok(())
 }
 
 pub async fn broadcast_tx_commit(
     transaction: Transaction,
     sig_data: Signature,
-) -> RpcBroadcastTxCommitResponse {
+) -> Result<RpcBroadcastTxCommitResponse> {
     let tx = SignedTransaction::new(sig_data, transaction);
     let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
         signed_transaction: tx,
     };
-    crate::rpc_call(request).await.unwrap()
+    crate::rpc_call(request).await.map_err(|e| e.into())
 }
 
 pub async fn call<M>(request: M) -> MethodCallResult<M::Response, M::Error>
@@ -252,7 +254,7 @@ pub async fn broadcast_tx_async(){
     let request = methods::broadcast_tx_async::RpcBroadcastTxAsyncRequest {
         signed_transaction: transaction.sign(&signer),
     };
-    let tx_hash = crate::rpc_call(request).await.unwrap();
+    let tx_hash = crate::rpc_call(request).await;
 }
 
  */

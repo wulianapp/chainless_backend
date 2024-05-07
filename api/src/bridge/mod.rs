@@ -318,7 +318,7 @@ mod tests {
                 &user_info.main_account,
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await;
+            .await.unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server

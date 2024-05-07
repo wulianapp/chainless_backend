@@ -1,5 +1,6 @@
 use common::utils::math::gen_random_verify_code;
 use lettre::message::header::ContentType;
+use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
@@ -27,10 +28,16 @@ pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
         "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
         code
     );
+
+    let from = email_address.parse::<Mailbox>()
+    .map_err(|e| e.to_string())?;
+    let to = to_mail.parse::<Mailbox>()
+    .map_err(|e| e.to_string())?;
+
     // 创建电子邮件内容
     let email = Message::builder()
-        .from(email_address.parse().unwrap())
-        .to(to_mail.parse().unwrap())
+        .from(from)
+        .to(to)
         .subject("[ChainLess] Captcha")
         .header(ContentType::TEXT_PLAIN)
         .body(content)

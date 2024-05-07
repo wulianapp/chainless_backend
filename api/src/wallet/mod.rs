@@ -1734,6 +1734,10 @@ mod tests {
     use tracing::{debug, error, info};
     use crate::bridge::ListWithdrawOrderResponse;
     use common::utils::math::*;
+    use blockchain::eth_cli::EthContractClient;
+    use blockchain::coin::Coin;
+    use blockchain::erc20_on_eth::Erc20;
+    use blockchain::bridge_on_eth::Bridge;
 
     /***
 
@@ -2118,7 +2122,7 @@ mod tests {
                 &user_info.main_account,
                 "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await;
+            .await.unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server
@@ -2157,12 +2161,12 @@ mod tests {
 
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:#?}", txs);
-
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::BTC).unwrap();
+  
+        let coin_cli = ContractClient::<Coin>::new(CoinType::BTC).unwrap();
         let erc20_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::erc20_on_eth::Erc20>::new(&CoinType::BTC);
+            EthContractClient::<Erc20>::new(&CoinType::BTC).unwrap();
         let eth_bridge_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
+            EthContractClient::<Bridge>::new().unwrap();
         let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
@@ -2276,7 +2280,7 @@ mod tests {
                 &user_info.main_account,
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await;
+            .await.unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server
@@ -2334,7 +2338,7 @@ mod tests {
                 user_info.main_account, balance_on_near
             );
             let mut balance_on_eth =
-                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await;
+                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await.unwrap();
             println!(
                 "usdt_balance_on_eth: {}——————{}",
                 current_binded_eth_addr, balance_on_eth
@@ -2381,7 +2385,7 @@ mod tests {
                 user_info.main_account, balance_on_near
             );
             balance_on_eth =
-                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await;
+                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await.unwrap();
             println!(
                 "usdt_balance_on_eth: {}——————{}",
                 current_binded_eth_addr, balance_on_eth

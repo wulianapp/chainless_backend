@@ -173,3 +173,23 @@ pub struct AccountMessage {
     pub coin_tx: Vec<CoinTransaction>,
     pub have_uncompleted_txs: bool,
 }
+
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PubkeySignInfo {
+    pub pubkey: String,
+    pub signature: String,
+}
+impl FromStr for PubkeySignInfo {
+    type Err = BackendError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        //pubkey:64 sig:128
+        if s.len() != 192 {
+            Err(BackendError::RequestParamInvalid(s.to_string()))?;
+        }
+        Ok(PubkeySignInfo {
+            pubkey: s[..64].to_string(),
+            signature: s[64..].to_string(),
+        })
+    }
+}

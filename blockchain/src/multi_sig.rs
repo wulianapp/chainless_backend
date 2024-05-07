@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
-use common::data_structures::get_support_coin_list;
-use common::error_code::BackendError;
+use common::data_structures::{get_support_coin_list, PubkeySignInfo};
 use common::utils::time::now_millis;
 use std::collections::BTreeMap;
 use std::fmt::Debug;
@@ -101,13 +100,13 @@ impl ContractClient<MultiSig> {
     pub async fn get_total_value(&self, account_str: &str) -> Result<u128> {
         let coins = get_support_coin_list();
         let mut total_value = 0;
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new()?;
         for coin in coins {
             let coin_cli = ContractClient::<Coin>::new(coin.clone())?;
             let balance = coin_cli.get_balance(account_str).await?;
             let balance: u128 = balance.unwrap_or("0".to_string()).parse()?;
             //get price from contract
-            let (base, quote) = fees_cli.get_coin_price(&coin).await.unwrap();
+            let (base, quote) = fees_cli.get_coin_price(&coin).await?;
             total_value += balance * quote / base;
         }
         Ok(total_value)
@@ -119,12 +118,9 @@ impl ContractClient<MultiSig> {
     pub async fn get_master_pubkey(&self, account_str: &str) -> Result<String> {
         let list = get_access_key_list(account_str).await?.keys;
         if list.len() != 1 {
-            error!("account have multi key {:?}", list);
-            //panic!("todo");
+            Err(anyhow!("account have multi key {:?}", list))?;
         }
-        //let key = list.first().unwrap().public_key.key_data();
-        let key = list.last().unwrap().public_key.key_data();
-
+        let key = list[0].public_key.key_data();
         Ok(hex::encode(key))
     }
 
@@ -152,7 +148,7 @@ impl ContractClient<MultiSig> {
     pub async fn add_key(&self, main_account: &str, new_key: &str) -> Result<(String, String)> {
         let master_pubkey = self.get_master_pubkey(main_account).await?;
         let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
-        let main_account = AccountId::from_str(main_account).unwrap();
+        let main_account = AccountId::from_str(main_account)?;
         self.gen_raw_with_caller(&main_account, &master_pubkey, "add_key", new_key)
             .await
     }
@@ -167,13 +163,13 @@ impl ContractClient<MultiSig> {
     ) -> Result<(String, String)> {
         let master_pubkey = self.get_master_pubkey(main_account).await?;
         let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
-        let main_account = AccountId::from_str(main_account).unwrap();
+        let main_account = AccountId::from_str(main_account)?;
         self.gen_raw_with_caller(&main_account, &master_pubkey, "delete_key", delete_key)
             .await
     }
 
     pub async fn get_strategy(&self, account_id: &str) -> Result<Option<StrategyData>> {
-        let user_account_id = AccountId::from_str(account_id).unwrap();
+        let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({"user_account_id": user_account_id}).to_string();
         self.query_call("get_strategy", &args_str).await
     }
@@ -268,7 +264,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn remove_account_strategy(&self, acc: String) -> Result<String> {
-        let acc_id = AccountId::from_str(&acc).unwrap();
+        let acc_id = AccountId::from_str(&acc)?;
         let args_str = json!({"acc": acc_id}).to_string();
         self.commit_by_relayer("remove_account_strategy", &args_str)
             .await
@@ -428,15 +424,6 @@ impl ContractClient<MultiSig> {
             amount: transfer_amount,
         };
 
-        /***
-         //todo: checkout and return error
-        let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
-        let public_key_bytes: Vec<u8> = hex::decode(sub_sig.pubkey).unwrap();
-        let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes).unwrap();
-        let signature = ed25519_dalek::Signature::from_str(&sub_sig.signature).unwrap();
-        println!("0002__coin_tx_str({}),signature({})",coin_tx_str,signature);
-        public_key.verify_strict(coin_tx_str.as_bytes(), &signature).unwrap();
-        ***/
         let args_str = json!({
             "main_account_id": main_account_id,
             "sub_sig": sub_sig,
@@ -566,25 +553,6 @@ impl ContractClient<MultiSig> {
         })
         .to_string();
         self.commit_by_relayer("internal_withdraw", &args_str).await
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct PubkeySignInfo {
-    pub pubkey: String,
-    pub signature: String,
-}
-impl FromStr for PubkeySignInfo {
-    type Err = BackendError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        //todo
-        if s.len() < 64 {
-            Err(BackendError::RequestParamInvalid(s.to_string()))?;
-        }
-        Ok(PubkeySignInfo {
-            pubkey: s[..64].to_string(),
-            signature: s[64..].to_string(),
-        })
     }
 }
 

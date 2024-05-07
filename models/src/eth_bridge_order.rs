@@ -109,11 +109,11 @@ impl PsqlOp for EthBridgeOrderView {
             Ok(EthBridgeOrderView {
                 order: EthBridgeOrder {
                     id: row.get(0),
-                    order_type: row.get::<usize, String>(1).parse().unwrap(),
+                    order_type: row.get::<usize, String>(1).parse()?,
                     chainless_acc: row.get(2),
                     eth_addr: row.get(3),
-                    coin: row.get::<usize, String>(4).parse().unwrap(),
-                    amount: row.get::<usize, String>(5).parse().unwrap(),
+                    coin: row.get::<usize, String>(4).parse()?,
+                    amount: row.get::<usize, String>(5).parse()?,
                     status: row.get(6),
                     height: row.get::<usize, i64>(7) as u64,
                     reserved_field3: row.get(8),

@@ -66,7 +66,7 @@ impl ContractClient<FeesCall> {
     }
 
     pub async fn get_fees_priority(&self, account_id: &str) -> Result<Vec<CoinType>> {
-        let user_account_id = AccountId::from_str(account_id).unwrap();
+        let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({
             "id": user_account_id,
         })
@@ -89,8 +89,8 @@ impl ContractClient<FeesCall> {
         .to_string();
         let (base_amount, quote_amount): (String, String) =
             self.query_call("get_price", &args_str).await?.unwrap();
-        let base_amount: u128 = base_amount.parse().unwrap();
-        let quote_amount: u128 = quote_amount.parse().unwrap();
+        let base_amount: u128 = base_amount.parse()?;
+        let quote_amount: u128 = quote_amount.parse()?;
         Ok((base_amount, quote_amount))
     }
 

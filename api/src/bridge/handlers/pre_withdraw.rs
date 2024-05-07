@@ -16,7 +16,7 @@ use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::{get_next_tx_index, CoinTxView};
+use models::coin_transfer::{CoinTxView};
 use models::PsqlOp;
 
 use crate::bridge::PreWithdrawRequest;
@@ -35,7 +35,7 @@ pub(crate) async fn req(
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let bridge_cli = ContractClient::<Bridge>::new()?;
     let eth_addr = bridge_cli.get_binded_eth_addr(&main_account).await?;
     let to = eth_addr.ok_or(BridgeError::NotBindEthAddr)?;
 
@@ -48,7 +48,7 @@ pub(crate) async fn req(
 
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
 
-    let coin_type = CoinType::from_str(&coin).unwrap();
+    let coin_type = CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
     let available_balance = get_available_amount(&from, &coin_type).await?;

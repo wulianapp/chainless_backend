@@ -1,13 +1,13 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig};
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
 use crate::wallet::ReactPreSendMoney;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
@@ -42,12 +42,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
             .transaction
             .signatures
             .iter()
-            .map(|data| PubkeySignInfo {
-                pubkey: data[..64].to_string(),
-
-                signature: data[64..].to_string(),
-            })
-            .collect();
+            .map(|data| data.parse())
+            .collect::<Result<Vec<_>,BackendError>>()?;
 
         //todo: replace with new api(gen_chain_tx) whereby avert tx expire
         let (tx_id, chain_raw_tx) = cli

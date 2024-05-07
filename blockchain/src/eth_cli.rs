@@ -1,11 +1,9 @@
-use common::error_code::{BackendError, ExternalServiceError};
 use ethers::{middleware::SignerMiddleware, providers::JsonRpcError};
 use lazy_static::lazy_static;
 use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use anyhow::Result;
-use common::error_code;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
@@ -60,16 +58,16 @@ pub mod general {
     use ethers::prelude::*;
 
 
-    pub async fn get_eth_balance(addr: &str) -> u128 {
+    pub async fn get_eth_balance(addr: &str) -> Result<u128> {
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
-        let addr = Address::from_str(addr).unwrap();
-        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
-        let balance_before = provider.get_balance(addr, None).await.unwrap();
-        balance_before.as_u128()
+        let addr = Address::from_str(addr)?;
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/")?;
+        let balance_before = provider.get_balance(addr, None).await?;
+        Ok(balance_before.as_u128())
     }
 
     pub async fn get_current_height() -> Result<u64> {
-        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/")?;
         let height = provider.get_block_number().await?;
         Ok(height.as_u64())
     }
@@ -78,7 +76,7 @@ pub mod general {
     pub async fn get_block<T: Into<BlockId> + Send + Sync>(
         height_or_hash: T,
     ) -> Result<Option<Block<H256>>> {
-        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/")?;
         match provider.get_block(height_or_hash).await? {
             None => Ok(None),
             Some(block) => Ok(Some(block)),

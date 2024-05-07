@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig};
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};

@@ -47,8 +47,7 @@ pub async fn send_sms(_code: &Captcha) -> Result<()> {
             ("Body", &message_body),
         ])
         .send()
-        .await
-        .unwrap();
+        .await?;
 
     // 检查 Twilio API 的响应
     if response.status().is_success() {
@@ -56,7 +55,7 @@ pub async fn send_sms(_code: &Captcha) -> Result<()> {
         println!("Message Status: {}", response.status().as_str());
         // 可以在这里处理其他响应字段
     } else {
-        println!("Failed to send SMS: {}", response.text().await.unwrap());
+        println!("Failed to send SMS: {}", response.text().await?);
     }
 
     Ok(())

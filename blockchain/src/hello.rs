@@ -12,21 +12,20 @@ use serde_json::json;
 struct Hello {}
 
 impl ContractClient<Hello> {
-    pub fn new() -> Self {
-        let account_id = "eddy3.node0".parse().unwrap();
+    pub fn new() -> Result<Self> {
+        let account_id = "eddy3.node0".parse()?;
         let pri_key = "ed25519:522wSBLmU2ytPz7QgcSJ9Q9Ddx811cRAkN2g5Qg5L\
             us84Bp7tjSvQzSSpaSMB72x7M3gj6yQYF9fkEScaG5agZ8N"
-            .parse()
-            .unwrap();
+            .parse()?;
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-        Self {
-            deployed_at: "eddy1.node0".parse().unwrap(),
+        Ok(Self {
+            deployed_at: "eddy1.node0".parse()?,
             relayer: signer,
             phantom: Default::default(),
-        }
+        })
     }
 
-    pub async fn query_get_greeting(&self) -> String {
+    pub async fn query_get_greeting(&self) -> Result<String> {
         let request = methods::query::RpcQueryRequest {
             block_reference: BlockReference::Finality(Finality::Final),
             request: QueryRequest::CallFunction {
@@ -36,10 +35,10 @@ impl ContractClient<Hello> {
             },
         };
 
-        let response = crate::general::call(request).await;
+        let response = crate::general::call(request).await?;
 
-        if let QueryResponseKind::CallResult(result) = response.unwrap().kind {
-            String::from_utf8(result.result).unwrap()
+        if let QueryResponseKind::CallResult(result) = response.kind {
+            Ok(String::from_utf8(result.result)?)
         } else {
             unreachable!()
         }
@@ -63,7 +62,7 @@ impl ContractClient<Hello> {
             .relayer
             .sign(transaction.get_hash_and_size().0.as_ref());
 
-        let response = broadcast_tx_commit(transaction, signature).await;
+        let response = broadcast_tx_commit(transaction, signature).await?;
         if let FinalExecutionStatus::Failure(error) = response.status {
             //Err(error.to_string())?;
             Err(anyhow::anyhow!(error.to_string()))?;
@@ -80,15 +79,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_call_set_greeting() {
-        let client = ContractClient::<Hello>::new();
+        let client = ContractClient::<Hello>::new().unwrap();
         let res = client.call_set_greeting("test test").await.unwrap();
         println!("txid {}", res);
     }
 
     #[tokio::test]
     async fn test_query_get_greeting() {
-        let client = ContractClient::<Hello>::new();
-        let res = client.query_get_greeting().await;
+        let client = ContractClient::<Hello>::new().unwrap();
+        let res = client.query_get_greeting().await.unwrap();
         println!("res {}", res);
     }
 }

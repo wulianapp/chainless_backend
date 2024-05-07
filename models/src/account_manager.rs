@@ -3,6 +3,7 @@ extern crate rustc_serialize;
 use common::data_structures::OpStatus;
 use postgres::Row;
 use std::fmt;
+use std::num::ParseIntError;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
@@ -153,8 +154,8 @@ impl PsqlOp for UserInfoView {
                     create_subacc_time: row
                         .get::<usize, Vec<String>>(11)
                         .iter()
-                        .map(|t| t.parse().unwrap())
-                        .collect(),
+                        .map(|t| t.parse().map_err(|e: ParseIntError| anyhow::anyhow!(e.to_string())))
+                        .collect::<Result<Vec<u64>>>()?,
                     main_account: row.get(12),
                     op_status: row.get::<usize, String>(13).parse()?,
                     reserved_field1: row.get(14),
@@ -250,17 +251,11 @@ impl PsqlOp for UserInfoView {
     }
 }
 
-pub fn get_current_user_num() -> Result<u64> {
-    let execute_res = crate::query("select count(1) from users")?;
-    let user_info_raw = execute_res.first().unwrap();
-    let user_num = user_info_raw.get::<usize, i64>(0) as u64;
-    Ok(user_num)
-}
-
 pub fn get_next_uid() -> Result<u32> {
     let execute_res = crate::query(
         "select last_value,is_called from users_id_seq order by last_value desc limit 1",
     )?;
+    //todo:
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
     let is_called = row.get::<usize, bool>(1);

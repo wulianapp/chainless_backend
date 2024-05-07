@@ -7,7 +7,7 @@ use blockchain::fees_call::FeesCall;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::{get_support_coin_list, CoinType};
-use common::error_code::BackendError;
+use common::error_code::{to_internal_error, BackendError};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -33,9 +33,12 @@ pub async fn req(
     let multi_cli = ContractClient::<MultiSig>::new()?;
     let (dist_account,hold_limit) = match account_id {
         Some(account) => {
-            let strategy = multi_cli.get_strategy(&main_account).await?;
-            let sub_confs = strategy.unwrap().sub_confs;
-            let sub_conf = sub_confs
+            let strategy = multi_cli
+            .get_strategy(&main_account)
+            .await?
+            .ok_or("not regist main_account")?;
+
+            let sub_conf = strategy.sub_confs
             .get(account.as_str())
             .ok_or(BackendError::RequestParamInvalid("account is not subaccount".to_string()))?;
             let hold_limit = raw2display(sub_conf.hold_value_limit);
@@ -50,7 +53,7 @@ pub async fn req(
     .await?
     .unwrap_or("0".to_string());
 
-    let total_balance = balance.parse().unwrap();
+    let total_balance = balance.parse().map_err(to_internal_error)?;
     debug!("coin:{},total_balance:{}",coin, total_balance);
     let total_dollar_value = super::get_value(&coin, total_balance).await;
     let total_rmb_value = total_dollar_value / 7;

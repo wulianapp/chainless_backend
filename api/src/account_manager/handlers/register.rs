@@ -68,7 +68,7 @@ async fn register(
     ***/
     //注册多签账户放在安全问答之后
     //let multi_cli = ContractClient::<MultiSig>::new();
-    //multi_cli.init_strategy(&pubkey).await.unwrap();
+    //multi_cli.init_strategy(&pubkey).await?;
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
@@ -76,7 +76,7 @@ async fn register(
 
     models::general::transaction_commit()?;
 
-    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand);
+    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
     info!("user {:?} register successfully", view.user_info);
     Ok(Some(token))
 }

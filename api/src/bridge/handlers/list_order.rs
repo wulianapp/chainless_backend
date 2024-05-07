@@ -13,6 +13,7 @@ use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
 use crate::wallet::handlers::*;
+use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
@@ -52,12 +53,12 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<ListWithdrawOrderRes
             }
         }).collect();
 
-        ListWithdrawOrderResponse{
+        Ok(ListWithdrawOrderResponse{
             order_id: id,
             chain_id: info.chain_id,
             order_type: format!("{:?}",info.order_type),
             account_id: info.account_id.to_string(),
-            symbol: info.symbol.parse().unwrap(),
+            symbol: info.symbol.parse()?,
             amount: raw2display(info.amount),
             address: info.address,
             signers: signers,
@@ -65,7 +66,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<ListWithdrawOrderRes
             status: format!("{:?}",info.status),
             updated_at: timestamp2utc(info.update_at),
             created_at: timestamp2utc(info.create_at),
-        }
-    }).collect();
+        })
+    }).collect::<Result<Vec<_>>>()?;
     Ok(Some(orders))
 }

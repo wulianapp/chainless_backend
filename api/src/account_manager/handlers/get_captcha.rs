@@ -49,7 +49,6 @@ fn get(
     let captcha = Captcha::new(storage_key, device_id, kind);
 
     if contract_type == ContactType::PhoneNumber {
-        //phone::send_sms(&code).unwrap()
         Err(BackendError::InternalError(
             "Not support Phone nowadays".to_string(),
         ))?;
@@ -96,6 +95,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
                 {
                     debug!("line {}", line!());
                 } else if find_device_res.is_err() {
+                    //todo: return failed rep by error info 
                     Err(WalletError::UneligiableRole(
                         KeyRole2::Undefined,
                         KeyRole2::Master,

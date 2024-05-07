@@ -24,7 +24,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let (user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
 
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let bridge_cli = ContractClient::<Bridge>::new()?;
 
     let eth_addr = bridge_cli.get_binded_eth_addr(&main_account).await?;
     println!("eth_addr {:?} ", eth_addr);

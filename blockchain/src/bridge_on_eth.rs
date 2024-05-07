@@ -79,7 +79,7 @@ impl EthContractClient<Bridge> {
         let wallet = prikey
             .parse::<LocalWallet>()?
             .with_chain_id(1500u32);
-        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/").unwrap();
+        let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/")?;
 
         let cli = Arc::new(SignerMiddleware::new(provider, wallet));
         Ok(EthContractClient {
@@ -101,7 +101,7 @@ impl EthContractClient<Bridge> {
         let cid = U256::from(cid);
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
-        let signature = hex::decode(signature).unwrap();
+        let signature = hex::decode(signature)?;
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
 
         println!(
@@ -124,10 +124,8 @@ impl EthContractClient<Bridge> {
             )
             .legacy()
             .send()
-            .await
-            .unwrap()
-            .await
-            .unwrap();
+            .await?
+            .await?;
         println!("send_res {:?}", send_res.as_ref().unwrap());
         Ok(send_res.unwrap())
     }
@@ -143,7 +141,7 @@ impl EthContractClient<Bridge> {
         let cid = U256::from(cid);
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
-        let signature: Vec<u8> = hex::decode(signature).unwrap();
+        let signature: Vec<u8> = hex::decode(signature)?;
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
 
         println!(
@@ -167,10 +165,8 @@ impl EthContractClient<Bridge> {
             .value(U256::from(amount))
             .legacy()
             .send()
-            .await
-            .unwrap()
-            .await
-            .unwrap();
+            .await?
+            .await?;
         println!("send_res {:?}", send_res.as_ref().unwrap());
         Ok(send_res.unwrap())
     }
@@ -185,7 +181,7 @@ impl EthContractClient<Bridge> {
     ) -> Result<TransactionReceipt> {
         let amount = U256::from(amount);
         let signature = signature.replace("0x", "");
-        let signature = hex::decode(signature).unwrap();
+        let signature = hex::decode(signature)?;
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
 
         println!(
@@ -206,10 +202,8 @@ impl EthContractClient<Bridge> {
             )
             .legacy()
             .send()
-            .await
-            .unwrap()
-            .await
-            .unwrap();
+            .await?
+            .await?;
         println!("send_res {:?}", send_res.as_ref().unwrap());
         Ok(send_res.unwrap())
     }
@@ -219,8 +213,7 @@ impl EthContractClient<Bridge> {
         let (symbol, chainless, coin_addr, allow) = bridge_cli
             .token_info(symbol.to_owned())
             .call()
-            .await
-            .unwrap();
+            .await?;
 
         Ok(TokenInfo {
             symbol,
@@ -234,7 +227,7 @@ impl EthContractClient<Bridge> {
         let id = U256::from(id);
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
         let (cid, deposit_id, chainless_id, user, amount, symbol, timestamp, signature, test) =
-            bridge_cli.deposit_info(id).call().await.unwrap();
+            bridge_cli.deposit_info(id).call().await?;
 
         Ok(DepositOrderInfo {
             cid: cid.to_string(),
@@ -251,10 +244,9 @@ impl EthContractClient<Bridge> {
     pub async fn filter_deposit_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
         let deposit_orders: Vec<DepositFilter> = contract.deposit_filter()
-            .at_block_hash(H256::from_str(block_hash).unwrap())
+            .at_block_hash(H256::from_str(block_hash)?)
             .query()
-            .await
-            .unwrap();
+            .await?;
 
         let diposit_order = deposit_orders
             .iter()
@@ -275,10 +267,9 @@ impl EthContractClient<Bridge> {
     pub async fn filter_withdraw_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
         let deposit_orders: Vec<WithdrawFilter> = contract.withdraw_filter()
-            .at_block_hash(H256::from_str(block_hash).unwrap())
+            .at_block_hash(H256::from_str(block_hash)?)
             .query()
-            .await
-            .unwrap();
+            .await?;
 
         let diposit_order = deposit_orders
             .iter()

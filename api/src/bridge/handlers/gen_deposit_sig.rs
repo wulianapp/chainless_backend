@@ -57,7 +57,7 @@ pub async fn req(
         Err(BackendError::InternalError("".to_string()))?
     }
 
-    let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+    let bridge_cli = ContractClient::<Bridge>::new()?;
 
     let (sig, deadline, cid) = bridge_cli
         .sign_deposit_info(coin, amount, &main_account)

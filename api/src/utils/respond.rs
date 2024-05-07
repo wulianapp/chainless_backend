@@ -16,8 +16,8 @@ pub struct BackendRespond<T: Serialize> {
 
 pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
     debug!(
-        "return_ok_respond: {}",
-        serde_json::to_string(&info).unwrap()
+        "return_ok_respond: {:?}",
+        serde_json::to_string(&info)
     );
     HttpResponse::Ok().json(BackendRespond {
         msg: "successfully".to_string(),

@@ -1,7 +1,7 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::KeyRole2;
+use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -10,7 +10,7 @@ use models::secret_store::SecretStoreView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{CreateMainAccountRequest, GenSendMoneyRequest};
-use blockchain::multi_sig::{MultiSig, PubkeySignInfo};
+use blockchain::multi_sig::{MultiSig};
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
@@ -40,12 +40,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
         .transaction
         .signatures
         .iter()
-        .map(|data| PubkeySignInfo {
-            pubkey: data[..64].to_string(),
-
-            signature: data[64..].to_string(),
-        })
-        .collect();
+        .map(|data| 
+            data.parse()
+        )
+        .collect::<Result<Vec<_>,BackendError>>()?;
 
     let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let (tx_id, chain_raw_tx) = cli
