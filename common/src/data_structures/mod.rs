@@ -1,12 +1,12 @@
 pub mod account_manager;
 pub mod airdrop;
+pub mod bridge;
 pub mod coin_transaction;
 pub mod device_info;
 pub mod general;
 pub mod newbie_reward;
 pub mod secret_store;
 pub mod wallet_namage_record;
-pub mod bridge;
 
 use std::str::FromStr;
 
@@ -100,7 +100,7 @@ pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
     ]
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq,Default)]
+#[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq, Default)]
 pub enum CoinType {
     #[default]
     #[strum(ascii_case_insensitive, to_string = "btc")]
@@ -129,7 +129,7 @@ impl CoinType {
             CoinType::USDT => Some(global_conf.eth_usdt_contract.clone()),
             CoinType::USDC => Some(global_conf.eth_usdc_contract.clone()),
             CoinType::CLY => Some(global_conf.eth_cly_contract.clone()),
-            CoinType::DW20 => None
+            CoinType::DW20 => None,
         }
     }
 
@@ -172,7 +172,6 @@ pub struct AccountMessage {
     pub coin_tx: Vec<CoinTransaction>,
     pub have_uncompleted_txs: bool,
 }
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PubkeySignInfo {

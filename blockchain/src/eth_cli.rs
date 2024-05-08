@@ -49,14 +49,13 @@ pub struct EthContractClient<E> {
 }
 
 pub mod general {
+    use anyhow::Result;
+    use ethers::prelude::*;
     use ethers::{
         providers::{Http, Middleware, Provider},
         types::Address,
     };
     use std::str::FromStr;
-    use anyhow::Result;
-    use ethers::prelude::*;
-
 
     pub async fn get_eth_balance(addr: &str) -> Result<u128> {
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
@@ -71,7 +70,6 @@ pub mod general {
         let height = provider.get_block_number().await?;
         Ok(height.as_u64())
     }
-
 
     pub async fn get_block<T: Into<BlockId> + Send + Sync>(
         height_or_hash: T,

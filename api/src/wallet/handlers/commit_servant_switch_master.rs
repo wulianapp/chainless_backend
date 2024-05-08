@@ -47,9 +47,8 @@ pub(crate) async fn req(
     super::check_role(current_role, KeyRole2::Servant)?;
     super::check_have_base_fee(&main_account).await?;
 
-
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
-   
+
     //todo: 检查防止用servantA的token操作servantB进行switch
     //外部注入和token解析结果对比
     let servant_pubkey =
@@ -60,17 +59,17 @@ pub(crate) async fn req(
                 "this haven't be servant yet".to_string(),
             ))?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
-    
+
     //get old_master
     let old_master = if master_list.len() == 1 {
         debug!("start switch servant to master");
         master_list[0].to_owned()
-    }else if master_list.len() == 2 {
+    } else if master_list.len() == 2 {
         warn!("unnormal account,it's account have 2 master");
         let mut local_list = master_list.clone();
         local_list.retain(|x| x.ne(&servant_pubkey));
         local_list[0].to_owned()
-    }else {
+    } else {
         Err(BackendError::InternalError(
             "main account is unnormal".to_string(),
         ))?;

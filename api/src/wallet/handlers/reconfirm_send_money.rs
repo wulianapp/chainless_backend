@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -12,13 +12,10 @@ use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 
-pub async fn req(
-    req: HttpRequest,
-    request_data: ReconfirmSendMoneyRequest,
-) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -34,11 +31,15 @@ pub async fn req(
     let strategy = multi_cli
         .get_strategy(&coin_tx.transaction.from)
         .await?
-        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
-    
+        .ok_or(BackendError::InternalError(
+            "main_account not found".to_string(),
+        ))?;
+
     //todo: check sig before push it to blockchain
-    if confirmed_sig.len() != 192 && confirmed_sig.len() != 128{
-        Err(BackendError::RequestParamInvalid("confirmed_sig is invalid".to_string()))?;
+    if confirmed_sig.len() != 192 && confirmed_sig.len() != 128 {
+        Err(BackendError::RequestParamInvalid(
+            "confirmed_sig is invalid".to_string(),
+        ))?;
     }
 
     models::general::transaction_begin()?;
@@ -49,7 +50,7 @@ pub async fn req(
             .signatures
             .iter()
             .map(|data| data.parse())
-            .collect::<Result<Vec<PubkeySignInfo>,_>>()?;
+            .collect::<Result<Vec<PubkeySignInfo>, _>>()?;
         let master_sign: PubkeySignInfo = confirmed_sig.parse()?;
 
         let tx_id = multi_cli

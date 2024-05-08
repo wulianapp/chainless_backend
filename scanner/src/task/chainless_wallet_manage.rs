@@ -1,4 +1,4 @@
-use common::{data_structures::TxStatusOnChain, *};
+use common::data_structures::TxStatusOnChain;
 use models::{
     wallet_manage_record::{
         WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView,
@@ -6,12 +6,10 @@ use models::{
     PsqlOp,
 };
 use tracing::debug;
-use clap::Parser;
-use tracing::info;
+
 use anyhow::Result;
 
-
-pub async  fn start() -> Result<()>{
+pub async fn start() -> Result<()> {
     loop {
         //check manage_opcord
         let ops = WalletManageRecordView::find(WalletManageRecordFilter::ByStatus(
@@ -30,7 +28,7 @@ pub async  fn start() -> Result<()>{
                 );
             }
             //todo: try to call again when relayer operate
-        }        
+        }
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     }
 }

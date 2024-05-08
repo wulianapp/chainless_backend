@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
+use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
@@ -32,7 +33,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         hold_value_limit,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account)?;
-
+    let hold_value_limit = display2raw(&hold_value_limit)?;
     let (_, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;

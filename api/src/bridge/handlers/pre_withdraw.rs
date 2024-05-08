@@ -16,7 +16,7 @@ use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::{CoinTxView};
+use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 
 use crate::bridge::PreWithdrawRequest;
@@ -48,13 +48,17 @@ pub(crate) async fn req(
 
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
 
-    let coin_type = CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
+    let coin_type =
+        CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
     let available_balance = get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
-        error!("{},  {}(amount)  big_than1 {}(available_balance) ",coin_type,amount,available_balance);
+        error!(
+            "{},  {}(amount)  big_than1 {}(available_balance) ",
+            coin_type, amount, available_balance
+        );
         Err(WalletError::InsufficientAvailableBalance)?;
     }
 

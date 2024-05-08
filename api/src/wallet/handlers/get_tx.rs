@@ -2,6 +2,7 @@ use crate::utils::token_auth;
 use crate::wallet::CreateMainAccountRequest;
 use crate::wallet::{GetTxRequest, GetTxResponse};
 use actix_web::HttpRequest;
+use anyhow::Result;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -23,7 +24,6 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
-use anyhow::Result;
 
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
@@ -32,12 +32,10 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(
-        CoinTxFilter::ByOrderId(&order_id)
-    ).map_err(|e|{
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id)).map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             WalletError::OrderNotFound(order_id).into()
-        }else {
+        } else {
             BackendError::InternalError(e.to_string())
         }
     })?;
@@ -80,17 +78,18 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
-    let (fee_coin,fee_amount) = if tx.transaction.chain_status == TxStatusOnChain::Successful{
-            let tx_id= tx.transaction.tx_id.as_ref().ok_or("")?;
-            let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
-            fees_call_cli.get_tx_fee(tx_id).await?
-    }else{
-        let (coin,amount,balance_enough) = super::estimate_transfer_fee(
+    let (fee_coin, fee_amount) = if tx.transaction.chain_status == TxStatusOnChain::Successful {
+        let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
+        let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+        fees_call_cli.get_tx_fee(tx_id).await?
+    } else {
+        let (coin, amount, _balance_enough) = super::estimate_transfer_fee(
             &tx.transaction.from,
             &tx.transaction.coin_type,
-            tx.transaction.amount
-        ).await?;
-        (coin,amount)
+            tx.transaction.amount,
+        )
+        .await?;
+        (coin, amount)
     };
 
     let tx = GetTxResponse {

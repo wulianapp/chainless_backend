@@ -33,7 +33,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_id,
         holder_device_brand: _,
     } = request_data;
-    let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, mut current_strategy, device) =
+        super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
 

@@ -162,7 +162,7 @@ async fn get_strategy(request: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/estimateTransferFee
 */
 
-#[derive(Deserialize, Serialize, Clone,Default,Debug)]
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct EstimateTransferFeeResponse {
     pub coin: CoinType,
     pub amount: String,
@@ -177,14 +177,17 @@ pub struct EstimateTransferFeeRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/wallet/estimateTransferFee")]
-async fn estimate_transfer_fee(request: HttpRequest,  
+async fn estimate_transfer_fee(
+    request: HttpRequest,
     request_data: web::Query<EstimateTransferFeeRequest>,
 ) -> impl Responder {
     debug!(
         "req_params:: {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(handlers::estimate_transfer_fee::req(request,request_data.into_inner()).await)
+    gen_extra_respond(
+        handlers::estimate_transfer_fee::req(request, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -776,7 +779,7 @@ pub struct AddSubaccountRequest {
     subaccount_pubkey: String,
     subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
-    hold_value_limit: u128,
+    hold_value_limit: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/wallet/addSubaccount")]
@@ -980,7 +983,7 @@ async fn update_subaccount_hold_limit(
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1,2,2002,2003,2004,3007,3008} status_code         状态码.
-* @apiSuccess {String} msg  
+* @apiSuccess {String} msg
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
@@ -1149,7 +1152,6 @@ async fn balance_list(
     );
     gen_extra_respond(handlers::balance_list::req(req, request_data.0).await)
 }
-
 
 /**
  * @api {get} /wallet/singleBalance 获取单账户单币种的余额
@@ -1734,17 +1736,17 @@ mod tests {
     // use log::{info, LevelFilter,debug,error};
     use super::SearchMessageResponse;
     use crate::account_manager::handlers::user_info::UserInfoTmp;
+    use crate::bridge::ListWithdrawOrderResponse;
+    use blockchain::bridge_on_eth::Bridge;
+    use blockchain::coin::Coin;
+    use blockchain::erc20_on_eth::Erc20;
+    use blockchain::eth_cli::EthContractClient;
     use common::data_structures::CoinType;
+    use common::utils::math::*;
     use handlers::get_strategy::StrategyDataTmp;
     use models::account_manager::UserInfoView;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
-    use crate::bridge::ListWithdrawOrderResponse;
-    use common::utils::math::*;
-    use blockchain::eth_cli::EthContractClient;
-    use blockchain::coin::Coin;
-    use blockchain::erc20_on_eth::Erc20;
-    use blockchain::bridge_on_eth::Bridge;
 
     /***
 
@@ -1805,13 +1807,13 @@ mod tests {
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let subacc = sender_master.wallet.subaccount.first().unwrap();
+        let _subacc = sender_master.wallet.subaccount.first().unwrap();
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
         let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
-        let first_subaccount_id = sub_accoounts.first().unwrap();
+        let _first_subaccount_id = sub_accoounts.first().unwrap();
 
-        let mut strategy = test_get_strategy!(service, sender_master).unwrap();
-        let (new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
+        let strategy = test_get_strategy!(service, sender_master).unwrap();
+        let (_new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
         test_add_subaccount!(service, sender_master, new_sub_pubkey);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1834,7 +1836,7 @@ mod tests {
             println!("___{:#?}", strategy.subaccounts);
         }
         **/
-     
+
         let sub_accoounts: Vec<String> = strategy.subaccounts.into_keys().collect();
         let second_sub = sub_accoounts.last().unwrap();
         //assert_eq!(strategy.subaccounts.get(&new_sub_pubkey).unwrap().hold_value_limit,1000_);
@@ -1990,19 +1992,25 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let servant_info = test_user_info!(service, sender_servant).unwrap();
-        assert_eq!(servant_info.role,"Servant");
+        assert_eq!(servant_info.role, "Servant");
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
-        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_servant.wallet.pubkey.as_ref().unwrap());
+        assert_eq!(
+            sender_info.servant_pubkeys.first().unwrap(),
+            sender_servant.wallet.pubkey.as_ref().unwrap()
+        );
 
         test_newcommer_switch_servant!(service, sender_master, sender_servant, sender_newcommer);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         //更换后身份互换
         let user_info = test_user_info!(service, sender_servant).unwrap();
-        assert_eq!(user_info.role,"Undefined");
+        assert_eq!(user_info.role, "Undefined");
         let user_info = test_user_info!(service, sender_newcommer).unwrap();
-        assert_eq!(user_info.role,"Servant");
+        assert_eq!(user_info.role, "Servant");
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
-        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_newcommer.wallet.pubkey.as_ref().unwrap());
+        assert_eq!(
+            sender_info.servant_pubkeys.first().unwrap(),
+            sender_newcommer.wallet.pubkey.as_ref().unwrap()
+        );
     }
 
     #[actix_web::test]
@@ -2045,16 +2053,22 @@ mod tests {
 
         let user_info = test_user_info!(service, sender_master).unwrap();
         //println!("{:#?}", user_info);
-        assert_eq!(user_info.role,"Servant");
+        assert_eq!(user_info.role, "Servant");
 
         let user_info = test_user_info!(service, sender_servant).unwrap();
         //println!("{:#?}", user_info);
-        assert_eq!(user_info.role,"Master");
+        assert_eq!(user_info.role, "Master");
 
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
         //println!("{},,,{:?}", line!(), sender_info);
-        assert_eq!(sender_info.master_pubkey.as_str(),sender_servant.wallet.pubkey.as_ref().unwrap());
-        assert_eq!(sender_info.servant_pubkeys.first().unwrap(),sender_master.wallet.pubkey.as_ref().unwrap());
+        assert_eq!(
+            sender_info.master_pubkey.as_str(),
+            sender_servant.wallet.pubkey.as_ref().unwrap()
+        );
+        assert_eq!(
+            sender_info.servant_pubkeys.first().unwrap(),
+            sender_master.wallet.pubkey.as_ref().unwrap()
+        );
     }
 
     #[actix_web::test]
@@ -2129,7 +2143,8 @@ mod tests {
                 &user_info.main_account,
                 "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await.unwrap();
+            .await
+            .unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server
@@ -2168,12 +2183,10 @@ mod tests {
 
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:#?}", txs);
-  
+
         let coin_cli = ContractClient::<Coin>::new(CoinType::BTC).unwrap();
-        let erc20_cli =
-            EthContractClient::<Erc20>::new(&CoinType::BTC).unwrap();
-        let eth_bridge_cli =
-            EthContractClient::<Bridge>::new().unwrap();
+        let erc20_cli = EthContractClient::<Erc20>::new(&CoinType::BTC).unwrap();
+        let eth_bridge_cli = EthContractClient::<Bridge>::new().unwrap();
         let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
@@ -2188,7 +2201,7 @@ mod tests {
 
             index += 1;
             if index == 300 {
-                assert!(false,"reach check limit");
+                assert!(false, "reach check limit");
                 break;
             }
 
@@ -2287,7 +2300,8 @@ mod tests {
                 &user_info.main_account,
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await.unwrap();
+            .await
+            .unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server
@@ -2324,9 +2338,10 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();        
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::ETH).unwrap();
         let eth_bridge_cli =
-            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new().unwrap();
+            blockchain::eth_cli::EthContractClient::<blockchain::bridge_on_eth::Bridge>::new()
+                .unwrap();
         let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
@@ -2345,14 +2360,16 @@ mod tests {
                 user_info.main_account, balance_on_near
             );
             let mut balance_on_eth =
-                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await.unwrap();
+                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr)
+                    .await
+                    .unwrap();
             println!(
                 "usdt_balance_on_eth: {}——————{}",
                 current_binded_eth_addr, balance_on_eth
             );
             index += 1;
             if index == 30 {
-                assert!(false,"reach check limit");
+                assert!(false, "reach check limit");
                 break;
             }
             if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
@@ -2392,7 +2409,9 @@ mod tests {
                 user_info.main_account, balance_on_near
             );
             balance_on_eth =
-                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr).await.unwrap();
+                blockchain::eth_cli::general::get_eth_balance(&current_binded_eth_addr)
+                    .await
+                    .unwrap();
             println!(
                 "usdt_balance_on_eth: {}——————{}",
                 current_binded_eth_addr, balance_on_eth
@@ -2457,7 +2476,14 @@ mod tests {
             "json_str {} coin_tx_hex_str {},sig_res {}",
             coin_tx_str, coin_tx_hex_str, signature
         );
-        test_sub_send_to_master!(service, sender_master, subaccount_id, signature, "USDT", "5");
+        test_sub_send_to_master!(
+            service,
+            sender_master,
+            subaccount_id,
+            signature,
+            "USDT",
+            "5"
+        );
     }
 
     #[derive(Deserialize, Serialize, Clone)]
@@ -2562,8 +2588,9 @@ mod tests {
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:?}", txs);
 
-        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "BTC", "1.0").unwrap();
-        assert_eq!(estimate_res.coin.to_string(),"usdt");
+        let estimate_res =
+            test_estimate_transfer_fee!(service, sender_master, "BTC", "1.0").unwrap();
+        assert_eq!(estimate_res.coin.to_string(), "usdt");
         assert!(estimate_res.amount.parse::<f32>().unwrap() < 70.0);
         assert!(estimate_res.amount.parse::<f32>().unwrap() > 60.0);
     }

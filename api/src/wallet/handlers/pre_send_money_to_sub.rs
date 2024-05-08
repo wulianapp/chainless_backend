@@ -17,7 +17,7 @@ use crate::utils::token_auth;
 use common::error_code::{parse_str, AccountManagerError, BackendError, BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::{CoinTxView};
+use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyToSubRequest;
@@ -49,17 +49,25 @@ pub(crate) async fn req(
     let available_balance = super::get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
-        error!("{},  {}(amount)  big_than2 {}(available_balance) ",coin_type,amount,available_balance);
+        error!(
+            "{},  {}(amount)  big_than2 {}(available_balance) ",
+            coin_type, amount, available_balance
+        );
         Err(WalletError::InsufficientAvailableBalance)?;
     }
-    error!("{},  {}(amount)  big_than3 {}(available_balance) ",coin_type,amount,available_balance);
+    error!(
+        "{},  {}(amount)  big_than3 {}(available_balance) ",
+        coin_type, amount, available_balance
+    );
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
     let cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
         .await?
-        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
+        .ok_or(BackendError::InternalError(
+            "main_account not found".to_string(),
+        ))?;
     if let Some(sub_conf) = strategy.sub_confs.get(&to) {
         debug!("to[{}] is subaccount of from[{}]", to, from);
         let coin_value = super::get_value(&coin_type, amount).await;

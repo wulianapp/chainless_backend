@@ -26,7 +26,8 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let RemoveServantRequest { servant_pubkey } = request_data;
-    let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, mut current_strategy, device) =
+        super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -51,7 +52,8 @@ pub(crate) async fn req(
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);
-    let tx_id = cli.update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
+    let tx_id = cli
+        .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
 
     models::general::transaction_commit()?;

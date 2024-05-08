@@ -89,9 +89,7 @@ async fn get_balance(account: &AccountId) -> Result<u128> {
     let rep = crate::rpc_call(request).await?;
 
     if let QueryResponseKind::CallResult(result) = rep.kind {
-        let amount_str: String = String::from_utf8(result.result)?
-            .split('\"')
-            .collect();
+        let amount_str: String = String::from_utf8(result.result)?.split('\"').collect();
         Ok(u128::from_str(&amount_str)?)
     } else {
         unreachable!()
@@ -167,9 +165,7 @@ mod tests {
             gas: 100_000_000_000_000, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(from, &coin_type.to_string())
-            .await
-            .unwrap();
+        let mut transaction = gen_transaction(from, &coin_type.to_string()).await.unwrap();
         transaction.actions = transfer_actions;
         println!("{:?}", transaction);
 

@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::CoinType;
@@ -44,12 +44,14 @@ pub async fn req(
     let cli = ContractClient::<MultiSig>::new()?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
-    let coin_type: CoinType = coin.parse().map_err(|e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
+    let coin_type: CoinType = coin
+        .parse()
+        .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
 
     models::general::transaction_begin()?;
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
-        .await?;    
+        .await?;
     let mut coin_info = CoinTxView::new_with_specified(
         coin_type,
         sub_sig.account_id,

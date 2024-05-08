@@ -192,7 +192,7 @@ impl<T> ContractClient<T> {
     }
 
     async fn commit_by_relayer(&self, method_name: &str, args: &str) -> Result<String> {
-        debug!("method_name: {},args: {}",method_name,args);
+        debug!("method_name: {},args: {}", method_name, args);
         let transaction = self
             .gen_tx(
                 &self.relayer.account_id,
@@ -217,7 +217,7 @@ impl<T> ContractClient<T> {
         if let FinalExecutionStatus::Failure(error) = rep.status {
             Err(anyhow!(error.to_string()))?
         }
-        let txid = rep.transaction.hash.to_string();
+        let _txid = rep.transaction.hash.to_string();
 
         let hash = transaction.get_hash_and_size().0.as_bytes().to_owned();
         let txid = hex::encode(hash);
@@ -250,9 +250,7 @@ impl<T> ContractClient<T> {
             println!("query_res1 {}", amount_str);
             Ok(serde_json::from_str::<Option<R>>(&amount_str)?)
         } else {
-            Err(anyhow!(
-                "kind must be contract call".to_string()
-            ))?
+            Err(anyhow!("kind must be contract call".to_string()))?
         }
     }
 }

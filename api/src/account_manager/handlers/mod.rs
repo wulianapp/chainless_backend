@@ -7,8 +7,14 @@ pub mod register;
 pub mod reset_password;
 pub mod user_info;
 
-use common::{data_structures::account_manager::UserInfo, error_code::{AccountManagerError, BackendError, ExternalServiceError}};
-use models::{account_manager::{UserFilter, UserInfoView}, PsqlOp};
+use common::{
+    data_structures::account_manager::UserInfo,
+    error_code::{AccountManagerError, BackendError, ExternalServiceError},
+};
+use models::{
+    account_manager::{UserFilter, UserInfoView},
+    PsqlOp,
+};
 
 /*****
 fn get_user_info() -> Result<UserInfo,BackendError>{

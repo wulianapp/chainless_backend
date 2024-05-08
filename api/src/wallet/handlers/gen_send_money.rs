@@ -10,7 +10,7 @@ use models::secret_store::SecretStoreView;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{CreateMainAccountRequest, GenSendMoneyRequest};
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
@@ -40,10 +40,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
         .transaction
         .signatures
         .iter()
-        .map(|data| 
-            data.parse()
-        )
-        .collect::<Result<Vec<_>,BackendError>>()?;
+        .map(|data| data.parse())
+        .collect::<Result<Vec<_>, BackendError>>()?;
 
     let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let (tx_id, chain_raw_tx) = cli

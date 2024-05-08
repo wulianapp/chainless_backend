@@ -5,7 +5,9 @@ use uuid::Uuid;
 pub fn init_logger() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(Level::INFO)
-        .with_env_filter("scanner=debug,api=debug,blockchain=debug,common=debug,models=debug,other_project=off")
+        .with_env_filter(
+            "scanner=debug,api=debug,blockchain=debug,common=debug,models=debug,other_project=off",
+        )
         .finish();
     if let Err(info) = tracing::subscriber::set_global_default(subscriber) {
         if info

@@ -1,7 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
-use thiserror::Error;
 use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
+use thiserror::Error;
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
@@ -43,13 +43,13 @@ pub fn to_param_invalid_error<T: StdError>(error: T) -> BackendError {
     BackendError::RequestParamInvalid(error.to_string())
 }
 
-pub fn parse_str<T,S>(data: S) -> Result<T, Box<dyn StdError>> 
-    where  
-        T: FromStr,   
-        <T as FromStr>::Err: 'static + StdError,
-        S: Into<String>,
+pub fn parse_str<T, S>(data: S) -> Result<T, Box<dyn StdError>>
+where
+    T: FromStr,
+    <T as FromStr>::Err: 'static + StdError,
+    S: Into<String>,
 {
-    let data: String = data.into(); 
+    let data: String = data.into();
     Ok(data.parse::<T>()?)
 }
 
@@ -249,9 +249,6 @@ impl ErrorCode for ExternalServiceError {
         }
     }
 }
-
-
-
 
 pub trait ErrorCode {
     fn code(&self) -> u16;

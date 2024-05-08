@@ -56,7 +56,7 @@ pub(crate) async fn req(
             "unnormal account,it's account have more than 1 master".to_string(),
         ));
     }
-    
+
     let master = &master_list[0];
 
     let (add_key_txid, add_key_raw) = client.add_key(&main_account, &newcomer_pubkey).await?;

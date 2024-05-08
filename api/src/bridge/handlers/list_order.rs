@@ -8,12 +8,12 @@ use blockchain::ContractClient;
 use common::utils::time::timestamp2utc;
 
 use crate::bridge::{ListWithdrawOrderResponse, SignedOrderResponse};
+use crate::wallet::handlers::*;
 use crate::{utils::token_auth, wallet::MultiSigRankExternal};
+use anyhow::Result;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
-use crate::wallet::handlers::*;
-use anyhow::Result;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct StrategyDataTmp {
@@ -37,36 +37,35 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<ListWithdrawOrderRes
 
     let orders = bridge_cli.list_withdraw_order(&main_account).await?;
     let orders = orders
-    .unwrap_or((0,vec![]))
-    .1
-    .into_iter()
-    .map(|(id,info)| {
-
-        let signers = 
-        info.signers
+        .unwrap_or((0, vec![]))
+        .1
         .into_iter()
-        .map(|sig|{
-            SignedOrderResponse{
-                number: sig.number,
-                signer: sig.signer.to_string(),
-                signature: sig.signature,
-            }
-        }).collect();
+        .map(|(id, info)| {
+            let signers = info
+                .signers
+                .into_iter()
+                .map(|sig| SignedOrderResponse {
+                    number: sig.number,
+                    signer: sig.signer.to_string(),
+                    signature: sig.signature,
+                })
+                .collect();
 
-        Ok(ListWithdrawOrderResponse{
-            order_id: id,
-            chain_id: info.chain_id,
-            order_type: format!("{:?}",info.order_type),
-            account_id: info.account_id.to_string(),
-            symbol: info.symbol.parse()?,
-            amount: raw2display(info.amount),
-            address: info.address,
-            signers: signers,
-            signature: info.signature,
-            status: format!("{:?}",info.status),
-            updated_at: timestamp2utc(info.update_at),
-            created_at: timestamp2utc(info.create_at),
+            Ok(ListWithdrawOrderResponse {
+                order_id: id,
+                chain_id: info.chain_id,
+                order_type: format!("{:?}", info.order_type),
+                account_id: info.account_id.to_string(),
+                symbol: info.symbol.parse()?,
+                amount: raw2display(info.amount),
+                address: info.address,
+                signers: signers,
+                signature: info.signature,
+                status: format!("{:?}", info.status),
+                updated_at: timestamp2utc(info.update_at),
+                created_at: timestamp2utc(info.create_at),
+            })
         })
-    }).collect::<Result<Vec<_>>>()?;
+        .collect::<Result<Vec<_>>>()?;
     Ok(Some(orders))
 }

@@ -37,7 +37,7 @@ impl ContractClient<FeesCall> {
         let contract = &common::env::CONF.fees_call_contract;
         println!("___{}", prikey_str);
         let pri_key: SecretKey = prikey_str.parse()?;
-        let pubkey = get_pubkey(&pri_key.to_string())?;
+        let _pubkey = get_pubkey(&pri_key.to_string())?;
 
         let account_id = AccountId::from_str(relayer_account)?;
 
@@ -101,18 +101,26 @@ impl ContractClient<FeesCall> {
         Ok(price)
     }
 
-    pub async fn get_tx_fee(&self, tx_id: &str) -> Result<(CoinType,u128)> {
-       //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
+    pub async fn get_tx_fee(&self, tx_id: &str) -> Result<(CoinType, u128)> {
+        //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
         //AccountId, AccountId, u128, Option<String>, String
-       
+
         let args_str = json!({
             "hsh":  hex_to_bs58(tx_id)?,
         })
         .to_string();
-        let (_user_id, fees_id,fees_amount,_tx_hash,_memo): (String,String, u128,Option<String>,String) =
-            self.query_call("get_tx_with_hash", &args_str).await?.unwrap();
+        let (_user_id, fees_id, fees_amount, _tx_hash, _memo): (
+            String,
+            String,
+            u128,
+            Option<String>,
+            String,
+        ) = self
+            .query_call("get_tx_with_hash", &args_str)
+            .await?
+            .unwrap();
         let coin: CoinType = fees_id.parse()?;
-        Ok((coin, fees_amount))    
+        Ok((coin, fees_amount))
     }
 }
 
@@ -145,7 +153,6 @@ mod tests {
 
         let fee_info = fees_cli.get_tx_fee(&set_res).await.unwrap();
         println!("fee_info {:?} ", fee_info);
-
 
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys2 {:?} ", prioritys);

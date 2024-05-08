@@ -27,7 +27,8 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
 
-    let (user, mut current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, mut current_strategy, device) =
+        super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -85,7 +86,7 @@ pub(crate) async fn req(
 
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
-  
+
     //delete older and than add new
     current_strategy
         .servant_pubkeys

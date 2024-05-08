@@ -7,10 +7,10 @@ use blockchain::fees_call::FeesCall;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::{get_support_coin_list, CoinType};
-use common::error_code::{parse_str, BackendError};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
+use common::error_code::{parse_str, BackendError};
 use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::PsqlOp;
@@ -89,9 +89,7 @@ pub async fn req(
                 } else {
                     let strategy = multi_cli.get_strategy(&main_account).await?.ok_or("")?;
                     let sub_confs = strategy.sub_confs;
-                    let hold_limit = sub_confs.get(account.as_str())
-                    .ok_or("")?
-                    .hold_value_limit;
+                    let hold_limit = sub_confs.get(account.as_str()).ok_or("")?.hold_value_limit;
                     Some(raw2display(hold_limit))
                 };
                 (balance, hold_limit)

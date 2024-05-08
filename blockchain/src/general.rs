@@ -127,7 +127,7 @@ pub fn pubkey_from_hex_str(key: &str) -> Result<PublicKey> {
 
 pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
     let account_id = AccountId::from_str(account_str)?;
-    let mut access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
+    let access_key_query_response = crate::rpc_call(methods::query::RpcQueryRequest {
         block_reference: BlockReference::latest(),
         request: near_primitives::views::QueryRequest::ViewAccessKeyList {
             account_id: account_id.clone(),
@@ -145,7 +145,9 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
     let tx_id = hex_to_bs58(tx_id)?;
     let tx_status_request = methods::tx::RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
-            tx_hash: tx_id.parse().map_err(|_e| anyhow!("tx_id to tx_hash".to_string()))?,
+            tx_hash: tx_id
+                .parse()
+                .map_err(|_e| anyhow!("tx_id to tx_hash".to_string()))?,
             sender_account_id: "node0".parse()?,
         },
     };
@@ -209,7 +211,7 @@ pub async fn safe_gen_transaction(
 }
 
 //user-api shouldn't use this directly
-pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) -> Result<()>{
+pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) -> Result<()> {
     let tx_hex = hex::decode(tx_str)?;
     let sign_hex = hex::decode(sig_str)?;
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice())?;
@@ -220,7 +222,7 @@ pub async fn broadcast_tx_commit_from_raw(tx_str: &str, sig_str: &str) -> Result
     Ok(())
 }
 
-pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) -> Result<()>{
+pub async fn broadcast_tx_commit_from_raw2(tx_str: &str, sig_str: &str) -> Result<()> {
     let tx_hex = hex::decode(tx_str)?;
     let sign_hex = hex::decode(sig_str)?;
     let transaction = Transaction::deserialize(&mut tx_hex.as_slice())?;

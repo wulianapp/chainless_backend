@@ -4,11 +4,11 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use blockchain::bridge_on_near;
 use blockchain::bridge_on_near::Status;
 use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
-use blockchain::bridge_on_near;
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -146,7 +146,7 @@ async fn gen_bind_eth_addr_sig(
 #[serde(rename_all = "camelCase")]
 pub struct GenDepositSigRequest {
     coin: String,
-    amount: String
+    amount: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[post("/bridge/genDepositSig")]
@@ -178,7 +178,6 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
     gen_extra_respond(handlers::get_binded_eth_addr::req(request).await)
 }
 
-
 /**
 * @api {get} /bridge/listOrder 查询无链上的跨链订单列表
 * @apiVersion 0.0.1
@@ -194,7 +193,7 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {Object} data                          订单列表详情.
 * @apiSuccess {String} data.order_id        订单id
-* @apiSuccess {String=1500} data.chain_id   外链id 
+* @apiSuccess {String=1500} data.chain_id   外链id
 * @apiSuccess {String=Withdraw,Deposit} data.order_type     订单类型
 * @apiSuccess {String} data.account_id       无链钱包id
 * @apiSuccess {String} data.symbol   子钱包U本位持仓限制
@@ -210,12 +209,12 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data.created_at   创建时间
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
 */
-#[derive(Deserialize, Serialize, Debug,PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub enum OrderStatusResponse {
     ChainLessDefault,
     ChainLessPending,
     ChainLessSigned,
-    EthereumClaimed
+    EthereumClaimed,
 }
 impl From<bridge_on_near::Status> for OrderStatusResponse {
     fn from(value: bridge_on_near::Status) -> Self {
@@ -235,17 +234,17 @@ pub struct SignedOrderResponse {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ListWithdrawOrderResponse {
     pub order_id: u128,
-    pub chain_id: u128,            //外链id
-    pub order_type: String,     //Withdraw,Deposit
-    pub account_id: String,     //无链id
-    pub symbol: CoinType,            //代币符号
-    pub amount: String,              //
-    pub address: String,           //外链地址
+    pub chain_id: u128,                    //外链id
+    pub order_type: String,                //Withdraw,Deposit
+    pub account_id: String,                //无链id
+    pub symbol: CoinType,                  //代币符号
+    pub amount: String,                    //
+    pub address: String,                   //外链地址
     pub signers: Vec<SignedOrderResponse>, //签名详情
-    pub signature: Option<String>, //充值签名
-    pub status: String,            //订单状态
-    pub updated_at: String,            //更新时间
-    pub created_at: String,            //创建时间
+    pub signature: Option<String>,         //充值签名
+    pub status: String,                    //订单状态
+    pub updated_at: String,                //更新时间
+    pub created_at: String,                //创建时间
 }
 #[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
 #[get("/bridge/listOrder")]
@@ -318,7 +317,8 @@ mod tests {
                 &user_info.main_account,
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
             )
-            .await.unwrap();
+            .await
+            .unwrap();
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server

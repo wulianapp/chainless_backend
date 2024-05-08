@@ -20,14 +20,12 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let coin_list = get_support_coin_list_without_cly();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
-        let amount = if coin.eq(&CoinType::ETH){
+        let amount = if coin.eq(&CoinType::ETH) {
             10000000000000000
-        }else{
+        } else {
             100000000000000000000
         };
-        let _balance = coin_cli
-            .send_coin(&main_account, amount)
-            .await?;
+        let _balance = coin_cli.send_coin(&main_account, amount).await?;
     }
     Ok(None)
 }

@@ -15,16 +15,17 @@ use tracing::{debug, error, info};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::{to_param_invalid_error, AccountManagerError, BackendError, BackendRes, WalletError::{self, *}};
+use common::error_code::{
+    to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
+    WalletError::{self, *},
+};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
-use models::coin_transfer::{CoinTxView};
+use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 
 use crate::wallet::PreSendMoneyRequest;
 use anyhow::Result;
-
-
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -58,13 +59,16 @@ pub(crate) async fn req(
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let from =  user.main_account.clone();
+    let from = user.main_account.clone();
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
     let available_balance = super::get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
-        error!("{},  {}(amount)  big_than1 {}(available_balance) ",coin_type,amount,available_balance);
+        error!(
+            "{},  {}(amount)  big_than1 {}(available_balance) ",
+            coin_type, amount, available_balance
+        );
         Err(WalletError::InsufficientAvailableBalance)?;
     }
 
@@ -73,7 +77,9 @@ pub(crate) async fn req(
     let strategy = cli
         .get_strategy(&from)
         .await?
-        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
+        .ok_or(BackendError::InternalError(
+            "main_account not found".to_string(),
+        ))?;
     if strategy.sub_confs.get(&to_account_id).is_some() {
         Err(WalletError::ReceiverIsSubaccount)?;
     }
@@ -95,8 +101,6 @@ pub(crate) async fn req(
         ))
     };
 
-   
-
     let need_sig_num = super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
 
     //fixme: this is unsafe
@@ -107,7 +111,7 @@ pub(crate) async fn req(
         is_forced
     );
     //没有从公钥且强制转账的话，直接返回待签名数据
-    info!("need_sig_num: {},is_forced {} ",need_sig_num,is_forced);
+    info!("need_sig_num: {},is_forced {} ", need_sig_num, is_forced);
     if need_sig_num == 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::ReceiverApproved)?;
 

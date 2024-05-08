@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -43,7 +43,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
             .signatures
             .iter()
             .map(|data| data.parse())
-            .collect::<Result<Vec<_>,BackendError>>()?;
+            .collect::<Result<Vec<_>, BackendError>>()?;
 
         //todo: replace with new api(gen_chain_tx) whereby avert tx expire
         let (tx_id, chain_raw_tx) = cli

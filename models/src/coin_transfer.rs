@@ -75,13 +75,13 @@ pub enum CoinTxFilter<'b> {
 impl fmt::Display for CoinTxFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         /***
-         * 
-         *    Normal,
-    Forced,
-    MainToSub,
-    SubToMain,
-    MainToBridge,
-        */
+             *
+             *    Normal,
+        Forced,
+        MainToSub,
+        SubToMain,
+        MainToBridge,
+            */
         let description = match self {
             CoinTxFilter::ByChainStatus(status) => format!(
                 "chain_status='{}'", status
@@ -296,8 +296,6 @@ impl PsqlOp for CoinTxView {
         Ok(())
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {

@@ -3,6 +3,7 @@ use common::data_structures::coin_transaction::CoinTransaction;
 use common::data_structures::AccountMessage;
 use common::utils::math::coin_amount::raw2display;
 
+use super::*;
 use crate::utils::token_auth;
 use crate::wallet::add_servant;
 use crate::wallet::{CoinTransactionTmp1, SearchMessageResponse};
@@ -13,7 +14,6 @@ use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::*;
 use models::secret_store::*;
 use models::PsqlOp;
-use super::*;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;

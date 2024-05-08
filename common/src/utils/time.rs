@@ -1,5 +1,5 @@
-use chrono::prelude::*;
 use anyhow::Result;
+use chrono::prelude::*;
 
 pub const MINUTE1: u64 = 60 * 1000;
 
@@ -28,10 +28,7 @@ pub fn now_nanos() -> u64 {
 }
 
 pub fn time2unix(time_str: String) -> Result<u64> {
-    let dt = Utc
-        .datetime_from_str(
-            time_str.as_str(),
-             "%Y-%m-%d %H:%M:%S.%f")?;
+    let dt = Utc.datetime_from_str(time_str.as_str(), "%Y-%m-%d %H:%M:%S.%f")?;
     Ok(dt.timestamp_millis() as u64)
 }
 

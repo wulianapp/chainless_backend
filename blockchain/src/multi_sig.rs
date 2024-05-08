@@ -37,8 +37,6 @@ use crate::general::{gen_transaction, safe_gen_transaction};
 use crate::ContractClient;
 use common::utils::math::*;
 
-
-
 pub struct MultiSig {}
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -134,11 +132,12 @@ impl ContractClient<MultiSig> {
         Ok(list)
     }
 
-
     pub async fn get_single_master_pubkey_list(&self, account_str: &str) -> Result<String> {
         let list = self.get_master_pubkey_list(account_str).await?;
         if list.len() != 1 {
-            Err(anyhow!("unnormal account， it's account have more than 1 master"))?;
+            Err(anyhow!(
+                "unnormal account， it's account have more than 1 master"
+            ))?;
         }
         Ok(list[0].clone())
     }

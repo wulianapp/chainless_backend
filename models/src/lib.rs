@@ -13,9 +13,8 @@ pub mod coin_transfer;
 pub mod secret_store;
 //pub mod wallet;
 pub mod device_info;
-pub mod wallet_manage_record;
 pub mod eth_bridge_order;
-
+pub mod wallet_manage_record;
 
 //#[macro_use]
 //extern crate log;
@@ -41,11 +40,11 @@ use std::sync::Mutex;
 static TRY_TIMES: u8 = 5;
 
 /****
- 
-            DBError::RepeatedData,
-            DBError::DataNotFound,
-            DBError::KeyAlreadyExsit,
- */
+
+           DBError::RepeatedData,
+           DBError::DataNotFound,
+           DBError::KeyAlreadyExsit,
+*/
 
 ///time limit scope
 #[derive(Deserialize, Debug, PartialEq, Clone, Serialize)]
@@ -176,7 +175,7 @@ pub trait PsqlOp {
     where
         Self: Sized,
     {
-        let mut row_num = Self::update(new_value, filter)?;
+        let row_num = Self::update(new_value, filter)?;
         if row_num == 0 {
             //todo:return db error type
             let error_info = "DBError::DataNotFound: data isn't existed";
@@ -194,31 +193,31 @@ pub trait PsqlOp {
     fn insert(&self) -> Result<()>;
 
     //insert after check key
-    fn safe_insert(&self,filter: Self::FilterContent<'_>) -> Result<()>
+    fn safe_insert(&self, filter: Self::FilterContent<'_>) -> Result<()>
     where
         Self: Sized,
     {
         let filter_str = filter.to_string();
         let find_res: Vec<Self> = Self::find(filter)?;
-        if find_res.is_empty(){
+        if find_res.is_empty() {
             self.insert()
-        }else {
+        } else {
             //let error_info = "DBError::KeyAlreadyExsit: key already existed";
             //error!("{}", error_info);
             //Err(anyhow!(error_info.to_string()))
-            info!("data {} already exist",filter_str);
+            info!("data {} already exist", filter_str);
             Ok(())
         }
     }
 
-    fn try_insert(&self,filter: Self::FilterContent<'_>) -> Result<()>
+    fn try_insert(&self, filter: Self::FilterContent<'_>) -> Result<()>
     where
         Self: Sized,
     {
         let find_res: Vec<Self> = Self::find(filter)?;
-        if find_res.is_empty(){
+        if find_res.is_empty() {
             self.insert()
-        }else {
+        } else {
             let error_info = "DBError::KeyAlreadyExsit: key already existed";
             error!("{}", error_info);
             Err(anyhow!(error_info.to_string()))

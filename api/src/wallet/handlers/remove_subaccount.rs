@@ -39,9 +39,9 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         Err(WalletError::MustHaveSubaccount)?;
     }
 
-    let sub_pubkey = match  current_strategy.sub_confs.get(&account_id) {
+    let sub_pubkey = match current_strategy.sub_confs.get(&account_id) {
         Some(conf) => &conf.pubkey,
-        None =>   Err(WalletError::SubAccountNotExist(account_id.clone()))?,
+        None => Err(WalletError::SubAccountNotExist(account_id.clone()))?,
     };
 
     //check balance if is zero
@@ -66,7 +66,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         .remove_subaccount(&main_account, &account_id)
         .await?;
     models::general::transaction_commit()?;
-    
+
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),

@@ -20,15 +20,15 @@ pub fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     let check_res = match kind {
         Usage::Register => Captcha::check_user_code2(&contact, &captcha, kind),
         _ => {
-            let user = account_manager::UserInfoView::find_single(
-                UserFilter::ByPhoneOrEmail(&contact)
-            ).map_err(|e| {
-                if e.to_string().contains("DBError::DataNotFound") {
-                    AccountManagerError::PhoneOrEmailNotRegister.into()
-                } else {
-                    BackendError::InternalError(e.to_string())
-                }
-            })?;
+            let user =
+                account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
+                    .map_err(|e| {
+                        if e.to_string().contains("DBError::DataNotFound") {
+                            AccountManagerError::PhoneOrEmailNotRegister.into()
+                        } else {
+                            BackendError::InternalError(e.to_string())
+                        }
+                    })?;
             Captcha::check_user_code2(&user.id.to_string(), &captcha, kind)
         }
     };

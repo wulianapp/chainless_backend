@@ -1,5 +1,5 @@
-use std::collections::BTreeMap;
 use actix_web::HttpRequest;
+use std::collections::BTreeMap;
 
 use blockchain::{
     fees_call::FeesCall,

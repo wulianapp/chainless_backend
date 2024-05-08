@@ -14,22 +14,20 @@ use crate::utils::token_auth;
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
-    let user = account_manager::UserInfoView::find_single(
-        UserFilter::ByPhoneOrEmail(&contact)
-    ).map_err(|e| {
-        if e.to_string().contains("DBError::DataNotFound") {
-            AccountManagerError::PhoneOrEmailNotRegister.into()
-        } else {
-            BackendError::InternalError(e.to_string())
-        }
-    })?;
+    let user = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        .map_err(|e| {
+            if e.to_string().contains("DBError::DataNotFound") {
+                AccountManagerError::PhoneOrEmailNotRegister.into()
+            } else {
+                BackendError::InternalError(e.to_string())
+            }
+        })?;
 
     if user.user_info.main_account.eq("") {
         return Ok(Some(KeyRole2::Undefined));
     }
     //todo:
-    let mut find_res =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
+    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id));
     if let Err(err) = find_res {
         if err.to_string().contains("DBError::DataNotFound") {
             return Ok(Some(KeyRole2::Undefined));

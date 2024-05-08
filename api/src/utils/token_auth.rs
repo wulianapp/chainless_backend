@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use actix_web::http::header;
 use common::env::ServiceMode;
-use common::error_code::{BackendError, BackendRes};
 use common::error_code::BackendError::Authorization;
+use common::error_code::{BackendError, BackendRes};
 use common::utils::math::gen_random_verify_code;
 use common::utils::time::{now_millis, DAY15, YEAR100};
 
@@ -33,7 +33,11 @@ impl Claims {
 // todo: Secret key for JWT,setup by env or config
 const SECRET_KEY: &[u8] = b"your_secret_key";
 
-pub fn create_jwt(user_id: u32, device_id: &str, device_brand: &str) -> Result<String,BackendError> {
+pub fn create_jwt(
+    user_id: u32,
+    device_id: &str,
+    device_brand: &str,
+) -> Result<String, BackendError> {
     let iat = now_millis();
 
     let exp = if common::env::CONF.service_mode != ServiceMode::Product
@@ -50,7 +54,8 @@ pub fn create_jwt(user_id: u32, device_id: &str, device_brand: &str) -> Result<S
         &Header::new(Algorithm::HS256),
         &claims,
         &EncodingKey::from_secret(SECRET_KEY),
-    ).map_err(|e| e.to_string().into()) 
+    )
+    .map_err(|e| e.to_string().into())
 }
 
 fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {

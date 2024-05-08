@@ -34,7 +34,7 @@ impl TxRole {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq, PartialOrd,Serialize, Clone, EnumString, Display, Eq)]
+#[derive(Deserialize, Debug, PartialEq, PartialOrd, Serialize, Clone, EnumString, Display, Eq)]
 pub enum CoinSendStage {
     Created = 1,
     SenderSigCompleted = 2,
@@ -46,11 +46,11 @@ pub enum CoinSendStage {
     SenderCanceled = 5,
     SenderReconfirmed = 6,
     MultiSigExpired = 7, //从订单创建到上链结算的时间超时
-                     //上链后，由于合约复杂度没有立即finalize
-                     //ChainPending,
-                     //如果commit之后没有finalize，更正Fail和Success的逻辑放在tx_list里面进行检查更新
-                     //FinalizeAndFailed,
-                     //FinalizeAndSuccessful,
+                         //上链后，由于合约复杂度没有立即finalize
+                         //ChainPending,
+                         //如果commit之后没有finalize，更正Fail和Success的逻辑放在tx_list里面进行检查更新
+                         //FinalizeAndFailed,
+                         //FinalizeAndSuccessful,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]

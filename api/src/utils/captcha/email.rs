@@ -29,10 +29,10 @@ pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
         code
     );
 
-    let from = email_address.parse::<Mailbox>()
-    .map_err(|e| e.to_string())?;
-    let to = to_mail.parse::<Mailbox>()
-    .map_err(|e| e.to_string())?;
+    let from = email_address
+        .parse::<Mailbox>()
+        .map_err(|e| e.to_string())?;
+    let to = to_mail.parse::<Mailbox>().map_err(|e| e.to_string())?;
 
     // 创建电子邮件内容
     let email = Message::builder()

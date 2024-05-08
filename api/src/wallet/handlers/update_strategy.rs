@@ -20,7 +20,7 @@ use common::error_code::{BackendRes, WalletError};
 pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> BackendRes<String> {
     //todo: must be called by main device
 
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
 
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
@@ -49,7 +49,6 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     let cli = ContractClient::<MultiSig>::new()?;
     let tx_id = cli.update_rank(&main_account, strategy).await?;
     models::general::transaction_commit()?;
-
 
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(

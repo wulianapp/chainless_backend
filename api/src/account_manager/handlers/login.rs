@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use anyhow::{Result};
+use anyhow::Result;
 use common::error_code::AccountManagerError::{
-    self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister
+    self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
 };
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use tracing::debug;
@@ -20,9 +20,10 @@ lazy_static! {
     static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
 }
 
-fn record_once_retry(user_id: u32) -> Result<()>{
-    let retry_storage = &mut LOGIN_RETRY.lock()
-    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+fn record_once_retry(user_id: u32) -> Result<()> {
+    let retry_storage = &mut LOGIN_RETRY
+        .lock()
+        .map_err(|e| BackendError::InternalError(e.to_string()))?;
     let now = now_millis();
     debug!("0001___{}", now);
     retry_storage.entry(user_id).or_default().push(now);
@@ -30,8 +31,9 @@ fn record_once_retry(user_id: u32) -> Result<()>{
 }
 
 fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
-    let retry_storage = &mut LOGIN_RETRY.lock()
-    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+    let retry_storage = &mut LOGIN_RETRY
+        .lock()
+        .map_err(|e| BackendError::InternalError(e.to_string()))?;
     let info = if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
             let unlock_time = *records.last().unwrap() + MINUTE30;
@@ -60,10 +62,11 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         contact,
         password,
     } = request_data;
-        
-    let user_at_stored = account_manager::UserInfoView::find_single(
-        UserFilter::ByPhoneOrEmail(&contact)
-    ).map_err(|e| {
+
+    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(
+        &contact,
+    ))
+    .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
         } else {
@@ -71,9 +74,8 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         }
     })?;
 
-
-    let (is_lock, remain_chance, unlock_time) = is_locked(user_at_stored.id)
-    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+    let (is_lock, remain_chance, unlock_time) =
+        is_locked(user_at_stored.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
     if is_lock {
         Err(AccountLocked(unlock_time))?;
     }
@@ -82,8 +84,9 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         record_once_retry(user_at_stored.id)?;
         Err(PasswordIncorrect(remain_chance))?;
     } else {
-        let retry_storage = &mut LOGIN_RETRY.lock()
-        .map_err(|e| BackendError::InternalError(e.to_string()))?;
+        let retry_storage = &mut LOGIN_RETRY
+            .lock()
+            .map_err(|e| BackendError::InternalError(e.to_string()))?;
 
         let _ = retry_storage.remove(&user_at_stored.id);
     }
@@ -108,9 +111,10 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(
-        UserFilter::ByPhoneOrEmail(&contact)
-    ).map_err(|e| {
+    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(
+        &contact,
+    ))
+    .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
         } else {
@@ -120,19 +124,18 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
 
-    let device =
-            DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
     device.safe_insert(DeviceInfoFilter::ByDeviceUser(
-            &device_id,
-            user_at_stored.id,
+        &device_id,
+        user_at_stored.id,
     ))?;
-
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
     //成功登陆删掉错误密码的限制
-    let retry_storage = &mut LOGIN_RETRY.lock()
-    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+    let retry_storage = &mut LOGIN_RETRY
+        .lock()
+        .map_err(|e| BackendError::InternalError(e.to_string()))?;
 
     let _ = retry_storage.remove(&user_at_stored.id);
     Ok(Some(token))

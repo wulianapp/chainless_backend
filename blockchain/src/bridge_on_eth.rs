@@ -25,31 +25,27 @@ abigen!(
 );
 
 /***
- 
+
     event Deposit(uint256 indexed depositId, string chainlessId, address user, uint256 amount, string symbol,uint256 deadline);
-    event Withdraw(uint256 indexed id, string extra, uint256 amount, string symbol, address sender, uint256 timestamp); 
- 
+    event Withdraw(uint256 indexed id, string extra, uint256 amount, string symbol, address sender, uint256 timestamp);
+
 */
 #[derive(Debug)]
-pub struct OrderEventInfo{
+pub struct OrderEventInfo {
     pub id: String,
-    pub order_type: OrderType,     //Withdraw,Deposit
-    pub chainless_acc:String,
-    pub eth_addr:String,
-    pub coin:CoinType,
-    pub amount:u128,
+    pub order_type: OrderType, //Withdraw,Deposit
+    pub chainless_acc: String,
+    pub eth_addr: String,
+    pub coin: CoinType,
+    pub amount: u128,
     //create order time for withdraw
     //deadline for deposit
-    pub timestamp:u128
-    //deadline:u128,
-    //timestamp:u128
+    pub timestamp: u128, //deadline:u128,
+                         //timestamp:u128
 }
 
 #[derive(Debug)]
-pub struct WithdrawEventInfo{
-    
-}
-
+pub struct WithdrawEventInfo {}
 
 #[derive(Debug)]
 pub struct TokenInfo {
@@ -76,9 +72,7 @@ impl EthContractClient<Bridge> {
         let ca = Address::from_str(&ENV_CONF.bridge_eth_contract)?;
         //addr: cb5afaa026d3de65de0ddcfb1a464be8960e334a
         let prikey = "e05eb9eb3223d310252755e1c2fd65d03a3f9b45955186b4bea78c292cdcaa2b";
-        let wallet = prikey
-            .parse::<LocalWallet>()?
-            .with_chain_id(1500u32);
+        let wallet = prikey.parse::<LocalWallet>()?.with_chain_id(1500u32);
         let provider = Provider::<Http>::try_from("https://test1.chainless.top/node/")?;
 
         let cli = Arc::new(SignerMiddleware::new(provider, wallet));
@@ -210,10 +204,8 @@ impl EthContractClient<Bridge> {
 
     pub async fn token_info(&self, symbol: &str) -> Result<TokenInfo> {
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
-        let (symbol, chainless, coin_addr, allow) = bridge_cli
-            .token_info(symbol.to_owned())
-            .call()
-            .await?;
+        let (symbol, chainless, coin_addr, allow) =
+            bridge_cli.token_info(symbol.to_owned()).call().await?;
 
         Ok(TokenInfo {
             symbol,
@@ -226,7 +218,7 @@ impl EthContractClient<Bridge> {
     pub async fn get_deposit_order_by_id(&self, id: u32) -> Result<DepositOrderInfo> {
         let id = U256::from(id);
         let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
-        let (cid, deposit_id, chainless_id, user, amount, symbol, timestamp, signature, test) =
+        let (cid, deposit_id, chainless_id, user, amount, symbol, timestamp, signature, _test) =
             bridge_cli.deposit_info(id).call().await?;
 
         Ok(DepositOrderInfo {
@@ -240,53 +232,56 @@ impl EthContractClient<Bridge> {
             signature: hex::encode(signature.to_vec()),
         })
     }
-    
+
     pub async fn filter_deposit_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
-        let deposit_orders: Vec<DepositFilter> = contract.deposit_filter()
+        let deposit_orders: Vec<DepositFilter> = contract
+            .deposit_filter()
             .at_block_hash(H256::from_str(block_hash)?)
             .query()
             .await?;
 
         let diposit_order = deposit_orders
             .iter()
-            .map(|order| 
+            .map(|order| {
                 Ok(OrderEventInfo {
-                id: order.deposit_id.to_string(),
-                order_type: OrderType::Deposit,
-                chainless_acc:order.chainless_id.clone(),
-                eth_addr: hex::encode(order.user.as_bytes()),
-                coin:order.symbol.parse()?,
-                amount:order.amount.as_u128(),
-                timestamp:order.deadline.as_u128()
-            }))
+                    id: order.deposit_id.to_string(),
+                    order_type: OrderType::Deposit,
+                    chainless_acc: order.chainless_id.clone(),
+                    eth_addr: hex::encode(order.user.as_bytes()),
+                    coin: order.symbol.parse()?,
+                    amount: order.amount.as_u128(),
+                    timestamp: order.deadline.as_u128(),
+                })
+            })
             .collect::<Result<Vec<OrderEventInfo>>>()?;
         Ok(diposit_order)
     }
 
     pub async fn filter_withdraw_event(&self, block_hash: &str) -> Result<Vec<OrderEventInfo>> {
         let contract = BridgeCA::new(self.contract_addr, self.client.clone());
-        let deposit_orders: Vec<WithdrawFilter> = contract.withdraw_filter()
+        let deposit_orders: Vec<WithdrawFilter> = contract
+            .withdraw_filter()
             .at_block_hash(H256::from_str(block_hash)?)
             .query()
             .await?;
 
         let diposit_order = deposit_orders
             .iter()
-            .map(|order| 
+            .map(|order| {
                 Ok(OrderEventInfo {
-                id: order.id.to_string(),
-                order_type: OrderType::Withdraw,
-                chainless_acc:order.extra.clone(),
-                eth_addr: hex::encode(order.sender.as_bytes()),
-                coin:order.symbol.parse()?,
-                amount:order.amount.as_u128(),
-                timestamp:order.timestamp.as_u128()
-            }))
+                    id: order.id.to_string(),
+                    order_type: OrderType::Withdraw,
+                    chainless_acc: order.extra.clone(),
+                    eth_addr: hex::encode(order.sender.as_bytes()),
+                    coin: order.symbol.parse()?,
+                    amount: order.amount.as_u128(),
+                    timestamp: order.timestamp.as_u128(),
+                })
+            })
             .collect::<Result<Vec<OrderEventInfo>>>()?;
         Ok(diposit_order)
     }
-
 }
 
 #[cfg(test)]

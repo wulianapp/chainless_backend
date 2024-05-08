@@ -39,7 +39,7 @@ use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TestWallet {
     pub main_account: String,
     pub pubkey: Option<String>,
@@ -47,12 +47,12 @@ pub struct TestWallet {
     pub subaccount: Vec<String>,
     pub sub_prikey: Option<Vec<String>>,
 }
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TestDevice {
     pub id: String,
     pub brand: String,
 }
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TestUser {
     pub contact: String,
     pub password: String,
@@ -60,7 +60,7 @@ pub struct TestUser {
     pub token: Option<String>,
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TestWulianApp2 {
     pub user: TestUser,
     pub device: TestDevice,
@@ -299,7 +299,7 @@ macro_rules! test_service_call {
 #[macro_export]
 macro_rules! test_register {
     ( $service:expr,$app:expr) => {{
-            let payload = json!({
+            let _payload = json!({
                 "deviceId":  $app.device.id,
                 "contact": $app.user.contact,
                 "kind": "Register"
@@ -375,11 +375,11 @@ macro_rules! test_login {
 #[macro_export]
 macro_rules! test_create_main_account{
     ($service:expr, $app:expr) => {{
-        let payload = json!({
+        let _payload = json!({
             "contact": $app.user.contact,
             "kind": "SetSecurity"
         });
-        /*** 
+        /***
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
@@ -631,7 +631,7 @@ macro_rules! test_set_fees_priority{
 #[macro_export]
 macro_rules! test_update_security {
     ($service:expr, $app:expr, $secrets:expr) => {{
-        let payload = json!({
+        let _payload = json!({
             "contact": $app.user.contact,
             "kind": "UpdateSecurity"
         });
@@ -999,7 +999,10 @@ macro_rules! test_get_secret {
 #[macro_export]
 macro_rules! test_estimate_transfer_fee {
     ($service:expr, $app:expr,$coin:expr,$amount:expr) => {{
-        let url = format!("/wallet/estimateTransferFee?coin={}&amount={}", $coin,$amount);
+        let url = format!(
+            "/wallet/estimateTransferFee?coin={}&amount={}",
+            $coin, $amount
+        );
         let res: BackendRespond<EstimateTransferFeeResponse> = test_service_call!(
             $service,
             "get",
@@ -1043,7 +1046,6 @@ macro_rules! test_get_tx {
         res.data
     }};
 }
-
 
 #[macro_export]
 macro_rules! test_bridge_list_order {

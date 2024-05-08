@@ -1,6 +1,6 @@
-use anyhow::{Result};
+use anyhow::Result;
 
-pub fn transaction_begin() -> Result<(),String> {
+pub fn transaction_begin() -> Result<(), String> {
     crate::CLIENTDB
         .lock()
         .map_err(|e| e.to_string())?
@@ -9,7 +9,7 @@ pub fn transaction_begin() -> Result<(),String> {
     Ok(())
 }
 
-pub fn transaction_commit() -> Result<(),String> {
+pub fn transaction_commit() -> Result<(), String> {
     crate::CLIENTDB
         .lock()
         .map_err(|e| e.to_string())?
@@ -18,7 +18,7 @@ pub fn transaction_commit() -> Result<(),String> {
     Ok(())
 }
 
-pub fn transaction_rollback() -> Result<(),String> {
+pub fn transaction_rollback() -> Result<(), String> {
     crate::CLIENTDB
         .lock()
         .map_err(|e| e.to_string())?
@@ -27,7 +27,7 @@ pub fn transaction_rollback() -> Result<(),String> {
     Ok(())
 }
 
-pub fn table_clear(table_name: &str) -> Result<(),String> {
+pub fn table_clear(table_name: &str) -> Result<(), String> {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::CLIENTDB
         .lock()
@@ -37,7 +37,7 @@ pub fn table_clear(table_name: &str) -> Result<(),String> {
     Ok(())
 }
 
-fn select_db(db_name: &str) -> Result<(),String> {
+fn select_db(db_name: &str) -> Result<(), String> {
     //fixme: 数据会丢,另外切数据库失败
     let sql = format!("\\c {}", db_name);
     crate::CLIENTDB
@@ -55,5 +55,4 @@ pub fn table_all_clear() {
     table_clear("device_info").unwrap();
     table_clear("secret_store").unwrap();
     table_clear("ethereum_bridge_order").unwrap();
-
 }

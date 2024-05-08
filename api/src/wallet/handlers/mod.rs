@@ -24,10 +24,8 @@ use tracing::{error, info, warn};
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
-use common::error_code::{AccountManagerError,WalletError::*};
+use common::error_code::{AccountManagerError, WalletError::*};
 use common::utils::math::*;
-
-
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -37,6 +35,7 @@ pub mod commit_newcomer_replace_master;
 pub mod commit_servant_switch_master;
 pub mod create_main_account;
 pub mod device_list;
+pub mod estimate_transfer_fee;
 pub mod faucet_claim;
 pub mod gen_newcomer_switch_master;
 pub mod gen_send_money;
@@ -56,17 +55,15 @@ pub mod remove_subaccount;
 pub mod search_message;
 pub mod servant_saved_secret;
 pub mod set_fees_priority;
+pub mod single_balance;
 pub mod sub_send_to_main;
 pub mod tx_list;
 pub mod update_security;
 pub mod update_strategy;
 pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
-pub mod estimate_transfer_fee;
-pub mod single_balance;
 
-
-const MIN_BASE_FEE:u128 = 1u128 * BASE_DECIMAL;
+const MIN_BASE_FEE: u128 = 1u128 * BASE_DECIMAL;
 
 pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,
@@ -83,7 +80,9 @@ pub async fn gen_random_account_id(
             warn!("account_id {} already register on chain", account_id);
         }
     }
-    Err(BackendError::InternalError("gen random account_id reach limit".to_string()))
+    Err(BackendError::InternalError(
+        "gen random account_id reach limit".to_string(),
+    ))
 }
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
@@ -115,9 +114,10 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
     let freezn_amount = get_freezn_amount(account_id, coin);
     let total: u128 = balance.parse().unwrap();
     if total < freezn_amount {
-        Err(BackendError::InternalError(
-            format!("{}(total) more than {}(freezn_amount)",total,freezn_amount)
-        ))?
+        Err(BackendError::InternalError(format!(
+            "{}(total) more than {}(freezn_amount)",
+            total, freezn_amount
+        )))?
     } else {
         Ok(Some(total - freezn_amount))
     }
@@ -125,7 +125,7 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
 
 pub fn get_main_account(user_id: u32) -> Result<String, BackendError> {
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    if user.user_info.main_account.eq(""){
+    if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
     }
     Ok(user.user_info.main_account)
@@ -163,7 +163,7 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
         } else if strategy.servant_pubkeys.contains(&key.to_string()) {
             KeyRole2::Servant
         } else {
-            /*** 
+            /***
             //如果从设备被删之后，就变成了新设备
             error!(
                 "unnormal device: key {} is not belong to current account",key
@@ -185,14 +185,17 @@ pub async fn get_session_state(
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
     let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
     let main_account = &user.user_info.main_account;
-    if user.user_info.main_account.eq(""){
+    if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
     }
     let multi_sig_cli = ContractClient::<MultiSig>::new()?;
-    let current_strategy = multi_sig_cli
-        .get_strategy(main_account)
-        .await?
-        .ok_or(BackendError::InternalError("main_account not found".to_string()))?;
+    let current_strategy =
+        multi_sig_cli
+            .get_strategy(main_account)
+            .await?
+            .ok_or(BackendError::InternalError(
+                "main_account not found".to_string(),
+            ))?;
 
     //注册过的一定有设备信息
     let mut device =
@@ -209,81 +212,96 @@ pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {
     Ok(())
 }
 
-pub async fn get_fees_priority(main_account:&str) -> BackendRes<Vec<CoinType>>{
+pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> {
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
     let fees_priority = fees_call_cli.get_fees_priority(&main_account).await?;
     Ok(Some(fees_priority))
 }
 
 //fixme: 查一次最多rpc调用 1 + 5 * 2
-//检查所有的手续费币是否全部小于1u 
-pub async fn check_have_base_fee(main_account:&str) -> Result<(),BackendError> {
+//检查所有的手续费币是否全部小于1u
+pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError> {
     let fee_coins = get_fees_priority(main_account)
-    .await?
-    .ok_or(InternalError("not set fees priority".to_string()))?;
+        .await?
+        .ok_or(InternalError("not set fees priority".to_string()))?;
 
-    for fee_coin  in fee_coins {
+    for fee_coin in fee_coins {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
         let balance = coin_cli.get_balance(main_account).await?;
-        if balance.is_none(){
+        if balance.is_none() {
             continue;
         }
-        let mut balance = balance.unwrap().parse().map_err(|e:ParseIntError| e.to_string())?;
+        let mut balance = balance
+            .unwrap()
+            .parse()
+            .map_err(|e: ParseIntError| e.to_string())?;
         let freezn_amount = get_freezn_amount(&main_account, &fee_coin);
         balance = balance - freezn_amount;
 
         let value = get_value(&fee_coin, balance).await;
-        if value > MIN_BASE_FEE{
+        if value > MIN_BASE_FEE {
             return Ok(());
         }
     }
     Err(WalletError::InsufficientAvailableBalance.into())
 }
 
-
 pub async fn estimate_transfer_fee(
-        main_account:&str,
-        coin:&CoinType,
-        amount: u128
-    ) -> Result<(CoinType,u128,bool),BackendError> {
-
-    let fee_coins = get_fees_priority(&main_account).await?.ok_or(BackendError::InternalError("not set fees priority".to_string()))?;
+    main_account: &str,
+    coin: &CoinType,
+    amount: u128,
+) -> Result<(CoinType, u128, bool), BackendError> {
+    let fee_coins = get_fees_priority(&main_account)
+        .await?
+        .ok_or(BackendError::InternalError(
+            "not set fees priority".to_string(),
+        ))?;
     let transfer_value = get_value(&coin, amount).await;
     //todo: config max_value
     let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
         transfer_value / 1000 + MIN_BASE_FEE
-    }else{
+    } else {
         20u128 * BASE_DECIMAL
     };
-    info!("coin: {} ,transfer_value: {},fee_value: {}",coin,raw2display(transfer_value),raw2display(fee_value));
+    info!(
+        "coin: {} ,transfer_value: {},fee_value: {}",
+        coin,
+        raw2display(transfer_value),
+        raw2display(fee_value)
+    );
 
     //todo:
     let mut estimate_res = Default::default();
-    for (index,fee_coin)  in fee_coins.into_iter().enumerate() {
+    for (index, fee_coin) in fee_coins.into_iter().enumerate() {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
-    
+
         let mut balance = match coin_cli.get_balance(&main_account).await? {
-            Some(balance) =>  parse_str(balance)?,
+            Some(balance) => parse_str(balance)?,
             None => continue,
         };
 
-        if &fee_coin == coin{
+        if &fee_coin == coin {
             if amount >= balance {
                 Err(WalletError::InsufficientAvailableBalance)?;
-            }else {
+            } else {
                 balance = balance - amount
             }
         }
 
         let balance_value = get_value(&fee_coin, balance).await;
-        info!("coin: {} ,fee_value: {},balance_value: {}",fee_coin,raw2display(fee_value),raw2display(balance_value));
+        info!(
+            "coin: {} ,fee_value: {},balance_value: {}",
+            fee_coin,
+            raw2display(fee_value),
+            raw2display(balance_value)
+        );
 
-        if balance_value  > fee_value{
+        if balance_value > fee_value {
             //fixme: repeat code
             let fees_cli = ContractClient::<FeesCall>::new()?;
             let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
             let fee_coin_amount = fee_value * base_amount / quote_amount;
-            estimate_res = (fee_coin,fee_coin_amount,true);
+            estimate_res = (fee_coin, fee_coin_amount, true);
 
             break;
         }
@@ -293,12 +311,11 @@ pub async fn estimate_transfer_fee(
             let fees_cli = ContractClient::<FeesCall>::new()?;
             let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
             let fee_coin_amount = fee_value * base_amount / quote_amount;
-            estimate_res = (fee_coin,fee_coin_amount,false);
+            estimate_res = (fee_coin, fee_coin_amount, false);
         }
     }
     Ok(estimate_res)
 }
-
 
 // 1/1000
 pub async fn check_protocal_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {

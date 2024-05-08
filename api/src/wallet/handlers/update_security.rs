@@ -57,7 +57,7 @@ pub(crate) async fn req(
         )?;
 
         //设备表不存子账户信息
-        if current_strategy.sub_confs.get(&secret.pubkey).is_some(){
+        if current_strategy.sub_confs.get(&secret.pubkey).is_some() {
             DeviceInfoView::update_single(
                 DeviceInfoUpdater::HolderSaved(false),
                 DeviceInfoFilter::ByHoldKey(&secret.pubkey),

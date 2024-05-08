@@ -17,7 +17,6 @@ use crate::utils::{captcha, token_auth};
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::utils::time::{now_millis, MINUTE1, MINUTE10};
 
-
 fn get(
     device_id: String,
     contact: String,
@@ -95,7 +94,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
                 {
                     debug!("line {}", line!());
                 } else if find_device_res.is_err() {
-                    //todo: return failed rep by error info 
+                    //todo: return failed rep by error info
                     Err(WalletError::UneligiableRole(
                         KeyRole2::Undefined,
                         KeyRole2::Master,
@@ -117,18 +116,16 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             }
             get(device_id, contact, kind, None)
         }
-        Login => {
-            match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)) {
-                Ok(info) => get(device_id, contact, kind, Some(info.id)),
-                Err(err) => {
-                    if err.to_string().contains("DBError::DataNotFound") {
-                        Err(AccountManagerError::PhoneOrEmailNotRegister)?
-                    } else {
-                        Err(BackendError::InternalError(err.to_string()))?
-                    }
+        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)) {
+            Ok(info) => get(device_id, contact, kind, Some(info.id)),
+            Err(err) => {
+                if err.to_string().contains("DBError::DataNotFound") {
+                    Err(AccountManagerError::PhoneOrEmailNotRegister)?
+                } else {
+                    Err(BackendError::InternalError(err.to_string()))?
                 }
             }
-        }
+        },
         SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }

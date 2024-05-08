@@ -1,6 +1,9 @@
 extern crate rustc_serialize;
 
-use common::data_structures::{bridge::{EthBridgeOrder, OrderType as BridgeOrderType}, CoinType};
+use common::data_structures::{
+    bridge::{EthBridgeOrder, OrderType as BridgeOrderType},
+    CoinType,
+};
 use postgres::Row;
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
@@ -8,7 +11,7 @@ use std::fmt;
 use std::fmt::Display;
 
 use crate::{vec_str2array_text, PsqlOp};
-use anyhow::{Result};
+use anyhow::Result;
 
 #[derive(Debug)]
 pub enum BridgeOrderUpdater<'a> {
@@ -31,15 +34,18 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
 
 #[derive(Clone, Debug)]
 pub enum BridgeOrderFilter<'b> {
-    ByTypeAndId(BridgeOrderType,&'b str),
+    ByTypeAndId(BridgeOrderType, &'b str),
     Limit(u32),
 }
 
 impl fmt::Display for BridgeOrderFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            BridgeOrderFilter::ByTypeAndId(order_type,id) => 
-            format!("where order_type='{}' and id='{}' ",order_type.to_string(),id),
+            BridgeOrderFilter::ByTypeAndId(order_type, id) => format!(
+                "where order_type='{}' and id='{}' ",
+                order_type.to_string(),
+                id
+            ),
             BridgeOrderFilter::Limit(num) => format!("order by created_at desc limit {} ", num),
         };
         write!(f, "{}", description)
@@ -62,7 +68,7 @@ impl EthBridgeOrderView {
         coin: CoinType,
         amount: u128,
         status: &str,
-        height: u64
+        height: u64,
     ) -> Self {
         EthBridgeOrderView {
             order: EthBridgeOrder {
@@ -162,13 +168,15 @@ impl PsqlOp for EthBridgeOrderView {
                 height,\
                 reserved_field3\
          ) values ('{}','{}','{}','{}','{}','{}','{}',{},'{}');",
-         id, 
-         order_type.to_string(), 
-         chainless_acc, 
-         eth_addr, 
-         coin,
-         amount.to_string(),
-         status,height,reserved_field3
+            id,
+            order_type.to_string(),
+            chainless_acc,
+            eth_addr,
+            coin,
+            amount.to_string(),
+            status,
+            height,
+            reserved_field3
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
@@ -193,20 +201,22 @@ mod tests {
         init_logger();
         crate::general::table_all_clear();
 
-        let secret =
-            EthBridgeOrderView::new_with_specified("0123456789", "test.node0", 
-            "0x123", 
+        let secret = EthBridgeOrderView::new_with_specified(
+            "0123456789",
+            "test.node0",
+            "0x123",
             BridgeOrderType::Withdraw,
             CoinType::DW20,
             10000u128,
-             "Pending",
-             0u64   
+            "Pending",
+            0u64,
         );
         secret.insert().unwrap();
-        let find_res =
-            EthBridgeOrderView::find_single(
-                BridgeOrderFilter::ByTypeAndId(BridgeOrderType::Withdraw,"0123456789")
-            ).unwrap();
+        let find_res = EthBridgeOrderView::find_single(BridgeOrderFilter::ByTypeAndId(
+            BridgeOrderType::Withdraw,
+            "0123456789",
+        ))
+        .unwrap();
         println!("{:?}", find_res);
         assert_eq!(find_res.order.amount, 10000);
     }

@@ -1,28 +1,28 @@
 use std::collections::HashMap;
 
-use actix_web::{web, HttpRequest};
-use blockchain::bridge_on_near::Bridge;
-use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::KeyRole2;
-use common::error_code::{BackendError, BackendRes, WalletError};
-use common::utils::math::generate_random_hex_string;
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
-use models::secret_store::SecretStoreView;
-use models::wallet_manage_record::WalletManageRecordView;
-use tracing::debug;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
 use crate::wallet::{CreateMainAccountRequest, ReconfirmSendMoneyRequest};
+use actix_web::{web, HttpRequest};
+use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
+use common::data_structures::wallet_namage_record::WalletOperateType;
+use common::data_structures::KeyRole2;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
+use common::error_code::{BackendError, BackendRes, WalletError};
+use common::utils::math::generate_random_hex_string;
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
+use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::secret_store::SecretStoreView;
+use models::wallet_manage_record::WalletManageRecordView;
 use models::{account_manager, secret_store, PsqlOp};
+use tracing::debug;
 use tracing::info;
 
 pub(crate) async fn req(
@@ -106,11 +106,7 @@ pub(crate) async fn req(
     //注册的时候就把允许跨链的状态设置了
     let bridge_cli = ContractClient::<Bridge>::new()?;
     let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
-    debug!(
-        "set_user_batch txid {} ,{}",
-        set_res,
-        main_account_id
-    );
+    debug!("set_user_batch txid {} ,{}", set_res, main_account_id);
 
     models::general::transaction_commit()?;
     info!("new wallet {:#?}  successfully", user_info);

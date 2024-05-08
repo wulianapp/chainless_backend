@@ -194,7 +194,7 @@ async fn user_info(request: HttpRequest) -> impl Responder {
   '{"deviceId": "123","email": "test000001@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
    "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
 * @apiSuccess {String=0,1,2002,2003,2004,2006,2013,2016} status_code         状态码.
-* @apiSuccess {String} msg                 状态详情 
+* @apiSuccess {String} msg                 状态详情
 * @apiSuccess {String} data                token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
@@ -269,7 +269,7 @@ async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> i
  *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
 * @apiSuccess {String=0,1,2008,2009,2012} status_code         状态码.
-* @apiSuccess {String} msg                  状态详情 
+* @apiSuccess {String} msg                  状态详情
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
@@ -364,7 +364,7 @@ async fn login_by_captcha(request_data: web::Json<LoginByCaptchaRequest>) -> imp
   curl -X POST http://120.232.251.101:8066/accountManager/resetPassword -H "Content-Type: application/json"
  -d '{"deviceId": "123","contact": "test000001@gmail.com","captcha":"287695","newPassword":"123456788"}'
 * @apiSuccess {String=0,1,2002,2003,2004,2008,3008} status_code         状态码.
-* @apiSuccess {String} msg                 状态详情 
+* @apiSuccess {String} msg                 状态详情
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */

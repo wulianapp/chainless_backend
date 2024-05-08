@@ -23,8 +23,8 @@ pub fn gen_random_verify_code() -> u32 {
 }
 
 pub mod coin_amount {
-    use std::ops::{Div, Mul};
     use super::*;
+    use std::ops::{Div, Mul};
 
     pub fn raw2display(raw: u128) -> String {
         //截取后方的10位

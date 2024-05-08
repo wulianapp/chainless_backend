@@ -154,7 +154,10 @@ impl PsqlOp for UserInfoView {
                     create_subacc_time: row
                         .get::<usize, Vec<String>>(11)
                         .iter()
-                        .map(|t| t.parse().map_err(|e: ParseIntError| anyhow::anyhow!(e.to_string())))
+                        .map(|t| {
+                            t.parse()
+                                .map_err(|e: ParseIntError| anyhow::anyhow!(e.to_string()))
+                        })
                         .collect::<Result<Vec<u64>>>()?,
                     main_account: row.get(12),
                     op_status: row.get::<usize, String>(13).parse()?,

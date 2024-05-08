@@ -14,7 +14,7 @@ use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PsqlOp};
 
 pub async fn req(
-    req: HttpRequest,
+    _req: HttpRequest,
     request_data: web::Json<ResetPasswordRequest>,
 ) -> BackendRes<String> {
     //todo: check jwt token

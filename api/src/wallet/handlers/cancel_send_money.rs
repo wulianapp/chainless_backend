@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -28,9 +28,11 @@ pub async fn req(
     //todo: chain status
 
     //cann't cancle when status is ReceiverRejected、SenderCanceled、SenderReconfirmed and MultiSigExpired
-    if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected
-    {
-        Err(WalletError::TxStageIllegal(tx.transaction.stage, CoinSendStage::ReceiverRejected))?;
+    if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected {
+        Err(WalletError::TxStageIllegal(
+            tx.transaction.stage,
+            CoinSendStage::ReceiverRejected,
+        ))?;
     } else {
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
