@@ -36,9 +36,12 @@ pub(crate) async fn req(
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
     let bridge_cli = ContractClient::<Bridge>::new()?;
-    let eth_addr = bridge_cli.get_binded_eth_addr(&main_account).await?;
-    let to = eth_addr.ok_or(BridgeError::NotBindEthAddr)?;
+    let eth_addr = bridge_cli.get_binded_eth_addr(&main_account)
+    .await?
+    .ok_or(BridgeError::NotBindEthAddr)?;
 
+    let to = common::env::CONF.bridge_near_contract.clone();
+    
     let PreWithdrawRequest {
         coin,
         amount,

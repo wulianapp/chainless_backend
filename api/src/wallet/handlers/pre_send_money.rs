@@ -49,7 +49,7 @@ pub(crate) async fn req(
         let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
-                AccountManagerError::PhoneOrEmailAlreadyRegister.into()
+                AccountManagerError::PhoneOrEmailNotRegister.into()
             } else {
                 BackendError::InternalError(err.to_string())
             }
