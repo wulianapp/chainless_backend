@@ -1,4 +1,5 @@
 use common::utils::math::coin_amount::raw2display;
+use common::utils::math::hex_to_bs58;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -99,6 +100,20 @@ impl ContractClient<FeesCall> {
         let price = quote_amount as f32 / base_amount as f32;
         Ok(price)
     }
+
+    pub async fn get_tx_fee(&self, tx_id: &str) -> Result<(CoinType,u128)> {
+       //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
+        //AccountId, AccountId, u128, Option<String>, String
+       
+        let args_str = json!({
+            "hsh":  hex_to_bs58(tx_id)?,
+        })
+        .to_string();
+        let (_user_id, fees_id,fees_amount,_tx_hash,_memo): (String,String, u128,Option<String>,String) =
+            self.query_call("get_tx_with_hash", &args_str).await?.unwrap();
+        let coin: CoinType = fees_id.parse()?;
+        Ok((coin, fees_amount))    
+    }
 }
 
 #[cfg(test)]
@@ -107,6 +122,10 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fees_set_get() {
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
+        println!("prioritys_1 {:?} ", prioritys);
+
         let default_prioritys = vec![
             CoinType::USDC,
             CoinType::BTC,
@@ -114,9 +133,7 @@ mod tests {
             CoinType::USDT,
             CoinType::DW20,
         ];
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
-        let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
-        println!("prioritys1 {:?} ", prioritys);
+
         let json_string = serde_json::to_string(&prioritys).unwrap();
         println!("prioritys_json1 {:?} ", json_string);
 
@@ -125,6 +142,10 @@ mod tests {
             .await
             .unwrap();
         println!("set_res {} ", set_res);
+
+        let fee_info = fees_cli.get_tx_fee(&set_res).await.unwrap();
+        println!("fee_info {:?} ", fee_info);
+
 
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys2 {:?} ", prioritys);

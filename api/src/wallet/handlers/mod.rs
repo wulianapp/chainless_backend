@@ -9,8 +9,8 @@ use blockchain::{
 };
 use common::{
     data_structures::{account_manager::UserInfo, device_info::DeviceInfo, CoinType, KeyRole2},
-    error_code::{BackendError, BackendRes, WalletError},
-    utils::math::generate_random_hex_string,
+    error_code::{parse_str, BackendError, BackendRes, WalletError},
+    utils::math::{coin_amount::raw2display, generate_random_hex_string},
 };
 use models::{
     account_manager::{UserFilter, UserInfoView},
@@ -19,7 +19,7 @@ use models::{
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
@@ -240,40 +240,65 @@ pub async fn check_have_base_fee(main_account:&str) -> Result<(),BackendError> {
     Err(WalletError::InsufficientAvailableBalance.into())
 }
 
-/***
+
 pub async fn estimate_transfer_fee(
         main_account:&str,
         coin:&CoinType,
         amount: u128
     ) -> Result<(CoinType,u128,bool),BackendError> {
-    let fee_coins = get_fees_priority(main_account).await?.ok_or(InternalError("not set fees priority".to_string()))?;
-    let transfer_value = get_value(coin, amount).await;
-    let fee_value = transfer_value * 999 / 1000 + MIN_BASE_FEE;
+
+    let fee_coins = get_fees_priority(&main_account).await?.ok_or(BackendError::InternalError("not set fees priority".to_string()))?;
+    let transfer_value = get_value(&coin, amount).await;
+    //todo: config max_value
+    let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
+        transfer_value / 1000 + MIN_BASE_FEE
+    }else{
+        20u128 * BASE_DECIMAL
+    };
+    info!("coin: {} ,transfer_value: {},fee_value: {}",coin,raw2display(transfer_value),raw2display(fee_value));
+
     //todo:
-    let mut default_fee = (coin.to_owned(),0,false);
+    let mut estimate_res = Default::default();
+    for (index,fee_coin)  in fee_coins.into_iter().enumerate() {
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
+    
+        let mut balance = match coin_cli.get_balance(&main_account).await? {
+            Some(balance) =>  parse_str(balance)?,
+            None => continue,
+        };
 
-    for (index,coin)  in fee_coins.iter().enumerate() {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
-        let balance = coin_cli.get_balance(main_account).await?
-        .unwrap_or("0".to_string());
-        let balance = balance.parse().map_err(|e:ParseIntError| e.to_string())?;
-        let balance_value = get_value(&coin, balance).await;
+        if &fee_coin == coin{
+            if amount >= balance {
+                Err(WalletError::InsufficientAvailableBalance)?;
+            }else {
+                balance = balance - amount
+            }
+        }
 
-        //fixme: 
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
-        let (base_amount, quote_amount) = fees_cli.get_coin_price(coin).await.unwrap();
+        let balance_value = get_value(&fee_coin, balance).await;
+        info!("coin: {} ,fee_value: {},balance_value: {}",fee_coin,raw2display(fee_value),raw2display(balance_value));
 
         if balance_value  > fee_value{
-            return Ok((coin.to_owned(),fee_value * base_amount / quote_amount,true));
+            //fixme: repeat code
+            let fees_cli = ContractClient::<FeesCall>::new()?;
+            let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
+            let fee_coin_amount = fee_value * base_amount / quote_amount;
+            estimate_res = (fee_coin,fee_coin_amount,true);
+
+            break;
         }
 
-        if index == 1 {
-            default_fee = (coin.to_owned(),fee_value * base_amount / quote_amount,false)
+        if index == 0 {
+            //fixme: repeat code
+            let fees_cli = ContractClient::<FeesCall>::new()?;
+            let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
+            let fee_coin_amount = fee_value * base_amount / quote_amount;
+            estimate_res = (fee_coin,fee_coin_amount,false);
         }
     }
-    Ok(default_fee)
+    Ok(estimate_res)
 }
-**/
+
 
 // 1/1000
 pub async fn check_protocal_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {

@@ -1308,11 +1308,10 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
     ReceiverRejected（接受者拒绝收款）,
     SenderCanceled（发送者取消发送）,
     SenderReconfirmed（发送者确认发送）
-} data.status
+} data.stage
     交易进度分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
 * @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
 * @apiSuccess {String} [data.chain_tx_raw]          链上交互的原始数据
-* @apiSuccess {String}  data.coin_tx.chain_status        交易的链上状态
 * @apiSuccess {String}  data.need_sig_num         本次转账预估需要的签名数量
 * @apiSuccess {object[]} data.signed_device       从设备签名详情
 * @apiSuccess {String} data.signed_device.pubkey         签名公钥
@@ -1323,6 +1322,12 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSuccess {String} data.unsigned_device.device_id      签名设备id
 * @apiSuccess {String} data.unsigned_device.device_brand   签名设备品牌
 * @apiSuccess {String=Normal,Forced,MainToSub,SubToMain,MainToBridge} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
+* @apiSuccess {String=NotLaunch(未上链),
+    Pending(待确认),
+    Failed(失败),
+    Successful(成功)}  data.chain_status       交易的链上状态
+* @apiSuccess {String=BTC,ETH,USDT,USDC,DW20}  data.fee_coin           手续费币种，Successful状态为实际否则为预估
+* @apiSuccess {String}  data.fee_amount         手续费数量，Successful状态为实际否则为预估
 * @apiSuccess {String} data.updated_at         交易更新时间戳
 * @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
@@ -1351,6 +1356,8 @@ pub struct GetTxResponse {
     pub unsigned_device: Vec<ServentSigDetail>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
+    pub fee_coin: CoinType,
+    pub fee_amount: String,
     pub updated_at: String,
     pub created_at: String,
 }
@@ -2180,7 +2187,7 @@ mod tests {
             println!("orders {:#?}", orders2);
 
             index += 1;
-            if index == 30 {
+            if index == 300 {
                 assert!(false,"reach check limit");
                 break;
             }

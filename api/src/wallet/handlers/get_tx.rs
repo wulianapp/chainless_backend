@@ -26,6 +26,7 @@ use std::sync::Mutex;
 use anyhow::Result;
 
 use super::ServentSigDetail;
+use blockchain::fees_call::*;
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
@@ -79,6 +80,19 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
+    let (fee_coin,fee_amount) = if tx.transaction.chain_status == TxStatusOnChain::Successful{
+            let tx_id= tx.transaction.tx_id.as_ref().ok_or("")?;
+            let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+            fees_call_cli.get_tx_fee(tx_id).await?
+    }else{
+        let (coin,amount,balance_enough) = super::estimate_transfer_fee(
+            &tx.transaction.from,
+            &tx.transaction.coin_type,
+            tx.transaction.amount
+        ).await?;
+        (coin,amount)
+    };
+
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
@@ -96,6 +110,8 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         unsigned_device,
         tx_type: tx.transaction.tx_type,
         chain_status: tx.transaction.chain_status,
+        fee_coin,
+        fee_amount: raw2display(fee_amount),
         updated_at: tx.updated_at,
         created_at: tx.created_at,
     };
