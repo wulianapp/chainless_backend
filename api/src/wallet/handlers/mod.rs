@@ -183,7 +183,16 @@ pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    
+    let user = UserInfoView::find_single(UserFilter::ById(user_id))
+    .map_err(|err| {
+        if err.to_string().contains("DBError::DataNotFound") {
+            WalletError::MainAccountNotExist(err.to_string()).into()
+        } else {
+            BackendError::InternalError(err.to_string())
+        }
+    })?;
+
     let main_account = &user.user_info.main_account;
     if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
