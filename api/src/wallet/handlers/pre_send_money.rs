@@ -42,7 +42,9 @@ pub(crate) async fn req(
         is_forced,
     } = request_data;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
-
+    if amount == 0 {
+        Err(WalletError::FobidTransferZero)?;
+    }
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
     let to_account_id = if to.contains("@") || to.contains('+') {

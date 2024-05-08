@@ -43,6 +43,9 @@ pub(crate) async fn req(
         memo,
     } = request_data;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
+    if amount == 0 {
+        Err(WalletError::FobidTransferZero)?;
+    }
     let coin_type = parse_str(&coin)?;
     let from = main_account.clone();
 

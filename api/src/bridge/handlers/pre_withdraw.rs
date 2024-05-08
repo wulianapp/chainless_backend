@@ -41,7 +41,7 @@ pub(crate) async fn req(
     .ok_or(BridgeError::NotBindEthAddr)?;
 
     let to = common::env::CONF.bridge_near_contract.clone();
-    
+
     let PreWithdrawRequest {
         coin,
         amount,
@@ -50,7 +50,10 @@ pub(crate) async fn req(
     } = request_data;
 
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
-
+    if amount == 0 {
+        Err(WalletError::FobidTransferZero)?;
+    }
+    
     let coin_type =
         CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();

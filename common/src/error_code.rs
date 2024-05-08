@@ -184,6 +184,8 @@ pub enum WalletError {
     MainAccountAlreadyExist(String),
     #[error("order_id {0} is nonexist")]
     OrderNotFound(String),
+    #[error("Transfer amount cann't be zero")]
+    FobidTransferZero,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -209,6 +211,7 @@ impl ErrorCode for WalletError {
             Self::ReceiverIsNotSubaccount => 3019,
             Self::MainAccountAlreadyExist(_) => 3020,
             Self::OrderNotFound(_) => 3021,
+            Self::FobidTransferZero => 3022,
         }
     }
 }
