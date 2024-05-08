@@ -50,7 +50,6 @@ pub async fn req(
             .iter()
             .map(|data| data.parse())
             .collect::<Result<Vec<PubkeySignInfo>,_>>()?;
-        //todo: unwrap()
         let master_sign: PubkeySignInfo = confirmed_sig.parse()?;
 
         let tx_id = multi_cli
@@ -77,10 +76,10 @@ pub async fn req(
     } else {
         //跨链转出，在无链端按照普通转账处理
         blockchain::general::broadcast_tx_commit_from_raw2(
-            coin_tx.transaction.chain_tx_raw.as_ref().unwrap(),
+            coin_tx.transaction.chain_tx_raw.as_ref().ok_or("")?,
             &confirmed_sig,
         )
-        .await;
+        .await?;
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::StageChainStatus(
                 CoinSendStage::SenderReconfirmed,

@@ -14,7 +14,7 @@ use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use common::error_code::{AccountManagerError, BackendError, BackendRes, WalletError};
+use common::error_code::{parse_str, AccountManagerError, BackendError, BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
 use models::coin_transfer::{CoinTxView};
@@ -43,7 +43,7 @@ pub(crate) async fn req(
         memo,
     } = request_data;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
-    let coin_type = CoinType::from_str(&coin).unwrap();
+    let coin_type = parse_str(&coin)?;
     let from = main_account.clone();
 
     let available_balance = super::get_available_amount(&from, &coin_type).await?;

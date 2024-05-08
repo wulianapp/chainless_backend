@@ -23,6 +23,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
+use anyhow::Result;
 
 use super::ServentSigDetail;
 
@@ -44,8 +45,8 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .transaction
         .signatures
         .iter()
-        .map(|s| s.parse().unwrap())
-        .collect();
+        .map(|s| s.parse())
+        .collect::<Result<_>>()?;
 
     //不从数据库去读
     let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id))?

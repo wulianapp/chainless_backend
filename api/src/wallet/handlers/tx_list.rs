@@ -11,6 +11,7 @@ use common::data_structures::{
     coin_transaction::{CoinTransaction, TxType},
     get_support_coin_list, CoinType,
 };
+use common::error_code::to_param_invalid_error;
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -26,6 +27,7 @@ use std::str::FromStr;
 use std::sync::Mutex;
 
 use super::ServentSigDetail;
+use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxViewTmp {
@@ -59,7 +61,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     if per_page > 1000 {
         Err(BackendError::RequestParamInvalid("per_page is too big".to_string()))?;
     }
-    let tx_role = tx_role.parse().unwrap();
+    let tx_role = tx_role.parse().map_err(to_param_invalid_error)?;
     let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(
         tx_role,
         &main_account,
@@ -69,8 +71,9 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     ))?;
     let txs: Vec<CoinTxViewTmp> = txs
         .into_iter()
-        .map(|tx| {
-            CoinTxViewTmp {
+        .map(|tx| -> Result<_>{
+
+            Ok(CoinTxViewTmp {
                 order_id: tx.transaction.order_id,
                 tx_id: tx.transaction.tx_id,
                 coin_type: tx.transaction.coin_type,
@@ -82,20 +85,19 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
                 stage: tx.transaction.stage,
                 coin_tx_raw: tx.transaction.coin_tx_raw,
                 chain_tx_raw: tx.transaction.chain_tx_raw,
-                //todo
                 signatures: tx
                     .transaction
                     .signatures
                     .iter()
-                    .map(|s| s.parse().unwrap())
-                    .collect(),
+                    .map(|s| s.parse())
+                    .collect::<Result<Vec<_>>>()?,
                 tx_type: tx.transaction.tx_type,
                 chain_status: tx.transaction.chain_status,
                 updated_at: tx.updated_at,
                 created_at: tx.created_at,
-            }
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()?;
 
     Ok(Some(txs))
 }

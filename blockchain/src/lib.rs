@@ -65,7 +65,7 @@ where
         }
     }
     //Err(anyhow::anyhow!("call rpc failed, and max retries exceeded"))
-    panic!("")
+    unreachable!()
 }
 
 #[derive(Clone)]

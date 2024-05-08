@@ -41,8 +41,7 @@ pub enum KeyRole2 {
 //never use it
 impl Default for KeyRole {
     fn default() -> Self {
-        panic!("never use it ");
-        Self::Newcommer("".to_string())
+        unreachable!("never use it")
     }
 }
 

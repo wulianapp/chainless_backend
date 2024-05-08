@@ -1,10 +1,11 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use thiserror::Error;
 use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
+use std::error::Error as StdError;
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -35,11 +36,21 @@ impl From<AnyhowError> for BackendError {
     }
 }
 
-pub fn to_internal_error<T: std::error::Error>(error: T) -> BackendError {
+pub fn to_internal_error<T: StdError>(error: T) -> BackendError {
     BackendError::InternalError(error.to_string())
 }
-pub fn to_param_invalid_error<T: std::error::Error>(error: T) -> BackendError {
+pub fn to_param_invalid_error<T: StdError>(error: T) -> BackendError {
     BackendError::RequestParamInvalid(error.to_string())
+}
+
+pub fn parse_str<T,S>(data: S) -> Result<T, Box<dyn StdError>> 
+    where  
+        T: FromStr,   
+        <T as FromStr>::Err: 'static + StdError,
+        S: Into<String>,
+{
+    let data: String = data.into(); 
+    Ok(data.parse::<T>()?)
 }
 
 impl From<String> for BackendError {
@@ -54,7 +65,7 @@ impl From<&str> for BackendError {
     }
 }
 
-impl From<Box<dyn std::error::Error>> for BackendError {
+impl From<Box<dyn StdError>> for BackendError {
     fn from(err: Box<dyn std::error::Error>) -> Self {
         BackendError::InternalError(err.to_string())
     }

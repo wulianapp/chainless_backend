@@ -57,7 +57,7 @@ pub(crate) async fn req(
         ));
     }
     
-    let master = master_list.first().unwrap();
+    let master = &master_list[0];
 
     let (add_key_txid, add_key_raw) = client.add_key(&main_account, &newcomer_pubkey).await?;
     let (delete_key_txid, delete_key_raw) = client.delete_key(&main_account, master).await?;

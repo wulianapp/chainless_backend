@@ -55,7 +55,10 @@ pub async fn req(
     //collect enough signatures
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
 
-    let strategy = multi_cli.get_strategy(&tx.transaction.from).await?.unwrap();
+    let strategy = multi_cli
+    .get_strategy(&tx.transaction.from)
+    .await?
+    .ok_or("from not found")?;
 
     let need_sig_num = super::get_servant_need(
         &strategy.multi_sig_ranks,

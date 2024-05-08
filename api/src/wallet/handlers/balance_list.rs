@@ -7,7 +7,7 @@ use blockchain::fees_call::FeesCall;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::{get_support_coin_list, CoinType};
-use common::error_code::BackendError;
+use common::error_code::{parse_str, BackendError};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -76,7 +76,6 @@ pub async fn req(
     let mut coin_balance_map = vec![];
     for coin in coin_list {
         let mut account_balance = vec![];
-        //let fees_cli = ContractClient::<FeesCall>::new().unwrap();
 
         for (index, account) in check_accounts.iter().enumerate() {
             let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
@@ -88,9 +87,11 @@ pub async fn req(
                 let hold_limit = if index == 0 {
                     None
                 } else {
-                    let strategy = multi_cli.get_strategy(&main_account).await?;
-                    let sub_confs = strategy.unwrap().sub_confs;
-                    let hold_limit = sub_confs.get(account.as_str()).unwrap().hold_value_limit;
+                    let strategy = multi_cli.get_strategy(&main_account).await?.ok_or("")?;
+                    let sub_confs = strategy.sub_confs;
+                    let hold_limit = sub_confs.get(account.as_str())
+                    .ok_or("")?
+                    .hold_value_limit;
                     Some(raw2display(hold_limit))
                 };
                 (balance, hold_limit)
@@ -98,7 +99,7 @@ pub async fn req(
                 ("0".to_string(), Some("0.0".to_string()))
             };
             let freezn_amount = super::get_freezn_amount(account, &coin);
-            let total_balance = balance_on_chain.parse().unwrap();
+            let total_balance = parse_str(balance_on_chain)?;
             debug!(
                 "coin:{},total_balance:{},freezn_amount:{}",
                 coin, total_balance, freezn_amount

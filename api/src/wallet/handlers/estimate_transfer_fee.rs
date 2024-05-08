@@ -13,13 +13,13 @@ use tracing::{debug, info, warn};
 
 use crate::wallet::{EstimateTransferFeeResponse, SecretType};
 use crate::{utils::token_auth, wallet::EstimateTransferFeeRequest};
-use common::{data_structures::CoinType, error_code::{BackendError::ChainError, WalletError}, utils::math::coin_amount::{display2raw, raw2display}};
+use common::{data_structures::CoinType, error_code::{parse_str, BackendError::ChainError, WalletError}, utils::math::coin_amount::{display2raw, raw2display}};
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{AccountManagerError, BackendError, BackendRes},
     utils::math::*
 };
-use serde::{Deserialize, Serialize};
+use serde::{de::value, Deserialize, Serialize};
 
 
 
@@ -53,12 +53,13 @@ pub(crate) async fn req(
     let mut estimate_res = Default::default();
     for (index,fee_coin)  in fee_coins.into_iter().enumerate() {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
-        let balance = coin_cli.get_balance(&main_account).await?;
-        if balance.is_none(){
-            continue;
-        }
-
-        let mut balance = balance.unwrap().parse().map_err(|e:ParseIntError| e.to_string())?;
+ 
+        let mut balance = match coin_cli.get_balance(&main_account).await? {
+            Some(balance) =>  parse_str(balance)?,
+            None => continue,
+        };
+            
+        
         let freezn_amount = super::get_freezn_amount(&main_account, &fee_coin);
         balance = balance - freezn_amount;
 
@@ -76,8 +77,8 @@ pub(crate) async fn req(
 
         if balance_value  > fee_value{
             //fixme: repeat code
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
-        let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new()?;
+        let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
         let fee_coin_amount = fee_value * base_amount / quote_amount;
             estimate_res = EstimateTransferFeeResponse {
                 coin: fee_coin,
@@ -89,8 +90,8 @@ pub(crate) async fn req(
 
         if index == 0 {
             //fixme: repeat code
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
-        let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new()?;
+        let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
         let fee_coin_amount = fee_value * base_amount / quote_amount;
             estimate_res = EstimateTransferFeeResponse {
                 coin: fee_coin,

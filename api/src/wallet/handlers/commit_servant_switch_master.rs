@@ -64,12 +64,12 @@ pub(crate) async fn req(
     //get old_master
     let old_master = if master_list.len() == 1 {
         debug!("start switch servant to master");
-        master_list.first().unwrap().to_owned()
+        master_list[0].to_owned()
     }else if master_list.len() == 2 {
         warn!("unnormal account,it's account have 2 master");
         let mut local_list = master_list.clone();
         local_list.retain(|x| x.ne(&servant_pubkey));
-        local_list.first().unwrap().to_owned()
+        local_list[0].to_owned()
     }else {
         Err(BackendError::InternalError(
             "main account is unnormal".to_string(),
@@ -143,7 +143,7 @@ pub(crate) async fn req(
         let record = WalletManageRecordView::new_with_specified(
             &user_id.to_string(),
             WalletOperateType::NewcomerSwitchMaster,
-            &device.hold_pubkey.unwrap(),
+            &device.hold_pubkey.ok_or("")?,
             &device.id,
             &device.brand,
             vec![txid],
