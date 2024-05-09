@@ -4,11 +4,12 @@ use anyhow::Result;
 use blockchain::bridge_on_eth::Bridge;
 use blockchain::eth_cli::general::*;
 use blockchain::eth_cli::EthContractClient;
+use common::data_structures::bridge::EthOrderStatus;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::PsqlOp;
 use tracing::info;
 
-const CONFIRM_HEIGHT: u64 = 2;
+const CONFIRM_NUM: u64 = 6;
 
 //如果没历史监控数据，则从固定检查点开始扫,如果有则从历史数据中的最后高度开始扫
 pub async fn get_last_process_height() -> Result<u64> {
@@ -21,6 +22,16 @@ pub async fn get_last_process_height() -> Result<u64> {
     }
 }
 
+//listen and then insert pending
+pub fn listen_newest_block(){
+    todo!()
+}
+
+//listen and then update to confirm
+pub fn listen_confirmed_block(){
+    todo!()
+}
+
 pub async fn start() -> Result<()> {
     let mut last_process_height = get_last_process_height().await?;
     let bridge = EthContractClient::<Bridge>::new()?;
@@ -31,7 +42,7 @@ pub async fn start() -> Result<()> {
             "current chain height1 {},wait for new block",
             current_height
         );
-        let current_confirmed_height = current_height - CONFIRM_HEIGHT;
+        let current_confirmed_height = current_height - CONFIRM_NUM;
 
         //todo: 8区块的时候confirm，之前pending
         //it is impossible for big than current_confirmed_height
@@ -67,7 +78,7 @@ pub async fn start() -> Result<()> {
                             order.order_type,
                             order.coin,
                             order.amount,
-                            "Confirmed",
+                            EthOrderStatus::Confirmed,
                             height,
                         );
                         order.insert()?;
@@ -92,7 +103,7 @@ pub async fn start() -> Result<()> {
                             order.order_type,
                             order.coin,
                             order.amount,
-                            "Confirmed",
+                            EthOrderStatus::Confirmed,
                             height,
                         );
                         order.insert()?;

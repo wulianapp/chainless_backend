@@ -2190,7 +2190,7 @@ mod tests {
         let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
-                .list_withdraw_order(&user_info.main_account)
+                .list_order(&user_info.main_account)
                 .await
                 .unwrap()
                 .unwrap();
@@ -2345,7 +2345,7 @@ mod tests {
         let mut index = 0;
         loop {
             let (_, orders) = bridge_cli
-                .list_withdraw_order(&user_info.main_account)
+                .list_order(&user_info.main_account)
                 .await
                 .unwrap()
                 .unwrap();

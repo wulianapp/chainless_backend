@@ -1,7 +1,7 @@
 extern crate rustc_serialize;
 
 use common::data_structures::{
-    bridge::{EthBridgeOrder, OrderType as BridgeOrderType},
+    bridge::{EthBridgeOrder, EthOrderStatus, OrderType as BridgeOrderType},
     CoinType,
 };
 use postgres::Row;
@@ -35,6 +35,7 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
 #[derive(Clone, Debug)]
 pub enum BridgeOrderFilter<'b> {
     ByTypeAndId(BridgeOrderType, &'b str),
+    ByTypeAndAccountId(BridgeOrderType, &'b str),
     Limit(u32),
 }
 
@@ -43,6 +44,11 @@ impl fmt::Display for BridgeOrderFilter<'_> {
         let description = match self {
             BridgeOrderFilter::ByTypeAndId(order_type, id) => format!(
                 "where order_type='{}' and id='{}' ",
+                order_type.to_string(),
+                id
+            ),
+            BridgeOrderFilter::ByTypeAndAccountId(order_type, id) => format!(
+                "where order_type='{}' and chainless_acc='{}' ",
                 order_type.to_string(),
                 id
             ),
@@ -67,7 +73,7 @@ impl EthBridgeOrderView {
         order_type: BridgeOrderType,
         coin: CoinType,
         amount: u128,
-        status: &str,
+        status: EthOrderStatus,
         height: u64,
     ) -> Self {
         EthBridgeOrderView {
@@ -78,7 +84,7 @@ impl EthBridgeOrderView {
                 eth_addr: eth_addr.to_owned(),
                 coin,
                 amount,
-                status: status.to_string(),
+                status,
                 height,
                 reserved_field3: "".to_string(),
             },
@@ -120,7 +126,7 @@ impl PsqlOp for EthBridgeOrderView {
                     eth_addr: row.get(3),
                     coin: row.get::<usize, String>(4).parse()?,
                     amount: row.get::<usize, String>(5).parse()?,
-                    status: row.get(6),
+                    status: row.get::<usize, String>(6).parse()?,
                     height: row.get::<usize, i64>(7) as u64,
                     reserved_field3: row.get(8),
                 },
@@ -174,7 +180,7 @@ impl PsqlOp for EthBridgeOrderView {
             eth_addr,
             coin,
             amount.to_string(),
-            status,
+            status.to_string(),
             height,
             reserved_field3
         );
@@ -192,7 +198,7 @@ impl PsqlOp for EthBridgeOrderView {
 mod tests {
 
     use super::*;
-    use common::log::init_logger;
+    use common::{data_structures::bridge::EthOrderStatus, log::init_logger};
     use std::env;
 
     #[test]
@@ -208,7 +214,7 @@ mod tests {
             BridgeOrderType::Withdraw,
             CoinType::DW20,
             10000u128,
-            "Pending",
+            EthOrderStatus::Pending,
             0u64,
         );
         secret.insert().unwrap();

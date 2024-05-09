@@ -183,7 +183,7 @@ pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
-    
+
     let user = UserInfoView::find_single(UserFilter::ById(user_id))
     .map_err(|err| {
         if err.to_string().contains("DBError::DataNotFound") {
@@ -268,7 +268,7 @@ pub async fn estimate_transfer_fee(
     let transfer_value = get_value(&coin, amount).await;
     //todo: config max_value
     let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
-        transfer_value / 1000 + MIN_BASE_FEE
+        transfer_value * 9 / 10000 + MIN_BASE_FEE
     } else {
         20u128 * BASE_DECIMAL
     };

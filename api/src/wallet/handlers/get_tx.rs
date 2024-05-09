@@ -2,7 +2,7 @@ use crate::utils::token_auth;
 use crate::wallet::CreateMainAccountRequest;
 use crate::wallet::{GetTxRequest, GetTxResponse};
 use actix_web::HttpRequest;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -15,6 +15,7 @@ use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
 use common::error_code::{BackendError, WalletError};
 use common::utils::math::coin_amount::raw2display;
+use common::utils::math::hex_to_bs58;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -27,6 +28,25 @@ use std::sync::Mutex;
 
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
+
+async fn get_actual_fee(account_id:&str,dist_tx_id:&str) -> Result<(CoinType,u128)>{
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+    let txs = fees_call_cli.get_user_txs(account_id).await?;
+    for (index,(fee_id,amount,tx_id,memo)) in txs.iter().enumerate(){
+        if let Some(id) = tx_id{
+            if id == hex_to_bs58(dist_tx_id)?.as_str() {
+                if txs[index+1].0 == *fee_id {
+                    let total_fee = txs[index+1].1 + amount;
+                    let fee_coin = fee_id.parse()?;
+                    return Ok((fee_coin,total_fee));
+                }else {
+                    Err(anyhow!("txs[index-1].0 not equal txs[index].0"))?;
+                }
+            }
+        }
+    }
+    Err(anyhow!("tx_id: {} not found on fees_call",dist_tx_id))
+}
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
@@ -80,8 +100,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
 
     let (fee_coin, fee_amount) = if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
-        let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
-        fees_call_cli.get_tx_fee(tx_id).await?
+        get_actual_fee(&main_account,tx_id).await?
     } else {
         let (coin, amount, _balance_enough) = super::estimate_transfer_fee(
             &tx.transaction.from,

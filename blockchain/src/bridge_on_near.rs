@@ -271,7 +271,7 @@ impl ContractClient<Bridge> {
         self.query_call("get_last_deposit_id", &args_str).await
     }
 
-    pub async fn list_withdraw_order(
+    pub async fn list_order(
         &self,
         account_id: &str,
     ) -> Result<Option<(u128, Vec<(u128, BridgeOrder)>)>> {

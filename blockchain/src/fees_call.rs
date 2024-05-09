@@ -101,7 +101,8 @@ impl ContractClient<FeesCall> {
         Ok(price)
     }
 
-    pub async fn get_tx_fee(&self, tx_id: &str) -> Result<(CoinType, u128)> {
+    //base_fee
+    pub async fn get_tx_base_fee(&self, tx_id: &str) -> Result<(CoinType, u128)> {
         //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
         //AccountId, AccountId, u128, Option<String>, String
 
@@ -121,6 +122,29 @@ impl ContractClient<FeesCall> {
             .unwrap();
         let coin: CoinType = fees_id.parse()?;
         Ok((coin, fees_amount))
+    }
+
+    pub async fn get_user_txs(&self,account_id: &str) -> 
+        Result<Vec<(String,u128,Option<String>,String)>> 
+    {
+        //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
+        //AccountId, AccountId, u128, Option<String>, String
+
+        let args_str = json!({
+            "id":  AccountId::from_str(account_id)?,
+        })
+        .to_string();
+    //        let (fees_id, fees_amount, tx_hash, _memo): Vec<(
+        let all_tx : Vec<(
+            String,
+            u128,
+            Option<String>,
+            String,
+        )> = self
+            .query_call("get_user_txs", &args_str)
+            .await?
+            .unwrap_or(vec![]);
+        Ok(all_tx)
     }
 }
 
@@ -151,7 +175,7 @@ mod tests {
             .unwrap();
         println!("set_res {} ", set_res);
 
-        let fee_info = fees_cli.get_tx_fee(&set_res).await.unwrap();
+        let fee_info = fees_cli.get_tx_base_fee(&set_res).await.unwrap();
         println!("fee_info {:?} ", fee_info);
 
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
