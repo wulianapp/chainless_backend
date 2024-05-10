@@ -1,3 +1,4 @@
+use common::constants::BRIDGE_DEPOSIT_EXPIRE_TIME;
 use common::data_structures::bridge::OrderType as BridgeOrderType;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
@@ -310,7 +311,7 @@ impl ContractClient<Bridge> {
         amount: u128,
         account_id: &str,
     ) -> Result<(String, u64, u64)> {
-        let deadline = (now_millis() + MINUTE30) / 1000;
+        let deadline = (now_millis() + BRIDGE_DEPOSIT_EXPIRE_TIME) / 1000;
         let cid = now_millis();
         let amount = if coin == CoinType::ETH {
             U256::zero()

@@ -15,6 +15,5 @@ pub const CHAINLESS_DEFAULT_GAS_LIMIT: u64 = 600_000_000_000_000;
 //交易有效时间
 pub const TX_EXPAIRE_TIME: u64 = DAY1;
 
-pub const TMP: &str = "";
-
-//put in env
+//充值有效时间
+pub const BRIDGE_DEPOSIT_EXPIRE_TIME: u64 = MINUTE30;
