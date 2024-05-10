@@ -37,6 +37,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         super::get_session_state(user_id, &device_id).await?;
     let main_account = user.main_account;
     super::have_no_uncompleted_tx(&main_account)?;
+    if current_strategy.servant_pubkeys.len() >= 11 {
+        Err(WalletError::ServantNumReachLimit)?;
+    }
 
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;

@@ -71,7 +71,7 @@ pub enum DeviceInfoFilter<'b> {
 impl fmt::Display for DeviceInfoFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            DeviceInfoFilter::ByUser(user_id) => format!("user_id={} ", user_id),
+            DeviceInfoFilter::ByUser(user_id) => format!("user_id={} order by created_at", user_id),
             DeviceInfoFilter::ByDeviceUser(device_id, user_id) => {
                 format!("id='{}' and user_id={} ", device_id, user_id)
             }

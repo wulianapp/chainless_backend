@@ -116,6 +116,9 @@ pub(crate) async fn req(
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.to = eth_addr;
         coin_info.insert()?;
-        Ok(None)
+        Ok(Some((
+            coin_info.transaction.order_id,
+            coin_info.transaction.coin_tx_raw,
+        )))
     }
 }

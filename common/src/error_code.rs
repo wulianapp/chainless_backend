@@ -186,6 +186,10 @@ pub enum WalletError {
     OrderNotFound(String),
     #[error("Transfer amount cann't be zero")]
     FobidTransferZero,
+    #[error("rank array of strategy is illegal")]
+    StrategyRankIllegal,
+    #[error("servant's num have already readch limit(11) ")]
+    ServantNumReachLimit,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -212,6 +216,8 @@ impl ErrorCode for WalletError {
             Self::MainAccountAlreadyExist(_) => 3020,
             Self::OrderNotFound(_) => 3021,
             Self::FobidTransferZero => 3022,
+            Self::StrategyRankIllegal => 3023,
+            Self::ServantNumReachLimit => 3024,
         }
     }
 }

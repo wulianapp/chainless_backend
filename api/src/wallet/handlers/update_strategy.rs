@@ -29,6 +29,9 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     super::check_role(current_role, KeyRole2::Master)?;
 
     let UpdateStrategy { strategy } = request_data.0;
+    if strategy.len() !=  current_strategy.servant_pubkeys.len() + 1 {
+        Err(WalletError::StrategyRankIllegal)?;
+    }
 
     //fixme:
     let strategy = strategy
@@ -43,7 +46,6 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         })
         .collect::<Result<Vec<_>, String>>()
         .map_err(|err| BackendError::RequestParamInvalid(err))?;
-
     //add wallet info
     models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new()?;

@@ -9,6 +9,7 @@ use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
+use std::cmp::Ordering;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     let user_id = token_auth::validate_credentials(&req)?;
@@ -26,6 +27,17 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     }
     */
     let devices: Vec<DeviceInfoView> = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id))?;
-    let devices = devices.into_iter().map(|x| x.device_info).collect();
+
+
+    let mut devices : Vec<DeviceInfo>= devices.into_iter().map(|x| x.device_info).collect();
+    //新设备放到从设备之后
+    devices.sort_by(|a,b| {
+        if a.hold_pubkey.is_some() && b.hold_pubkey.is_none(){
+            Ordering::Less
+        }else {
+            Ordering::Greater
+        }
+    });
+  
     Ok(Some(devices))
 }
