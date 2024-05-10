@@ -543,7 +543,7 @@ macro_rules! test_add_subaccount {
             "subaccountPubkey":  $new_sub_pubkey,
             "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
             "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
-            "holdValueLimit": 10000,
+            "holdValueLimit": "10000",
         });
         let url = format!("/wallet/addSubaccount");
         let res: BackendRespond<String> = test_service_call!(
@@ -1050,7 +1050,7 @@ macro_rules! test_get_tx {
 #[macro_export]
 macro_rules! test_bridge_list_order {
     ($service:expr, $app:expr) => {{
-        let url = format!("/bridge/listOrder");
+        let url = format!("/bridge/listWithdrawOrder?perPage=1000&page=1");
         let res: BackendRespond<Vec<ListWithdrawOrderResponse>> = test_service_call!(
             $service,
             "get",

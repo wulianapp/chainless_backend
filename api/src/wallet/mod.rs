@@ -2200,7 +2200,7 @@ mod tests {
             println!("orders {:#?}", orders2);
 
             index += 1;
-            if index == 300 {
+            if index == 100 {
                 assert!(false, "reach check limit");
                 break;
             }
@@ -2589,10 +2589,13 @@ mod tests {
         println!("txs__ {:?}", txs);
 
         let estimate_res =
-            test_estimate_transfer_fee!(service, sender_master, "BTC", "1.0").unwrap();
+            test_estimate_transfer_fee!(service, sender_master, "BTC", "0.1").unwrap();
         assert_eq!(estimate_res.coin.to_string(), "usdt");
-        assert!(estimate_res.amount.parse::<f32>().unwrap() < 70.0);
-        assert!(estimate_res.amount.parse::<f32>().unwrap() > 60.0);
+        assert!(estimate_res.amount.parse::<f32>().unwrap() < 7.0);
+        assert!(estimate_res.amount.parse::<f32>().unwrap() > 6.0);
+        let estimate_res =
+        test_estimate_transfer_fee!(service, sender_master, "BTC", "1").unwrap();
+        assert!(estimate_res.amount.parse::<f32>().unwrap() == 20.0);
     }
 
     #[actix_web::test]
