@@ -36,6 +36,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
 use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
 use tracing::{debug, error, field::debug, info};
+use common::prelude::*;
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
 
@@ -124,7 +125,7 @@ impl<T> ContractClient<T> {
             let call_action = Action::FunctionCall(Box::new(FunctionCallAction {
                 method_name: method_name.to_string(),
                 args: args.as_bytes().to_vec(),
-                gas: 600_000_000_000_000, // 100 TeraGas
+                gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
                 deposit: 0,
             }));
             (self.deployed_at.to_string(), vec![call_action], 1)

@@ -421,7 +421,6 @@ mod tests {
         cli.clear_all().await.unwrap();
         //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
         //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
-        //cli.remove_tx_index(1u64).await.unwrap();
     }
 
     async fn init() -> App<

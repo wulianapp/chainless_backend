@@ -8,6 +8,7 @@ use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{CoinType, KeyRole2};
 use common::utils::math::coin_amount::display2raw;
+use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::{debug, error};
 
@@ -48,7 +49,8 @@ pub(crate) async fn req(
         expire_at,
         memo,
     } = request_data;
-
+    
+    let expire_at = now_millis() + DAY1;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;

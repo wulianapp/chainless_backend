@@ -3,6 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
+use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
@@ -26,6 +27,9 @@ pub async fn req(
     let CancelSendMoneyRequest { order_id } = request_data.0;
     let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     //todo: chain status
+    if tx.transaction.expire_at > now_millis() {
+        Err(WalletError::TxExpired)?;
+    }
 
     //cann't cancle when status is ReceiverRejected、SenderCanceled、SenderReconfirmed and MultiSigExpired
     if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected {

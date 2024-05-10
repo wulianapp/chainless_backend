@@ -200,7 +200,7 @@ async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data.symbol   币种
 * @apiSuccess {String} data.amount   数量
 * @apiSuccess {String} data.address  外链地址
-* @apiSuccess {String[]} data.signature  签名结果列表
+* @apiSuccess {String[]} data.signatures  签名结果列表
 * @apiSuccess {String=ChainLessSigning(无链签名确认中),
     ChainLessSuccessful(无链转出成功),
     ExternalChainPending(外链提现确认中),

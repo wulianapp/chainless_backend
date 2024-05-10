@@ -15,7 +15,9 @@ use crate::utils::captcha::Usage::*;
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
 use crate::utils::{captcha, token_auth};
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
-use common::utils::time::{now_millis, MINUTE1, MINUTE10};
+use common::utils::time::{now_millis};
+use common::env::CONF;
+use common::prelude::*;
 
 fn get(
     device_id: String,
@@ -33,14 +35,16 @@ fn get(
     //todo: only master device can reset password
     if let Some(data) = captcha::get_captcha(&storage_key, &kind)? {
         let past_time = now_millis() - data.created_at;
-        if past_time <= MINUTE1 {
-            let remain_time = MINUTE1 - past_time;
+        //todo:env
+        if past_time <= CAPTCHA_REQUEST_INTERVAL {
+            let remain_time = CAPTCHA_REQUEST_INTERVAL - past_time;
             let remain_secs = (remain_time / 1000) as u8;
             Err(CaptchaRequestTooFrequently(remain_secs))?;
-        } else if past_time <= MINUTE10 {
+        } else if past_time <= CAPTCHA_EXPAIRE_TIME {
             debug!("send new code cover former code");
         } else {
             //delete and regenerate new captcha
+            //todo: unnecessary
             let _ = data.delete();
         }
     }

@@ -12,9 +12,10 @@ use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes};
-use common::utils::time::{now_millis, MINUTE30};
+use common::utils::time::{now_millis};
 use models::account_manager::UserFilter;
 use models::{account_manager, PsqlOp};
+use common::prelude::*;
 
 lazy_static! {
     static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
@@ -36,7 +37,7 @@ fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
         .map_err(|e| BackendError::InternalError(e.to_string()))?;
     let info = if let Some(records) = retry_storage.get(&user_id) {
         if records.len() >= 5 {
-            let unlock_time = *records.last().unwrap() + MINUTE30;
+            let unlock_time = *records.last().unwrap() + LOGIN_UNLOCK_TIME;
             debug!("0002___{}", unlock_time);
             if now_millis() < unlock_time {
                 (true, 0, unlock_time as u64 / 1000)

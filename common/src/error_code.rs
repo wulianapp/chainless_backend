@@ -190,6 +190,8 @@ pub enum WalletError {
     StrategyRankIllegal,
     #[error("servant's num have already readch limit(11) ")]
     ServantNumReachLimit,
+    #[error("transaction is already more than 24h")]
+    TxExpired,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -218,6 +220,7 @@ impl ErrorCode for WalletError {
             Self::FobidTransferZero => 3022,
             Self::StrategyRankIllegal => 3023,
             Self::ServantNumReachLimit => 3024,
+            Self::TxExpired => 3025,
         }
     }
 }

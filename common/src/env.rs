@@ -251,6 +251,21 @@ lazy_static! {
 
         conf
     };
+    pub static ref TOKEN_SECRET_KEY: String = {
+        if let Some(value) = env::var_os("TOKEN_SECRET_KEY"){
+            value.to_str().unwrap().parse().unwrap()
+        }else{
+            "your_secret_key".to_string()
+        }
+    };
+
+    pub static ref DB_SERVICE: String = {
+        if let Some(value) = env::var_os("DB_SERVICE"){
+            value.to_str().unwrap().parse().unwrap()
+        }else{
+            "host=localhost user=postgres port=8068 password=postgres".to_string()
+        }
+    };
 }
 
 #[cfg(test)]

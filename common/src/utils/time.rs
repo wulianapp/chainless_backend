@@ -10,6 +10,9 @@ pub const MINUTE30: u64 = 30 * MINUTE1;
 pub const HOUR1: u64 = 60 * MINUTE1;
 
 pub const DAY1: u64 = 24 * HOUR1;
+
+pub const DAY7: u64 = 7 * DAY1;
+
 pub const DAY15: u64 = 15 * DAY1;
 //convenient for test
 pub const YEAR100: u64 = 100 * 365 * DAY1;

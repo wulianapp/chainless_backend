@@ -16,6 +16,7 @@ use common::error_code::BackendRes;
 use common::error_code::{BackendError, WalletError};
 use common::utils::math::coin_amount::raw2display;
 use common::utils::math::hex_to_bs58;
+use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -110,7 +111,11 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .await?;
         (coin, amount)
     };
-
+    let stage = if tx.transaction.expire_at > now_millis() {
+        CoinSendStage::MultiSigExpired
+    }else{
+        tx.transaction.stage
+    };
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
@@ -120,7 +125,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,
-        stage: tx.transaction.stage,
+        stage,
         coin_tx_raw: tx.transaction.coin_tx_raw,
         chain_tx_raw: tx.transaction.chain_tx_raw,
         need_sig_num,

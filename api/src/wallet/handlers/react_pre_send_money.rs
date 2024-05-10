@@ -3,6 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
+use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
@@ -26,6 +27,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
 
     let coin_tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    if coin_tx.transaction.expire_at > now_millis() {
+        Err(WalletError::TxExpired)?;
+    }
     if coin_tx.transaction.stage != CoinSendStage::SenderSigCompleted {
         Err(WalletError::TxStageIllegal(
             coin_tx.transaction.stage,

@@ -8,6 +8,8 @@ use near_primitives::transaction::{Action, FunctionCallAction};
 use near_primitives::types::{BlockReference, Finality, FunctionArgs};
 use near_primitives::views::{FinalExecutionStatus, QueryRequest};
 use serde_json::json;
+use common::prelude::*;
+
 
 struct Hello {}
 
@@ -52,7 +54,7 @@ impl ContractClient<Hello> {
             })
             .to_string()
             .into_bytes(),
-            gas: 100_000_000_000_000, // 100 TeraGas
+            gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
             deposit: 0,
         }))];
         let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await?;

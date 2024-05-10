@@ -17,9 +17,10 @@ use common::error_code::AccountManagerError::*;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendError::*;
 
-use common::utils::time::{now_millis, MINUTE10};
+use common::utils::time::{now_millis};
 use phonenumber::Mode;
 use strum_macros::{Display, EnumString, ToString};
+use common::constants::*;
 
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
@@ -155,7 +156,7 @@ impl Captcha {
             kind,
             code,
             created_at: now,
-            expiration_time: now + MINUTE10,
+            expiration_time: now + CAPTCHA_EXPAIRE_TIME,
         }
     }
 

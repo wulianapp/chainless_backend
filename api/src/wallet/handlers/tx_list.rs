@@ -16,6 +16,7 @@ use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
 use common::utils::math::coin_amount::raw2display;
+use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -74,6 +75,12 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     let txs: Vec<CoinTxViewTmp> = txs
         .into_iter()
         .map(|tx| -> Result<_> {
+            let stage = if tx.transaction.expire_at > now_millis() {
+                CoinSendStage::MultiSigExpired
+            }else{
+                tx.transaction.stage
+            };
+
             Ok(CoinTxViewTmp {
                 order_id: tx.transaction.order_id,
                 tx_id: tx.transaction.tx_id,
@@ -83,7 +90,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
                 amount: raw2display(tx.transaction.amount),
                 expire_at: tx.transaction.expire_at,
                 memo: tx.transaction.memo,
-                stage: tx.transaction.stage,
+                stage,
                 coin_tx_raw: tx.transaction.coin_tx_raw,
                 chain_tx_raw: tx.transaction.chain_tx_raw,
                 signatures: tx

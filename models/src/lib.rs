@@ -28,6 +28,7 @@ extern crate jsonrpc_client_http;
 extern crate postgres;
 extern crate rustc_serialize;
 
+use common::env::DB_SERVICE;
 use postgres::{Client, NoTls, Row};
 
 use anyhow::anyhow;
@@ -76,8 +77,8 @@ fn connect_db() -> Result<Client> {
         global_conf.service_mode.to_string()
     );
     let url = format!(
-        "host=localhost user=postgres port=8068 password=postgres dbname=backend_{}",
-        global_conf.service_mode
+        "{} dbname=backend_{}",
+        DB_SERVICE.to_string(),global_conf.service_mode
     );
     let cli = Client::connect(&url, NoTls).map_err(|error| {
         error!("connect postgresql failed,{:?}", error);

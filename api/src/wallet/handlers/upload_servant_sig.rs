@@ -4,6 +4,7 @@ use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
+use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 
 use crate::utils::token_auth;
@@ -42,6 +43,9 @@ pub async fn req(
             tx.transaction.stage,
             CoinSendStage::Created,
         ))?;
+    }
+    if tx.transaction.expire_at > now_millis() {
+        Err(WalletError::TxExpired)?;
     }
 
     tx.transaction.signatures.push(signature);

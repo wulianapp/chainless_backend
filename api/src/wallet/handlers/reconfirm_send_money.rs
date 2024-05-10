@@ -3,6 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
+use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use tracing::{debug, info};
 
@@ -26,6 +27,9 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
 
     let coin_tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    if coin_tx.transaction.expire_at > now_millis() {
+        Err(WalletError::TxExpired)?;
+    }
     //区分receiver是否是子账户
     let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
     let strategy = multi_cli

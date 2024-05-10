@@ -26,6 +26,7 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
 use common::error_code::{AccountManagerError, WalletError::*};
 use common::utils::math::*;
+pub use common::prelude::*;
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -62,8 +63,6 @@ pub mod update_security;
 pub mod update_strategy;
 pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
-
-const MIN_BASE_FEE: u128 = 1u128 * BASE_DECIMAL;
 
 pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,

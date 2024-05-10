@@ -143,6 +143,7 @@ mod tests {
     use std::str::FromStr;
     use std::time::Duration;
     use tokio::time::sleep;
+    use common::prelude::*;
 
     use super::*;
 
@@ -162,7 +163,7 @@ mod tests {
             })
             .to_string()
             .into_bytes(),
-            gas: 100_000_000_000_000, // 100 TeraGas
+            gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
             deposit: 0,
         }))];
         let mut transaction = gen_transaction(from, &coin_type.to_string()).await.unwrap();

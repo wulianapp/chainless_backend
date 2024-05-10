@@ -9,6 +9,7 @@ use common::data_structures::CoinType;
 
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
+use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
@@ -41,6 +42,7 @@ pub(crate) async fn req(
         memo,
         is_forced,
     } = request_data;
+    let expire_at = now_millis() + DAY1;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
