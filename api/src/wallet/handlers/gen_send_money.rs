@@ -1,6 +1,6 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
-use common::data_structures::coin_transaction::CoinSendStage;
+use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
@@ -43,12 +43,19 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
         .map(|data| data.parse())
         .collect::<Result<Vec<_>, BackendError>>()?;
 
+    //跨链的数据库存的是对应的eth地址，构造交易的时候需要改为桥地址    
+    let to = if coin_tx.transaction.tx_type == TxType::MainToBridge {
+        common::env::CONF.bridge_near_contract.as_str()
+    }else{
+        coin_tx.transaction.to.as_str()
+    };
+
     let cli = blockchain::ContractClient::<MultiSig>::new()?;
     let (tx_id, chain_raw_tx) = cli
         .gen_send_money_raw(
             servant_sigs,
             &coin_tx.transaction.from,
-            &coin_tx.transaction.to,
+            to,
             coin_tx.transaction.coin_type,
             coin_tx.transaction.amount,
             coin_tx.transaction.expire_at,

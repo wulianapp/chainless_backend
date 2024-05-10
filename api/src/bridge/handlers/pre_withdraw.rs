@@ -40,7 +40,7 @@ pub(crate) async fn req(
     .await?
     .ok_or(BridgeError::NotBindEthAddr)?;
 
-    let to = common::env::CONF.bridge_near_contract.clone();
+    let bridge_ca = common::env::CONF.bridge_near_contract.clone();
 
     let PreWithdrawRequest {
         coin,
@@ -53,7 +53,7 @@ pub(crate) async fn req(
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
     }
-    
+
     let coin_type =
         CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
@@ -79,12 +79,12 @@ pub(crate) async fn req(
     let gen_tx_with_status =
         |stage: CoinSendStage| -> std::result::Result<CoinTxView, BackendError> {
             let coin_tx_raw = cli
-                .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
+                .gen_send_money_info(&from, &bridge_ca, coin_type.clone(), amount, expire_at)
                 .map_err(|err| ChainError(err.to_string()))?;
             Ok(CoinTxView::new_with_specified(
                 coin_type.clone(),
                 from.clone(),
-                to.clone(),
+                bridge_ca.clone(),
                 amount,
                 coin_tx_raw,
                 memo,
@@ -99,12 +99,13 @@ pub(crate) async fn req(
     if need_sig_num == 0 {
         let mut coin_info = gen_tx_with_status(CoinSendStage::ReceiverApproved)?;
         let (tx_id, chain_tx_raw) = cli
-            .gen_send_money_raw(vec![], &from, &to, coin_type, amount, expire_at)
+            .gen_send_money_raw(vec![], &from, &bridge_ca, coin_type, amount, expire_at)
             .await?;
 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
+        coin_info.transaction.to = eth_addr;
         coin_info.insert()?;
         Ok(Some((
             coin_info.transaction.order_id,
@@ -113,6 +114,7 @@ pub(crate) async fn req(
     } else {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::MainToBridge;
+        coin_info.transaction.to = eth_addr;
         coin_info.insert()?;
         Ok(None)
     }

@@ -78,8 +78,9 @@ pub async fn req(
             )?;
         //给其他主账户转是用户自己签名，需要生成tx_raw
         } else if tx.transaction.tx_type == TxType::Forced {
-            let cli = ContractClient::<MultiSig>::new()?;
 
+            //todo: 83~102 line is redundant，txid生成在gen_send_money的时候进行了
+            let cli = ContractClient::<MultiSig>::new()?;
             let servant_sigs = tx
                 .transaction
                 .signatures
@@ -99,6 +100,7 @@ pub async fn req(
                     tx.transaction.expire_at,
                 )
                 .await?;
+
             models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),

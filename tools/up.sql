@@ -126,5 +126,6 @@ create table ethereum_bridge_order
     reserved_field3 text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp,
-    CONSTRAINT bridge_order_type_and_id PRIMARY KEY (id, order_type)
+    --考虑到回滚的情况，唯一限制的时候加上状态
+    CONSTRAINT bridge_order_type_status_id PRIMARY KEY (order_type,status,id)
 );
