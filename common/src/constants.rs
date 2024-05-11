@@ -1,6 +1,9 @@
-use crate::utils::{math::BASE_DECIMAL, time::{DAY1, DAY7, MINUTE1, MINUTE2, MINUTE10, MINUTE30}};
+use crate::utils::{
+    math::BASE_DECIMAL,
+    time::{DAY1, DAY7, MINUTE1, MINUTE10, MINUTE2, MINUTE30},
+};
 
-/*** 
+/***
 //验证每次请求的间隔
 pub const CAPTCHA_REQUEST_INTERVAL: u64 = MINUTE1;
 //验证码的有效时间
@@ -20,7 +23,6 @@ pub const TX_EXPAIRE_TIME: u64 = DAY1;
 pub const BRIDGE_DEPOSIT_EXPIRE_TIME: u64 = MINUTE30;
 **/
 
-
 //验证每次请求的间隔
 pub const CAPTCHA_REQUEST_INTERVAL: u64 = MINUTE1;
 //验证码的有效时间
@@ -38,4 +40,3 @@ pub const TX_EXPAIRE_TIME: u64 = MINUTE2;
 
 //充值有效时间
 pub const BRIDGE_DEPOSIT_EXPIRE_TIME: u64 = MINUTE2;
-

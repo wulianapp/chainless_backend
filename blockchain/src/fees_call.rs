@@ -124,9 +124,10 @@ impl ContractClient<FeesCall> {
         Ok((coin, fees_amount))
     }
 
-    pub async fn get_user_txs(&self,account_id: &str) -> 
-        Result<Vec<(String,u128,Option<String>,String)>> 
-    {
+    pub async fn get_user_txs(
+        &self,
+        account_id: &str,
+    ) -> Result<Vec<(String, u128, Option<String>, String)>> {
         //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
         //AccountId, AccountId, u128, Option<String>, String
 
@@ -134,13 +135,8 @@ impl ContractClient<FeesCall> {
             "id":  AccountId::from_str(account_id)?,
         })
         .to_string();
-    //        let (fees_id, fees_amount, tx_hash, _memo): Vec<(
-        let all_tx : Vec<(
-            String,
-            u128,
-            Option<String>,
-            String,
-        )> = self
+        //        let (fees_id, fees_amount, tx_hash, _memo): Vec<(
+        let all_tx: Vec<(String, u128, Option<String>, String)> = self
             .query_call("get_user_txs", &args_str)
             .await?
             .unwrap_or(vec![]);

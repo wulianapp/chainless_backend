@@ -6,17 +6,18 @@ use actix_web::{get, post, web, HttpRequest, Responder};
 
 use blockchain::bridge_on_near;
 use blockchain::bridge_on_near::Status;
-use common::data_structures::{bridge::{DepositStatus, WithdrawStatus}, CoinType};
+use common::data_structures::{
+    bridge::{DepositStatus, WithdrawStatus},
+    CoinType,
+};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
 
 //use captcha::{ContactType, VerificationCode};
 
 use crate::utils::respond::gen_extra_respond;
-use common::log::generate_trace_id;
 use crate::utils::respond::get_lang;
-
-
+use common::log::generate_trace_id;
 
 /**
  * @api {post} /bridge/preWithdraw 主钱包发起提现跨链的预交易
@@ -62,7 +63,10 @@ async fn pre_withdraw(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::pre_withdraw::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::pre_withdraw::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -93,7 +97,10 @@ async fn bind_eth_addr(
     request_data: web::Json<BindEthAddrRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond( get_lang(&req),handlers::bind_eth_addr::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::bind_eth_addr::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -160,7 +167,10 @@ async fn gen_deposit_sig(
     request_data: web::Json<GenDepositSigRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond( get_lang(&req),handlers::gen_deposit_sig::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::gen_deposit_sig::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -180,7 +190,10 @@ async fn gen_deposit_sig(
 #[get("/bridge/getBindedEthAddr")]
 async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond( get_lang(&req),handlers::get_binded_eth_addr::req(req).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::get_binded_eth_addr::req(req).await,
+    )
 }
 
 /**
@@ -219,15 +232,15 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ListWithdrawOrderResponse {
     pub order_id: String,
-    pub chain_id: u128,                    //外链id
-    pub account_id: String,                //无链id
-    pub symbol: CoinType,                  //代币符号
-    pub amount: String,                    
-    pub address: String,                   //外链地址
-    pub signatures: Vec<String>,              //签名详情
-    pub status: WithdrawStatus,                    //订单提现状态
-    pub updated_at: String,                //更新时间
-    pub created_at: String,                //创建时间
+    pub chain_id: u128,     //外链id
+    pub account_id: String, //无链id
+    pub symbol: CoinType,   //代币符号
+    pub amount: String,
+    pub address: String,         //外链地址
+    pub signatures: Vec<String>, //签名详情
+    pub status: WithdrawStatus,  //订单提现状态
+    pub updated_at: String,      //更新时间
+    pub created_at: String,      //创建时间
 }
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -237,10 +250,15 @@ pub struct ListWithdrawOrderRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listWithdrawOrder")]
-async fn list_withdraw_order(req: HttpRequest,request_data: web::Query<ListWithdrawOrderRequest>) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::list_withdraw_order::req(req,request_data.into_inner()).await)
+async fn list_withdraw_order(
+    req: HttpRequest,
+    request_data: web::Query<ListWithdrawOrderRequest>,
+) -> impl Responder {
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::list_withdraw_order::req(req, request_data.into_inner()).await,
+    )
 }
-
 
 /**
 * @api {get} /bridge/listDepositOrder 查询跨链充值订单列表
@@ -276,20 +294,26 @@ async fn list_withdraw_order(req: HttpRequest,request_data: web::Query<ListWithd
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ListDepositOrderResponse {
     pub order_id: String,
-    pub chain_id: u128,                    //外链id
-    pub account_id: String,                //无链id
-    pub symbol: CoinType,                  //代币符号
-    pub amount: String,                    //
-    pub address: String,                   //外链地址
-    pub status: DepositStatus,                    //订单充值状态
-    pub updated_at: String,                //更新时间
-    pub created_at: String,                //创建时间
+    pub chain_id: u128,        //外链id
+    pub account_id: String,    //无链id
+    pub symbol: CoinType,      //代币符号
+    pub amount: String,        //
+    pub address: String,       //外链地址
+    pub status: DepositStatus, //订单充值状态
+    pub updated_at: String,    //更新时间
+    pub created_at: String,    //创建时间
 }
 type ListDepositOrderRequest = ListWithdrawOrderRequest;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listDepositOrder")]
-async fn list_deposit_order(req: HttpRequest,request_data: web::Query<ListDepositOrderRequest>) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::list_deposit_order::req(req,request_data.into_inner()).await)
+async fn list_deposit_order(
+    req: HttpRequest,
+    request_data: web::Query<ListDepositOrderRequest>,
+) -> impl Responder {
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::list_deposit_order::req(req, request_data.into_inner()).await,
+    )
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -335,13 +359,12 @@ mod tests {
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
     use crate::account_manager::handlers::user_info::UserInfoTmp;
+    use actix_web::http::header::HeaderName;
+    use actix_web::http::header::HeaderValue;
     use common::data_structures::CoinType;
     use models::account_manager::UserInfoView;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
-    use actix_web::http::header::HeaderValue;
-    use actix_web::http::header::HeaderName;
-
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {

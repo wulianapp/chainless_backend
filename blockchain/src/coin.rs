@@ -136,6 +136,7 @@ impl ContractClient<Coin> {
 mod tests {
     use crate::general::gen_transaction;
     use common::data_structures::CoinType;
+    use common::prelude::*;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::{self, BorshSerialize};
     use near_primitives::types::AccountId;
@@ -143,7 +144,6 @@ mod tests {
     use std::str::FromStr;
     use std::time::Duration;
     use tokio::time::sleep;
-    use common::prelude::*;
 
     use super::*;
 

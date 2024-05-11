@@ -25,8 +25,8 @@ use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
 use common::error_code::{AccountManagerError, WalletError::*};
-use common::utils::math::*;
 pub use common::prelude::*;
+use common::utils::math::*;
 
 pub mod add_servant;
 pub mod add_subaccount;
@@ -182,9 +182,7 @@ pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
-
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))
-    .map_err(|err| {
+    let user = UserInfoView::find_single(UserFilter::ById(user_id)).map_err(|err| {
         if err.to_string().contains("DBError::DataNotFound") {
             WalletError::MainAccountNotExist(err.to_string()).into()
         } else {

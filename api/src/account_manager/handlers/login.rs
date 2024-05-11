@@ -12,10 +12,10 @@ use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes};
-use common::utils::time::{now_millis};
+use common::prelude::*;
+use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
 use models::{account_manager, PsqlOp};
-use common::prelude::*;
 
 lazy_static! {
     static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());

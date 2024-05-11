@@ -40,7 +40,7 @@ pub(crate) async fn req(
         to,
         coin,
         amount,
-        expire_at,
+        expire_at: _,
         memo,
     } = request_data;
     let expire_at = now_millis() + DAY1;

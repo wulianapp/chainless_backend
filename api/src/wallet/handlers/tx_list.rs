@@ -77,7 +77,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         .map(|tx| -> Result<_> {
             let stage = if now_millis() > tx.transaction.expire_at {
                 CoinSendStage::MultiSigExpired
-            }else{
+            } else {
                 tx.transaction.stage
             };
 

@@ -35,11 +35,11 @@ use models::secret_store::SecretStoreView;
 use crate::account_manager::handlers::user_info::UserInfoTmp;
 use crate::wallet::handlers::get_strategy::StrategyDataTmp;
 use crate::wallet::*;
+use actix_web::http::header::HeaderName;
+use actix_web::http::header::HeaderValue;
 use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
-use actix_web::http::header::HeaderValue;
-use actix_web::http::header::HeaderName;
 
 #[derive(Debug, Clone)]
 pub struct TestWallet {
@@ -273,7 +273,7 @@ macro_rules! test_service_call {
             test::TestRequest::post()
                 .uri($api)
                 .insert_header(header::ContentType::json())
-                .insert_header(("ChainLessLanguage","ZH_TW"))
+                .insert_header(("ChainLessLanguage", "ZH_TW"))
         } else {
             test::TestRequest::get().uri($api)
         };

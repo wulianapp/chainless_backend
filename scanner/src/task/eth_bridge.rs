@@ -23,12 +23,12 @@ pub async fn get_last_process_height() -> Result<u64> {
 }
 
 //listen and then insert pending
-pub fn listen_newest_block(){
+pub fn listen_newest_block() {
     todo!()
 }
 
 //listen and then update to confirm
-pub fn listen_confirmed_block(){
+pub fn listen_confirmed_block() {
     todo!()
 }
 

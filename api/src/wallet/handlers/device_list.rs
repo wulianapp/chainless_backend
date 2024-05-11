@@ -29,16 +29,17 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     */
     let devices: Vec<DeviceInfoView> = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id))?;
 
-
-    let mut devices : Vec<DeviceInfo>= devices.into_iter().map(|x| x.device_info).collect();
+    let mut devices: Vec<DeviceInfo> = devices.into_iter().map(|x| x.device_info).collect();
     //order by master <- servant <- undefined
-    devices.sort_by(|a,b| {
-        if a.key_role == KeyRole2::Master || (a.key_role == KeyRole2::Servant && b.key_role == KeyRole2::Undefined) {
+    devices.sort_by(|a, b| {
+        if a.key_role == KeyRole2::Master
+            || (a.key_role == KeyRole2::Servant && b.key_role == KeyRole2::Undefined)
+        {
             Ordering::Less
-        }else {
+        } else {
             Ordering::Greater
         }
     });
-  
+
     Ok(Some(devices))
 }

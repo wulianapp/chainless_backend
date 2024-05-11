@@ -78,7 +78,8 @@ fn connect_db() -> Result<Client> {
     );
     let url = format!(
         "{} dbname=backend_{}",
-        DB_SERVICE.to_string(),global_conf.service_mode
+        DB_SERVICE.to_string(),
+        global_conf.service_mode
     );
     let cli = Client::connect(&url, NoTls).map_err(|error| {
         error!("connect postgresql failed,{:?}", error);

@@ -22,40 +22,39 @@ use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use tracing::error;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
+use tracing::error;
 
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
 
 //todo: txs 放在上层
-async fn get_actual_fee(account_id:&str,dist_tx_id:&str) -> Result<Vec<(CoinType,u128)>>{
+async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinType, u128)>> {
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
     let txs = fees_call_cli.get_user_txs(account_id).await?;
-    for (index,(fee_id,amount,tx_id,memo)) in txs.iter().enumerate(){
-        if let Some(id) = tx_id{
+    for (index, (fee_id, amount, tx_id, _memo)) in txs.iter().enumerate() {
+        if let Some(id) = tx_id {
             if id == hex_to_bs58(dist_tx_id)?.as_str() {
                 let gas_fee_token = fee_id.parse()?;
                 let gas_fee_amount = amount;
-                let protocol_fee_token = txs[index+1].0.parse()?;
-                let protocol_fee_amount  = txs[index+1].1;
-
+                let protocol_fee_token = txs[index + 1].0.parse()?;
+                let protocol_fee_amount = txs[index + 1].1;
 
                 if gas_fee_token == protocol_fee_token {
-                    return Ok(vec![(gas_fee_token,gas_fee_amount +  protocol_fee_amount)]);
-                }else {
+                    return Ok(vec![(gas_fee_token, gas_fee_amount + protocol_fee_amount)]);
+                } else {
                     return Ok(vec![
-                        (gas_fee_token,*gas_fee_amount),
-                        (protocol_fee_token,protocol_fee_amount)
+                        (gas_fee_token, *gas_fee_amount),
+                        (protocol_fee_token, protocol_fee_amount),
                     ]);
                 }
             }
         }
     }
-    Err(anyhow!("tx_id: {} not found on fees_call",dist_tx_id))
+    Err(anyhow!("tx_id: {} not found on fees_call", dist_tx_id))
 }
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
@@ -110,14 +109,14 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
 
     let fees_detail = if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
-        get_actual_fee(&main_account,tx_id)
-        .await?
-        .into_iter()
-        .map(|(fee_coin,amount)| FeesDetailResponse {
-            fee_coin,
-            fee_amount: raw2display(amount)
-        })
-        .collect()
+        get_actual_fee(&main_account, tx_id)
+            .await?
+            .into_iter()
+            .map(|(fee_coin, amount)| FeesDetailResponse {
+                fee_coin,
+                fee_amount: raw2display(amount),
+            })
+            .collect()
     } else {
         let (fee_coin, fee_amount, _balance_enough) = super::estimate_transfer_fee(
             &tx.transaction.from,
@@ -127,12 +126,12 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .await?;
         vec![FeesDetailResponse {
             fee_coin,
-            fee_amount: raw2display(fee_amount)
+            fee_amount: raw2display(fee_amount),
         }]
     };
     let stage = if now_millis() > tx.transaction.expire_at {
         CoinSendStage::MultiSigExpired
-    }else{
+    } else {
         tx.transaction.stage
     };
     let tx = GetTxResponse {

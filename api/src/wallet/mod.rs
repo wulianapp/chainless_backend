@@ -18,14 +18,13 @@ use crate::account_manager::{
 use tracing::{debug, span, Level};
 
 use self::handlers::balance_list::AccountType;
+use crate::utils::respond::get_lang;
 use common::data_structures::{
     coin_transaction::{CoinSendStage, CoinTransaction, TxType},
     get_support_coin_list, TxStatusOnChain,
 };
-use handlers::ServentSigDetail;
 use common::log::generate_trace_id;
-use crate::utils::respond::get_lang;
-
+use handlers::ServentSigDetail;
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -110,7 +109,7 @@ pub struct SearchMessageResponse {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/searchMessage")]
 async fn search_message(req: HttpRequest) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::search_message::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::search_message::req(req).await)
 }
 
 /**
@@ -141,7 +140,7 @@ async fn search_message(req: HttpRequest) -> impl Responder {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/getStrategy")]
 async fn get_strategy(req: HttpRequest) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::get_strategy::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::get_strategy::req(req).await)
 }
 
 /**
@@ -214,7 +213,7 @@ async fn estimate_transfer_fee(
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/getFeesPriority")]
 async fn get_fees_priority(req: HttpRequest) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::get_fees_priority::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::get_fees_priority::req(req).await)
 }
 
 /**
@@ -266,7 +265,10 @@ async fn get_secret(
         "req_params:: {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::get_secret::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::get_secret::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -323,7 +325,10 @@ async fn pre_send_money(
         "req_params:: {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::pre_send_money::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::pre_send_money::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -375,7 +380,10 @@ async fn pre_send_money_to_sub(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::pre_send_money_to_sub::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::pre_send_money_to_sub::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -416,7 +424,10 @@ async fn react_pre_send_money(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::react_pre_send_money::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::react_pre_send_money::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -460,7 +471,10 @@ async fn reconfirm_send_money(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::reconfirm_send_money::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::reconfirm_send_money::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -502,7 +516,10 @@ async fn cancel_send_money(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::cancel_send_money::req(req, request_data).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::cancel_send_money::req(req, request_data).await,
+    )
 }
 
 /**
@@ -550,7 +567,10 @@ async fn sub_send_to_main(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::sub_send_to_main::req(req, request_data).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::sub_send_to_main::req(req, request_data).await,
+    )
 }
 
 /**
@@ -593,7 +613,10 @@ async fn upload_servant_sig(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::upload_servant_sig::req(req, request_data).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::upload_servant_sig::req(req, request_data).await,
+    )
 }
 
 /**
@@ -645,7 +668,10 @@ async fn add_servant(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::add_servant::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::add_servant::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -690,7 +716,10 @@ async fn newcommer_switch_servant(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::newcommer_switch_servant::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::newcommer_switch_servant::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -727,7 +756,10 @@ async fn remove_servant(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::remove_servant::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::remove_servant::req(req, request_data.0).await,
+    )
 }
 
 /***
@@ -750,7 +782,10 @@ async fn remove_servant(
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/servantSavedSecret")]
 async fn servant_saved_secret(req: HttpRequest) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::servant_saved_secret::req(req).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::servant_saved_secret::req(req).await,
+    )
 }
 
 /**
@@ -796,7 +831,10 @@ async fn add_subaccount(
         "req_params:: {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::add_subaccount::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::add_subaccount::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -836,7 +874,10 @@ async fn remove_subaccount(
         "req_params:: {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(get_lang(&req),handlers::remove_subaccount::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::remove_subaccount::req(req, request_data.0).await,
+    )
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -885,7 +926,10 @@ async fn update_strategy(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::update_strategy::req(req, request_data).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::update_strategy::req(req, request_data).await,
+    )
 }
 
 /**
@@ -923,7 +967,10 @@ async fn set_fees_priority(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::set_fees_priority::req(req, request_data).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::set_fees_priority::req(req, request_data).await,
+    )
 }
 
 /**
@@ -1019,7 +1066,10 @@ async fn update_security(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::update_security::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::update_security::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1073,7 +1123,10 @@ async fn create_main_account(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::create_main_account::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::create_main_account::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1098,7 +1151,7 @@ async fn create_main_account(
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
 async fn faucet_claim(req: HttpRequest) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::faucet_claim::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::faucet_claim::req(req).await)
 }
 
 /**
@@ -1156,7 +1209,10 @@ async fn balance_list(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::balance_list::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::balance_list::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -1205,7 +1261,10 @@ async fn single_balance(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::single_balance::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::single_balance::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -1282,7 +1341,10 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond( get_lang(&req),handlers::tx_list::req(req, request_data.0).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::tx_list::req(req, request_data.0).await,
+    )
 }
 
 /**
@@ -1347,7 +1409,7 @@ pub struct GetTxRequest {
     order_id: String,
 }
 
-#[derive(Deserialize, Serialize,Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct FeesDetailResponse {
     fee_coin: CoinType,
@@ -1371,14 +1433,17 @@ pub struct GetTxResponse {
     pub unsigned_device: Vec<ServentSigDetail>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
-    pub fees_detail:Vec<FeesDetailResponse>,
+    pub fees_detail: Vec<FeesDetailResponse>,
     pub updated_at: String,
     pub created_at: String,
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/getTx")]
 async fn get_tx(req: HttpRequest, request_data: web::Query<GetTxRequest>) -> impl Responder {
-    gen_extra_respond( get_lang(&req),handlers::get_tx::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::get_tx::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1408,8 +1473,7 @@ async fn get_tx(req: HttpRequest, request_data: web::Query<GetTxRequest>) -> imp
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/deviceList")]
 async fn device_list(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(        get_lang(&req),
-    handlers::device_list::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::device_list::req(req).await)
 }
 
 /**
@@ -1454,8 +1518,8 @@ async fn gen_newcomer_switch_master(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(        get_lang(&req),
-
+    gen_extra_respond(
+        get_lang(&req),
         handlers::gen_newcomer_switch_master::req(req, request_data.into_inner()).await,
     )
 }
@@ -1496,8 +1560,8 @@ async fn gen_servant_switch_master(
     req: HttpRequest,
     request_data: web::Json<GenServantSwitchMasterRequest>,
 ) -> impl Responder {
-    gen_extra_respond(        get_lang(&req),
-
+    gen_extra_respond(
+        get_lang(&req),
         handlers::gen_servant_switch_master::req(req, request_data.into_inner()).await,
     )
 }
@@ -1536,8 +1600,10 @@ async fn get_need_sig_num(
     req: HttpRequest,
     request_data: web::Json<GetNeedSigNumRequest>,
 ) -> impl Responder {
-    gen_extra_respond(        get_lang(&req),
-    handlers::get_need_sig_num::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::get_need_sig_num::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1572,8 +1638,10 @@ async fn gen_send_money(
     req: HttpRequest,
     request_data: web::Json<GenSendMoneyRequest>,
 ) -> impl Responder {
-    gen_extra_respond(        get_lang(&req),
-    handlers::gen_send_money::req(req, request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::gen_send_money::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1672,10 +1740,10 @@ async fn commit_servant_switch_master(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
- 
+
     gen_extra_respond(
         get_lang(&req),
-        handlers::commit_servant_switch_master::req(req, request_data.into_inner()).await
+        handlers::commit_servant_switch_master::req(req, request_data.into_inner()).await,
     )
 }
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -1741,6 +1809,8 @@ mod tests {
     use models::{account_manager, secret_store, PsqlOp};
     use serde_json::json;
 
+    use actix_web::http::header::HeaderName;
+    use actix_web::http::header::HeaderValue;
     use actix_web::Error;
     use blockchain::multi_sig::StrategyData;
     use blockchain::multi_sig::{CoinTx, MultiSig};
@@ -1749,8 +1819,6 @@ mod tests {
     use common::data_structures::secret_store::SecretStore;
     use common::data_structures::AccountMessage;
     use common::encrypt::ed25519_key_gen;
-    use actix_web::http::header::HeaderValue;
-    use actix_web::http::header::HeaderName;
 
     use common::utils::math;
     use models::secret_store::SecretStoreView;
@@ -2614,8 +2682,7 @@ mod tests {
         assert_eq!(estimate_res.coin.to_string(), "usdt");
         assert!(estimate_res.amount.parse::<f32>().unwrap() < 7.0);
         assert!(estimate_res.amount.parse::<f32>().unwrap() > 6.0);
-        let estimate_res =
-        test_estimate_transfer_fee!(service, sender_master, "BTC", "1").unwrap();
+        let estimate_res = test_estimate_transfer_fee!(service, sender_master, "BTC", "1").unwrap();
         assert!(estimate_res.amount.parse::<f32>().unwrap() == 20.0);
     }
 

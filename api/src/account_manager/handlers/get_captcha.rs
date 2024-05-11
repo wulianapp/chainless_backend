@@ -6,7 +6,7 @@ use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently}
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
-use tracing::{debug, info,error};
+use tracing::{debug, error, info};
 
 use crate::account_manager::{
     self, user_info, GetCaptchaWithTokenRequest, GetCaptchaWithoutTokenRequest,
@@ -14,10 +14,10 @@ use crate::account_manager::{
 use crate::utils::captcha::Usage::*;
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
 use crate::utils::{captcha, token_auth};
-use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
-use common::utils::time::{now_millis};
 use common::env::CONF;
+use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::prelude::*;
+use common::utils::time::now_millis;
 
 fn get(
     device_id: String,
@@ -60,9 +60,9 @@ fn get(
         //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供
         //todo: 异步处理
         tokio::spawn(async move {
-            if let Err(error) = email::send_email(&captcha.code, &contact){
+            if let Err(_error) = email::send_email(&captcha.code, &contact) {
                 error!("send code failed {:?}", captcha);
-            }else{
+            } else {
                 debug!("send code successful {:?}", captcha);
             }
         });
@@ -85,15 +85,14 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_user_res = UserInfoView::find_single(
-                UserFilter::ByPhoneOrEmail(&contact)
-            ).map_err(|err| {
-                if err.to_string().contains("DBError::DataNotFound") {
-                    AccountManagerError::PhoneOrEmailNotRegister.into()
-                } else {
-                    BackendError::InternalError(err.to_string())
-                }
-            })?;
+            let find_user_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
+                .map_err(|err| {
+                    if err.to_string().contains("DBError::DataNotFound") {
+                        AccountManagerError::PhoneOrEmailNotRegister.into()
+                    } else {
+                        BackendError::InternalError(err.to_string())
+                    }
+                })?;
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {

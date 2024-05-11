@@ -6,9 +6,9 @@ use actix_web::http::header;
 use common::env::ServiceMode;
 use common::error_code::BackendError::Authorization;
 use common::error_code::{BackendError, BackendRes};
+use common::prelude::*;
 use common::utils::math::gen_random_verify_code;
 use common::utils::time::{now_millis, DAY15, YEAR100};
-use common::prelude::*;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -38,7 +38,7 @@ pub fn create_jwt(
 ) -> Result<String, BackendError> {
     let iat = now_millis();
 
-    let exp =  iat + TOKEN_EXPAIRE_TIME;
+    let exp = iat + TOKEN_EXPAIRE_TIME;
 
     let claims = Claims::new(user_id, device_id, device_brand, iat, exp);
 

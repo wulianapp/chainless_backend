@@ -38,7 +38,7 @@ pub(crate) async fn req(
         to,
         coin,
         amount,
-        expire_at,
+        expire_at: _,
         memo,
         is_forced,
     } = request_data;
@@ -50,29 +50,28 @@ pub(crate) async fn req(
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
     let to_account_id = if to.contains("@") || to.contains('+') {
-        let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to))
-        .map_err(|err| {
-            if err.to_string().contains("DBError::DataNotFound") {
-                AccountManagerError::PhoneOrEmailNotRegister.into()
-            } else {
-                BackendError::InternalError(err.to_string())
-            }
-        })?;
+        let receiver =
+            UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to)).map_err(|err| {
+                if err.to_string().contains("DBError::DataNotFound") {
+                    AccountManagerError::PhoneOrEmailNotRegister.into()
+                } else {
+                    BackendError::InternalError(err.to_string())
+                }
+            })?;
 
         if !receiver.user_info.secruity_is_seted {
             Err(WalletError::ReceiverNotSetSecurity)?;
         }
         receiver.user_info.main_account
     } else {
-        let _receiver = UserInfoView::find_single(
-            UserFilter::ByMainAccount(&to)
-        ).map_err(|err| {
+        let _receiver =
+            UserInfoView::find_single(UserFilter::ByMainAccount(&to)).map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
                     WalletError::MainAccountNotExist(err.to_string()).into()
                 } else {
                     BackendError::InternalError(err.to_string())
                 }
-        })?;
+            })?;
         to
     };
 

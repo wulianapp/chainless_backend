@@ -30,7 +30,7 @@ use common::{
 };
 use serde::{de::value, Deserialize, Serialize};
 
-use super::{get_fees_priority};
+use super::get_fees_priority;
 
 pub(crate) async fn req(
     req: HttpRequest,

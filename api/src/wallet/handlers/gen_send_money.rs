@@ -43,10 +43,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
         .map(|data| data.parse())
         .collect::<Result<Vec<_>, BackendError>>()?;
 
-    //跨链的数据库存的是对应的eth地址，构造交易的时候需要改为桥地址    
+    //跨链的数据库存的是对应的eth地址，构造交易的时候需要改为桥地址
     let to = if coin_tx.transaction.tx_type == TxType::MainToBridge {
         common::env::CONF.bridge_near_contract.as_str()
-    }else{
+    } else {
         coin_tx.transaction.to.as_str()
     };
 

@@ -23,7 +23,7 @@ pub fn generate_ok_respond(info: Option<impl Serialize>) -> HttpResponse {
     })
 }
 
-pub fn generate_error_respond<E: ErrorCode + Display>(error: E,lang: LangType) -> HttpResponse {
+pub fn generate_error_respond<E: ErrorCode + Display>(error: E, lang: LangType) -> HttpResponse {
     if error.code() == 1 {
         error!("return_error_respond: {}", error.to_string());
     } else {
@@ -37,7 +37,7 @@ pub fn generate_error_respond<E: ErrorCode + Display>(error: E,lang: LangType) -
 }
 
 pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
-    lang:LangType,
+    lang: LangType,
     inner_res: BackendRes<D, E>,
 ) -> impl Responder {
     //        get_lang(&req),
@@ -49,17 +49,17 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
                 debug!("return_error_respond: {}", error.to_string());
                 HttpResponse::Unauthorized().json(error.to_string())
             } else {
-                generate_error_respond(error,lang)
+                generate_error_respond(error, lang)
             }
         }
     }
 }
 
-pub fn get_lang(req: &HttpRequest) -> LangType{
-    req
-    .headers()
-    .get("ChainLessLanguage")
-    .map(|k| k.to_str().unwrap_or("EN_US").to_string())
-    .unwrap_or("EN_US".to_string())
-    .parse().unwrap()
+pub fn get_lang(req: &HttpRequest) -> LangType {
+    req.headers()
+        .get("ChainLessLanguage")
+        .map(|k| k.to_str().unwrap_or("EN_US").to_string())
+        .unwrap_or("EN_US".to_string())
+        .parse()
+        .unwrap()
 }

@@ -82,7 +82,6 @@ pub async fn req(
             )?;
         //给其他主账户转是用户自己签名，需要生成tx_raw
         } else if tx.transaction.tx_type == TxType::Forced {
-
             //todo: 83~102 line is redundant，txid生成在gen_send_money的时候进行了
             let cli = ContractClient::<MultiSig>::new()?;
             let servant_sigs = tx
