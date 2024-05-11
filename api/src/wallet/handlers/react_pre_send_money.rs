@@ -27,7 +27,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
 
     let coin_tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
-    if coin_tx.transaction.expire_at > now_millis() {
+    if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
     if coin_tx.transaction.stage != CoinSendStage::SenderSigCompleted {

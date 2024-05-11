@@ -111,7 +111,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .await?;
         (coin, amount)
     };
-    let stage = if tx.transaction.expire_at > now_millis() {
+    let stage = if now_millis() > tx.transaction.expire_at {
         CoinSendStage::MultiSigExpired
     }else{
         tx.transaction.stage

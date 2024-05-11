@@ -27,7 +27,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
 
     let coin_tx =
         models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
-    if coin_tx.transaction.expire_at > now_millis() {
+    if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
     //区分receiver是否是子账户

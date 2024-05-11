@@ -44,7 +44,7 @@ pub async fn req(
             CoinSendStage::Created,
         ))?;
     }
-    if tx.transaction.expire_at > now_millis() {
+    if now_millis() > tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
 

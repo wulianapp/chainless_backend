@@ -11,7 +11,7 @@ use tracing::{debug, Level};
 //use captcha::{ContactType, VerificationCode};
 
 use crate::utils::respond::gen_extra_respond;
-
+use common::log::generate_trace_id;
 /**
  * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,
  * @apiVersion 0.0.1
@@ -387,6 +387,28 @@ async fn reset_password(
     gen_extra_respond(handlers::reset_password::req(req, request_data).await)
 }
 
+
+/**
+ * @api {post} /accountManager/genToken   生成新的token
+ * @apiVersion 0.0.1
+ * @apiName GenToken
+ * @apiGroup AccountManager
+ * @apiExample {curl} Example usage:
+ *    curl -X POST http://120.232.251.101:8066/accountManager/ssssss -H "Content-Type: application/json" -d
+ *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
+* @apiSuccess {String=0,1,2002,2003,2004,2008} status_code         状态码.
+* @apiSuccess {String} msg  状态详情
+ * @apiSuccess {String} data                token值.
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
+ */
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[post("/accountManager/genToken")]
+async fn gen_token(
+    req: HttpRequest
+) -> impl Responder {
+    gen_extra_respond(handlers::gen_token::req(req).await)
+}
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg
         //.service(get_captcha)
@@ -400,6 +422,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(get_captcha_without_token)
         .service(check_captcha)
         .service(get_user_device_role)
+        .service(gen_token)
         .service(reset_password);
 }
 
