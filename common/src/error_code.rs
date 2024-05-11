@@ -6,6 +6,8 @@ use thiserror::Error;
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
 use std::error::Error as StdError;
+use strum_macros::{Display, EnumString, ToString};
+
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -264,4 +266,16 @@ impl ErrorCode for ExternalServiceError {
 
 pub trait ErrorCode {
     fn code(&self) -> u16;
+}
+
+
+#[derive(EnumString, Display, PartialEq, Default)]
+pub enum LangType {
+    #[strum(ascii_case_insensitive)]
+    ZH_TW,
+    #[strum(ascii_case_insensitive)]
+    ZH_CN,
+    #[default]
+    #[strum(ascii_case_insensitive)]
+    EN_US
 }

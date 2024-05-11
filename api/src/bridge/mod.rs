@@ -13,6 +13,8 @@ use tracing::{debug, Level};
 //use captcha::{ContactType, VerificationCode};
 
 use crate::utils::respond::gen_extra_respond;
+use common::log::generate_trace_id;
+
 
 /**
  * @api {post} /bridge/preWithdraw 主钱包发起提现跨链的预交易
@@ -48,7 +50,7 @@ pub struct PreWithdrawRequest {
     memo: Option<String>,
 }
 
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/preWithdraw")]
 async fn pre_withdraw(
     request: HttpRequest,
@@ -82,7 +84,7 @@ pub struct BindEthAddrRequest {
     eth_addr: String,
     user_eth_sig: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/bindEthAddr")]
 async fn bind_eth_addr(
     req: HttpRequest,
@@ -111,7 +113,7 @@ async fn bind_eth_addr(
 pub struct GenBindEthAddrSigRequest {
     eth_addr: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genBindEthAddrSig")]
 async fn gen_bind_eth_addr_sig(
     request: HttpRequest,
@@ -148,7 +150,7 @@ pub struct GenDepositSigRequest {
     coin: String,
     amount: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genDepositSig")]
 async fn gen_deposit_sig(
     request: HttpRequest,
@@ -171,7 +173,7 @@ async fn gen_deposit_sig(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/getBindedEthAddr")]
 async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -230,7 +232,7 @@ pub struct ListWithdrawOrderRequest {
     pub page: usize,
     pub per_page: usize,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listWithdrawOrder")]
 async fn list_withdraw_order(request: HttpRequest,request_data: web::Query<ListWithdrawOrderRequest>) -> impl Responder {
     gen_extra_respond(handlers::list_withdraw_order::req(request,request_data.into_inner()).await)
@@ -281,7 +283,7 @@ pub struct ListDepositOrderResponse {
     pub created_at: String,                //创建时间
 }
 type ListDepositOrderRequest = ListWithdrawOrderRequest;
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listDepositOrder")]
 async fn list_deposit_order(request: HttpRequest,request_data: web::Query<ListDepositOrderRequest>) -> impl Responder {
     gen_extra_respond(handlers::list_deposit_order::req(request,request_data.into_inner()).await)

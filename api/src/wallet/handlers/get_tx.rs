@@ -1,5 +1,5 @@
 use crate::utils::token_auth;
-use crate::wallet::CreateMainAccountRequest;
+use crate::wallet::{CreateMainAccountRequest, FeesDetailResponse};
 use crate::wallet::{GetTxRequest, GetTxResponse};
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Result};
@@ -113,16 +113,22 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         get_actual_fee(&main_account,tx_id)
         .await?
         .into_iter()
-        .map(|(coin,amount)| (coin,raw2display(amount)))
+        .map(|(fee_coin,amount)| FeesDetailResponse {
+            fee_coin,
+            fee_amount: raw2display(amount)
+        })
         .collect()
     } else {
-        let (coin, amount, _balance_enough) = super::estimate_transfer_fee(
+        let (fee_coin, fee_amount, _balance_enough) = super::estimate_transfer_fee(
             &tx.transaction.from,
             &tx.transaction.coin_type,
             tx.transaction.amount,
         )
         .await?;
-        vec![(coin, raw2display(amount))]
+        vec![FeesDetailResponse {
+            fee_coin,
+            fee_amount: raw2display(fee_amount)
+        }]
     };
     let stage = if now_millis() > tx.transaction.expire_at {
         CoinSendStage::MultiSigExpired

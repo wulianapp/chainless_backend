@@ -35,7 +35,7 @@ pub struct GetCaptchaWithoutTokenRequest {
     contact: String,
     kind: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithoutToken")]
 async fn get_captcha_without_token(
     request_data: web::Json<GetCaptchaWithoutTokenRequest>,
@@ -66,7 +66,7 @@ pub struct GetCaptchaWithTokenRequest {
     contact: String,
     kind: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithToken")]
 async fn get_captcha_with_token(
     request: HttpRequest,
@@ -99,7 +99,7 @@ async fn get_captcha_with_token(
 pub struct ContactIsUsedRequest {
     contact: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
     //request_data: web::Json<ContactIsUsedRequest>,
@@ -132,7 +132,7 @@ pub struct CheckCaptchaRequest {
     captcha: String,
     usage: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/checkCaptcha")]
 async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Responder {
     debug!(
@@ -171,7 +171,7 @@ async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Re
  */
 
 type UserInfoRequest = ContactIsUsedRequest;
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/userInfo")]
 async fn user_info(request: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -210,7 +210,7 @@ pub struct RegisterByEmailRequest {
     predecessor_invite_code: Option<String>,
 }
 
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByEmail")]
 async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -249,7 +249,7 @@ pub struct RegisterByPhoneRequest {
     //pubkey: String,
     predecessor_invite_code: Option<String>,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
 async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -281,7 +281,7 @@ pub struct LoginRequest {
     contact: String,
     password: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/login")]
 //todo: rename with loginByPassword
 async fn login_by_password(request_data: web::Json<LoginRequest>) -> impl Responder {
@@ -310,7 +310,7 @@ pub struct GetUserDeviceRoleRequest {
     device_id: String,
     contact: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/getUserDeviceRole")]
 async fn get_user_device_role(
     request_data: web::Query<GetUserDeviceRoleRequest>,
@@ -344,7 +344,7 @@ pub struct LoginByCaptchaRequest {
     contact: String,
     captcha: String,
 }
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/loginByCaptcha")]
 async fn login_by_captcha(request_data: web::Json<LoginByCaptchaRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -377,7 +377,7 @@ pub struct ResetPasswordRequest {
     device_id: String,
 }
 
-#[tracing::instrument(skip_all,fields(trace_id = common::log::generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
 async fn reset_password(
     req: HttpRequest,
