@@ -1,13 +1,35 @@
-use std::{fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
+use serde::Deserialize;
 use thiserror::Error;
 
 pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
+use tracing::debug;
 use std::error::Error as StdError;
 use strum_macros::{Display, EnumString, ToString};
+use serde_json;
 
+#[derive(Deserialize,Debug,Default)]
+pub struct MultiLangErrMsg {
+    zh_cn: String,
+    zh_tw: String,
+    en_us: String
+}
+
+lazy_static! {
+    pub static ref ERR_CONF: HashMap<u16,MultiLangErrMsg> = {
+        let mut json_path = std::env::current_dir().unwrap();
+        json_path.pop(); 
+        json_path.push("tools/err_code.json");
+    
+        let json_str = std::fs::read_to_string(json_path).unwrap();
+        let err_code_map: HashMap<u16, MultiLangErrMsg> = serde_json::from_str(&json_str).unwrap();
+        debug!("all_error_code_{:#?}",err_code_map);
+        err_code_map
+    };
+}
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -117,8 +139,6 @@ pub enum AccountManagerError {
     CaptchaUsageNotAllowed,
     #[error("PredecessorNotSetSecurity")]
     PredecessorNotSetSecurity,
-    #[error("UserNotSetSecurity")]
-    UserNotSetSecurity,
 }
 
 impl ErrorCode for AccountManagerError {
@@ -134,10 +154,9 @@ impl ErrorCode for AccountManagerError {
             Self::CaptchaRequestTooFrequently(_) => 2011,
             Self::AccountLocked(_) => 2012,
             Self::InviteCodeNotExist => 2013,
-            Self::UserIdNotExist => 2014,
-            Self::CaptchaUsageNotAllowed => 2015,
+            Self::UserIdNotExist => 2014,   //todo:interal
+            Self::CaptchaUsageNotAllowed => 2015,//todo:params
             Self::PredecessorNotSetSecurity => 2016,
-            Self::UserNotSetSecurity => 2017,
         }
     }
 }
@@ -219,6 +238,7 @@ impl ErrorCode for WalletError {
             Self::ReceiverIsNotSubaccount => 3019,
             Self::MainAccountAlreadyExist(_) => 3020,
             Self::OrderNotFound(_) => 3021,
+
             Self::FobidTransferZero => 3022,
             Self::StrategyRankIllegal => 3023,
             Self::ServantNumReachLimit => 3024,
@@ -238,7 +258,7 @@ impl ErrorCode for BridgeError {
         match self {
             Self::NotBindEthAddr => 4000,
         }
-    }
+    }    
 }
 
 #[derive(Error, Debug)]
@@ -264,8 +284,27 @@ impl ErrorCode for ExternalServiceError {
     }
 }
 
-pub trait ErrorCode {
+pub trait ErrorCode: ToString  {
     fn code(&self) -> u16;
+    fn status_msg(&self,lang:LangType) -> String{
+         match ERR_CONF.get(&self.code()) {
+            Some(info) => {
+                match lang {
+                    LangType::ZH_TW => {
+                            info.zh_tw.to_string()
+                    },
+                    LangType::ZH_CN => {
+                            info.zh_cn.to_string()
+                    },
+                    LangType::EN_US => {
+                            info.en_us.to_string()                        
+                    }
+                }
+            },
+            None => self.to_string()
+        }
+     
+    }
 }
 
 

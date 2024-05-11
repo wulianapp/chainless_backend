@@ -85,7 +85,15 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_user_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
+            let find_user_res = UserInfoView::find_single(
+                UserFilter::ByPhoneOrEmail(&contact)
+            ).map_err(|err| {
+                if err.to_string().contains("DBError::DataNotFound") {
+                    AccountManagerError::PhoneOrEmailNotRegister.into()
+                } else {
+                    BackendError::InternalError(err.to_string())
+                }
+            })?;
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {
@@ -142,10 +150,10 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
 }
 
 pub fn with_token_req(
-    request: HttpRequest,
+    req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&request)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind
         .parse()

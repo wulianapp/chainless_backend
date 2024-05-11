@@ -38,6 +38,8 @@ use crate::wallet::*;
 use common::data_structures::CoinType;
 use models::account_manager::UserInfoView;
 use tracing::{debug, error, info};
+use actix_web::http::header::HeaderValue;
+use actix_web::http::header::HeaderName;
 
 #[derive(Debug, Clone)]
 pub struct TestWallet {
@@ -271,6 +273,7 @@ macro_rules! test_service_call {
             test::TestRequest::post()
                 .uri($api)
                 .insert_header(header::ContentType::json())
+                .insert_header(("ChainLessLanguage","ZH_TW"))
         } else {
             test::TestRequest::get().uri($api)
         };
@@ -301,7 +304,7 @@ macro_rules! test_register {
             let _payload = json!({
                 "deviceId":  $app.device.id,
                 "contact": $app.user.contact,
-                "kind": "Register"
+                "kind": "Register2"
             });
             /***
             let _res: BackendRespond<String> = test_service_call!(

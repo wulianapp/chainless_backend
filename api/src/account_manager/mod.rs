@@ -12,6 +12,8 @@ use tracing::{debug, Level};
 
 use crate::utils::respond::gen_extra_respond;
 use common::log::generate_trace_id;
+use crate::utils::respond::get_lang;
+
 /**
  * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,
  * @apiVersion 0.0.1
@@ -38,10 +40,11 @@ pub struct GetCaptchaWithoutTokenRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithoutToken")]
 async fn get_captcha_without_token(
+    req: HttpRequest,
     request_data: web::Json<GetCaptchaWithoutTokenRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_captcha::without_token_req(
+    gen_extra_respond( get_lang(&req),handlers::get_captcha::without_token_req(
         request_data.into_inner(),
     ))
 }
@@ -69,12 +72,12 @@ pub struct GetCaptchaWithTokenRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithToken")]
 async fn get_captcha_with_token(
-    request: HttpRequest,
+    req: HttpRequest,
     request_data: web::Json<GetCaptchaWithTokenRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_captcha::with_token_req(
-        request,
+    gen_extra_respond( get_lang(&req),handlers::get_captcha::with_token_req(
+        req,
         request_data.into_inner(),
     ))
 }
@@ -103,10 +106,11 @@ pub struct ContactIsUsedRequest {
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
     //request_data: web::Json<ContactIsUsedRequest>,
+    req: HttpRequest,
     request_data: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::contact_is_used::req(request_data.into_inner()))
+    gen_extra_respond( get_lang(&req),handlers::contact_is_used::req(request_data.into_inner()))
 }
 
 /**
@@ -134,12 +138,13 @@ pub struct CheckCaptchaRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/checkCaptcha")]
-async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Responder {
+async fn check_captcha(    req: HttpRequest,
+    request_data: web::Query<CheckCaptchaRequest>) -> impl Responder {
     debug!(
         "request_data {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(handlers::check_captcha::req(request_data.into_inner()))
+    gen_extra_respond( get_lang(&req),handlers::check_captcha::req(request_data.into_inner()))
 }
 
 /**
@@ -173,9 +178,9 @@ async fn check_captcha(request_data: web::Query<CheckCaptchaRequest>) -> impl Re
 type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/userInfo")]
-async fn user_info(request: HttpRequest) -> impl Responder {
+async fn user_info(req: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::user_info::req(request).await)
+    gen_extra_respond( get_lang(&req),handlers::user_info::req(req).await)
 }
 
 /**
@@ -212,9 +217,10 @@ pub struct RegisterByEmailRequest {
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByEmail")]
-async fn register_by_email(request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
+async fn register_by_email(    req: HttpRequest,
+    request_data: web::Json<RegisterByEmailRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::register::by_email::req(request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::register::by_email::req(request_data.into_inner()).await)
 }
 
 /**
@@ -251,9 +257,10 @@ pub struct RegisterByPhoneRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
-async fn register_by_phone(request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
+async fn register_by_phone(    req: HttpRequest,
+    request_data: web::Json<RegisterByPhoneRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::register::by_phone::req(request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::register::by_phone::req(request_data.into_inner()).await)
 }
 
 /**
@@ -284,9 +291,10 @@ pub struct LoginRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/login")]
 //todo: rename with loginByPassword
-async fn login_by_password(request_data: web::Json<LoginRequest>) -> impl Responder {
+async fn login_by_password(    req: HttpRequest,
+    request_data: web::Json<LoginRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::login::req_by_password(request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::login::req_by_password(request_data.into_inner()).await)
 }
 
 /**
@@ -313,10 +321,11 @@ pub struct GetUserDeviceRoleRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/getUserDeviceRole")]
 async fn get_user_device_role(
+    req: HttpRequest,
     request_data: web::Query<GetUserDeviceRoleRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_user_device_role::req(request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::get_user_device_role::req(request_data.into_inner()).await)
 }
 
 /**
@@ -346,9 +355,10 @@ pub struct LoginByCaptchaRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/loginByCaptcha")]
-async fn login_by_captcha(request_data: web::Json<LoginByCaptchaRequest>) -> impl Responder {
+async fn login_by_captcha(    req: HttpRequest,
+    request_data: web::Json<LoginByCaptchaRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::login::req_by_captcha(request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::login::req_by_captcha(request_data.into_inner()).await)
 }
 
 /**
@@ -384,7 +394,7 @@ async fn reset_password(
     request_data: web::Json<ResetPasswordRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::reset_password::req(req, request_data).await)
+    gen_extra_respond( get_lang(&req),handlers::reset_password::req(req, request_data).await)
 }
 
 
@@ -407,7 +417,7 @@ async fn reset_password(
 async fn gen_token(
     req: HttpRequest
 ) -> impl Responder {
-    gen_extra_respond(handlers::gen_token::req(req).await)
+    gen_extra_respond( get_lang(&req),handlers::gen_token::req(req).await)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -438,6 +448,8 @@ mod tests {
     use actix_web::{test, App, Error};
     use std::env;
     use tests::handlers::user_info::UserInfoTmp;
+    use actix_web::http::header::HeaderValue;
+    use actix_web::http::header::HeaderName;
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {

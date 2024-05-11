@@ -14,6 +14,8 @@ use tracing::{debug, Level};
 
 use crate::utils::respond::gen_extra_respond;
 use common::log::generate_trace_id;
+use crate::utils::respond::get_lang;
+
 
 
 /**
@@ -53,14 +55,14 @@ pub struct PreWithdrawRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/preWithdraw")]
 async fn pre_withdraw(
-    request: HttpRequest,
+    req: HttpRequest,
     request_data: web::Json<PreWithdrawRequest>,
 ) -> impl Responder {
     debug!(
         "req_params::  {}",
         serde_json::to_string(&request_data.0).unwrap()
     );
-    gen_extra_respond(handlers::pre_withdraw::req(request, request_data.0).await)
+    gen_extra_respond( get_lang(&req),handlers::pre_withdraw::req(req, request_data.0).await)
 }
 
 /**
@@ -91,7 +93,7 @@ async fn bind_eth_addr(
     request_data: web::Json<BindEthAddrRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::bind_eth_addr::req(req, request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::bind_eth_addr::req(req, request_data.into_inner()).await)
 }
 
 /**
@@ -116,12 +118,13 @@ pub struct GenBindEthAddrSigRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genBindEthAddrSig")]
 async fn gen_bind_eth_addr_sig(
-    request: HttpRequest,
+    req: HttpRequest,
     request_data: web::Json<GenBindEthAddrSigRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
-        handlers::gen_bind_eth_addr_sig::req(request, request_data.into_inner()).await,
+        get_lang(&req),
+        handlers::gen_bind_eth_addr_sig::req(req, request_data.into_inner()).await,
     )
 }
 
@@ -153,11 +156,11 @@ pub struct GenDepositSigRequest {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genDepositSig")]
 async fn gen_deposit_sig(
-    request: HttpRequest,
+    req: HttpRequest,
     request_data: web::Json<GenDepositSigRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::gen_deposit_sig::req(request, request_data.into_inner()).await)
+    gen_extra_respond( get_lang(&req),handlers::gen_deposit_sig::req(req, request_data.into_inner()).await)
 }
 
 /**
@@ -175,9 +178,9 @@ async fn gen_deposit_sig(
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/getBindedEthAddr")]
-async fn get_binded_eth_addr(request: HttpRequest) -> impl Responder {
+async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(handlers::get_binded_eth_addr::req(request).await)
+    gen_extra_respond( get_lang(&req),handlers::get_binded_eth_addr::req(req).await)
 }
 
 /**
@@ -234,8 +237,8 @@ pub struct ListWithdrawOrderRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listWithdrawOrder")]
-async fn list_withdraw_order(request: HttpRequest,request_data: web::Query<ListWithdrawOrderRequest>) -> impl Responder {
-    gen_extra_respond(handlers::list_withdraw_order::req(request,request_data.into_inner()).await)
+async fn list_withdraw_order(req: HttpRequest,request_data: web::Query<ListWithdrawOrderRequest>) -> impl Responder {
+    gen_extra_respond( get_lang(&req),handlers::list_withdraw_order::req(req,request_data.into_inner()).await)
 }
 
 
@@ -285,8 +288,8 @@ pub struct ListDepositOrderResponse {
 type ListDepositOrderRequest = ListWithdrawOrderRequest;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listDepositOrder")]
-async fn list_deposit_order(request: HttpRequest,request_data: web::Query<ListDepositOrderRequest>) -> impl Responder {
-    gen_extra_respond(handlers::list_deposit_order::req(request,request_data.into_inner()).await)
+async fn list_deposit_order(req: HttpRequest,request_data: web::Query<ListDepositOrderRequest>) -> impl Responder {
+    gen_extra_respond( get_lang(&req),handlers::list_deposit_order::req(req,request_data.into_inner()).await)
 }
 
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
@@ -336,6 +339,9 @@ mod tests {
     use models::account_manager::UserInfoView;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
+    use actix_web::http::header::HeaderValue;
+    use actix_web::http::header::HeaderName;
+
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {

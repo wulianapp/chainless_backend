@@ -1,0 +1,168 @@
+{
+    "1": {
+      "zh_cn": "系统繁忙",
+      "zh_tw": "系統繁忙",
+      "en_us": "System Busy"
+    },
+    "2": {
+      "zh_cn": "参数错误",
+      "zh_tw": "參數錯誤",
+      "en_us": "Parameter Error"
+    },
+    "2002": {
+      "zh_tw": "驗證碼不存在",
+      "zh_cn": "验证码不存在",
+      "en_us": "_____CaptchaNotFound"
+    },
+    "2003": {
+        "zh_tw": "驗證碼已過期",
+        "zh_cn": "验证码已过期",
+        "en_us": "Verification code has expired"
+      },
+      "2004": {
+        "zh_tw": "驗證碼不正確",
+        "zh_cn": "验证码不正确",
+        "en_us": "Incorrect verification code"
+      },
+      "2005": {
+        "zh_tw": "帳號輸入格式錯誤",
+        "zh_cn": "账号输入格式错误",
+        "en_us": "Account input format error"
+      },
+      "2006": {
+        "zh_tw": "該帳號已註冊",
+        "zh_cn": "该账号已注册",
+        "en_us": "The account has been registered"
+      },
+      "2008": {
+        "zh_tw": "該帳號未註冊",
+        "zh_cn": "该账号未注册",
+        "en_us": "The account is not registered"
+      },
+      "2009": {
+        "zh_tw": "密碼錯誤",
+        "zh_cn": "密码错误",
+        "en_us": "Incorrect password"
+      },
+      "2011": {
+        "zh_tw": "驗證碼請求過於頻繁",
+        "zh_cn": "验证码请求过于频繁",
+        "en_us": "Verification code request is too frequent"
+      },
+      "2012": {
+        "zh_tw": "帳戶鎖定中",
+        "zh_cn": "账户锁定中",
+        "en_us": "Account is locked"
+      },
+      "2013": {
+        "zh_tw": "上級邀請碼不存在",
+        "zh_cn": "上级邀请码不存在",
+        "en_us": "Superior invitation code does not exist"
+      },
+      "2016": {
+        "zh_tw": "上級未設置安全措施",
+        "zh_cn": "上级未设置安全措施",
+        "en_us": "Superior has not set security measures"
+      },
+      "3006": {
+        "zh_tw": "錢包ID不存在",
+        "zh_cn": "钱包ID不存在",
+        "en_us": "Wallet ID does not exist"
+      },
+      "3007": {
+        "zh_tw": "存在未完成的交易，無法操作",
+        "zh_cn": "存在未完成的交易，无法操作",
+        "en_us": "There are unfinished transactions, cannot operate"
+      },
+      "3008": {
+        "zh_tw": "當前設備權限不足",
+        "zh_cn": "当前设备权限不足",
+        "en_us": "Insufficient current device permissions"
+      },
+      "3009": {
+        "zh_tw": "轉帳數量超過帳戶持有上限",
+        "zh_cn": "转账数量超过账户持仓上限",
+        "en_us": "Transfer quantity exceeds account holding limit"
+      },
+      "3010": {
+        "zh_tw": "可用餘額不足",
+        "zh_cn": "可用余额不足",
+        "en_us": "Insufficient available balance"
+      },
+      "3011": {
+        "zh_tw": "用戶未設置安全問答",
+        "zh_cn": "用户未设置安全问答",
+        "en_us": "User has not set security questions"
+      },
+      "3012": {
+        "zh_tw": "交易已經確認",
+        "zh_cn": "交易已经确认",
+        "en_us": "Transaction has been confirmed"
+      },
+      "3013": {
+        "zh_tw": "交易訂單狀態不支持當前操作",
+        "zh_cn": "交易订单状态不支持当前操作",
+        "en_us": "Transaction order status does not support current operation"
+      },
+      "3014": {
+        "zh_tw": "帳戶存在餘額，不能刪除",
+        "zh_cn": "账户存在余额，不能删除",
+        "en_us": "There is a balance in the account and cannot be deleted"
+      },
+      "3015": {
+        "zh_tw": "錢包ID不存在",
+        "zh_cn": "钱包ID不存在",
+        "en_us": "Wallet ID does not exist"
+      },
+      "3016": {
+        "zh_tw": "當前帳戶不允許刪除",
+        "zh_cn": "当前账户不允许删除",
+        "en_us": "Current account is not allowed to be deleted"
+      },
+      "3018": {
+        "zh_tw": "接收者是合約帳戶",
+        "zh_cn": "接收者是合约账户",
+        "en_us": "Receiver is a contract account"
+      },
+      "3019": {
+        "zh_tw": "接收者不是合約帳戶",
+        "zh_cn": "接收者不是合约账户",
+        "en_us": "Receiver is not a contract account"
+      },
+      "3020": {
+        "zh_tw": "安全問答已設置過",
+        "zh_cn": "安全问答已设置过",
+        "en_us": "Security questions have been set"
+      },
+      "3021": {
+        "zh_tw": "訂單不存在",
+        "zh_cn": "订单不存在",
+        "en_us": "Order does not exist"
+      },
+      "3022": {
+        "zh_tw": "禁止转0",
+        "zh_cn": "禁止转0",
+        "en_us": "todo: FobidTransferZero"
+      },
+      "3023": {
+        "zh_tw": "非法梯度",
+        "zh_cn": "非法梯度",
+        "en_us": "todo:rank array of strategy is illegal"
+      },
+      "3024": {
+        "zh_tw": "达到从设备限制",
+        "zh_cn": "达到从设备限制",
+        "en_us": "todo:servant's num have already readch limit(11) "
+      },
+      "3025": {
+        "zh_tw": "用戶尚未綁定ETH地址",
+        "zh_cn": "用户尚未绑定ETH地址",
+        "en_us": "todo:Transaction is already more than 24h"
+      },
+      "4000": {
+        "zh_tw": "用戶尚未綁定ETH地址",
+        "zh_cn": "用户尚未绑定ETH地址",
+        "en_us": "User has not bound ETH address"
+      }
+      
+}

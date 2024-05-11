@@ -29,7 +29,7 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     super::check_role(current_role, KeyRole2::Master)?;
 
     let UpdateStrategy { strategy } = request_data.0;
-    if strategy.len() !=  current_strategy.servant_pubkeys.len() + 1 {
+    if strategy.len() >  current_strategy.servant_pubkeys.len() + 1 {
         Err(WalletError::StrategyRankIllegal)?;
     }
 
