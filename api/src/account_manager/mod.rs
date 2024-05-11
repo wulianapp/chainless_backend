@@ -393,13 +393,14 @@ async fn reset_password(
  * @apiVersion 0.0.1
  * @apiName GenToken
  * @apiGroup AccountManager
+ * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *    curl -X POST http://120.232.251.101:8066/accountManager/ssssss -H "Content-Type: application/json" -d
  *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
 * @apiSuccess {String=0,1,2002,2003,2004,2008} status_code         状态码.
 * @apiSuccess {String} msg  状态详情
  * @apiSuccess {String} data                token值.
- * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
+ * @apiSampleRequest http://120.232.251.101:8066/accountManager/genToken
  */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/genToken")]

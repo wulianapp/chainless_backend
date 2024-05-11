@@ -1,6 +1,7 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, StrategyData};
+use common::data_structures::{KeyRole, KeyRole2};
 
 use crate::utils::token_auth;
 use blockchain::ContractClient;
@@ -30,9 +31,9 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
 
 
     let mut devices : Vec<DeviceInfo>= devices.into_iter().map(|x| x.device_info).collect();
-    //新设备放到从设备之后
+    //order by master <- servant <- undefined
     devices.sort_by(|a,b| {
-        if a.hold_pubkey.is_some() && b.hold_pubkey.is_none(){
+        if a.key_role == KeyRole2::Master || (a.key_role == KeyRole2::Servant && b.key_role == KeyRole2::Undefined) {
             Ordering::Less
         }else {
             Ordering::Greater

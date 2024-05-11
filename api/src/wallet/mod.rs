@@ -1328,8 +1328,9 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
     Pending(待确认),
     Failed(失败),
     Successful(成功)}  data.chain_status       交易的链上状态
-* @apiSuccess {String=BTC,ETH,USDT,USDC,DW20}  data.fee_coin           手续费币种，Successful状态为实际否则为预估
-* @apiSuccess {String}  data.fee_amount         手续费数量，Successful状态为实际否则为预估
+* @apiSuccess {Object[]}  data.fees_detail           手续费详情,Successful状态为实际否则为预估
+* @apiSuccess {String=BTC,ETH,USDT,USDC,DW20}  data.fees_detail.0           手续费币种
+* @apiSuccess {String}  data.fees_detail.1         手续费数量
 * @apiSuccess {String} data.updated_at         交易更新时间戳
 * @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
@@ -1358,8 +1359,7 @@ pub struct GetTxResponse {
     pub unsigned_device: Vec<ServentSigDetail>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
-    pub fee_coin: CoinType,
-    pub fee_amount: String,
+    pub fees_detail:Vec<(CoinType,String)>,
     pub updated_at: String,
     pub created_at: String,
 }

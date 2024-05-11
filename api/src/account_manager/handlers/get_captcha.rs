@@ -6,7 +6,7 @@ use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently}
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
-use tracing::{debug, info};
+use tracing::{debug, info,error};
 
 use crate::account_manager::{
     self, user_info, GetCaptchaWithTokenRequest, GetCaptchaWithoutTokenRequest,
@@ -50,6 +50,7 @@ fn get(
     }
 
     let captcha = Captcha::new(storage_key, device_id, kind);
+    captcha.store()?;
 
     if contract_type == ContactType::PhoneNumber {
         Err(BackendError::InternalError(
@@ -58,12 +59,16 @@ fn get(
     } else {
         //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供
         //todo: 异步处理
-        email::send_email(&captcha.code, &contact)?;
+        tokio::spawn(async move {
+            if let Err(error) = email::send_email(&captcha.code, &contact){
+                error!("send code failed {:?}", captcha);
+            }else{
+                debug!("send code successful {:?}", captcha);
+            }
+        });
     };
 
-    captcha.store()?;
     //todo: delete expired captcha，so as to avoid use too much memory
-    debug!("send code {:?}", captcha);
     Ok(None::<String>)
 }
 

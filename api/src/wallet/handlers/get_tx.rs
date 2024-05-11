@@ -22,6 +22,7 @@ use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
+use tracing::error;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -30,18 +31,26 @@ use std::sync::Mutex;
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
 
-async fn get_actual_fee(account_id:&str,dist_tx_id:&str) -> Result<(CoinType,u128)>{
+//todo: txs 放在上层
+async fn get_actual_fee(account_id:&str,dist_tx_id:&str) -> Result<Vec<(CoinType,u128)>>{
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
     let txs = fees_call_cli.get_user_txs(account_id).await?;
     for (index,(fee_id,amount,tx_id,memo)) in txs.iter().enumerate(){
         if let Some(id) = tx_id{
             if id == hex_to_bs58(dist_tx_id)?.as_str() {
-                if txs[index+1].0 == *fee_id {
-                    let total_fee = txs[index+1].1 + amount;
-                    let fee_coin = fee_id.parse()?;
-                    return Ok((fee_coin,total_fee));
+                let gas_fee_token = fee_id.parse()?;
+                let gas_fee_amount = amount;
+                let protocol_fee_token = txs[index+1].0.parse()?;
+                let protocol_fee_amount  = txs[index+1].1;
+
+
+                if gas_fee_token == protocol_fee_token {
+                    return Ok(vec![(gas_fee_token,gas_fee_amount +  protocol_fee_amount)]);
                 }else {
-                    Err(anyhow!("txs[index-1].0 not equal txs[index].0"))?;
+                    return Ok(vec![
+                        (gas_fee_token,*gas_fee_amount),
+                        (protocol_fee_token,protocol_fee_amount)
+                    ]);
                 }
             }
         }
@@ -99,9 +108,13 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
-    let (fee_coin, fee_amount) = if tx.transaction.chain_status == TxStatusOnChain::Successful {
+    let fees_detail = if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
-        get_actual_fee(&main_account,tx_id).await?
+        get_actual_fee(&main_account,tx_id)
+        .await?
+        .into_iter()
+        .map(|(coin,amount)| (coin,raw2display(amount)))
+        .collect()
     } else {
         let (coin, amount, _balance_enough) = super::estimate_transfer_fee(
             &tx.transaction.from,
@@ -109,7 +122,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             tx.transaction.amount,
         )
         .await?;
-        (coin, amount)
+        vec![(coin, raw2display(amount))]
     };
     let stage = if now_millis() > tx.transaction.expire_at {
         CoinSendStage::MultiSigExpired
@@ -133,8 +146,9 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         unsigned_device,
         tx_type: tx.transaction.tx_type,
         chain_status: tx.transaction.chain_status,
-        fee_coin,
-        fee_amount: raw2display(fee_amount),
+        //fee_coin,
+        //fee_amount: raw2display(fee_amount),
+        fees_detail,
         updated_at: tx.updated_at,
         created_at: tx.created_at,
     };
