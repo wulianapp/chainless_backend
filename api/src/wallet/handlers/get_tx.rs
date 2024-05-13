@@ -109,7 +109,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
 
     let fees_detail = if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
-        get_actual_fee(&main_account, tx_id)
+        get_actual_fee(&tx.transaction.from, tx_id)
             .await?
             .into_iter()
             .map(|(fee_coin, amount)| FeesDetailResponse {

@@ -57,7 +57,7 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
 
 pub fn get_lang(req: &HttpRequest) -> LangType {
     req.headers()
-        .get("ChainLessLanguage")
+        .get("Language")
         .map(|k| k.to_str().unwrap_or("EN_US").to_string())
         .unwrap_or("EN_US".to_string())
         .parse()
