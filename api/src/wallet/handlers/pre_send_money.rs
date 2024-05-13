@@ -74,6 +74,9 @@ pub(crate) async fn req(
             })?;
         to
     };
+    if to_account_id == user.main_account {
+        Err(WalletError::ForbideTransferSelf)?
+    }
 
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;

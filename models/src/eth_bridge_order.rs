@@ -48,7 +48,7 @@ impl fmt::Display for BridgeOrderFilter<'_> {
                 id
             ),
             BridgeOrderFilter::ByTypeAndAccountId(order_type, id) => format!(
-                "where order_type='{}' and chainless_acc='{}' ",
+                "where order_type='{}' and chainless_acc='{}' order by created_at desc",
                 order_type.to_string(),
                 id
             ),

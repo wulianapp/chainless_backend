@@ -101,8 +101,9 @@ mod tests {
     }
     #[tokio::test]
     async fn tools_batch_approve() {
-        let address = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
-        let relayer_addr = "cb5afaa026d3de65de0ddcfb1a464be8960e334a";
+        let relayer_addr = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
+        //bridge
+        let spender = "0x2100B8B03E91646135C549B1Bc04455eF867cA30";
 
         let coins = get_support_coin_list();
         for coin in coins {
@@ -110,15 +111,14 @@ mod tests {
                 continue;
             }
             let cli = EthContractClient::<Erc20>::new(&coin).unwrap();
-            let balance = cli.balance_of(address).await.unwrap();
+            let balance = cli.balance_of(relayer_addr).await.unwrap();
             println!("coin {} balance__{}", coin.to_string(), balance);
-            let spender = hex::encode(cli.contract_addr);
             let amount = 10000000000000000 * 10u128.pow(18);
 
             let _approve_res = cli.relayer_approve(&spender, amount).await.unwrap();
 
             let allow_amount = cli.allowance(relayer_addr, &spender).await.unwrap();
-            println!("coin: {} ,allow_amount__{}", coin, allow_amount);
+            println!("coin: {} ,spender={},relayer_addr={},allow_amount__{}", coin, spender,relayer_addr,allow_amount);
         }
     }
 

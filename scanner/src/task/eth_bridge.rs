@@ -9,15 +9,16 @@ use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::PsqlOp;
 use tracing::info;
 
-const CONFIRM_NUM: u64 = 6;
+const CONFIRM_NUM: u64 = 1;
 
 //如果没历史监控数据，则从固定检查点开始扫,如果有则从历史数据中的最后高度开始扫
 pub async fn get_last_process_height() -> Result<u64> {
     let last_order = EthBridgeOrderView::find(BridgeOrderFilter::Limit(1))?;
     if last_order.is_empty() {
         //Ok(get_current_block().await)
-        Ok(1270960)
+        Ok(1322262)
     } else {
+        //Ok(1322262)
         Ok(last_order[0].order.height)
     }
 }

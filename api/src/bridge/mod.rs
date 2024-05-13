@@ -224,7 +224,6 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
     ExternalChainPending(外链提现确认中),
     ExternalChainConfirmed(外链提现确认完毕),
 } data.status   订单状态
-* @apiSuccess {String} data.updated_at   更新时间
 * @apiSuccess {String} data.created_at   创建时间
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
@@ -239,7 +238,6 @@ pub struct ListWithdrawOrderResponse {
     pub address: String,         //外链地址
     pub signatures: Vec<String>, //签名详情
     pub status: WithdrawStatus,  //订单提现状态
-    pub updated_at: String,      //更新时间
     pub created_at: String,      //创建时间
 }
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]

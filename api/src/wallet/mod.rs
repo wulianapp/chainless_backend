@@ -2278,7 +2278,7 @@ mod tests {
         let eth_bridge_cli = EthContractClient::<Bridge>::new().unwrap();
         let mut index = 0;
         loop {
-            let (_, orders) = bridge_cli
+            let orders = bridge_cli
                 .list_order(&user_info.main_account)
                 .await
                 .unwrap()
@@ -2433,7 +2433,7 @@ mod tests {
                 .unwrap();
         let mut index = 0;
         loop {
-            let (_, orders) = bridge_cli
+            let orders = bridge_cli
                 .list_order(&user_info.main_account)
                 .await
                 .unwrap()

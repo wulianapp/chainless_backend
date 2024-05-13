@@ -57,8 +57,9 @@ pub struct BridgeOrder {
     pub signers: Vec<SignedOrder>,   //签名详情
     pub signature: Option<String>,   //充值签名
     pub status: Status,              //订单状态
-    pub create_at: u64,              //创建时间
-    pub update_at: u64,              //更新时间
+    pub block_number: u64,              //订单状态
+    pub txhash: Option<String>,              //创建时间
+    pub create_at: u64,              //更新时间
 }
 
 #[derive(Serialize, Deserialize, Clone, Eip712, EthAbiType, Debug)]
@@ -269,18 +270,29 @@ impl ContractClient<Bridge> {
 
     pub async fn get_last_deposit_order_id(&self) -> Result<Option<u128>> {
         let args_str = json!({}).to_string();
+        //todo: get from eth: deposit_id
         self.query_call("get_last_deposit_id", &args_str).await
     }
+    /**
+     * 
+     * 
+     *     pub create_at: u64,//创建时间
+            pub block_number: u64,
+
+    */
 
     pub async fn list_order(
         &self,
         account_id: &str,
-    ) -> Result<Option<(u128, Vec<(u128, BridgeOrder)>)>> {
+    ) -> Result<Option<Vec<(u128, BridgeOrder)>>> {
         let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({
             "account_id":user_account_id,
+            //todo
+            "order_type": "Withdraw",
             "chain_id": None::<u128>,
-            "max": self.get_last_withdraw_order_id().await?,
+            //"max": self.get_last_withdraw_order_id().await?,
+            "page": 1,
             "page_size":10000,
         })
         .to_string();
@@ -455,7 +467,7 @@ mod tests {
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await.unwrap();
         println!(
             "get_binded_eth_addr {:?} ",
-            current_binded_eth_addr.unwrap()
+            current_binded_eth_addr
         );
 
         let set_res = bridge_cli.set_user_batch("test").await;

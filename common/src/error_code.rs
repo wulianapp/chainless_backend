@@ -215,6 +215,8 @@ pub enum WalletError {
     ServantNumReachLimit,
     #[error("transaction is already more than 24h")]
     TxExpired,
+    #[error("ForbideTransferSelf")]
+    ForbideTransferSelf,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -245,6 +247,8 @@ impl ErrorCode for WalletError {
             Self::StrategyRankIllegal => 3023,
             Self::ServantNumReachLimit => 3024,
             Self::TxExpired => 3025,
+            Self::ForbideTransferSelf => 3026
+
         }
     }
 }

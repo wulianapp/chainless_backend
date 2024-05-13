@@ -12,6 +12,7 @@ use common::encrypt::bs58_to_hex;
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use tracing::error;
 
 use crate::utils::token_auth;
 use crate::wallet::SubSendToMainRequest;
@@ -40,14 +41,24 @@ pub async fn req(
     } = request_data.0;
     let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
 
+    let coin_type: CoinType = coin
+    .parse()
+    .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
+
+    let available_balance = super::get_available_amount(&subaccount_id, &coin_type).await?;
+    let available_balance = available_balance.unwrap_or(0);
+    if amount > available_balance {
+        error!(
+            "{},  {}(amount)  big_than1 {}(available_balance) ",
+            coin_type, amount, available_balance
+        );
+        Err(WalletError::InsufficientAvailableBalance)?;
+    }
+
     //from必须是用户的子账户
     let cli = ContractClient::<MultiSig>::new()?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
-    let coin_type: CoinType = coin
-        .parse()
-        .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
-
     models::general::transaction_begin()?;
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)

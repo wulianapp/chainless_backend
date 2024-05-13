@@ -28,8 +28,7 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
     let orders = bridge_cli.list_order(&main_account).await?;
 
     let orders = orders
-        .unwrap_or((0, vec![]))
-        .1
+        .unwrap_or(vec![])
         .into_iter()
         .filter(|(_id, info)| info.signature.is_none())
         .collect();
@@ -91,7 +90,7 @@ pub(crate) async fn req(
             address: info.address,
             status,
             signatures,
-            updated_at: timestamp2utc(info.update_at),
+            //updated_at: timestamp2utc(info.update_at),
             created_at: timestamp2utc(info.create_at),
         })
     }
