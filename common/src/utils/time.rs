@@ -5,6 +5,9 @@ pub const MINUTE1: u64 = 60 * 1000;
 
 pub const MINUTE2: u64 = 2 * 60 * 1000;
 
+pub const MINUTE5: u64 = 5 * 60 * 1000;
+
+
 pub const MINUTE10: u64 = 10 * MINUTE1;
 
 pub const MINUTE30: u64 = 30 * MINUTE1;

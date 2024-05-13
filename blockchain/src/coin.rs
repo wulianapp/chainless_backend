@@ -99,15 +99,14 @@ async fn get_balance(account: &AccountId) -> Result<u128> {
 impl ContractClient<Coin> {
     //fixme: gen once object
     pub fn new(coin: CoinType) -> Result<Self> {
-        //multi_sig7_test
-        //relayer_test=b0cd4ec0ef9382a7ca42c8a68d8d250c70c1bead7c004d8d78aa00c5a3cef7f7
-        let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
-            .parse()?;
-        let pubkey = get_pubkey(&pri_key.to_string())?;
-        //bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a
-        debug!("coin relayer punkey {}", pubkey);
-        let account_id: AccountId = AccountId::from_str(&pubkey)?;
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
+        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
+        let prikey_str: SecretKey = prikey_str.parse()?;
+
+        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
+        debug!("coin relayer_account  {}", relayer_account);
+
+        let relayer_account = AccountId::from_str(relayer_account)?;
+        let signer = near_crypto::InMemorySigner::from_secret_key(relayer_account, prikey_str);
         Ok(Self {
             deployed_at: coin.to_account_id(),
             relayer: signer,
