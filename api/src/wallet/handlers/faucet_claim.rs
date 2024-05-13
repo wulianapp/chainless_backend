@@ -17,7 +17,7 @@ use std::sync::Mutex;
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let user_id = token_auth::validate_credentials(&req)?;
     let main_account = super::get_main_account(user_id)?;
-    let coin_list = get_support_coin_list_without_cly();
+    let coin_list = get_support_coin_list();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
         let amount = if coin.eq(&CoinType::ETH) {

@@ -9,7 +9,7 @@ use anyhow::Error as AnyhowError;
 use serde_json;
 use std::error::Error as StdError;
 use strum_macros::{Display, EnumString, ToString};
-use tracing::debug;
+use tracing::{debug, info};
 
 #[derive(Deserialize, Debug, Default)]
 pub struct MultiLangErrMsg {
@@ -22,7 +22,9 @@ lazy_static! {
     pub static ref ERR_CONF: HashMap<u16, MultiLangErrMsg> = {
         let mut json_path = std::env::current_dir().unwrap();
         json_path.pop();
-        json_path.push("tools/err_code.json");
+        //todo:
+        json_path.push("/root/chainless_backend/tools/err_code.json");
+        debug!("json_path__{:?}", json_path);
 
         let json_str = std::fs::read_to_string(json_path).unwrap();
         let err_code_map: HashMap<u16, MultiLangErrMsg> = serde_json::from_str(&json_str).unwrap();
