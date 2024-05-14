@@ -53,6 +53,23 @@ pub struct SysInfo{
     pub free_total_token: Vec<(String, u128)> //释放token总和
 }
 
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct User{
+    pub user_account: AccountId,
+    pub user_is_real: bool,//是否实名
+    pub user_btc_address: String,//领取空投btc地址
+    pub user_level: u8,//用户级别
+    pub user_fans: u64,//用户粉丝
+    pub receive_real: bool,
+    pub receive_not_real: bool,
+    pub account_level: u8,//账户级别
+    pub invite_code: String,//推荐码
+    pub ref_account: AccountId,//上级账户id
+    pub invited_count: u64,//推荐人数
+    pub points: u64,// 总积分
+    pub expire_times: u64, // 修改上级倒计时时间，用于控制间隔时间
+}
+
 pub struct AirReward {}
 impl ContractClient<AirReward> {
     //fixme: gen once object
@@ -122,6 +139,15 @@ impl ContractClient<AirReward> {
         self.query_call("get_next_zero_sec", &args_str).await.map(|x| x.unwrap())
     }
 
+    //
+    pub async fn get_up_user_with_id(&self,account_id:&str) -> Result<Option<User>> {
+        let args_str = json!({
+            "account_id":account_id
+        })
+        .to_string();
+        self.query_call("get_up_user_with_id", &args_str).await
+    }
+
 
     //后台不做乘法计算，允许这里精度丢失
     pub async fn get_coin_price(&self, coin: &CoinType) -> Result<(u128, u128)> {
@@ -142,46 +168,20 @@ impl ContractClient<AirReward> {
         Ok(price)
     }
 
-    //base_fee
-    pub async fn get_tx_base_fee(&self, tx_id: &str) -> Result<(CoinType, u128)> {
-        //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
-        //AccountId, AccountId, u128, Option<String>, String
-
+    pub async fn receive_air(&self, 
+        id: &str,
+        ref_id: &str,
+        btc_addr_level: Option<(String,u8)>,
+        is_real: Option<bool>
+    ) -> Result<Option<String>> {
         let args_str = json!({
-            "hsh":  hex_to_bs58(tx_id)?,
+            "id":  id,
+            "ref_id":  Some(ref_id),
+            "btc_addr_level":  btc_addr_level,
+            "is_real":  is_real,
         })
         .to_string();
-        let (_user_id, fees_id, fees_amount, _tx_hash, _memo): (
-            String,
-            String,
-            u128,
-            Option<String>,
-            String,
-        ) = self
-            .query_call("get_tx_with_hash", &args_str)
-            .await?
-            .unwrap();
-        let coin: CoinType = fees_id.parse()?;
-        Ok((coin, fees_amount))
-    }
-
-    pub async fn get_user_txs(
-        &self,
-        account_id: &str,
-    ) -> Result<Vec<(String, u128, Option<String>, String)>> {
-        //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
-        //AccountId, AccountId, u128, Option<String>, String
-
-        let args_str = json!({
-            "id":  AccountId::from_str(account_id)?,
-        })
-        .to_string();
-        //        let (fees_id, fees_amount, tx_hash, _memo): Vec<(
-        let all_tx: Vec<(String, u128, Option<String>, String)> = self
-            .query_call("get_user_txs", &args_str)
-            .await?
-            .unwrap_or(vec![]);
-        Ok(all_tx)
+        self.query_call("receive_air", &args_str).await
     }
 }
 

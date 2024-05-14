@@ -555,5 +555,13 @@ mod tests {
                 }
             }
         }
+
     }
+    #[tokio::test]
+    async fn tool_list_order() {
+        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let orders = bridge_cli.list_order("25f1fd7f.local").await.unwrap();
+        println!("orders {:#?}",orders);
+    }
+
 }

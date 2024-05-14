@@ -73,6 +73,45 @@ async fn get_sys_info(
     )
 }
 
+
+/**
+ * @api {post} /AirReward/receiveAir 主设备添加从公钥
+ * @apiVersion 0.0.1
+ * @apiName receiveAir
+ * @apiGroup AirReward
+ * @apiBody {String} [btc_addr]   btc地址
+ * @apiBody {String} [sig]   btc对字符串[ChainlessReceiveAir]签名结果
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+             "servantPubkey": "123",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
+* @apiSuccess {String}    msg              错误信息 
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
+*/
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReceiveAirRequest {
+    btc_addr: Option<String>,
+    sig: Option<String>,
+}
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[post("/airReward/receiveAir")]
+async fn receive_air(
+    req: HttpRequest,
+    req_data: web::Json<ReceiveAirRequest>
+) -> impl Responder {
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::receive_air::req(req,req_data.into_inner()).await,
+    )
+}
 //todo: 空投卡的条件
 //主设备
 //kyc
@@ -135,6 +174,23 @@ mod tests {
 
         let sys_info = test_air_reward_get_sys_info!(service, sender_master).unwrap();
         println!("sys_info {:?}", sys_info);
+
+    }
+
+    #[actix_web::test]
+    async fn test_receive_air() {
+        println!("start test_receive_air");
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
+            gen_some_accounts_with_new_key();
+
+        test_register!(service, sender_master);
+        test_create_main_account!(service, sender_master);
+        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+
+        let call_res = test_receive_air!(service, sender_master);
+        println!("sys_info {:?}", call_res);
 
     }
 }

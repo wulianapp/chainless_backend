@@ -1099,3 +1099,23 @@ macro_rules! test_air_reward_get_sys_info {
         res.data
     }};
 }
+
+#[macro_export]
+macro_rules! test_receive_air {
+    ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "btc_addr": "aa",
+            "sig": ""
+        });
+        let url = format!("/airReward/receiveAir");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "Post",
+            &url,
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
