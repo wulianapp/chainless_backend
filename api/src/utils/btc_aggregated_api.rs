@@ -8,8 +8,8 @@ use serde::Deserialize;
 use rust_decimal::Decimal;
 
 pub struct AccountSummary {
-    days: i64,
-    balance: Decimal,
+    pub days: i64,
+    pub balance: Decimal,
 }
 
 #[derive(Deserialize)]
