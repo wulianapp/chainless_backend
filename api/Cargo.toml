@@ -18,6 +18,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 actix-cors = { workspace = true }
 actix-rt = { workspace = true }
+chrono = { workspace = true }
 tokio = { workspace = true }
 rand = { workspace = true }
 lettre = { workspace = true }
@@ -25,6 +26,7 @@ reqwest = { workspace = true }
 anyhow = { workspace = true }
 lazy_static = { workspace = true }
 regex = { workspace = true }
+rust_decimal = { workspace = true }
 actix-web-httpauth = { workspace = true }
 jsonwebtoken = { workspace = true }
 tracing = { workspace = true }

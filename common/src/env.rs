@@ -46,7 +46,7 @@ impl fmt::Display for ServiceMode {
 pub struct EnvConf {
     /// dev or pro
     pub service_mode: ServiceMode,
-    ///http service port
+    /// http service port
     pub api_port: usize,
     pub multi_sig_contract: String,
     pub fees_call_contract: String,
@@ -55,7 +55,7 @@ pub struct EnvConf {
     pub bridge_admin_prikey: String,
     /// ws servie prot
     pub multi_sig_relayer_prikey: String,
-    //relayer_account_id
+    /// relayer_account_id
     pub multi_sig_relayer_account_id: String,
     /// psql connect url
     pub wallet_api_port: usize,
@@ -77,15 +77,17 @@ pub struct EnvConf {
     pub stmp_port: usize,
     ///  vault contract address
     pub sms_server: String,
-    ///pri key for settlement
+    /// pri key for settlement
     pub sms_account: String,
-    ///bot key
+    /// bot key
     pub sms_token: String,
     pub eth_wbtc_contract: String,
     pub eth_usdt_contract: String,
     pub eth_usdc_contract: String,
     pub eth_dw20_contract: String,
     pub eth_cly_contract: String,
+    /// BTC aggregated API service
+    pub btc_aggregated_api_base_uri: String,
 }
 
 impl Default for EnvConf {
@@ -118,6 +120,7 @@ impl Default for EnvConf {
             eth_dw20_contract: "0x1234".to_string(),
             eth_cly_contract: "0x1234".to_string(),
             login_by_password_retry_time: 5,
+            btc_aggregated_api_base_uri: String::new()
         }
     }
 }
@@ -247,6 +250,10 @@ lazy_static! {
         if let Some(value) = env::var_os("BACKEND_SMTP_PORT"){
             println!("__{:?}",value.to_str().unwrap().to_string());
             conf.stmp_port  = value.to_str().unwrap().parse().unwrap();
+        }
+
+        if let Some(value) = env::var_os("BACKEND_BTC_AGGREGATED_API_BASE_URI"){
+            conf.btc_aggregated_api_base_uri  = value.to_str().unwrap().parse().unwrap();
         }
 
         conf
