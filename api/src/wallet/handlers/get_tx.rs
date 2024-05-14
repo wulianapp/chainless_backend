@@ -107,7 +107,9 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
-    let fees_detail = if tx.transaction.chain_status == TxStatusOnChain::Successful {
+    let fees_detail = if tx.transaction.tx_type == TxType::MainToSub || tx.transaction.tx_type == TxType::SubToMain{
+        vec![]
+    }else if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
         get_actual_fee(&tx.transaction.from, tx_id)
             .await?

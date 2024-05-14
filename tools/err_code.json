@@ -159,6 +159,11 @@
         "zh_cn": "用户尚未绑定ETH地址",
         "en_us": "todo:Transaction is already more than 24h"
       },
+      "3026": {
+        "zh_tw": "不能转给自己",
+        "zh_cn": "不能转给自己",
+        "en_us": "todo:ForbideTransferSelf"
+      },
       "4000": {
         "zh_tw": "用戶尚未綁定ETH地址",
         "zh_cn": "用户尚未绑定ETH地址",
