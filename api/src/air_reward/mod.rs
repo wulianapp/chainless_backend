@@ -21,12 +21,10 @@ use crate::utils::respond::get_lang;
 use common::log::generate_trace_id;
 
 /**
-* @api {get} /bridge/listDepositOrder 查询跨链充值订单列表
+* @api {get} /airReward/getSysInfo 获取合约公共信息
 * @apiVersion 0.0.1
-* @apiName ListDepositOrder
-* @apiGroup Bridge
-* @apiQuery {Number}                 perPage           每页的数量
-* @apiQuery {Number}                 page            页数的序列号
+* @apiName LetSysInfo
+* @apiGroup AirReward
 * @apiHeader {String} Authorization  user's access token
 * @apiExample {curl} Example usage:
 *   curl -X POST http://120.232.251.101:8066/wallet/getStrategy
@@ -39,21 +37,17 @@ use common::log::generate_trace_id;
 * @apiSuccess {Object} data.net_users        不关注
 * @apiSuccess {Number} data.net_users.user_receive_dw20       不关注
 * @apiSuccess {Number} data.net_users.user_receive_cly        不关注
-
 * @apiSuccess {String} data.admin            管理员
 * @apiSuccess {String} data.admin.0            -
 * @apiSuccess {String} data.admin.1            -
-
 * @apiSuccess {Object} data.settle_times       3,9,21,top排行榜已结算时间
 * @apiSuccess {Number} data.settle_times.three       
 * @apiSuccess {Number} data.settle_times.nine       
 * @apiSuccess {Number} data.settle_times.twenty_one   
-
 * @apiSuccess {Object} data.next_settle_times   下一次结算时间
 * @apiSuccess {Number} data.next_settle_times.three       
 * @apiSuccess {Number} data.next_settle_times.nine       
 * @apiSuccess {Number} data.next_settle_times.twenty_one   
-
 * @apiSuccess {Number} data.start_times     合约开始时间
 * @apiSuccess {Number} data.fire_times      点火时间，控制开始释放时间
 * @apiSuccess {Number} data.free_times      全局释放至时间

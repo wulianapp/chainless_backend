@@ -193,4 +193,11 @@ mod tests {
             println!("{}: price {} ", coin, price);
         }
     }
+
+    #[tokio::test]
+    async fn test_toos_get_users_tx() {
+        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let res = fees_cli.get_user_txs("25f1fd7f.local").await;
+        println!("_____{:#?}",res);
+    }
 }

@@ -88,21 +88,40 @@ impl ContractClient<AirReward> {
         self.query_call("get_sys_info", &args_str).await
     }
 
-    pub async fn get_fees_priority(&self, account_id: &str) -> Result<Vec<CoinType>> {
-        let user_account_id = AccountId::from_str(account_id)?;
+    pub async fn get_block_times(&self) -> Result<Option<u64>> {
+        let args_str = json!({})
+        .to_string();
+        self.query_call("get_block_times", &args_str).await
+    }
+
+    pub async fn get_reward_start_times(&self) -> Result<Option<u64>> {
+        let args_str = json!({})
+        .to_string();
+        self.query_call("get_reward_start_times", &args_str).await
+    }
+
+    pub async fn get_next_zero_sec(&self) -> Result<Option<u64>> {
+        let args_str = json!({})
+        .to_string();
+        self.query_call("get_next_zero_sec", &args_str).await
+    }
+
+
+    pub async fn get_net_users(&self) -> Result<Option<NetUsers>> {
+        let args_str = json!({})
+        .to_string();
+        self.query_call("get_next_zero_sec", &args_str).await
+    }
+
+    //
+    pub async fn is_invite_code_valid(&self,code:&str) -> Result<bool> {
         let args_str = json!({
-            "id": user_account_id,
+            "code":code
         })
         .to_string();
-        //contract return default priority when not set
-        let tokens: Option<Vec<String>> = self.query_call("get_user_tokens", &args_str).await?;
-        let tokens = tokens
-            .unwrap()
-            .iter()
-            .map(|x| x.parse::<CoinType>().map_err(|e| anyhow::anyhow!(e)))
-            .collect::<Result<Vec<CoinType>>>()?;
-        Ok(tokens)
+        self.query_call("get_next_zero_sec", &args_str).await.map(|x| x.unwrap())
     }
+
 
     //后台不做乘法计算，允许这里精度丢失
     pub async fn get_coin_price(&self, coin: &CoinType) -> Result<(u128, u128)> {
