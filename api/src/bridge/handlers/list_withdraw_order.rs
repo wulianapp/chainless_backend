@@ -11,6 +11,7 @@ use common::error_code::parse_str;
 use common::utils::time::timestamp2utc;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::PsqlOp;
+use tracing_subscriber::filter;
 
 use crate::bridge::{ListWithdrawOrderRequest, ListWithdrawOrderResponse};
 use crate::wallet::handlers::*;
@@ -59,9 +60,10 @@ pub(crate) async fn req(
     let mut all_order = vec![];
     for (id, info) in order_ids_on_chainless {
         let status = match info.status {
+            StatusOnNear::Syncless => WithdrawStatus::ChainLessSigning,
             StatusOnNear::Pending => WithdrawStatus::ChainLessSigning,
             StatusOnNear::Default => WithdrawStatus::ChainLessSigning,
-            StatusOnNear::Signed => {
+            StatusOnNear::Signed | StatusOnNear::Completed => {
                 let external_order: Vec<&EthBridgeOrderView> = orders_on_external
                     .iter()
                     .filter(|x| x.order.id == id.to_string())
@@ -79,7 +81,8 @@ pub(crate) async fn req(
         let signatures = info
             .signers
             .into_iter()
-            .map(|x| x.signature.unwrap_or("".to_string()))
+            .filter(|x| x.signature.is_some())
+            .map(|x| x.signature.unwrap())
             .collect();
         all_order.push(ListWithdrawOrderResponse {
             order_id: id.to_string(),

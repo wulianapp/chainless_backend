@@ -9,7 +9,7 @@ extern crate common;
 extern crate lazy_static;
 
 pub mod account_manager;
-pub mod airdrop;
+pub mod air_reward;
 pub mod bridge;
 pub mod general;
 pub mod newbie_reward;

@@ -2294,7 +2294,11 @@ mod tests {
                 break;
             }
 
-            if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
+            if orders.is_empty() 
+            || orders.first().unwrap().1.status != blockchain::bridge_on_near::Status::Signed
+            //|| orders.first().unwrap().1.signers.len() <= 1
+            //|| orders.first().unwrap().1.signers.f.signer_type == 0 {
+             {
                 println!("orders or signers is empty");
                 let balance_on_near = coin_cli
                     .get_balance(&user_info.main_account)
@@ -2333,7 +2337,7 @@ mod tests {
                     &account_id.to_string(),
                     amount,
                     &symbol,
-                    signers.first().unwrap().signature.as_ref().unwrap(),
+                    signers[1].signature.as_ref().unwrap(),
                 )
                 .await
                 .unwrap();

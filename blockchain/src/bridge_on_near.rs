@@ -36,14 +36,17 @@ use ethers_signers::{LocalWallet, Signer};
 pub struct SignedOrder {
     pub number: u64,
     pub signer: AccountId,
+    pub signer_type: u32, //0 syncless 1 signature
     pub signature: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub enum Status {
+    Syncless,
     Default,
     Pending,
     Signed,
+    Completed
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
