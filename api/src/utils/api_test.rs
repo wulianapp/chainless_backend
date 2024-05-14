@@ -86,6 +86,8 @@ pub async fn init() -> App<
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
+        .configure(crate::air_reward::configure_routes)
+
 }
 
 pub fn simulate_sender_master() -> TestWulianApp2 {
@@ -1071,6 +1073,22 @@ macro_rules! test_get_device_list {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/deviceList");
         let res: BackendRespond<Vec<DeviceInfo>> = test_service_call!(
+            $service,
+            "get",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_air_reward_get_sys_info {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/airReward/getSysInfo");
+        let res: BackendRespond<SysInfoResponse> = test_service_call!(
             $service,
             "get",
             &url,

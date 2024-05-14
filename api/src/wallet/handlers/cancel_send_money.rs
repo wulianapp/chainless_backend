@@ -27,9 +27,11 @@ pub async fn req(
     let CancelSendMoneyRequest { order_id } = request_data.0;
     let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
     //todo: chain status
+    /***
     if now_millis() > tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
+    **/
 
     //cann't cancle when status is ReceiverRejected、SenderCanceled、SenderReconfirmed and MultiSigExpired
     if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected {

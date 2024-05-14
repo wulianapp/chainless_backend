@@ -8,7 +8,8 @@ pub mod erc20_on_eth;
 pub mod general;
 mod hello;
 pub mod multi_sig;
-mod newbie_reward;
+pub mod air_reward;
+
 
 pub mod bridge_on_eth;
 pub mod eth_cli;
@@ -46,6 +47,9 @@ lazy_static! {
         println!("+++__{}",common::env::CONF.chain_rpc);
         JsonRpcClient::connect(&common::env::CONF.chain_rpc)
     };
+
+    //static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
+    
 }
 
 //todo: deal with error detail

@@ -46,6 +46,8 @@ async fn main() -> std::io::Result<()> {
             .configure(account_manager::configure_routes)
             .configure(wallet::configure_routes)
             .configure(bridge::configure_routes)
+            .configure(air_reward::configure_routes)
+
     })
     .bind(service)?
     .run()
