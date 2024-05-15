@@ -16,6 +16,7 @@ use anyhow::Result;
 #[derive(Debug)]
 pub enum BridgeOrderUpdater<'a> {
     EncrypedPrikey(&'a str, &'a str),
+    Status(EthOrderStatus),
 }
 
 impl fmt::Display for BridgeOrderUpdater<'_> {
@@ -26,6 +27,9 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
                     "(encrypted_prikey_by_password,encrypted_prikey_by_answer)=('{}','{}')",
                     by_password, by_answer
                 )
+            },
+            BridgeOrderUpdater::Status(status) => {
+                format!("status='{}' ",status)
             }
         };
         write!(f, "{}", description)
@@ -140,7 +144,7 @@ impl PsqlOp for EthBridgeOrderView {
     //没有更新的需求
     fn update(new_value: BridgeOrderUpdater, filter: BridgeOrderFilter) -> Result<u64> {
         let sql = format!(
-            "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
