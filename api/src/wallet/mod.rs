@@ -1352,7 +1352,7 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
  * @apiVersion 0.0.1
  * @apiName GetTx
  * @apiGroup Wallet
- * @apiQuery {Number}                 orderId            交易订单号
+ * @apiQuery {String}                 orderId            交易订单号
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
@@ -1362,7 +1362,7 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSuccess {String=0,1,2,3021} status_code         状态码.
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {object} data               交易详情.
-* @apiSuccess {Number} data.order_id          交易id号.
+* @apiSuccess {String} data.order_id          交易id号.
 * @apiSuccess {object} data.transaction        交易详情.
 * @apiSuccess {String} [data.tx_id]        链上交易id.
 * @apiSuccess {String=BTC,ETH,USDT,USDC,CLY,DW20} data.coin_type      币种名字

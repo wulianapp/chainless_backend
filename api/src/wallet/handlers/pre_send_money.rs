@@ -141,9 +141,12 @@ pub(crate) async fn req(
         let (tx_id, chain_tx_raw) = cli
             .gen_send_money_raw(vec![], &from, &to_account_id, coin_type, amount, expire_at)
             .await?;
-
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_type = TxType::Forced;
+        if to_contact.is_some() {
+            coin_info.transaction.receiver_contact = to_contact;
+        }
+
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
     } else if need_sig_num == 0 && !is_forced {
