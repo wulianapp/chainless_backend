@@ -4,7 +4,7 @@ use std::{env, fmt};
 use std::fmt::Debug;
 use std::str::FromStr;
 
-use tracing::info;
+use tracing::{info, warn};
 use tracing_futures::Instrument;
 
 use crate::utils::time::MINUTE30;
@@ -322,9 +322,12 @@ pub fn find_idle_relayer() -> Option<&'static Mutex<Relayer>>{
 pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer>{
     loop {
         match find_idle_relayer(){
-            Some(x) => return x,
+            Some(x) => {
+                return x;
+            },
             None => {
-                tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+                warn!("relayer is busy");
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 continue;
             },
         }
@@ -333,8 +336,29 @@ pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer>{
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
     fn test_get_env() {
         println!("envs {:?}", *super::CONF);
     }
+
+    #[tokio::test]
+    async fn test_relayer_pool() {
+        let mut handles = vec![];
+        for index in 0..1000 {
+            let handle = tokio::spawn(async move {
+                let test1 = wait_for_idle_relayer().await;
+                println!("envs {:?} index {}", test1.lock().unwrap(),index);
+                index
+            });
+            handles.push(handle);
+        }
+        //let test1 = tokio::join!(handles[0]).un
+        let mut results = vec![];
+        for handle in handles {
+            results.push(handle.await.unwrap());
+        }
+        assert_eq!(results,(0..1000).into_iter().collect::<Vec<_>>());
+    }
+    
 }
