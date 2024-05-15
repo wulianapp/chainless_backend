@@ -1,11 +1,20 @@
+use std::sync::{Mutex, MutexGuard};
 use std::{env, fmt};
 
 use std::fmt::Debug;
 use std::str::FromStr;
 
 use tracing::info;
+use tracing_futures::Instrument;
 
 use crate::utils::time::MINUTE30;
+
+#[derive(Debug, PartialEq)]
+pub struct Relayer {
+    pub pri_key: String,
+    pub account_id: String,
+}
+
 
 #[derive(Debug, PartialEq)]
 pub enum ServiceMode {
@@ -273,6 +282,53 @@ lazy_static! {
             "host=localhost user=postgres port=8068 password=postgres".to_string()
         }
     };
+
+    //use relayer array to avoid nonce conflict
+    pub static ref MULTI_SIG_RELAYER_POOL: Vec<Mutex<Relayer>> = {
+        //BACKEND_MULTI_SIG_RELAYER_PRIKEY
+        //BACKEND_MULTI_SIG_RELAYER_ACCOUNT_ID
+        let pri_key: String = env::var_os("BACKEND_MULTI_SIG_RELAYER_PRIKEY")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let account_id:String = env::var_os("BACKEND_MULTI_SIG_RELAYER_ACCOUNT_ID")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .parse()
+            .unwrap();
+        let relayer = Mutex::new(Relayer{
+            pri_key,
+            account_id
+        });
+        vec![relayer]
+    };
+}
+
+pub fn find_idle_relayer() -> Option<&'static Mutex<Relayer>>{
+    for relayer in MULTI_SIG_RELAYER_POOL.iter() {
+        match relayer.try_lock() {
+            Ok(_) => {
+                return Some(relayer);
+            },
+            Err(_) => continue,
+        }
+    }
+    None
+}
+
+pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer>{
+    loop {
+        match find_idle_relayer(){
+            Some(x) => return x,
+            None => {
+                tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+                continue;
+            },
+        }
+    }
 }
 
 #[cfg(test)]
