@@ -39,7 +39,7 @@ pub async fn req(
         coin,
         amount,
     } = request_data.0;
-    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
+    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
 
     let coin_type: CoinType = coin
     .parse()

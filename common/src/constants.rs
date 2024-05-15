@@ -31,7 +31,7 @@ pub const LOGIN_UNLOCK_TIME: u64 = MINUTE2;
 //token 有效时间
 pub const TOKEN_EXPAIRE_TIME: u64 = DAY7;
 //无链的链上交互基础费用
-pub const MIN_BASE_FEE: u128 = 1u128 * BASE_DECIMAL;
+pub const MIN_BASE_FEE: u128 = BASE_DECIMAL;
 //默认的基础交互gas数量
 pub const CHAINLESS_DEFAULT_GAS_LIMIT: u64 = 600_000_000_000_000;
 //交易有效时间

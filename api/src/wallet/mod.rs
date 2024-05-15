@@ -2334,7 +2334,7 @@ mod tests {
             let withdraw_res = eth_bridge_cli
                 .withdraw(
                     order_id,
-                    &account_id.to_string(),
+                    account_id.as_ref(),
                     amount,
                     &symbol,
                     signers[1].signature.as_ref().unwrap(),
@@ -2484,7 +2484,7 @@ mod tests {
             let withdraw_res = eth_bridge_cli
                 .withdraw(
                     order_id,
-                    &account_id.to_string(),
+                    account_id.as_ref(),
                     amount,
                     &symbol,
                     signers.first().unwrap().signature.as_ref().unwrap(),
@@ -2535,7 +2535,7 @@ mod tests {
         let subaccount_id = sub_accoounts.first().unwrap();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
         coin_cli
-            .send_coin(&subaccount_id, 13u128 * BASE_DECIMAL)
+            .send_coin(subaccount_id, 13u128 * BASE_DECIMAL)
             .await
             .unwrap();
 

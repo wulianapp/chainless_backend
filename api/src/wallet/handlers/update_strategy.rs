@@ -45,7 +45,7 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
             Ok(rank)
         })
         .collect::<Result<Vec<_>, String>>()
-        .map_err(|err| BackendError::RequestParamInvalid(err))?;
+        .map_err(BackendError::RequestParamInvalid)?;
     //add wallet info
     models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new()?;

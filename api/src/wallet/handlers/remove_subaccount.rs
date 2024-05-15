@@ -50,7 +50,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
         if let Some(balance) = coin_cli.get_balance(&account_id).await? {
             //当前不会出现小于1聪的情况，以后和第三方交互可能会有
-            if balance != "0".to_string() {
+            if balance != *"0" {
                 Err(WalletError::BalanceMustBeZero)?;
             }
         }

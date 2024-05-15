@@ -56,7 +56,7 @@ impl ContractClient<Hello> {
             gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
             deposit: 0,
         }))];
-        let mut transaction = gen_transaction(&self.relayer, &self.deployed_at.to_string()).await?;
+        let mut transaction = gen_transaction(&self.relayer, self.deployed_at.as_ref()).await?;
         transaction.actions = set_greeting_actions;
 
         let signature = self

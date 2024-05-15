@@ -623,7 +623,7 @@ pub fn sign_data_by_near_wallet2(prikey_str: &str, data_str: &str) -> Result<Str
     let signature = signer.sign(&data);
     if let Signature::ED25519(sig) = signature {
         let near_sig_bytes = sig.to_bytes();
-        Ok(hex::encode(&near_sig_bytes))
+        Ok(hex::encode(near_sig_bytes))
     } else {
         unreachable!("")
     }
@@ -638,7 +638,7 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<S
 
     if let Signature::ED25519(sig) = signature {
         let near_sig_bytes = sig.to_bytes();
-        Ok(hex::encode(&near_sig_bytes))
+        Ok(hex::encode(near_sig_bytes))
     } else {
         unreachable!("")
     }

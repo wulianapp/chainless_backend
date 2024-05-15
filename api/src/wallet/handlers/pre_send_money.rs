@@ -43,13 +43,13 @@ pub(crate) async fn req(
         is_forced,
     } = request_data;
     let expire_at = now_millis() + DAY1;
-    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
+    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
     }
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
-    let (to_account_id,to_contact) = if to.contains("@") || to.contains('+') {
+    let (to_account_id,to_contact) = if to.contains('@') || to.contains('+') {
         let receiver =
             UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to)).map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {

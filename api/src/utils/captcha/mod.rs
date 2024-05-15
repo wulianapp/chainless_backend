@@ -68,7 +68,7 @@ impl FromStr for Usage {
 
 pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
     // Updated regex for phone numbers with international dialing code
-    if input.contains("@") {
+    if input.contains('@') {
         /***
         let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
         if email_re.is_match(input) {
@@ -77,7 +77,7 @@ pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
             Err(PhoneOrEmailIncorrect)
         }
         */
-        if input.contains("@") {
+        if input.contains('@') {
             Ok(ContactType::Email)
         } else {
             Err(PhoneOrEmailIncorrect)

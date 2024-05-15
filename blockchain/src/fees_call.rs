@@ -55,7 +55,7 @@ impl ContractClient<FeesCall> {
         tokens: Vec<CoinType>,
     ) -> Result<String> {
         //todo: verify user's ecdsa signature
-        let account_id = AccountId::from_str(&account_id)?;
+        let account_id = AccountId::from_str(account_id)?;
         let tokens: Vec<AccountId> = tokens.iter().map(|coin| coin.to_account_id()).collect();
         let args_str = json!({
             "user_id":  account_id,

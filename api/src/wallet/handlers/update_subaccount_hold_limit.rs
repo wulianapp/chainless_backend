@@ -30,7 +30,7 @@ pub async fn req(
     super::check_role(current_role, KeyRole2::Master)?;
 
     let UpdateSubaccountHoldLimitRequest { subaccount, limit } = request_data;
-    let limit = display2raw(&limit).map_err(|err| BackendError::RequestParamInvalid(err))?;
+    let limit = display2raw(&limit).map_err(BackendError::RequestParamInvalid)?;
 
     //add wallet info
     models::general::transaction_begin()?;

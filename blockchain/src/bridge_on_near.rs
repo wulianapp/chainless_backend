@@ -190,7 +190,7 @@ impl ContractClient<Bridge> {
         };
 
         let decoded = data.encode_eip712()?;
-        let sign = Signature::from_str(&user_eth_sig)?;
+        let sign = Signature::from_str(user_eth_sig)?;
         let ad = sign.recover(decoded)?;
         let address = format!("{:?}", ad);
         let eth_addr = "0xCfA15434634c70297E012068148DA3e35DAEc780";
@@ -334,7 +334,7 @@ impl ContractClient<Bridge> {
             U256::from(amount)
         };
         //todo: 签名的订单只有这个有权限
-        let prikey = hex::decode(&Self::eth_admin_prikey())?;
+        let prikey = hex::decode(Self::eth_admin_prikey())?;
         let wallet = LocalWallet::from_bytes(&prikey)?;
         let data = DepositStruct {
             cid: U256::from(cid),
@@ -494,7 +494,7 @@ mod tests {
                 continue;
             }
             let deposit_amount = if coin.eq(&CoinType::ETH) {
-                1u128 * BASE_DECIMAL
+                BASE_DECIMAL
             } else {
                 deposit_amount
             };
@@ -504,7 +504,7 @@ mod tests {
             let balance1: Option<String> = coin_cli.get_balance("test").await.unwrap();
             println!(
                 "test_coin_{}_balance1_——————{:?}",
-                coin.to_string(),
+                coin,
                 balance1
             );
 
@@ -546,7 +546,7 @@ mod tests {
                     coin_cli.get_balance(replayer_acccount_id).await.unwrap();
                 println!(
                     "test_coin_{}_balance2_——————{:?}",
-                    coin.to_string(),
+                    coin,
                     balance2
                 );
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;

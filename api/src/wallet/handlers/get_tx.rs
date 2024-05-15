@@ -147,7 +147,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         tx_id: tx.transaction.tx_id,
         coin_type: tx.transaction.coin_type,
         from: tx.transaction.from,
-        to: to,
+        to,
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,

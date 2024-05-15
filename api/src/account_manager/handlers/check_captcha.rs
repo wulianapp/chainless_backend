@@ -33,6 +33,6 @@ pub fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
         }
     };
 
-    let is_ok = if check_res.is_err() { false } else { true };
+    let is_ok = check_res.is_ok();
     Ok(Some(is_ok))
 }

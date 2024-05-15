@@ -96,7 +96,7 @@ impl EthContractClient<Bridge> {
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
         let signature = hex::decode(signature)?;
-        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        let bridge_cli = BridgeCA::new(self.contract_addr, self.client.clone());
 
         println!(
             "cid {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n,deadline {}\n",
@@ -136,7 +136,7 @@ impl EthContractClient<Bridge> {
         let amount = U256::from(amount);
         let deadline = U256::from(deadline);
         let signature: Vec<u8> = hex::decode(signature)?;
-        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        let bridge_cli = BridgeCA::new(self.contract_addr, self.client.clone());
 
         println!(
             "cid {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n,deadline {}\n",
@@ -156,7 +156,7 @@ impl EthContractClient<Bridge> {
                 signature.into(),
                 deadline,
             )
-            .value(U256::from(amount))
+            .value(amount)
             .legacy()
             .send()
             .await?
@@ -176,7 +176,7 @@ impl EthContractClient<Bridge> {
         let amount = U256::from(amount);
         let signature = signature.replace("0x", "");
         let signature = hex::decode(signature)?;
-        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        let bridge_cli = BridgeCA::new(self.contract_addr, self.client.clone());
 
         println!(
             "order_id {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n",
@@ -190,7 +190,7 @@ impl EthContractClient<Bridge> {
             .withdraw(
                 U256::from(order_id),
                 chainless_id.to_owned(),
-                U256::from(amount),
+                amount,
                 symbol.to_owned(),
                 vec![signature.into()],
             )
@@ -203,7 +203,7 @@ impl EthContractClient<Bridge> {
     }
 
     pub async fn token_info(&self, symbol: &str) -> Result<TokenInfo> {
-        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        let bridge_cli = BridgeCA::new(self.contract_addr, self.client.clone());
         let (symbol, chainless, coin_addr, allow) =
             bridge_cli.token_info(symbol.to_owned()).call().await?;
 
@@ -217,7 +217,7 @@ impl EthContractClient<Bridge> {
 
     pub async fn get_deposit_order_by_id(&self, id: u32) -> Result<DepositOrderInfo> {
         let id = U256::from(id);
-        let bridge_cli = BridgeCA::new(self.contract_addr.clone(), self.client.clone());
+        let bridge_cli = BridgeCA::new(self.contract_addr, self.client.clone());
         let (cid, deposit_id, chainless_id, user, amount, symbol, timestamp, signature, _test) =
             bridge_cli.deposit_info(id).call().await?;
 
@@ -229,7 +229,7 @@ impl EthContractClient<Bridge> {
             amount: amount.as_u128(),
             symbol,
             timestamp: timestamp.as_u128(),
-            signature: hex::encode(signature.to_vec()),
+            signature: hex::encode(&signature),
         })
     }
 

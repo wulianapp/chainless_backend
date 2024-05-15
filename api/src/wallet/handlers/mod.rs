@@ -220,7 +220,7 @@ pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {
 
 pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> {
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
-    let fees_priority = fees_call_cli.get_fees_priority(&main_account).await?;
+    let fees_priority = fees_call_cli.get_fees_priority(main_account).await?;
     Ok(Some(fees_priority))
 }
 
@@ -241,8 +241,8 @@ pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError>
             .unwrap()
             .parse()
             .map_err(|e: ParseIntError| e.to_string())?;
-        let freezn_amount = get_freezn_amount(&main_account, &fee_coin);
-        balance = balance - freezn_amount;
+        let freezn_amount = get_freezn_amount(main_account, &fee_coin);
+        balance -= freezn_amount;
 
         let value = get_value(&fee_coin, balance).await;
         if value > MIN_BASE_FEE {
@@ -257,12 +257,12 @@ pub async fn estimate_transfer_fee(
     coin: &CoinType,
     amount: u128,
 ) -> Result<(CoinType, u128, bool), BackendError> {
-    let fee_coins = get_fees_priority(&main_account)
+    let fee_coins = get_fees_priority(main_account)
         .await?
         .ok_or(BackendError::InternalError(
             "not set fees priority".to_string(),
         ))?;
-    let transfer_value = get_value(&coin, amount).await;
+    let transfer_value = get_value(coin, amount).await;
     //todo: config max_value
     let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
         transfer_value * 9 / 10000 + MIN_BASE_FEE
@@ -281,7 +281,7 @@ pub async fn estimate_transfer_fee(
     for (index, fee_coin) in fee_coins.into_iter().enumerate() {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
 
-        let mut balance = match coin_cli.get_balance(&main_account).await? {
+        let mut balance = match coin_cli.get_balance(main_account).await? {
             Some(balance) => parse_str(balance)?,
             None => continue,
         };
@@ -290,7 +290,7 @@ pub async fn estimate_transfer_fee(
             if amount >= balance {
                 Err(WalletError::InsufficientAvailableBalance)?;
             } else {
-                balance = balance - amount
+                balance -= amount
             }
         }
 

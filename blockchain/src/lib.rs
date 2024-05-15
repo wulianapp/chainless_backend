@@ -98,7 +98,7 @@ impl<T> ContractClient<T> {
             )
         //根据指定名字创建用户，需要配置顶级账户
         } else if method_name == "register_account_with_name" {
-            let args: Vec<&str> = args.split(":").collect();
+            let args: Vec<&str> = args.split(':').collect();
             let account_id = args[0];
             let pubkey = args[1];
 

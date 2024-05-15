@@ -20,15 +20,15 @@ async fn main() -> Result<()> {
     match args.task.as_str() {
         "eth_bridge" => {
             info!("start task listening on eth_bridge");
-            let _res = task::eth_bridge::start().await?;
+            task::eth_bridge::start().await?;
         }
         "chainless_wallet_manage" => {
             info!("start task listening on chainless_wallet_manage");
-            let _res = task::chainless_wallet_manage::start().await?;
+            task::chainless_wallet_manage::start().await?;
         }
         "chainless_coin_transfer" => {
             info!("start task listening on chainless_coin_transfer");
-            let _res = task::chainless_coin_transfer::start().await?;
+            task::chainless_coin_transfer::start().await?;
         }
         "refund_fee" => {
             //todo:

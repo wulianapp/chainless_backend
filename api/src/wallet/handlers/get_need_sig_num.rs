@@ -22,7 +22,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GetNeedSigNumRequest) ->
     let coin_type: CoinType = coin
         .parse()
         .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
-    let amount = display2raw(&amount).map_err(|err| BackendError::RequestParamInvalid(err))?;
+    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
     let need_sig_num = super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
     Ok(Some(need_sig_num))
 }

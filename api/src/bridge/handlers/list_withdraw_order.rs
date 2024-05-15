@@ -26,7 +26,7 @@ use super::paginate_vec;
 
 pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, BridgeOrder)>> {
     let bridge_cli = ContractClient::<Bridge>::new()?;
-    let orders = bridge_cli.list_order(&main_account).await?;
+    let orders = bridge_cli.list_order(main_account).await?;
 
     let orders = orders
         .unwrap_or(vec![])
@@ -82,8 +82,7 @@ pub(crate) async fn req(
         let signatures = info
             .signers
             .into_iter()
-            .filter(|x| x.signature.is_some())
-            .map(|x| x.signature.unwrap())
+            .filter_map(|x| x.signature)
             .collect();
         all_order.push(ListWithdrawOrderResponse {
             order_id: id.to_string(),

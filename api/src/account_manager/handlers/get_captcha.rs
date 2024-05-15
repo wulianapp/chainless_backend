@@ -105,7 +105,6 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
                         .unwrap()
                         .device_info
                         .key_role
-                        .to_owned()
                         == KeyRole2::Master
                 {
                     debug!("line {}", line!());

@@ -74,13 +74,13 @@ pub struct AirReward {}
 impl ContractClient<AirReward> {
     //fixme: gen once object
     pub fn new() -> Result<Self> {
-        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
-        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
+        let _prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
+        let _relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
         let prikey_str= "ed25519:2zGt1i93avrks4RGeYXw7WvaoWmBWz4PcjWpTmqCRWFU4irviDjPvWCtTi14Wsz8DKaLysAeUBfYtyn8qovMGeNz";
         let relayer_account = "chainless";
 
         //cvault0001.chainless
-        let contract = &common::env::CONF.fees_call_contract;
+        let _contract = &common::env::CONF.fees_call_contract;
         let contract = "air100010";
         println!("___{}", prikey_str);
         let pri_key: SecretKey = prikey_str.parse()?;

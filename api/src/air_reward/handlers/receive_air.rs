@@ -24,7 +24,7 @@ pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRe
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
 
-    let (user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
+    let (_user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id)?;
@@ -56,7 +56,7 @@ pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRe
 
     let receive_res = cli.receive_air(
         &main_account,
-        &ref_user.user_account.to_string(),
+        ref_user.user_account.as_ref(),
         btc_addr_level,
         is_real
     ).await?;

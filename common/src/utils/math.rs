@@ -83,17 +83,17 @@ mod tests {
 
     #[test]
     fn test_coin_amount() {
-        assert_eq!(raw2display(1u128 * BASE_DECIMAL), "1.00000000".to_string());
+        assert_eq!(raw2display(BASE_DECIMAL), "1.00000000".to_string());
         assert_eq!(
-            raw2display(1u128 * BASE_DECIMAL + 10_000_000u128 * DEDUCT_DECIMAL),
+            raw2display(BASE_DECIMAL + 10_000_000u128 * DEDUCT_DECIMAL),
             "1.10000000".to_string()
         );
         assert_eq!(
-            raw2display(1u128 * BASE_DECIMAL + 123u128),
+            raw2display(BASE_DECIMAL + 123u128),
             "1.00000000".to_string()
         );
         assert_eq!(
-            raw2display(1u128 * BASE_DECIMAL + 100u128 * DEDUCT_DECIMAL),
+            raw2display(BASE_DECIMAL + 100u128 * DEDUCT_DECIMAL),
             "1.00000100".to_string()
         );
         assert_eq!(
@@ -106,11 +106,11 @@ mod tests {
             display2raw("100.00010000").unwrap(),
             100u128 * BASE_DECIMAL + 10000u128 * DEDUCT_DECIMAL
         );
-        assert_eq!(display2raw("1.00").unwrap(), 1u128 * BASE_DECIMAL);
-        assert_eq!(display2raw("1").unwrap(), 1u128 * BASE_DECIMAL);
+        assert_eq!(display2raw("1.00").unwrap(), BASE_DECIMAL);
+        assert_eq!(display2raw("1").unwrap(), BASE_DECIMAL);
         assert_eq!(
             display2raw("112.00000001").unwrap(),
-            112u128 * BASE_DECIMAL + 1u128 * DEDUCT_DECIMAL
+            112u128 * BASE_DECIMAL + DEDUCT_DECIMAL
         );
         assert!(display2raw("112.0000000000000000000001").is_err());
     }

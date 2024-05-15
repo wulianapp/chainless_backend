@@ -40,7 +40,7 @@ fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
             let unlock_time = *records.last().unwrap() + LOGIN_UNLOCK_TIME;
             debug!("0002___{}", unlock_time);
             if now_millis() < unlock_time {
-                (true, 0, unlock_time as u64 / 1000)
+                (true, 0, unlock_time / 1000)
             } else {
                 //clear retry records
                 let _ = retry_storage.remove(&user_id);

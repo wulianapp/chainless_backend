@@ -170,7 +170,7 @@ mod tests {
         println!("{:?}", transaction);
 
         let raw_bytes = borsh::to_vec(&transaction.clone()).unwrap();
-        hex::encode(&raw_bytes)
+        hex::encode(raw_bytes)
     }
 
     #[tokio::test]
