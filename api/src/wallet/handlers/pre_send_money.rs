@@ -49,7 +49,7 @@ pub(crate) async fn req(
     }
     let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
 
-    let to_account_id = if to.contains("@") || to.contains('+') {
+    let (to_account_id,to_contact) = if to.contains("@") || to.contains('+') {
         let receiver =
             UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to)).map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -62,7 +62,7 @@ pub(crate) async fn req(
         if !receiver.user_info.secruity_is_seted {
             Err(WalletError::ReceiverNotSetSecurity)?;
         }
-        receiver.user_info.main_account
+        (receiver.user_info.main_account,Some(to))
     } else {
         let _receiver =
             UserInfoView::find_single(UserFilter::ByMainAccount(&to)).map_err(|err| {
@@ -72,7 +72,7 @@ pub(crate) async fn req(
                     BackendError::InternalError(err.to_string())
                 }
             })?;
-        to
+        (to,None)
     };
     if to_account_id == user.main_account {
         Err(WalletError::ForbideTransferSelf)?
@@ -146,16 +146,25 @@ pub(crate) async fn req(
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
     } else if need_sig_num == 0 && !is_forced {
-        let coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
+        let mut coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
+        if to_contact.is_some() {
+            coin_info.transaction.receiver_contact = to_contact;
+        }
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
+        if to_contact.is_some() {
+            coin_info.transaction.receiver_contact = to_contact;
+        }
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && !is_forced {
-        let coin_info = gen_tx_with_status(CoinSendStage::Created)?;
+        let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
+        if to_contact.is_some() {
+            coin_info.transaction.receiver_contact = to_contact;
+        }
         coin_info.insert()?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else {

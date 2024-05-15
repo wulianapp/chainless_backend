@@ -62,7 +62,7 @@ create table coin_transaction(
      signatures text[],
      tx_type text not null, --Forced,ToSub,FromSub
      chain_status text not null,
-     reserved_field2 text not null,
+     receiver_contact text,
      reserved_field3 text not null,
      updated_at  timestamp with time zone default current_timestamp,
      created_at  timestamp with time zone default current_timestamp

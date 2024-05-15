@@ -69,6 +69,6 @@ pub struct CoinTransaction {
     pub signatures: Vec<String>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
-    pub reserved_field2: String,
+    pub receiver_contact: Option<String>,
     pub reserved_field3: String,
 }

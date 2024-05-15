@@ -39,20 +39,10 @@
         "zh_cn": "该账号未注册",
         "en_us": "The account is not registered"
       },
-      "2009": {
-        "zh_tw": "密碼錯誤",
-        "zh_cn": "密码错误",
-        "en_us": "Incorrect password"
-      },
       "2011": {
         "zh_tw": "驗證碼請求過於頻繁",
         "zh_cn": "验证码请求过于频繁",
         "en_us": "Verification code request is too frequent"
-      },
-      "2012": {
-        "zh_tw": "帳戶鎖定中",
-        "zh_cn": "账户锁定中",
-        "en_us": "Account is locked"
       },
       "2013": {
         "zh_tw": "上級邀請碼不存在",

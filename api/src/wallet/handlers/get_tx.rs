@@ -23,6 +23,7 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::f64::consts::E;
 use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -136,12 +137,17 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     } else {
         tx.transaction.stage
     };
+    let to = if let Some(contact) = tx.transaction.receiver_contact{
+        contact
+    }else{
+        tx.transaction.to
+    };
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
         coin_type: tx.transaction.coin_type,
         from: tx.transaction.from,
-        to: tx.transaction.to,
+        to: to,
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,

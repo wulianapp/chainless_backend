@@ -48,7 +48,7 @@ impl CoinTxView {
             expire_at,
             tx_type: TxType::Normal,
             chain_status: TxStatusOnChain::NotLaunch,
-            reserved_field2: "".to_string(),
+            receiver_contact: None,
             reserved_field3: "".to_string(),
         };
         CoinTxView {
@@ -91,7 +91,7 @@ impl fmt::Display for CoinTxFilter<'_> {
             CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),
             CoinTxFilter::ByAccountPending(acc_id) => format!(
                 "sender='{}' and stage in ('SenderSigCompleted','ReceiverApproved','ReceiverRejected','Created') or \
-                receiver='{}' and stage in ('SenderSigCompleted')",
+                receiver='{}' and stage in ('SenderSigCompleted','ReceiverApproved')",
                 acc_id, acc_id
             ),
             CoinTxFilter::BySenderUncompleted(acc_id) => format!(
@@ -180,7 +180,7 @@ impl PsqlOp for CoinTxView {
          signatures,\
          tx_type,\
          chain_status,\
-         reserved_field2,\
+         receiver_contact,\
          reserved_field3,\
          cast(updated_at as text), \
          cast(created_at as text) \
@@ -207,7 +207,7 @@ impl PsqlOp for CoinTxView {
                     signatures: row.get::<usize, Vec<String>>(11),
                     tx_type: row.get::<usize, &str>(12).parse()?,
                     chain_status: row.get::<usize, &str>(13).parse()?,
-                    reserved_field2: row.get(14),
+                    receiver_contact: row.get(14),
                     reserved_field3: row.get(15),
                 },
                 updated_at: row.get(16),
@@ -245,12 +245,14 @@ impl PsqlOp for CoinTxView {
             signatures,
             tx_type,
             chain_status,
-            reserved_field2,
+            receiver_contact,
             reserved_field3,
         } = self.transaction.clone();
         let tx_id: PsqlType = tx_id.into();
         let chain_raw_data: PsqlType = chain_tx_raw.into();
         let memo: PsqlType = memo.into();
+        let receiver_contact: PsqlType = receiver_contact.into();
+
 
         //todo: amount specific type short or long
         let sql = format!(
@@ -268,9 +270,9 @@ impl PsqlOp for CoinTxView {
          signatures,\
          tx_type,\
          chain_status,\
-         reserved_field2,\
+         receiver_contact,\
          reserved_field3\
-         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}','{}','{}');",
+         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}',{},'{}');",
             order_id,
             tx_id.to_psql_str(),
             coin_type,
@@ -285,7 +287,7 @@ impl PsqlOp for CoinTxView {
             vec_str2array_text(signatures),
             tx_type,
             chain_status,
-            reserved_field2,
+            receiver_contact.to_psql_str(),
             reserved_field3,
         );
         println!("row sql {} rows", sql);
@@ -299,38 +301,39 @@ impl PsqlOp for CoinTxView {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
+
+    use common::data_structures::coin_transaction::CoinTransaction;
+    use super::*;
 
     #[test]
     fn test_braced_models_coin_tx() {
-        /***
+        
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear();
 
-        let coin_tx = CoinTransaction {
-            tx_id: "123".to_string(),
-            coin_type: CoinType::CLY,
-            sender: 1,
-            receiver: 2,
-            amount: 0,
-            status: CoinTxStatus::Created,
-            raw_data: "123".to_string(),
-            signatures: vec!["1".to_string()],
-        };
+        let coin_tx = CoinTxView::new_with_specified(
+            CoinType::BTC, 
+            "1.test".to_string(), 
+            "2.test".to_string(), 
+            1, 
+            "".to_string(),
+             None, 
+             1715740449000, 
+             CoinSendStage::Created);
 
         println!("start insert");
-        single_insert(&coin_tx).unwrap();
+        coin_tx.insert().unwrap();
         println!("start query");
 
-        let _res = get_transactions(CoinTxFilter::ByUserPending(1));
+        let _res = CoinTxView::find_single(CoinTxFilter::BySenderUncompleted("1.test")).unwrap();
         println!("start update");
-        let test1 : CoinTxStatus= "123".parse()?;
-        let _res = update_status(
-            CoinTxStatus::ReceiverApproved,
-            CoinTxFilter::ByUserPending(1),
-        );
-        let res = get_transactions(CoinTxFilter::ByUserPending(1));
-        println!("after update {}", res.first().unwrap().transaction.status);
+        let _res = CoinTxView::update_single(
+            CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
+            CoinTxFilter::ByOrderId(&coin_tx.transaction.order_id),
+        ).unwrap();
+        let res = CoinTxView::find_single(CoinTxFilter::ByOrderId(&coin_tx.transaction.order_id)).unwrap();
+        println!("after update {:?}", res);
 
-         */
     }
 }
