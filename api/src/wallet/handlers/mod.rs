@@ -130,11 +130,6 @@ pub fn get_main_account(user_id: u32) -> Result<String, BackendError> {
     Ok(user.user_info.main_account)
 }
 
-pub fn get_email(user_id: u32) -> Result<String, BackendError> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
-    Ok(user.user_info.email)
-}
-
 //calculate total value for dollar
 //目前的场景转账超过300兆才会溢出
 //由于取整造成的精度丢失可以忽略

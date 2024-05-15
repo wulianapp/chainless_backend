@@ -91,7 +91,7 @@ impl fmt::Display for CoinTxFilter<'_> {
             CoinTxFilter::BySender(uid) => format!("sender='{}'", uid),
             CoinTxFilter::ByReceiver(uid) => format!("receiver='{}' ", uid),
             CoinTxFilter::ByAccountPending(acc_id) => format!(
-                "sender='{}' and stage in ('SenderSigCompleted','ReceiverApproved','ReceiverRejected','Created') or \
+                "sender='{}' and stage in ('SenderSigCompleted','ReceiverApproved','Created') or \
                 receiver='{}' and stage in ('SenderSigCompleted','ReceiverApproved')",
                 acc_id, acc_id
             ),

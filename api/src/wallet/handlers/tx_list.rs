@@ -49,6 +49,29 @@ pub struct CoinTxViewTmp {
     pub updated_at: String,
     pub created_at: String,
 }
+pub enum FilterType{
+    OrderId,
+    AccountId,
+    Phone,
+    Mail,
+    EthAddr
+}
+pub fn get_filter_type(data:&str) -> Result<FilterType,BackendError>{
+    let wallet_suffix = & common::env::CONF.multi_sig_relayer_account_id;
+    if data.contains('@') {
+        Ok(FilterType::Mail)
+    } else if data.contains('+'){
+        Ok(FilterType::Phone)
+    }else if data.contains(wallet_suffix){
+        Ok(FilterType::AccountId)
+    }else if data.contains("0x"){
+        Ok(FilterType::EthAddr)
+    }else if  data.len() == 32{
+        Ok(FilterType::OrderId)
+    }else{
+        Err(BackendError::RequestParamInvalid(data.to_string()))
+    }
+}
 
 pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
     let user_id = token_auth::validate_credentials(&req)?;
@@ -65,6 +88,24 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         ))?;
     }
     let tx_role = tx_role.parse().map_err(to_param_invalid_error)?;
+    
+    
+    //filter by tx_order_id 、account_id 、phone、mail or eth_addr
+    /***
+    let txs = if let Some(data) = counterparty {
+        match get_filter_type(&data)? {
+            FilterType::OrderId => todo!(),
+            FilterType::AccountId => todo!(),
+            FilterType::Phone => todo!(),
+            FilterType::Mail => todo!(),
+            FilterType::EthAddr => todo!(),
+        }
+    }else{
+        todo!()
+    }
+    **/
+    
+    
     let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(
         tx_role,
         &main_account,

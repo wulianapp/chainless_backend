@@ -2,6 +2,7 @@ use actix_web::HttpRequest;
 use common::data_structures::coin_transaction::CoinTransaction;
 use common::data_structures::AccountMessage;
 use common::utils::math::coin_amount::raw2display;
+use common::utils::time::now_millis;
 
 use super::*;
 use crate::utils::token_auth;
@@ -34,6 +35,9 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account))?;
     let mut tx_msg = coin_txs
         .into_iter()
+        .filter(|x| {
+            now_millis() <= x.transaction.expire_at
+        })
         .map(|tx| CoinTransactionTmp1 {
             order_id: tx.transaction.order_id,
             tx_id: tx.transaction.tx_id,
