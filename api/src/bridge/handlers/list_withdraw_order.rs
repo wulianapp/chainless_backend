@@ -55,7 +55,8 @@ pub(crate) async fn req(
         per_page: page_size,
     } = request_data;
 
-    let order_ids_on_chainless = list_chainless_orders(&main_account).await?;
+    let mut order_ids_on_chainless = list_chainless_orders(&main_account).await?;
+    order_ids_on_chainless.reverse();
     let orders_on_external = list_external_orders(&main_account)?;
     let mut all_order = vec![];
     for (id, info) in order_ids_on_chainless {

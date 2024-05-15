@@ -18,7 +18,7 @@ use models::account_manager::UserFilter;
 use models::{account_manager, PsqlOp};
 
 lazy_static! {
-    static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
+    pub static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
 }
 
 fn record_once_retry(user_id: u32) -> Result<()> {

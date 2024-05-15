@@ -64,5 +64,12 @@ pub async fn req(
         UserUpdater::LoginPwdHash(&new_password),
         UserFilter::ById(user_at_stored.id),
     )?;
+
+    //clear retry status after login by captcha
+    let retry_storage = &mut super::login::LOGIN_RETRY
+    .lock()
+    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+    retry_storage.remove(&user_at_stored.id);
+
     Ok(None::<String>)
 }
