@@ -1367,7 +1367,8 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSuccess {String} [data.tx_id]        链上交易id.
 * @apiSuccess {String=BTC,ETH,USDT,USDC,CLY,DW20} data.coin_type      币种名字
 * @apiSuccess {String} data.from                发起方
-* @apiSuccess {String} data.to                接收方
+* @apiSuccess {String} data.to                接收方的联系方式或钱包id
+* @apiSuccess {String} data.to_account_id                接收方的钱包id
 * @apiSuccess {String} data.amount               交易量
 * @apiSuccess {String} data.expire_at             交易截止时间戳
 * @apiSuccess {String} [data.memo]                交易备注
@@ -1420,8 +1421,9 @@ pub struct GetTxResponse {
     pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
-    pub from: String, //uid
-    pub to: String,   //uid
+    pub from: String, 
+    pub to: String,   
+    pub to_account_id: String,   
     pub amount: String,
     pub expire_at: u64,
     pub memo: Option<String>,

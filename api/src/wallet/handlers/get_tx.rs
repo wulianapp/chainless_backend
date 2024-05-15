@@ -140,7 +140,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let to = if let Some(contact) = tx.transaction.receiver_contact{
         contact
     }else{
-        tx.transaction.to
+        tx.transaction.to.clone()
     };
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
@@ -148,6 +148,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         coin_type: tx.transaction.coin_type,
         from: tx.transaction.from,
         to,
+        to_account_id: tx.transaction.to,
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,

@@ -68,6 +68,7 @@ pub enum CoinTxFilter<'b> {
     BySenderUncompleted(&'b str),
     //todo: replace with u128
     ByOrderId(&'b str),
+    //role1,role1_account,role2_account,per_page,page
     ByTxRolePage(TxRole, &'b str, Option<&'b str>, u32, u32),
     ByChainStatus(TxStatusOnChain),
 }
@@ -107,9 +108,9 @@ impl fmt::Display for CoinTxFilter<'_> {
                 };
                 //过滤自己和交易对手方
                 match  counterparty {
-                    Some(account) => format!(
+                    Some(counterparty_account) => format!(
                         "{}='{}' and {}='{}' order by updated_at desc limit {} offset {}",
-                        role,account,role.counterparty(),account,per_page,offset
+                        role,account,role.counterparty(),counterparty_account,per_page,offset
                     ),
                     None => format!(
                         "{}='{}' order by updated_at desc limit {} offset {}",
@@ -207,7 +208,7 @@ impl PsqlOp for CoinTxView {
                     signatures: row.get::<usize, Vec<String>>(11),
                     tx_type: row.get::<usize, &str>(12).parse()?,
                     chain_status: row.get::<usize, &str>(13).parse()?,
-                    receiver_contact: row.get(14),
+                    receiver_contact: row.get::<usize, Option<String>>(14),
                     reserved_field3: row.get(15),
                 },
                 updated_at: row.get(16),

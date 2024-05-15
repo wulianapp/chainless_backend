@@ -5,15 +5,13 @@ use anyhow::Result;
 use blockchain::bridge_on_eth::Bridge;
 use blockchain::eth_cli::general::*;
 use blockchain::eth_cli::EthContractClient;
+use common::constants::ETH_TX_CONFIRM_BLOCK_NUM;
 use common::data_structures::bridge::EthOrderStatus;
 use common::data_structures::bridge::OrderType;
 use models::eth_bridge_order::BridgeOrderUpdater;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::PsqlOp;
 use tracing::info;
-
-//reference binance
-const CONFIRM_NUM: u64 = 6;
 
 //如果没历史监控数据，则从固定检查点开始扫,如果有则从历史数据中的最后高度开始扫
 pub async fn get_last_process_height() -> Result<u64> {
@@ -149,7 +147,7 @@ pub async fn start() -> Result<()> {
             for height in last_process_height + 1..=current_height {
                 //info!("check height {}", height);
                 listen_newest_block(&bridge,height).await?;
-                listen_confirmed_block(&bridge,height - CONFIRM_NUM).await?;               
+                listen_confirmed_block(&bridge,height - ETH_TX_CONFIRM_BLOCK_NUM as u64).await?;               
             }
             last_process_height = current_height;
         }else{

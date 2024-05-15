@@ -36,7 +36,7 @@ fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
         .lock()
         .map_err(|e| BackendError::InternalError(e.to_string()))?;
     let info = if let Some(records) = retry_storage.get(&user_id) {
-        if records.len() >= 5 {
+        if records.len() >= LOGIN_BY_PASSWORD_RETRY_NUM as usize {
             let unlock_time = *records.last().unwrap() + LOGIN_UNLOCK_TIME;
             debug!("0002___{}", unlock_time);
             if now_millis() < unlock_time {
@@ -47,10 +47,10 @@ fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
                 (false, 0, 0)
             }
         } else {
-            (false, 5 - 1 - records.len() as u8, 0)
+            (false, LOGIN_BY_PASSWORD_RETRY_NUM - 1 - records.len() as u8, 0)
         }
     } else {
-        (false, 5 - 1, 0)
+        (false, LOGIN_BY_PASSWORD_RETRY_NUM - 1, 0)
     };
     Ok(info)
 }

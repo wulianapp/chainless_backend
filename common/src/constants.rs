@@ -39,3 +39,12 @@ pub const TX_EXPAIRE_TIME: u64 = MINUTE5;
 
 //充值有效时间
 pub const BRIDGE_DEPOSIT_EXPIRE_TIME: u64 = MINUTE5;
+
+
+// 参考币安的主网确认块数
+pub const ETH_TX_CONFIRM_BLOCK_NUM: u8 = 6;
+
+//密码登陆错误允许的重试次数
+pub const LOGIN_BY_PASSWORD_RETRY_NUM: u8 = 5;
+
+
