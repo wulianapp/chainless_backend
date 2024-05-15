@@ -49,9 +49,9 @@ pub async fn req(
 
     let coin: CoinType = coin
         .parse()
-        .map_err(|_e| BackendError::InternalError("".to_string()))?;
-    if coin == CoinType::CLY {
-        Err(BackendError::InternalError("".to_string()))?
+        .map_err(|_e| BridgeError::CoinNotSupport("".to_string()))?;
+    if coin == CoinType::DW20 {
+        Err(BridgeError::CoinNotSupport(coin.to_string()))?
     }
 
     let bridge_cli = ContractClient::<Bridge>::new()?;

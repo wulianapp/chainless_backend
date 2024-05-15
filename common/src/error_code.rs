@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Display, str::FromStr};
 
-use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole2};
+use crate::{data_structures::{coin_transaction::CoinSendStage, KeyRole2}, prelude::CoinType};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -257,12 +257,15 @@ impl ErrorCode for WalletError {
 pub enum BridgeError {
     #[error("Haven't set bind eth address")]
     NotBindEthAddr,
+    #[error("{0} isn't supported cross transfer now")]
+    CoinNotSupport(String),
 }
 
 impl ErrorCode for BridgeError {
     fn code(&self) -> u16 {
         match self {
             Self::NotBindEthAddr => 4000,
+            Self::CoinNotSupport(_) => 4001,
         }
     }
 }
