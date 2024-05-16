@@ -12,6 +12,7 @@ use common::data_structures::{
     get_support_coin_list, CoinType,
 };
 use common::error_code::to_param_invalid_error;
+use common::error_code::AccountManagerError;
 use common::error_code::BackendError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
@@ -54,18 +55,15 @@ pub enum FilterType{
     AccountId,
     Phone,
     Mail,
-    EthAddr
 }
 pub fn get_filter_type(data:&str) -> Result<FilterType,BackendError>{
     let wallet_suffix = & common::env::CONF.multi_sig_relayer_account_id;
     if data.contains('@') {
         Ok(FilterType::Mail)
-    } else if data.contains('+'){
+    }else if data.contains('+'){
         Ok(FilterType::Phone)
     }else if data.contains(wallet_suffix){
         Ok(FilterType::AccountId)
-    }else if data.contains("0x"){
-        Ok(FilterType::EthAddr)
     }else if  data.len() == 32{
         Ok(FilterType::OrderId)
     }else{
@@ -91,28 +89,50 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     
     
     //filter by tx_order_id 、account_id 、phone、mail or eth_addr
-    /***
-    let txs = if let Some(data) = counterparty {
+    //fixme:
+    let find_res = if let Some(data) = counterparty.as_deref() {
         match get_filter_type(&data)? {
-            FilterType::OrderId => todo!(),
-            FilterType::AccountId => todo!(),
-            FilterType::Phone => todo!(),
-            FilterType::Mail => todo!(),
-            FilterType::EthAddr => todo!(),
+            FilterType::OrderId => {
+                CoinTxView::find(CoinTxFilter::ByOrderId(&data))
+            },
+            FilterType::AccountId => {
+                CoinTxView::find(CoinTxFilter::ByTxRolePage(
+                    tx_role,
+                    &main_account,
+                    Some(data),
+                    per_page,
+                    page,
+                ))
+            },
+            FilterType::Phone | FilterType::Mail => {
+                if let Ok(counterparty_main_account ) = UserInfoView::find_single(
+                    UserFilter::ByPhoneOrEmail(&data)){
+                        CoinTxView::find(CoinTxFilter::ByTxRolePage(
+                            tx_role,
+                            &main_account,
+                            Some(&counterparty_main_account.user_info.main_account),
+                            per_page,
+                            page,
+                        ))
+                }else{
+                    return Ok(None)
+                }
+
+            }
         }
     }else{
-        todo!()
-    }
-    **/
+        CoinTxView::find( CoinTxFilter::ByTxRolePage(
+            tx_role,
+            &main_account,
+            None,
+            per_page,
+            page,
+        ))
+    };
     
     
-    let txs = CoinTxView::find(CoinTxFilter::ByTxRolePage(
-        tx_role,
-        &main_account,
-        counterparty.as_deref(),
-        per_page,
-        page,
-    ))?;
+    
+    let txs = find_res?;
     let txs: Vec<CoinTxViewTmp> = txs
         .into_iter()
         .map(|tx| -> Result<_> {
