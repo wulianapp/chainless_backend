@@ -284,7 +284,7 @@ impl ContractClient<Bridge> {
 
     */
 
-    pub async fn list_order(
+    pub async fn list_withdraw_order(
         &self,
         account_id: &str,
     ) -> Result<Option<Vec<(u128, BridgeOrder)>>> {
@@ -302,22 +302,23 @@ impl ContractClient<Bridge> {
         self.query_call("list_order", &args_str).await
     }
 
-    /***
+    
     pub async fn list_deposit_order(
         &self,
         account_id: &str,
-    ) -> Result<Option<(u128, Vec<(u128, BridgeOrder)>)>> {
+    ) -> Result<Option<Vec<(u128, BridgeOrder)>>> {
         let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({
             "account_id":user_account_id,
-            "chain_id": Some(1500u128),
-            "max": self.get_last_deposit_order_id().await?,
+            "order_type": "Deposit",
+            "chain_id": None::<u128>,
+            "page": 1,
             "page_size":10000,
         })
         .to_string();
         self.query_call("list_order", &args_str).await
     }
-    ***/
+    
 
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
     pub async fn sign_deposit_info(
@@ -560,7 +561,7 @@ mod tests {
     #[tokio::test]
     async fn tool_list_order() {
         let bridge_cli = ContractClient::<Bridge>::new().unwrap();
-        let orders = bridge_cli.list_order("25f1fd7f.local").await.unwrap();
+        let orders = bridge_cli.list_withdraw_order("25f1fd7f.local").await.unwrap();
         println!("orders {:#?}",orders);
     }
 

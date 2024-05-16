@@ -347,13 +347,12 @@ mod tests {
         let mut handles = vec![];
         for index in 0..1000 {
             let handle = tokio::spawn(async move {
-                let test1 = wait_for_idle_relayer().await;
-                println!("envs {:?} index {}", test1.lock().unwrap(),index);
+                let relayer = wait_for_idle_relayer().await;
+                //println!("envs {:?} index {}", relayer.lock().unwrap(),index);
                 index
             });
             handles.push(handle);
         }
-        //let test1 = tokio::join!(handles[0]).un
         let mut results = vec![];
         for handle in handles {
             results.push(handle.await.unwrap());
