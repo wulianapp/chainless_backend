@@ -2463,11 +2463,11 @@ mod tests {
                 current_binded_eth_addr, balance_on_eth
             );
             index += 1;
-            if index == 30 {
+            if index == 300 {
                 assert!(false, "reach check limit");
                 break;
             }
-            if orders.is_empty() || orders.first().unwrap().1.signers.is_empty() {
+            if orders.is_empty() || orders.first().unwrap().1.signers.len() < 2 {
                 println!("orders or signers is empty");
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 continue;
@@ -2489,7 +2489,7 @@ mod tests {
                     account_id.as_ref(),
                     amount,
                     &symbol,
-                    signers.first().unwrap().signature.as_ref().unwrap(),
+                    signers[1].signature.as_ref().unwrap(),
                 )
                 .await
                 .unwrap();
@@ -2535,7 +2535,7 @@ mod tests {
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
         let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
         let subaccount_id = sub_accoounts.first().unwrap();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new(CoinType::USDT).unwrap();
         coin_cli
             .send_coin(subaccount_id, 13u128 * BASE_DECIMAL)
             .await
@@ -2685,7 +2685,7 @@ mod tests {
 
         let estimate_res =
             test_estimate_transfer_fee!(service, sender_master, "BTC", "0.1").unwrap();
-        assert_eq!(estimate_res.coin.to_string(), "usdt");
+        assert_eq!(estimate_res.coin.to_string(), "dw20");
         assert!(estimate_res.amount.parse::<f32>().unwrap() < 7.0);
         assert!(estimate_res.amount.parse::<f32>().unwrap() > 6.0);
         let estimate_res = test_estimate_transfer_fee!(service, sender_master, "BTC", "1").unwrap();
