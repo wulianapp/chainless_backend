@@ -68,6 +68,13 @@ impl Database {
     }
 }
 
+#[derive(Deserialize, Debug)]
+pub struct Smtp {
+    pub server: String,
+    pub sender: String,
+    pub password: String,
+}
+
 ///read config data for env
 #[derive(Deserialize, Debug)]
 pub struct EnvConf {
@@ -88,16 +95,7 @@ pub struct EnvConf {
     pub database: Database,
     /// eth rpc url
     pub chain_rpc: String,
-    /// chain id
-    pub stmp_account: String,
-    /// chain ws url
-    pub stmp_sender: String,
-    ///  main address
-    pub stmp_password: String,
-    ///  stroage contract address
-    pub stmp_server: String,
-    ///  token proxy contract address
-    pub stmp_port: usize,
+    pub stmp: Smtp,
     ///  vault contract address
     pub sms_server: String,
     /// pri key for settlement

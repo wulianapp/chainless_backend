@@ -5,6 +5,7 @@ use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
 use anyhow::Result;
+use common::env::CONF;
 use common::error_code::BackendRes;
 use common::error_code::{BackendError, ExternalServiceError};
 use lettre::transport::smtp::client::{Tls, TlsParameters};
@@ -21,15 +22,14 @@ fn is_valid() -> Result<(), EmailError> {
 }
 
 pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
-    // 替换为您的 Gmail 邮箱地址和密码
-    let email_address = "cs2-test@chainless.top";
-    let email_password = "vkHyW2dvynF8YuG1xN";
     let content = format!(
         "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
         code
     );
 
-    let from = email_address
+    let from = CONF
+        .stmp
+        .sender
         .parse::<Mailbox>()
         .map_err(|e| e.to_string())?;
     let to = to_mail.parse::<Mailbox>().map_err(|e| e.to_string())?;
@@ -46,9 +46,9 @@ pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
             ExternalServiceError::EmailCaptcha(e.to_string())
         })?;
 
-    let creds = Credentials::new(email_address.to_owned(), email_password.to_owned());
+    let creds = Credentials::new(CONF.stmp.sender.clone(), CONF.stmp.password.clone());
 
-    let tls = TlsParameters::builder("ud.1025.hk".to_owned())
+    let tls = TlsParameters::builder(CONF.stmp.server.clone())
         .dangerous_accept_invalid_certs(true)
         .build()
         .map_err(|e| {
@@ -56,7 +56,7 @@ pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
             ExternalServiceError::EmailCaptcha(e.to_string())
         })?;
 
-    let mailer = SmtpTransport::relay("ud.1025.hk")
+    let mailer = SmtpTransport::relay(CONF.stmp.server.as_str())
         .map(|c| c.port(1025)) // 指定 SMTP 服务器端口号
         .map_err(|e| {
             error!("EmailCaptcha service is crashed {}", e.to_string());
