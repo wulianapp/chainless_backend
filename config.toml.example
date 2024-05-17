@@ -29,17 +29,12 @@ dbname = "chainless_backend"
 
 # eth rpc url
 chain_rpc = "http://192.168.1.152:3030"
-# chain id
-stmp_account = ""
-# chain ws url
-stmp_sender = ""
 
-#  main address
-stmp_password = ""
-#  stroage contract address
-stmp_server = ""
-#  token proxy contract address
-stmp_port usize
+[stmp]
+server = "ud.1025.hk"
+sender = "cs2-test@chainless.top"
+password = "xxxx"
+
 #  vault contract address
 sms_server = ""
 # pri key for settlement
