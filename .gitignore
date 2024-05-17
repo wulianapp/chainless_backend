@@ -4,4 +4,4 @@ target
 .openzeppelin
 .vscode
 .DS_Store
-config.toml
+*.toml
