@@ -56,7 +56,7 @@ pub async fn req(
     }
 
     //from必须是用户的子账户
-    let cli = ContractClient::<MultiSig>::new()?;
+    let cli = ContractClient::<MultiSig>::new().await?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
     models::general::transaction_begin()?;

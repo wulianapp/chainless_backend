@@ -23,7 +23,7 @@ use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::Tra
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use anyhow::{anyhow, Result};
 use common::prelude::*;
-use near_crypto::{InMemorySigner, PublicKey, Signer};
+use near_crypto::{InMemorySigner, PublicKey, SecretKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
     borsh::{self, BorshSerialize},
@@ -81,6 +81,19 @@ pub struct ContractClient<T> {
 }
 
 impl<T> ContractClient<T> {
+    pub async fn gen_signer(contract:&str) -> Result<Self> {
+        let relayer = wait_for_idle_relayer().await;
+        let relayer  = relayer.lock().map_err(to_internal_error)?;
+        let pri_key: SecretKey = relayer.pri_key.parse()?;
+        let account_id = AccountId::from_str(&relayer.account_id)?;
+        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
+        Ok(Self {
+            deployed_at: contract.parse()?,
+            relayer: signer,
+            phantom: Default::default(),
+        })
+    }
+
     async fn gen_tx(
         &self,
         caller_account_id: &AccountId,
@@ -276,6 +289,9 @@ pub async fn test_connect() {
 
     println!("{:?}", tx_status);
 }
+
+
+
 /***
 todo:
 1、airdrop interface

@@ -1,4 +1,6 @@
 use common::data_structures::coin_transaction::CoinTransaction;
+use common::env::wait_for_idle_relayer;
+use common::error_code::to_internal_error;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -27,6 +29,7 @@ lazy_static! {
     static ref MULTI_SIG_CID: AccountId = AccountId::from_str("multi_sig.node0").unwrap();
     static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
 }
+
 
 pub struct Coin {}
 
@@ -97,21 +100,9 @@ async fn get_balance(account: &AccountId) -> Result<u128> {
 }
 
 impl ContractClient<Coin> {
-    //fixme: gen once object
-    pub fn new(coin: CoinType) -> Result<Self> {
-        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
-        let prikey_str: SecretKey = prikey_str.parse()?;
-
-        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
-        debug!("coin relayer_account  {}", relayer_account);
-
-        let relayer_account = AccountId::from_str(relayer_account)?;
-        let signer = near_crypto::InMemorySigner::from_secret_key(relayer_account, prikey_str);
-        Ok(Self {
-            deployed_at: coin.to_account_id(),
-            relayer: signer,
-            phantom: Default::default(),
-        })
+    pub async fn new_with_type(coin: CoinType) -> Result<Self> {
+        let contract = coin.to_string();
+        Self::gen_signer(&contract).await
     }
 
     pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
@@ -190,7 +181,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new(CoinType::DW20).unwrap();
+        let coin_cli = ContractClient::<Coin>::new_with_type(CoinType::DW20).await.unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());

@@ -19,7 +19,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let main_account = super::get_main_account(user_id)?;
     let coin_list = get_support_coin_list();
     for coin in coin_list {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
         let amount = if coin.eq(&CoinType::ETH) {
             10000000000000000
         } else {

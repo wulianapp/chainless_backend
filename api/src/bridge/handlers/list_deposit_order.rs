@@ -23,7 +23,7 @@ use super::paginate_vec;
 
 //DRY
 async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
-    let bridge_cli = ContractClient::<Bridge>::new()?;
+    let bridge_cli = ContractClient::<Bridge>::new().await?;
     let orders = bridge_cli.list_deposit_order(main_account).await?;
 
     let orders = orders

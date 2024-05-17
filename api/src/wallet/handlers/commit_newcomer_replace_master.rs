@@ -47,7 +47,7 @@ pub(crate) async fn req(
     super::check_role(current_role, KeyRole2::Undefined)?;
     super::check_have_base_fee(&main_account).await?;
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
 
     //get old_master

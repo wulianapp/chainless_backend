@@ -104,7 +104,7 @@ pub fn get_freezn_amount(account: &str, coin: &CoinType) -> u128 {
 
 pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendRes<u128> {
     let coin_cli =
-        ContractClient::<Coin>::new(coin.clone()).map_err(|err| ChainError(err.to_string()))?;
+        ContractClient::<Coin>::new_with_type(coin.clone()).await.map_err(|err| ChainError(err.to_string()))?;
     let balance = coin_cli
         .get_balance(account_id)
         .await
@@ -134,7 +134,7 @@ pub fn get_main_account(user_id: u32) -> Result<String, BackendError> {
 //目前的场景转账超过300兆才会溢出
 //由于取整造成的精度丢失可以忽略
 pub async fn get_value(coin: &CoinType, amount: u128) -> u128 {
-    let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+    let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
     let (base_amount, quote_amount) = fees_cli.get_coin_price(coin).await.unwrap();
     amount * quote_amount / base_amount
 }
@@ -189,7 +189,7 @@ pub async fn get_session_state(
     if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
     }
-    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let current_strategy =
         multi_sig_cli
             .get_strategy(main_account)
@@ -214,7 +214,7 @@ pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {
 }
 
 pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> {
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
     let fees_priority = fees_call_cli.get_fees_priority(main_account).await?;
     Ok(Some(fees_priority))
 }
@@ -227,7 +227,7 @@ pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError>
         .ok_or(InternalError("not set fees priority".to_string()))?;
 
     for fee_coin in fee_coins {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(fee_coin.clone()).await?;
         let balance = coin_cli.get_balance(main_account).await?;
         if balance.is_none() {
             continue;
@@ -274,7 +274,7 @@ pub async fn estimate_transfer_fee(
     //todo:
     let mut estimate_res = Default::default();
     for (index, fee_coin) in fee_coins.into_iter().enumerate() {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(fee_coin.clone())?;
+        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(fee_coin.clone()).await?;
 
         let mut balance = match coin_cli.get_balance(main_account).await? {
             Some(balance) => parse_str(balance)?,
@@ -299,7 +299,7 @@ pub async fn estimate_transfer_fee(
 
         if balance_value > fee_value {
             //fixme: repeat code
-            let fees_cli = ContractClient::<FeesCall>::new()?;
+            let fees_cli = ContractClient::<FeesCall>::new().await?;
             let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
             let fee_coin_amount = fee_value * base_amount / quote_amount;
             estimate_res = (fee_coin, fee_coin_amount, true);
@@ -309,7 +309,7 @@ pub async fn estimate_transfer_fee(
 
         if index == 0 {
             //fixme: repeat code
-            let fees_cli = ContractClient::<FeesCall>::new()?;
+            let fees_cli = ContractClient::<FeesCall>::new().await?;
             let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
             let fee_coin_amount = fee_value * base_amount / quote_amount;
             estimate_res = (fee_coin, fee_coin_amount, false);

@@ -50,7 +50,7 @@ pub(crate) async fn req(
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 
-    let client = ContractClient::<MultiSig>::new()?;
+    let client = ContractClient::<MultiSig>::new().await?;
     let master_pubkey = client.get_master_pubkey(&main_account).await?;
 
     let (add_key_txid, add_key_raw) = client.add_key(&main_account, &servant_pubkey).await?;

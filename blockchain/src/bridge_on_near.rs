@@ -96,28 +96,11 @@ struct DepositStruct {
 }
 
 pub struct Bridge {}
+
 impl ContractClient<Bridge> {
-    //fixme: gen once object
-    pub fn new() -> Result<Self> {
-        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
-        //cvault0001.chainless
+    pub async fn new() -> Result<Self>{
         let contract = &common::env::CONF.bridge_near_contract;
-        println!("___{}__{}", prikey_str, contract);
-        let pri_key: SecretKey = prikey_str.parse()?;
-        let pubkey = get_pubkey(&pri_key.to_string())?;
-
-        let _account_id = AccountId::from_str(&pubkey)?;
-        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
-        println!("0002___{}", prikey_str);
-        let account_id = AccountId::from_str(relayer_account)?;
-        println!("0003___{}", account_id);
-
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-        Ok(Self {
-            deployed_at: contract.parse()?,
-            relayer: signer,
-            phantom: Default::default(),
-        })
+        Self::gen_signer(contract).await
     }
 
     fn eth_contract() -> String {
@@ -371,7 +354,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_eth_sign() {
-        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
         let set_res = bridge_cli.set_user_batch("node0").await.unwrap();
         println!("set_user_batch txid {} ", set_res);
 
@@ -403,7 +386,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_bind_deposit() {
-        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
         let set_res = bridge_cli.set_user_batch("test").await.unwrap();
         println!("set_user_batch txid {} ", set_res);
 
@@ -449,7 +432,7 @@ mod tests {
             .unwrap();
         println!("{:?}", deposit_res);
 
-        let coin_cli = ContractClient::<crate::coin::Coin>::new(CoinType::USDT).unwrap();
+        let coin_cli = ContractClient::<crate::coin::Coin>::new_with_type(CoinType::USDT).await.unwrap();
         loop {
             let balance = coin_cli.get_balance("test").await.unwrap();
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
@@ -467,7 +450,7 @@ mod tests {
         let deposit_amount = 10_000u128 * BASE_DECIMAL; //10k
         let replayer_acccount_id = "test";
 
-        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await.unwrap();
         println!(
             "get_binded_eth_addr {:?} ",
@@ -501,7 +484,7 @@ mod tests {
             };
 
             let coin_cli: ContractClient<crate::coin::Coin> =
-                ContractClient::<crate::coin::Coin>::new(coin.clone()).unwrap();
+                ContractClient::<crate::coin::Coin>::new_with_type(coin.clone()).await.unwrap();
             let balance1: Option<String> = coin_cli.get_balance("test").await.unwrap();
             println!(
                 "test_coin_{}_balance1_——————{:?}",
@@ -560,7 +543,7 @@ mod tests {
     }
     #[tokio::test]
     async fn tool_list_order() {
-        let bridge_cli = ContractClient::<Bridge>::new().unwrap();
+        let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
         let orders = bridge_cli.list_withdraw_order("25f1fd7f.local").await.unwrap();
         println!("orders {:#?}",orders);
     }

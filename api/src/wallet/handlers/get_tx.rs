@@ -34,7 +34,7 @@ use blockchain::fees_call::*;
 
 //todo: txs 放在上层
 async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinType, u128)>> {
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
     let txs = fees_call_cli.get_user_txs(account_id).await?;
     for (index, (fee_id, amount, tx_id, _memo)) in txs.iter().enumerate() {
         if let Some(id) = tx_id {
@@ -95,7 +95,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .filter(|x| !signed_device.contains(x))
         .collect();
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new()?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let strategy = multi_sig_cli
         .get_strategy(&main_account)
         .await?
@@ -132,7 +132,9 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             fee_amount: raw2display(fee_amount),
         }]
     };
-    let stage = if now_millis() > tx.transaction.expire_at {
+    let stage = if tx.transaction.stage <= CoinSendStage::ReceiverApproved
+        && now_millis() > tx.transaction.expire_at {
+            
         CoinSendStage::MultiSigExpired
     } else {
         tx.transaction.stage

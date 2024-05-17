@@ -34,7 +34,7 @@ pub async fn req(
 
     //add wallet info
     models::general::transaction_begin()?;
-    let cli = ContractClient::<MultiSig>::new()?;
+    let cli = ContractClient::<MultiSig>::new().await?;
 
     let txid = cli
         .update_subaccount_hold_limit(&main_account, &subaccount, limit)

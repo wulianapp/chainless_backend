@@ -32,7 +32,7 @@ pub async fn req(
     let coin: CoinType = coin
         .parse()
         .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
-    let multi_cli = ContractClient::<MultiSig>::new()?;
+    let multi_cli = ContractClient::<MultiSig>::new().await?;
     let (dist_account, hold_limit) = match account_id {
         Some(account) => {
             let strategy = multi_cli
@@ -49,7 +49,7 @@ pub async fn req(
         None => (main_account.clone(), None),
     };
 
-    let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new(coin.clone())?;
+    let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
     let balance = coin_cli
         .get_balance(&dist_account)
         .await?

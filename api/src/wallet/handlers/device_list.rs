@@ -20,7 +20,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     if find_res.user_info.main_account != ""{
         //todo: if change master key, main_account not equal anymore
         all_keys.push(find_res.user_info.main_account.clone());
-        let cli = ContractClient::<MultiSig>::new();
+        let cli = ContractClient::<MultiSig>::new().await;
         let mut res = cli.get_strategy(&find_res.user_info.main_account).await?;
         if let Some(mut strategy) = res {
             all_keys.append(&mut strategy.servant_pubkeys);

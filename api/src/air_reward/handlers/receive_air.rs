@@ -49,7 +49,7 @@ pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRe
 
     let is_real = Some(false);
 
-    let cli = ContractClient::<AirReward>::new()?;
+    let cli = ContractClient::<AirReward>::new().await?;
     let ref_user = cli.get_up_user_with_id(&main_account)
     .await?
     .ok_or(AccountManagerError::PredecessorNotSetSecurity)?;

@@ -54,7 +54,7 @@ pub async fn req(
         Err(BridgeError::CoinNotSupport(coin.to_string()))?
     }
 
-    let bridge_cli = ContractClient::<Bridge>::new()?;
+    let bridge_cli = ContractClient::<Bridge>::new().await?;
 
     let (sig, deadline, cid) = bridge_cli
         .sign_deposit_info(coin, amount, &main_account)

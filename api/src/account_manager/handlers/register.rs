@@ -67,7 +67,7 @@ async fn register(
     secret.insert()?;
     ***/
     //注册多签账户放在安全问答之后
-    //let multi_cli = ContractClient::<MultiSig>::new();
+    //let multi_cli = ContractClient::<MultiSig>::new().await;
     //multi_cli.init_strategy(&pubkey).await?;
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;

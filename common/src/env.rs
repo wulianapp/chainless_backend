@@ -299,11 +299,16 @@ lazy_static! {
             .unwrap()
             .parse()
             .unwrap();
-        let relayer = Mutex::new(Relayer{
+        /***
+        (1..10).into_iter().map(|i|  Mutex::new(Relayer{
+            pri_key: pri_key.clone(),
+            account_id: format!("{}{}",account_id,i)
+        })).collect::<Vec<_>>()
+        ***/
+        vec![Mutex::new(Relayer{
             pri_key,
             account_id
-        });
-        vec![relayer]
+        })]
     };
 }
 

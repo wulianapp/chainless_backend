@@ -48,7 +48,7 @@ pub(crate) async fn req(
     )?;
 
     //add wallet info
-    let cli = ContractClient::<MultiSig>::new()?;
+    let cli = ContractClient::<MultiSig>::new().await?;
     current_strategy
         .servant_pubkeys
         .retain(|x| x != &servant_pubkey);

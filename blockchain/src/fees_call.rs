@@ -4,6 +4,7 @@ use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
 use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
+use std::fmt::Display;
 use std::ops::{Deref, Div};
 use std::str::FromStr;
 use tracing::debug;
@@ -28,25 +29,11 @@ use anyhow::{Ok, Result};
 pub struct U128(pub u128);
 
 pub struct FeesCall {}
+
 impl ContractClient<FeesCall> {
-    //fixme: gen once object
-    pub fn new() -> Result<Self> {
-        let prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
-        let relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
-        //cvault0001.chainless
+    pub async fn new() -> Result<Self>{
         let contract = &common::env::CONF.fees_call_contract;
-        println!("___{}", prikey_str);
-        let pri_key: SecretKey = prikey_str.parse()?;
-        let _pubkey = get_pubkey(&pri_key.to_string())?;
-
-        let account_id = AccountId::from_str(relayer_account)?;
-
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-        Ok(Self {
-            deployed_at: contract.parse()?,
-            relayer: signer,
-            phantom: Default::default(),
-        })
+        Self::gen_signer(contract).await
     }
 
     pub async fn set_fees_priority(
@@ -150,7 +137,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fees_set_get() {
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys_1 {:?} ", prioritys);
 
@@ -187,7 +174,7 @@ mod tests {
             CoinType::USDT,
             CoinType::DW20,
         ];
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
         for coin in coins {
             let price = fees_cli.get_coin_price_custom(&coin).await.unwrap();
             println!("{}: price {} ", coin, price);
@@ -196,7 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_toos_get_users_tx() {
-        let fees_cli = ContractClient::<FeesCall>::new().unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
         let res = fees_cli.get_user_txs("25f1fd7f.local").await;
         println!("_____{:#?}",res);
     }

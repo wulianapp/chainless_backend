@@ -257,14 +257,14 @@ pub fn gen_some_accounts_with_new_key() -> (
 }
 
 pub async fn clear_contract() {
-    let cli = blockchain::ContractClient::<MultiSig>::new().unwrap();
+    let cli = blockchain::ContractClient::<MultiSig>::new().await.unwrap();
     cli.clear_all().await.unwrap();
     //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
     //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
 }
 
 pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
-    let cli = blockchain::ContractClient::<MultiSig>::new().unwrap();
+    let cli = blockchain::ContractClient::<MultiSig>::new().await.unwrap();
     cli.get_tx_state(txs_index).await.unwrap().unwrap()
 }
 

@@ -41,7 +41,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
     if is_agreed {
         //todo:check user_id's main account_id is receiver
 
-        let cli = blockchain::ContractClient::<MultiSig>::new()?;
+        let cli = blockchain::ContractClient::<MultiSig>::new().await?;
         let servant_sigs = coin_tx
             .transaction
             .signatures

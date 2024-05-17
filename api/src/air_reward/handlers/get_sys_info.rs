@@ -32,7 +32,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<SysInfoResponse> {
         current_role
     };
     **/
-    let cli = ContractClient::<AirReward>::new().unwrap();
+    let cli = ContractClient::<AirReward>::new().await.unwrap();
     let sys_info = cli.get_sys_info().await?;
     Ok(sys_info)
 }

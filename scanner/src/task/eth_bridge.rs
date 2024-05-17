@@ -127,7 +127,7 @@ pub async fn listen_confirmed_block(bridge:&EthContractClient<Bridge>,height:u64
 pub async fn start() -> Result<()> {
     let mut last_process_height = get_last_process_height().await?;
     let bridge: EthContractClient<Bridge> = EthContractClient::<Bridge>::new()?;
-    //let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new().unwrap();
+    //let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new().await.unwrap();
     loop {
         let current_height = get_current_height().await?;
         info!(

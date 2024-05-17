@@ -66,7 +66,7 @@ pub(crate) async fn req(
     );
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new().map_err(|err| ChainError(err.to_string()))?;
+    let cli = ContractClient::<MultiSig>::new().await.map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
         .await?

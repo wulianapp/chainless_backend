@@ -39,11 +39,11 @@ pub fn calc_wallet_grade(score: Decimal) -> u8 {
             return r.0;
         }
     }
-    0
+    return 0;
 }
 
 pub async fn query_wallet_grade(account: &str) -> Result<u8> {
-    let data = first_tx(account).await?;
+    let data: Option<AccountSummary> = first_tx(account).await?;
     let score = calc_wallet_score(data);
     Ok(calc_wallet_grade(score))
 }

@@ -37,7 +37,7 @@ pub async fn req(
     let SetFeesPriorityRequest { fees_priority } = request_data.0;
 
     let main_account = super::get_main_account(user_id)?;
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new()?;
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
 
     if fees_priority.len() != 5 {
         Err(BackendError::RequestParamInvalid(

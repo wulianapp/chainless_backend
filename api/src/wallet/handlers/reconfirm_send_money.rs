@@ -31,7 +31,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         Err(WalletError::TxExpired)?;
     }
     //区分receiver是否是子账户
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new()?;
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
     let strategy = multi_cli
         .get_strategy(&coin_tx.transaction.from)
         .await?

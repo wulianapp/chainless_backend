@@ -70,30 +70,16 @@ pub struct User{
     pub expire_times: u64, // 修改上级倒计时时间，用于控制间隔时间
 }
 
+pub struct MultiSig {}
+
+//air100010
 pub struct AirReward {}
 impl ContractClient<AirReward> {
-    //fixme: gen once object
-    pub fn new() -> Result<Self> {
-        let _prikey_str = &common::env::CONF.multi_sig_relayer_prikey;
-        let _relayer_account = &common::env::CONF.multi_sig_relayer_account_id;
-        let prikey_str= "ed25519:2zGt1i93avrks4RGeYXw7WvaoWmBWz4PcjWpTmqCRWFU4irviDjPvWCtTi14Wsz8DKaLysAeUBfYtyn8qovMGeNz";
-        let relayer_account = "chainless";
-
-        //cvault0001.chainless
-        let _contract = &common::env::CONF.fees_call_contract;
+    //todo: config
+    pub async fn new() -> Result<Self>{
+        //let contract = &common::env::CONF.fees_call_contract;
         let contract = "air100010";
-        println!("___{}", prikey_str);
-        let pri_key: SecretKey = prikey_str.parse()?;
-        let _pubkey = get_pubkey(&pri_key.to_string())?;
-
-        let account_id = AccountId::from_str(relayer_account)?;
-
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-        Ok(Self {
-            deployed_at: contract.parse()?,
-            relayer: signer,
-            phantom: Default::default(),
-        })
+        Self::gen_signer(contract).await
     }
 
     pub async fn get_sys_info(
@@ -191,7 +177,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_get_sys_info() {
-        let cli = ContractClient::<AirReward>::new().unwrap();        
+        let cli = ContractClient::<AirReward>::new().await.unwrap();        
         let sys_info = cli.get_sys_info().await.unwrap();
         println!("sys_info {:?} ", sys_info);
     }
