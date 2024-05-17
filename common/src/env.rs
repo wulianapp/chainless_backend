@@ -10,10 +10,16 @@ use tracing_futures::Instrument;
 
 use crate::utils::time::MINUTE30;
 
-#[derive(Clone, Deserialize, Debug, PartialEq)]
-pub struct MultiSigRelayer {
+pub struct Relayer {
     pub pri_key: String,
     pub account_id: String,
+}
+
+#[derive(Clone, Deserialize, Debug, PartialEq)]
+pub struct RelayerPool {
+    pub pri_key: String,
+    pub base_account_id: String,
+    pub derive_size: u16
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -87,7 +93,7 @@ pub struct EnvConf {
     pub bridge_near_contract: String,
     pub bridge_eth_contract: String,
     pub bridge_admin_prikey: String,
-    pub multi_sig_relayers: Vec<MultiSigRelayer>,
+    pub relayer_pool: RelayerPool,
     /// psql connect url
     pub wallet_api_port: usize,
     pub captcha_valid_interval: u64,
@@ -127,10 +133,24 @@ lazy_static! {
     };
 
     //use relayer array to avoid nonce conflict
-    pub static ref MULTI_SIG_RELAYER_POOL: Vec<Mutex<MultiSigRelayer>> = CONF.multi_sig_relayers.clone().into_iter().map(|v|Mutex::new(v)).collect();
+    pub static ref MULTI_SIG_RELAYER_POOL: Vec<Mutex<Relayer>> = {
+        let RelayerPool { pri_key, base_account_id, derive_size }
+            = CONF.relayer_pool.clone();
+        let mut pool = vec![Mutex::new(Relayer{
+            pri_key: pri_key.clone(),
+            account_id: base_account_id.clone()
+        })];
+        for index in (0..derive_size).into_iter() {
+            pool.push(Mutex::new(Relayer{
+                pri_key: pri_key.clone(),
+                account_id: format!("{}{}",base_account_id,index)
+            })); 
+        }
+        pool    
+    };
 }
 
-pub fn find_idle_relayer() -> Option<&'static Mutex<MultiSigRelayer>> {
+pub fn find_idle_relayer() -> Option<&'static Mutex<Relayer>> {
     for relayer in MULTI_SIG_RELAYER_POOL.iter() {
         match relayer.try_lock() {
             Ok(_) => {
@@ -142,7 +162,7 @@ pub fn find_idle_relayer() -> Option<&'static Mutex<MultiSigRelayer>> {
     None
 }
 
-pub async fn wait_for_idle_relayer() -> &'static Mutex<MultiSigRelayer> {
+pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer> {
     loop {
         match find_idle_relayer() {
             Some(x) => {

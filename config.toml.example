@@ -10,9 +10,10 @@ bridge_near_contract = "cvault0004.chainless"
 bridge_eth_contract = "0x2100B8B03E91646135C549B1Bc04455eF867cA30"
 bridge_admin_prikey = "6c7d02e6742c673e8c5b9f9e85966a84706c08a6741d84c1467822b6d681d56f"
 
-[[multi_sig_relayer]]
+[relayer_pool]
 pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
-account_id = "test"
+base_account_id = "test"
+devive_size = 0
 
 # psql connect url
 wallet_api_port = 8069
