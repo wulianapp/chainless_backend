@@ -68,7 +68,7 @@ pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,
 ) -> Result<String, BackendError> {
     for _ in 0..10 {
-        let relayer_name = &common::env::CONF.multi_sig_relayer_account_id;
+        let relayer_name = &common::env::CONF.multi_sig_relayers[0].account_id;
         let hex_str = generate_random_hex_string(8);
         let account_id = format!("{}.{}", hex_str, relayer_name);
         //当前的以空master_key来判断是否账户存在

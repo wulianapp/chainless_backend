@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use common::data_structures::{get_support_coin_list, PubkeySignInfo};
-use common::env::{wait_for_idle_relayer, Relayer};
 use common::error_code::to_internal_error;
 use common::utils::time::now_millis;
 use std::collections::BTreeMap;

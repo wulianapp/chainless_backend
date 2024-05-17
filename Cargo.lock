@@ -1195,6 +1195,7 @@ dependencies = [
  "strum_macros 0.26.2",
  "thiserror",
  "tokio 1.37.0",
+ "toml 0.5.11",
  "tracing",
  "tracing-futures",
  "tracing-subscriber 0.2.25",
