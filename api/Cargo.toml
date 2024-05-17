@@ -10,35 +10,33 @@ name = "api"
 path = "src/route.rs"
 
 [dependencies]
-common = { workspace = true }
-models = { workspace = true }
-blockchain = { workspace = true }
-actix-web = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 actix-cors = { workspace = true }
 actix-rt = { workspace = true }
-chrono = { workspace = true }
-tokio = { workspace = true }
-rand = { workspace = true }
-lettre = { workspace = true }
-reqwest = { workspace = true }
-anyhow = { workspace = true }
-lazy_static = { workspace = true }
-regex = { workspace = true }
-rust_decimal = { workspace = true }
+actix-web = { workspace = true }
 actix-web-httpauth = { workspace = true }
+anyhow = { workspace = true }
+blockchain = { workspace = true }
+chrono = { workspace = true }
+common = { workspace = true }
+ed25519-dalek  = { workspace = true }
+env_logger = { workspace = true }
 jsonwebtoken = { workspace = true }
+lazy_static = { workspace = true }
+lettre = { workspace = true }
+models = { workspace = true }
+phonenumber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+rand = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+rust_decimal = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-futures  = { workspace = true }
 tracing-subscriber = { workspace = true }
-phonenumber = { workspace = true }
-ed25519-dalek  = { workspace = true }
-strum_macros = { workspace = true }
-strum = { workspace = true }
-env_logger = { workspace = true }
-
-
 
 [dev-dependencies]
 actix-http = { workspace = true }

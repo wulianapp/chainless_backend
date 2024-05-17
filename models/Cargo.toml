@@ -6,24 +6,24 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-jsonrpc-http-server = { workspace = true }
+anyhow = { workspace = true }
+chrono = { workspace = true }
+common = { workspace = true }
+derive_more = { workspace = true }
+ethers-core  = { workspace = true }
+env_logger = { workspace = true }
 jsonrpc-client-core = { workspace = true }
-slog-term = { workspace = true }
-slog-async = { workspace = true }
+jsonrpc-client-http = { workspace = true }
+jsonrpc-http-server = { workspace = true }
 lazy_static = { workspace = true }
 postgres = { workspace = true }
 serde_json = { workspace = true }
 rust_decimal = { workspace = true }
 rustc-serialize = { workspace = true }
-chrono = { workspace = true }
-ethers-core  = { workspace = true }
-env_logger = { workspace = true }
-anyhow = { workspace = true }
-common = { workspace = true }
-tracing = { workspace = true }
-derive_more = { workspace = true }
-jsonrpc-client-http = { workspace = true }
 serde = { workspace = true }
+slog-async = { workspace = true }
+slog-term = { workspace = true }
+tracing = { workspace = true }
 
 
 

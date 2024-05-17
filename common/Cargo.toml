@@ -6,30 +6,28 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rand = { workspace = true }
-tokio = { workspace = true }
+actix-web = { workspace = true }
+anyhow = { workspace = true }
+base58 = { workspace = true }
+bs58 = { workspace = true }
+chrono = { workspace = true }
+ed25519-dalek = { workspace = true }
+env_logger = { workspace = true }
+hex = { workspace = true }
+jsonwebtoken = { workspace = true }
 lazy_static = { workspace = true }
+near-crypto  = { workspace = true }
+near-primitives = { workspace = true }
+rand = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }
+strum = { workspace = true }
+strum_macros = { workspace = true }
 thiserror = { workspace = true }
-chrono = { workspace = true }
-jsonwebtoken = { workspace = true }
-actix-web = { workspace = true }
-near-primitives = { workspace = true }
-anyhow = { workspace = true }
-base58 = { workspace = true }
-hex = { workspace = true }
-uuid = { workspace = true }
-env_logger = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
 tracing = { workspace = true }
 tracing-futures = { workspace = true }
 tracing-subscriber = { workspace = true }
-strum_macros = { workspace = true }
-strum = { workspace = true }
-near-crypto  = { workspace = true }
-ed25519-dalek = { workspace = true }
-bs58 = { workspace = true }
-toml = { workspace = true }
-
-
+uuid = { workspace = true }

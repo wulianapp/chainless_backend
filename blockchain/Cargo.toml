@@ -6,31 +6,24 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-common = { workspace = true }
-lazy_static = { workspace = true }
-near-jsonrpc-client  = { workspace = true }
-near-crypto  = { workspace = true }
-near-primitives = { workspace = true }
-near-chain-configs = { workspace = true }
-near-jsonrpc-primitives = { workspace = true }
-hex = { workspace = true }
-serde_json = { workspace = true }
-serde = { workspace = true }
-ed25519-dalek = { workspace = true }
-tracing = { workspace = true }
-rand = { workspace = true }
 anyhow = { workspace = true }
+common = { workspace = true }
+ed25519-dalek = { workspace = true }
 ethers = { workspace = true }
-ethers-signers = { workspace = true }
-ethers-core  = { workspace = true }
 ethers-contract = { workspace = true }
-
-
-
-
-
-
-
+ethers-core  = { workspace = true }
+ethers-signers = { workspace = true }
+hex = { workspace = true }
+lazy_static = { workspace = true }
+near-chain-configs = { workspace = true }
+near-crypto  = { workspace = true }
+near-jsonrpc-client  = { workspace = true }
+near-jsonrpc-primitives = { workspace = true }
+near-primitives = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
