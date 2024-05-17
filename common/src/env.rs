@@ -56,6 +56,13 @@ pub struct Smtp {
     pub password: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct Sms {
+    pub cmtelecom_api_key: String,
+    pub smsbao_username: String,
+    pub smsbao_api_key: String,
+}
+
 ///read config data for env
 #[derive(Deserialize, Debug)]
 pub struct EnvConf {
@@ -77,12 +84,7 @@ pub struct EnvConf {
     /// eth rpc url
     pub chain_rpc: String,
     pub stmp: Smtp,
-    ///  vault contract address
-    pub sms_server: String,
-    /// pri key for settlement
-    pub sms_account: String,
-    /// bot key
-    pub sms_token: String,
+    pub sms: Sms,
     pub eth_wbtc_contract: String,
     pub eth_usdt_contract: String,
     pub eth_usdc_contract: String,

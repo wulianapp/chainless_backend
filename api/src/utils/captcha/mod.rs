@@ -1,5 +1,6 @@
 pub mod email;
 pub mod phone;
+pub mod sms;
 
 use std::collections::HashMap;
 use std::str::FromStr;
