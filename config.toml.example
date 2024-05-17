@@ -10,32 +10,6 @@ bridge_near_contract = "cvault0004.chainless"
 bridge_eth_contract = "0x2100B8B03E91646135C549B1Bc04455eF867cA30"
 bridge_admin_prikey = "6c7d02e6742c673e8c5b9f9e85966a84706c08a6741d84c1467822b6d681d56f"
 
-[relayer_pool]
-pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
-base_account_id = "test"
-devive_size = 0
-
-# psql connect url
-wallet_api_port = 8069
-captcha_valid_interval = 600000
-login_by_password_retry_time = 5
-
-[database]
-host = "127.0.0.1"
-port = 5432
-user = "postgres"
-password = "postgres"
-dbname = "chainless_backend"
-
-
-# eth rpc url
-chain_rpc = "http://192.168.1.152:3030"
-
-[stmp]
-server = "ud.1025.hk"
-sender = "cs2-test@chainless.top"
-password = "xxxx"
-
 #  vault contract address
 sms_server = ""
 # pri key for settlement
@@ -51,3 +25,30 @@ eth_cly_contract = "0x3E47b625f1491f682A6007a5126f0A6F5Ced4096"
 
 # BTC aggregated API service
 btc_aggregated_api_base_uri = "https://test3.chainless.top/regtest/wallet-api-v4"
+
+
+[relayer_pool]
+pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
+base_account_id = "test"
+derive_size = 0
+
+# psql connect url
+wallet_api_port = 8069
+captcha_valid_interval = 600000
+login_by_password_retry_time = 5
+
+[database]
+host = "127.0.0.1"
+port = 8068
+user = "postgres"
+password = "postgres"
+dbname = "backend_test"
+
+# eth rpc url
+chain_rpc = "http://192.168.1.152:3030"
+
+[stmp]
+server = "ud.1025.hk"
+sender = "cs2-test@chainless.top"
+password = "xxxx"
+

@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use std::str::FromStr;
 
 use serde::Deserialize;
+use strum::{Display, EnumString};
 use tracing::{info, warn};
 use tracing_futures::Instrument;
 
@@ -22,38 +23,12 @@ pub struct RelayerPool {
     pub derive_size: u16
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq,EnumString,Display)]
 pub enum ServiceMode {
     Product,
     Dev,
     Local,
     Test, //for testcase
-}
-
-impl std::str::FromStr for ServiceMode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "product" => Ok(ServiceMode::Product),
-            "dev" => Ok(ServiceMode::Dev),
-            "local" => Ok(ServiceMode::Local),
-            "test" => Ok(ServiceMode::Test),
-            _ => Err("Don't support this service mode".to_string()), // 处理未知字符串的情况
-        }
-    }
-}
-
-impl fmt::Display for ServiceMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let description = match self {
-            ServiceMode::Product => "product",
-            ServiceMode::Dev => "dev",
-            ServiceMode::Local => "local",
-            ServiceMode::Test => "test",
-        };
-        write!(f, "{}", description)
-    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -69,7 +44,7 @@ impl Database {
     pub fn db_uri(&self) -> String {
         format!(
             "host={} port={} user={} password={} dbname={}",
-            self.host, self.port, self.user, self.password, self.dbname
+            self.host, self.port, self.user,  self.password, self.dbname
         )
     }
 }

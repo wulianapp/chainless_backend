@@ -5,7 +5,7 @@ scanner_wallet_manage_log_file="wallet_manage_${current_time}.log"
 scanner_coin_transfer_log_file="coin_transfer_${current_time}.log"
 scanner_eth_bridge_log_file="eth_bridge_${current_time}.log"
 
-source ./tools/local.env
+export CONFIG=/root/chainless_backend/config_local.toml
 killall -9 api
 killall -9 scanner
 cp ./target/debug/api ./target/debug/api_ori
@@ -15,5 +15,5 @@ nohup ./target/debug/scanner --task chainless_wallet_manage > ./$scanner_wallet_
 nohup ./target/debug/scanner --task chainless_coin_transfer > ./$scanner_coin_transfer_log_file &
 nohup ./target/debug/scanner --task eth_bridge > ./$scanner_eth_bridge_log_file &
 
-source ./tools/test.env
+export CONFIG=/root/chainless_backend/config_test.toml
 
