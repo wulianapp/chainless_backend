@@ -22,7 +22,7 @@ pub fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserSimpleInfo> {
             secruity_is_seted: info.user_info.secruity_is_seted,
         })),
         Err(err) => {
-            if err.to_string().contains("data isn't existed") {
+            if err.to_string().contains("DataNotFound") {
                 Ok(Some(UserSimpleInfo {
                     contact_is_register: false,
                     secruity_is_seted: false,

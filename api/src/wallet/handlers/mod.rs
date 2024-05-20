@@ -8,9 +8,9 @@ use blockchain::{
     ContractClient,
 };
 use common::{
-    data_structures::{account_manager::UserInfo, device_info::DeviceInfo, CoinType, KeyRole2},
+    data_structures::{account_manager::UserInfo, coin_transaction::CoinSendStage, device_info::DeviceInfo, CoinType, KeyRole2},
     error_code::{parse_str, BackendError, BackendRes, WalletError},
-    utils::math::{coin_amount::raw2display, generate_random_hex_string},
+    utils::{math::{coin_amount::raw2display, generate_random_hex_string}, time::now_millis},
 };
 use models::{
     account_manager::{UserFilter, UserInfoView},
@@ -85,9 +85,15 @@ pub async fn gen_random_account_id(
 }
 
 pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
-    CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))
+    let mut txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))?;
+    txs.retain(|tx| {
+        tx.transaction.stage <= CoinSendStage::ReceiverApproved
+            && now_millis() < tx.transaction.expire_at
+    });
+    Ok(txs)
 }
 
+//todo: return bool
 pub fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
     let tx = get_uncompleted_tx(account)?;
     if !tx.is_empty() {

@@ -57,10 +57,8 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
         .collect::<Vec<CoinTransactionTmp1>>();
 
     messages.coin_tx.append(&mut tx_msg);
-    let uncompleted_txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(
-        &user.user_info.main_account,
-    ))?;
-    if !uncompleted_txs.is_empty() {
+    
+    if have_no_uncompleted_tx(&user.user_info.main_account).is_err() {
         messages.have_uncompleted_txs = true;
     }
 

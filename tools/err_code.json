@@ -15,9 +15,9 @@
       "en_us": "_____CaptchaNotFound"
     },
     "2003": {
-        "zh_tw": "驗證碼已過期",
-        "zh_cn": "验证码已过期",
-        "en_us": "Verification code has expired"
+        "zh_tw": "",
+        "zh_cn": "",
+        "en_us": ""
       },
       "2004": {
         "zh_tw": "驗證碼不正確",
