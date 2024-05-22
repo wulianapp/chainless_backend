@@ -3,7 +3,7 @@ extern crate rustc_serialize;
 use common::data_structures::device_info::DeviceInfo;
 use common::data_structures::wallet_namage_record::{WalletManageRecord, WalletOperateType};
 use common::utils::math::generate_random_hex_string;
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
@@ -147,6 +147,22 @@ impl PsqlOp for WalletManageRecordView {
         Ok(execute_res)
     }
 
+    fn update_with_trans(
+            new_value: Self::UpdateContent<'_>, 
+            filter: Self::FilterContent<'_>,
+            trans: &mut Transaction
+    ) -> Result<u64> {
+        let sql = format!(
+            "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            new_value, filter
+        );
+        debug!("start update orders {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        debug!("success update orders {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let WalletManageRecord {
             record_id,
@@ -180,6 +196,42 @@ impl PsqlOp for WalletManageRecordView {
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
+        Ok(())
+    }
+
+    fn insert_with_trans(&self,trans: &mut Transaction) -> Result<()> {
+        let WalletManageRecord {
+            record_id,
+            user_id,
+            operation_type,
+            operator_pubkey,
+            operator_device_id,
+            operator_device_brand,
+            tx_ids,
+            status,
+        } = self.record.clone();
+        let sql = format!(
+            "insert into wallet_manage_record (\
+                record_id,\
+                user_id,\
+                operation_type,\
+                operator_pubkey,\
+                operator_device_id,\
+                operator_device_brand,\
+                tx_ids,\
+                status\
+         ) values ('{}','{}','{}','{}','{}','{}',{},'{}');",
+            record_id,
+            user_id,
+            operation_type.to_string(),
+            operator_pubkey,
+            operator_device_id,
+            operator_device_brand,
+            vec_str2array_text(tx_ids),
+            status.to_string()
+        );
+        debug!("row sql {} rows", sql);
+        let _execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
         Ok(())
     }
 }

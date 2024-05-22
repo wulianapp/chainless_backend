@@ -2,6 +2,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
+use models::general::{get_db_pool_connect, transaction_begin, transaction_commit};
 use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::account_manager::user_info;
@@ -44,7 +45,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    models::general::transaction_begin()?;
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
+
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey))?;
     if origin_secret.is_empty() {
@@ -54,11 +57,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
             &servant_prikey_encryped_by_password,
             &servant_prikey_encryped_by_answer,
         );
-        secret_info.insert()?;
+        secret_info.insert_with_trans(&mut trans)?;
     } else {
-        SecretStoreView::update_single(
+        SecretStoreView::update_single_with_trans(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&servant_pubkey),
+            &mut trans
         )?;
     }
 
@@ -74,9 +78,10 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         .await?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update_single(
+    DeviceInfoView::update_single_with_trans(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
+        &mut trans
     )?;
 
     //WalletManageRecordView
@@ -88,8 +93,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         &device.brand,
         vec![txid],
     );
-    record.insert()?;
+    record.insert_with_trans(&mut trans)?;
 
-    models::general::transaction_commit()?;
+    transaction_commit(trans)?;
     Ok(None::<String>)
 }

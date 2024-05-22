@@ -2,7 +2,7 @@ extern crate rustc_serialize;
 
 use common::data_structures::SecretKeyState;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use std::fmt;
@@ -126,6 +126,22 @@ impl PsqlOp for SecretStoreView {
         Ok(execute_res)
     }
 
+    fn update_with_trans(
+            new_value: SecretUpdater, 
+            filter: SecretFilter,
+            trans: &mut Transaction
+    ) -> Result<u64> {
+        let sql = format!(
+            "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            new_value, filter
+        );
+        debug!("start update orders {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        debug!("success update orders {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let SecretStore {
             pubkey,
@@ -147,6 +163,30 @@ impl PsqlOp for SecretStoreView {
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
+        Ok(())
+    }
+
+    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
+        let SecretStore {
+            pubkey,
+            state,
+            user_id,
+            encrypted_prikey_by_password,
+            encrypted_prikey_by_answer,
+        } = &self.secret_store;
+
+        let sql = format!(
+            "insert into secret_store (\
+                pubkey,\
+                state,\
+                user_id,\
+                encrypted_prikey_by_password,\
+                encrypted_prikey_by_answer\
+         ) values ('{}','{}',{},'{}','{}');",
+            pubkey, state, user_id, encrypted_prikey_by_password, encrypted_prikey_by_answer
+        );
+        debug!("row sql {} rows", sql);
+        let _execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
         Ok(())
     }
 

@@ -2,10 +2,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
 use models::{
-    account_manager::{UserFilter, UserInfoView, UserUpdater},
-    device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView},
-    secret_store::{SecretFilter, SecretStoreView, SecretUpdater},
-    PsqlOp,
+    account_manager::{UserFilter, UserInfoView, UserUpdater}, device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView}, general::get_db_pool_connect, secret_store::{SecretFilter, SecretStoreView, SecretUpdater}, PsqlOp
 };
 
 use crate::{
@@ -41,29 +38,35 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //todo: must be master
-    models::general::transaction_begin()?;
-    UserInfoView::update_single(
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
+
+
+    UserInfoView::update_single_with_trans(
         UserUpdater::AnwserIndexes(&anwser_indexes),
         UserFilter::ById(user_id),
+        &mut trans
     )?;
 
     for secret in secrets {
-        SecretStoreView::update_single(
+        SecretStoreView::update_single_with_trans(
             SecretUpdater::EncrypedPrikey(
                 &secret.encrypted_prikey_by_password,
                 &secret.encrypted_prikey_by_answer,
             ),
             SecretFilter::ByPubkey(&secret.pubkey),
+            &mut trans
         )?;
 
         //设备表不存子账户信息
         if current_strategy.sub_confs.get(&secret.pubkey).is_some() {
-            DeviceInfoView::update_single(
+            DeviceInfoView::update_single_with_trans(
                 DeviceInfoUpdater::HolderSaved(false),
                 DeviceInfoFilter::ByHoldKey(&secret.pubkey),
+                &mut trans
             )?;
         }
     }
-    models::general::transaction_commit()?;
+    models::general::transaction_commit(trans)?;
     Ok(None)
 }

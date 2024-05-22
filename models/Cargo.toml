@@ -7,23 +7,34 @@ edition = "2021"
 
 [dependencies]
 anyhow = { workspace = true }
+async-trait =  { workspace = true }
 chrono = { workspace = true }
 common = { workspace = true }
 derive_more = { workspace = true }
+##deadpool-postgres = { workspace = true }
 ethers-core  = { workspace = true }
 env_logger = { workspace = true }
 jsonrpc-client-core = { workspace = true }
 jsonrpc-client-http = { workspace = true }
 jsonrpc-http-server = { workspace = true }
 lazy_static = { workspace = true }
+ouroboros = {workspace = true}
 postgres = { workspace = true }
 serde_json = { workspace = true }
+r2d2 = { workspace = true }
+r2d2_postgres = { workspace = true }
 rust_decimal = { workspace = true }
 rustc-serialize = { workspace = true }
 serde = { workspace = true }
 slog-async = { workspace = true }
 slog-term = { workspace = true }
 tracing = { workspace = true }
+##tokio-postgres = {workspace = true}
+
+
+[dev-dependencies]
+tokio = { workspace = true }
+futures = { workspace = true }
 
 
 

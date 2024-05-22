@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use common::utils::math::generate_random_hex_string;
 use jsonrpc_http_server::jsonrpc_core::futures::future::OrElse;
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 
@@ -230,6 +230,22 @@ impl PsqlOp for CoinTxView {
         Ok(execute_res)
     }
 
+    fn update_with_trans(
+            update_data: CoinTxUpdater, 
+            filter: CoinTxFilter,
+            trans: &mut Transaction
+        ) -> Result<u64> {
+        let sql = format!(
+            "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            update_data, filter
+        );
+        info!("start update orders {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        info!("success update orders {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let CoinTransaction {
             order_id,
@@ -294,6 +310,75 @@ impl PsqlOp for CoinTxView {
         println!("row sql {} rows", sql);
 
         let execute_res = crate::execute(sql.as_str())?;
+        info!("success insert {} rows", execute_res);
+
+        Ok(())
+    }
+
+    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
+        let CoinTransaction {
+            order_id,
+            tx_id,
+            coin_type,
+            from: sender,
+            to: receiver,
+            amount,
+            expire_at,
+            memo,
+            stage,
+            coin_tx_raw,
+            chain_tx_raw,
+            signatures,
+            tx_type,
+            chain_status,
+            receiver_contact,
+            reserved_field3,
+        } = self.transaction.clone();
+        let tx_id: PsqlType = tx_id.into();
+        let chain_raw_data: PsqlType = chain_tx_raw.into();
+        let memo: PsqlType = memo.into();
+        let receiver_contact: PsqlType = receiver_contact.into();
+
+
+        //todo: amount specific type short or long
+        let sql = format!(
+            "insert into coin_transaction (order_id,
+                tx_id,\
+         coin_type,\
+         sender,\
+         receiver,\
+         amount,\
+         expire_at,\
+         memo,\
+         stage,\
+        coin_tx_raw,\
+         chain_tx_raw,\
+         signatures,\
+         tx_type,\
+         chain_status,\
+         receiver_contact,\
+         reserved_field3\
+         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}',{},'{}');",
+            order_id,
+            tx_id.to_psql_str(),
+            coin_type,
+            sender,
+            receiver,
+            amount,
+            expire_at,
+            memo.to_psql_str(),
+            stage,
+            coin_tx_raw,
+            chain_raw_data.to_psql_str(),
+            vec_str2array_text(signatures),
+            tx_type,
+            chain_status,
+            receiver_contact.to_psql_str(),
+            reserved_field3,
+        );
+        println!("row sql {} rows", sql);
+
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
         info!("success insert {} rows", execute_res);
 
         Ok(())

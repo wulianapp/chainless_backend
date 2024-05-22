@@ -12,6 +12,7 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PsqlOp};
 use tracing::{debug, info};
+use models::general::*;
 
 async fn register(
     device_id: String,
@@ -59,9 +60,10 @@ async fn register(
     }
 
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
-    models::general::transaction_begin()?;
+    let mut conn = get_db_pool_connect()?;
+    let mut trans = transaction_begin(&mut conn)?;
     //account_manager::single_insert(&view.user_info)?;
-    account_manager::UserInfoView::insert(&view)?;
+    account_manager::UserInfoView::insert_with_trans(&view,&mut trans)?;
     /***
     let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
     secret.insert()?;
@@ -72,9 +74,9 @@ async fn register(
     //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
     //device.insert()?;
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
-    device.insert()?;
+    device.insert_with_trans(&mut trans)?;
 
-    models::general::transaction_commit()?;
+    transaction_commit(trans)?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
     info!("user {:?} register successfully", view.user_info);

@@ -2,6 +2,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
+use models::general::get_db_pool_connect;
 use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::utils::token_auth;
@@ -51,7 +52,9 @@ pub(crate) async fn req(
         )))?;
     }
 
-    models::general::transaction_begin()?;
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
+
     //check if stored already
     let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&new_servant_pubkey))?;
     if origin_secret.is_empty() {
@@ -61,27 +64,31 @@ pub(crate) async fn req(
             &new_servant_prikey_encryped_by_password,
             &new_servant_prikey_encryped_by_answer,
         );
-        secret_info.insert()?;
+        secret_info.insert_with_trans(&mut trans)?;
     } else {
-        SecretStoreView::update_single(
+        SecretStoreView::update_single_with_trans(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&new_servant_pubkey),
+            &mut trans
         )?;
     }
 
-    SecretStoreView::update_single(
+    SecretStoreView::update_single_with_trans(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&old_servant_pubkey),
+        &mut trans
     )?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update_single(
+    DeviceInfoView::update_single_with_trans(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),
+        &mut trans
     )?;
-    DeviceInfoView::update_single(
+    DeviceInfoView::update_single_with_trans(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
+        &mut trans
     )?;
 
     //add wallet info
@@ -97,7 +104,6 @@ pub(crate) async fn req(
     let tx_id = multi_sig_cli
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
-    models::general::transaction_commit()?;
 
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
@@ -108,7 +114,7 @@ pub(crate) async fn req(
         &device_brand,
         vec![tx_id],
     );
-    record.insert()?;
-
+    record.insert_with_trans(&mut trans)?;
+    models::general::transaction_commit(trans)?;
     Ok(None::<String>)
 }

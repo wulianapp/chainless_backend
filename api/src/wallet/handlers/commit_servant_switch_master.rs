@@ -4,6 +4,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::general::{get_db_pool_connect, transaction_begin};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
@@ -75,15 +76,18 @@ pub(crate) async fn req(
         ))?;
         unreachable!("");
     };
-    models::general::transaction_begin()?;
+    
+    let mut conn = get_db_pool_connect()?;
+    let mut trans = transaction_begin(&mut conn)?;
 
     //增加之前判断是否有
     if !master_list.contains(&servant_pubkey) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoView::update_single_with_trans(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+            &mut trans
         )?;
     } else {
         warn!("newcomer_pubkey<{}> already is master", servant_pubkey);
@@ -96,9 +100,10 @@ pub(crate) async fn req(
         && master_list.contains(&old_master)
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
-        DeviceInfoView::update_single(
+        DeviceInfoView::update_single_with_trans(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
+            &mut trans
         )?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {
         warn!("old_master<{}>  is already deleted ", old_master);
@@ -147,8 +152,8 @@ pub(crate) async fn req(
             &device.brand,
             vec![txid],
         );
-        record.insert()?;
+        record.insert_with_trans(&mut trans)?;
     }
-    models::general::transaction_commit()?;
+    models::general::transaction_commit(trans)?;
     Ok(None::<String>)
 }

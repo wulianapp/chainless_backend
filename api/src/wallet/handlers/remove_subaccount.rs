@@ -6,6 +6,7 @@ use common::data_structures::get_support_coin_list;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_db_pool_connect;
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
@@ -55,17 +56,24 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
             }
         }
     }
+    
+    println!("0001__");
+    let mut conn = get_db_pool_connect()?;
+    println!("0002__");
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
+    println!("0003__");
 
-    models::general::transaction_begin()?;
-    SecretStoreView::update_single(
+
+
+    SecretStoreView::update_single_with_trans(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
+        &mut trans
     )?;
     let multi_cli = ContractClient::<MultiSig>::new().await?;
     let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)
         .await?;
-    models::general::transaction_commit()?;
 
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
@@ -76,7 +84,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         &device_brand,
         vec![tx_id],
     );
-    record.insert()?;
-
+    record.insert_with_trans(&mut trans)?;
+    models::general::transaction_commit(trans)?;
     Ok(None::<String>)
 }

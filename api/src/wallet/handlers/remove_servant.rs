@@ -2,6 +2,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
+use models::general::get_db_pool_connect;
 use models::wallet_manage_record::WalletManageRecordView;
 
 use crate::utils::token_auth;
@@ -32,19 +33,23 @@ pub(crate) async fn req(
     super::have_no_uncompleted_tx(&main_account)?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
+    
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
 
-    models::general::transaction_begin()?;
 
     //old key_store set abandoned
-    SecretStoreView::update(
+    SecretStoreView::update_single_with_trans(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&servant_pubkey),
+        &mut trans
     )?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update(
+    DeviceInfoView::update_single_with_trans(
         DeviceInfoUpdater::BecomeUndefined(&servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&servant_pubkey),
+        &mut trans
     )?;
 
     //add wallet info
@@ -56,7 +61,6 @@ pub(crate) async fn req(
         .update_servant_pubkey(&main_account, current_strategy.servant_pubkeys)
         .await?;
 
-    models::general::transaction_commit()?;
 
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(
@@ -68,5 +72,6 @@ pub(crate) async fn req(
         vec![tx_id],
     );
     record.insert()?;
+    models::general::transaction_commit(trans)?;
     Ok(None::<String>)
 }

@@ -1891,9 +1891,14 @@ mod tests {
     async fn test_wallet_add_remove_subaccount() {
         //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_add_remove_subaccount");
+        println!("__0000_");
         let app = init().await;
+        println!("__0010_");
         let service = test::init_service(app).await;
+        println!("__0011_");
+
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
+        println!("__0012_");
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);

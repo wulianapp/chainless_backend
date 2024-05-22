@@ -64,14 +64,21 @@ uuid = { version = "1.7.0" ,features = ["v4"]}
 ## code tool
 anyhow = "1.0.77"
 derive_more = "0.99"
+ouroboros = "0.18.3"
 strum = "0.26.1"
 strum_macros = "0.26.1"
 thiserror = "1.0.52"
 
+
+
 ## other
 actix-web-httpauth = "0.6"
+async-trait = "0.1.80"
 clap = "4.5.4"
 chrono = "0.4"
+deadpool = {version = "0.12.0"}
+deadpool-postgres = {version = "0.13.2"}
+futures = { version = "0.3"}
 jsonrpc-client-core = "0.5.0"
 jsonrpc-client-http = "0.5.0"
 jsonrpc-http-server = "12.0"
@@ -85,9 +92,12 @@ regex = "1.5"
 reqwest = "0.11"
 rust_decimal = { version = "1.0.3", features = ["postgres"] }
 rustc-serialize = "0.3.18"
+r2d2 = "0.8.10"
+r2d2_postgres = "0.18.1"
 slog-async = "2.3.0"
 slog-term = "2.4.0"
 toml = "*"
+tokio-postgres = "0.7.10"
 untrusted = "0.6.2"
 
 

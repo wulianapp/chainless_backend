@@ -4,6 +4,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::general::{get_db_pool_connect, transaction_begin, transaction_commit};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
@@ -66,7 +67,9 @@ pub(crate) async fn req(
         unreachable!("");
     };
 
-    models::general::transaction_begin()?;
+    let mut conn = get_db_pool_connect()?;
+    let mut trans = transaction_begin(&mut conn)?;
+
     //增加之前判断是否有
     if !master_list.contains(&newcomer_pubkey.to_string()) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
@@ -80,18 +83,20 @@ pub(crate) async fn req(
                 &newcomer_prikey_encrypted_by_password,
                 &newcomer_prikey_encrypted_by_answer,
             );
-            secret_info.insert()?;
+            secret_info.insert_with_trans(&mut trans)?;
         } else {
-            SecretStoreView::update_single(
+            SecretStoreView::update_single_with_trans(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
+                &mut trans
             )?;
         }
 
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoView::update_single_with_trans(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+            &mut trans
         )?;
     } else {
         let err: String = format!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
@@ -106,9 +111,10 @@ pub(crate) async fn req(
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoView::update_single_with_trans(
             DeviceInfoUpdater::BecomeUndefined(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
+            &mut trans
         )?;
     } else {
         Err(BackendError::InternalError(
@@ -130,7 +136,7 @@ pub(crate) async fn req(
         &device.brand,
         vec![txid],
     );
-    record.insert()?;
-    models::general::transaction_commit()?;
+    record.insert_with_trans(&mut trans)?;
+    transaction_commit(trans)?;
     Ok(None::<String>)
 }

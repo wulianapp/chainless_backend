@@ -4,7 +4,7 @@ use common::data_structures::{
     bridge::{EthBridgeOrder, EthOrderStatus, OrderType as BridgeOrderType},
     CoinType,
 };
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use std::fmt;
@@ -154,6 +154,22 @@ impl PsqlOp for EthBridgeOrderView {
         Ok(execute_res)
     }
 
+    fn update_with_trans(
+        new_value: BridgeOrderUpdater,
+         filter: BridgeOrderFilter,
+         trans: &mut Transaction
+    ) -> Result<u64> {
+        let sql = format!(
+            "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP {}",
+            new_value, filter
+        );
+        debug!("start update orders {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        debug!("success update orders {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let EthBridgeOrder {
             id,
@@ -190,6 +206,46 @@ impl PsqlOp for EthBridgeOrderView {
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
+        Ok(())
+    }
+
+
+    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
+        let EthBridgeOrder {
+            id,
+            order_type,
+            chainless_acc,
+            eth_addr,
+            amount,
+            coin,
+            status,
+            height,
+            reserved_field3,
+        } = &self.order;
+        let sql = format!(
+            "insert into ethereum_bridge_order (\
+                id,\
+                order_type,\
+                chainless_acc,\
+                eth_addr,\
+                coin,\
+                amount,\
+                status,\
+                height,\
+                reserved_field3\
+         ) values ('{}','{}','{}','{}','{}','{}','{}',{},'{}');",
+            id,
+            order_type.to_string(),
+            chainless_acc,
+            eth_addr,
+            coin,
+            amount.to_string(),
+            status.to_string(),
+            height,
+            reserved_field3
+        );
+        debug!("row sql {} rows", sql);
+        let _execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
         Ok(())
     }
 

@@ -1,7 +1,7 @@
 extern crate rustc_serialize;
 
 use common::data_structures::OpStatus;
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
 use std::num::ParseIntError;
 //#[derive(Serialize)]
@@ -9,7 +9,7 @@ use common::data_structures::account_manager::UserInfo;
 
 use crate::coin_transfer::{CoinTxFilter, CoinTxView};
 use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use anyhow::{Ok, Result};
+use anyhow::{Result};
 use serde::Serialize;
 
 #[derive(Clone, Debug)]
@@ -185,6 +185,23 @@ impl PsqlOp for UserInfoView {
         Ok(execute_res)
     }
 
+
+    fn update_with_trans(
+        new_value: Self::UpdateContent<'_>, 
+        filter: Self::FilterContent<'_>,
+        trans:&mut Transaction
+    ) -> Result<u64> {
+        let sql = format!(
+            "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            new_value, filter
+        );
+        debug!("start update users {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        debug!("success update users {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let UserInfo {
             phone_number,
@@ -252,6 +269,74 @@ impl PsqlOp for UserInfoView {
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
+
+    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
+        let UserInfo {
+            phone_number,
+            email,
+            login_pwd_hash,
+            anwser_indexes,
+            is_frozen,
+            predecessor,
+            laste_predecessor_replace_time,
+            invite_code,
+            kyc_is_verified,
+            secruity_is_seted,
+            create_subacc_time,
+            main_account,
+            op_status,
+            reserved_field1,
+            reserved_field2,
+            reserved_field3,
+        } = &self.user_info;
+
+        let _predecessor_str = predecessor
+            .map(|x| format!("{}", x))
+            .unwrap_or("NULL".to_string());
+        //assembly string array to sql string
+        let create_subacc_time = create_subacc_time.iter().map(|x| x.to_string()).collect();
+        let create_subacc_time_str = vec_str2array_text(create_subacc_time);
+
+        let sql = format!(
+            "insert into users (phone_number,
+                email,
+                login_pwd_hash,\
+                anwser_indexes,
+                is_frozen,
+                predecessor,
+                laste_predecessor_replace_time,
+                invite_code,
+                kyc_is_verified,
+                secruity_is_seted,
+                create_subacc_time,
+                main_account,
+                op_status,
+                reserved_field1,
+                reserved_field2,
+                reserved_field3
+            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
+            phone_number,
+            email,
+            login_pwd_hash,
+            anwser_indexes,
+            is_frozen,
+            PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
+            laste_predecessor_replace_time,
+            invite_code,
+            kyc_is_verified,
+            secruity_is_seted,
+            create_subacc_time_str,
+            main_account,
+            op_status,
+            reserved_field1,
+            reserved_field2,
+            reserved_field3,
+        );
+        debug!("row sql {} rows", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        debug!("success insert {} rows", execute_res);
+        Ok(())
+    }
 }
 
 pub fn get_next_uid() -> Result<u32> {
@@ -273,14 +358,16 @@ pub fn get_next_uid() -> Result<u32> {
 #[cfg(test)]
 mod tests {
 
+    use crate::general::{get_db_pool_connect, transaction_begin, transaction_commit};
+
     use super::*;
     use common::log::init_logger;
-    use postgres::types::ToSql;
+    use futures::executor::block_on;
     use std::env;
 
     #[test]
     fn test_db_user_info() {
-        env::set_var("SERVICE_MODE", "test");
+        env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear();
 
@@ -291,5 +378,25 @@ mod tests {
         assert_eq!(user_by_find.user_info, user.user_info);
 
         UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
+    }
+
+    #[test]
+    fn test_db_trans_user_info() {
+        block_on(async {
+            env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
+            init_logger();
+            crate::general::table_all_clear();
+            let mut conn = get_db_pool_connect().unwrap();
+            let mut trans =  transaction_begin(&mut conn).unwrap();
+            let user = UserInfoView::new_with_specified("0123456789", "1");
+            user.insert_with_trans(&mut trans).unwrap();
+            let user_by_find = UserInfoView::find(UserFilter::ById(1)).unwrap();
+            println!("by_conn__{:?}", user_by_find);
+            transaction_commit(trans);
+            let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
+            println!("by_trans__{:?}", user_by_find);
+            assert_eq!(user_by_find.user_info, user.user_info);
+            UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
+        });
     }
 }

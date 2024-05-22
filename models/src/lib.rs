@@ -6,6 +6,7 @@
 
 pub mod account_manager;
 pub mod airdrop;
+#[macro_use]
 pub mod general;
 pub mod newbie_reward;
 
@@ -28,22 +29,32 @@ extern crate jsonrpc_client_http;
 extern crate postgres;
 extern crate rustc_serialize;
 
-use postgres::{Client, NoTls, Row};
-
 use anyhow::anyhow;
 use anyhow::Result;
+use r2d2_postgres::postgres::GenericClient;
+use r2d2_postgres::postgres::Transaction;
 use serde::Deserialize;
 use serde::Serialize;
+use std::borrow::Borrow;
+use std::cell::RefCell;
 use std::fmt::{Debug, Display};
+use std::ops::Deref;
+use std::str::FromStr;
 use std::sync::Mutex;
+use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
+use r2d2::Pool;
+use r2d2_postgres::postgres::Row;
+use ouroboros::self_referencing;
 
+type LocalConnect = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
+type GlobalPool = Pool<PostgresConnectionManager<NoTls>>;
 static TRY_TIMES: u8 = 5;
 
 /****
 
-           DBError::RepeatedData,
-           DBError::DataNotFound,
-           DBError::KeyAlreadyExsit,
+    DBError::RepeatedData,
+    DBError::DataNotFound,
+    DBError::KeyAlreadyExsit,
 */
 
 ///time limit scope
@@ -65,68 +76,191 @@ impl TimeScope {
     }
 }
 
+
 lazy_static! {
-    static ref CLIENTDB: Mutex<postgres::Client> = Mutex::new(connect_db().unwrap());
+    static ref PG_POOL: Mutex<GlobalPool> = {
+        Mutex::new(connect_pool().unwrap())
+    };
 }
-fn connect_db() -> Result<Client> {
-    let cli =
-        Client::connect(common::env::CONF.database.db_uri().as_str(), NoTls).map_err(|error| {
-            error!("connect postgresql failed,{:?}", error);
-            error
-        })?;
-    Ok(cli)
+//todo: set global Transaction 
+
+
+
+thread_local! {
+    pub static LOCAL_CONN: RefCell<Option<LocalConnect>> = {
+        RefCell::new(Some(PG_POOL.lock().unwrap().get().unwrap()))
+    };
+
+    pub static LOCAL_CONN2: RefCell<Option<LocalConnect>> = {
+        RefCell::new(Some(PG_POOL.lock().unwrap().get().unwrap()))
+    };
+
+    pub static LOCAL_TX: RefCell<Option<Transaction<'static>>> = RefCell::new(None);
+  
+}
+
+/*** 
+pub enum PgLocalCli<'a,'b,'c> {
+    Cli(&'b PoolConnect),
+    Tx(&'c Transaction<'a>)
+}
+
+impl PgLocalCli<'_,'_,'_> {
+    pub fn execute(&mut self,sql:&str) -> Result<u64>{
+        let line = match self {
+            PgLocalCli::Cli(c) => {
+                c.execute(sql, &[])?
+            },
+            PgLocalCli::Tx(t) => {
+                t.execute(sql, &[])?
+            },
+        };
+        Ok(line)
+    }
+    pub fn query(&mut self,sql:&str) -> Result<Vec<Row>>{
+        let row = match self {
+            PgLocalCli::Cli(c) => {
+                c.query(sql, &[])?
+            },
+            PgLocalCli::Tx(t) => {
+                t.query(sql, &[])?
+            },
+        };
+        Ok(row)
+    }
+    pub fn commit(mut self) -> Result<()>{
+        match self {
+            PgLocalCli::Cli(c) => {
+                debug!("as a connet no nothing");
+                Ok(())
+            },
+            PgLocalCli::Tx(t) => {
+                Ok(t.commit()?)
+            },
+        }
+    }
+}
+
+impl<'b> From<&'b PoolConnect> for PgLocalCli<'_,'b,'_>{
+    fn from(value: &'b PoolConnect) -> Self {
+        Self::Cli(value)
+    }
+}
+
+impl<'a,'c> From<&'c Transaction<'a>> for PgLocalCli<'a,'_,'c>{
+    fn from(value: &'c Transaction<'a>) -> Self {
+        Self::Tx(value)
+    }
+}
+*/
+
+fn connect_pool() -> Result<GlobalPool>{
+    let manager = PostgresConnectionManager::new(
+        common::env::CONF.database.db_uri().parse().unwrap(),
+        NoTls,
+    );
+    let pool = r2d2::Pool::new(manager).unwrap();
+    Ok(pool)
 }
 
 pub fn query(raw_sql: &str) -> Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
-    //todo:
-    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    loop {
-        debug!("raw_sql {}", raw_sql);
-        match client.query(raw_sql, &[]) {
-            Ok(data) => {
-                return Ok(data);
-            }
-            Err(error) => {
-                if try_times == 0 {
-                    let error_info = format!("erro:{:?}, query still failed after retry", error);
-                    error!("{}", error_info);
-                    Err(anyhow!(error_info))?;
-                } else {
-                    error!("error {:?}", error);
-                    *client = connect_db()?;
-                    try_times -= 1;
-                    continue;
+    /*** 
+    let cli: &mut PgLocalCli =  LOCAL_TX.with_borrow_mut(|x|{
+        match *x {
+            Some(tx) => &mut tx.into(),
+            None => LOCAL_CONN.with_borrow_mut(|x|{
+                &mut x.into()
+            })
+        }
+    });
+    */
+    LOCAL_CONN.with_borrow_mut(|x|{
+        loop {
+            debug!("raw_sql {}", raw_sql);
+            match x.as_mut().unwrap().query(raw_sql,&[]) {
+                Ok(data) => {
+                    return Ok(data);
+                }
+                Err(error) => {
+                    if try_times == 0 {
+                        let error_info = format!("erro:{:?}, query still failed after retry", error);
+                        error!("{}", error_info);
+                        Err(anyhow!(error_info))?;
+                    } else {
+                        error!("error {:?}", error);
+                        let mut pool = crate::PG_POOL.lock().map_err(|e| anyhow!(e.to_string()))?;
+                        *pool = connect_pool()?;
+                        try_times -= 1;
+                        continue;
+                    }
                 }
             }
         }
-    }
+    })
+    
 }
+
+
+pub fn query_with_trans(raw_sql: &str,tx: &mut Transaction) -> Result<Vec<Row>> {
+  Ok(tx.query(raw_sql, &[])?)
+}
+
+
+pub fn execute_with_trans(raw_sql: &str,tx: &mut Transaction) -> Result<u64> {
+    Ok(tx.execute(raw_sql, &[])?)
+}
+
 
 pub fn execute(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    loop {
-        debug!("raw_sql {}", raw_sql);
-        match client.execute(raw_sql, &[]) {
-            Ok(data) => {
-                return Ok(data);
-            }
-            Err(error) => {
-                if try_times == 0 {
-                    let error_info = format!("erro:{:?}, query still failed after retry", error);
-                    error!("{}", error_info);
-                    Err(anyhow!(error_info))?;
-                } else {
-                    error!("error {:?}", error);
-                    *client = connect_db()?;
-                    try_times -= 1;
-                    continue;
+
+    /*** 
+    let cli: &mut PgLocalCli =  LOCAL_TX.with_borrow_mut(|x|{
+        match *x {
+            Some(tx) => &mut tx.into(),
+            None => LOCAL_CONN.with_borrow_mut(|x|{
+                &mut x.unwrap().into()
+            })
+        }
+    });
+    **/
+    LOCAL_CONN.with_borrow_mut(|x|{
+        loop {
+            debug!("raw_sql {}", raw_sql);
+            match x.as_mut().unwrap().execute(raw_sql,&[]) {
+                Ok(data) => {
+                    return Ok(data);
+                }
+                Err(error) => {
+                    if try_times == 0 {
+                        let error_info = format!("erro:{:?}, query still failed after retry", error);
+                        error!("{}", error_info);
+                        Err(anyhow!(error_info))?;
+                    } else {
+                        error!("error {:?}", error);
+                        let mut pool = crate::PG_POOL.lock().map_err(|e| anyhow!(e.to_string()))?;
+                        *pool = connect_pool()?;
+                        try_times -= 1;
+                        continue;
+                    }
                 }
             }
         }
-    }
+    })
+ 
 }
+
+/*** 
+pub fn execute2(raw_sql: &str) -> Result<u64> {
+    let mut try_times = TRY_TIMES;
+    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
+    //let mut client2 = LOCAL_CLI.take();
+    LOCAL_CLI.with_borrow_mut(|client|{
+        Ok(client.execute(raw_sql, &[])?)
+    })
+}
+***/
 
 pub trait PsqlOp {
     type UpdateContent<'a>: Display;
@@ -157,11 +291,19 @@ pub trait PsqlOp {
         todo!()
     }
 
-    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64>;
+    fn update(new_value: Self::UpdateContent<'_>, 
+        filter: Self::FilterContent<'_>
+    ) -> Result<u64>;
+
+    fn update_with_trans(new_value: Self::UpdateContent<'_>, 
+        filter: Self::FilterContent<'_>,
+        trans:&mut Transaction
+    ) -> Result<u64>;
+
 
     fn update_single(
         new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>,
+        filter: Self::FilterContent<'_>
     ) -> Result<()>
     where
         Self: Sized,
@@ -181,7 +323,33 @@ pub trait PsqlOp {
         }
     }
 
+    fn update_single_with_trans(
+        new_value: Self::UpdateContent<'_>,
+        filter: Self::FilterContent<'_>,
+        trans: &mut Transaction
+    ) -> Result<()>
+    where
+        Self: Sized,
+    {
+        let row_num = Self::update_with_trans(new_value, filter,trans)?;
+        if row_num == 0 {
+            //todo:return db error type
+            let error_info = "DBError::DataNotFound: data isn't existed";
+            error!("{}", error_info);
+            Err(anyhow!(error_info.to_string()))
+        } else if row_num > 1 {
+            let error_info = "DBError::RepeatedData: data is repeated";
+            error!("{}", error_info);
+            Err(anyhow!(error_info.to_string()))
+        } else {
+            Ok(())
+        }
+    }
+
     fn insert(&self) -> Result<()>;
+
+    fn insert_with_trans(&self,trans: &mut Transaction) -> Result<()>;
+
 
     //insert after check key
     fn safe_insert(&self, filter: Self::FilterContent<'_>) -> Result<()>
@@ -201,17 +369,21 @@ pub trait PsqlOp {
         }
     }
 
-    fn try_insert(&self, filter: Self::FilterContent<'_>) -> Result<()>
+    //insert after check key
+    fn safe_insert_with_trans(&self, filter: Self::FilterContent<'_>,trans:&mut Transaction) -> Result<()>
     where
         Self: Sized,
     {
+        let filter_str = filter.to_string();
         let find_res: Vec<Self> = Self::find(filter)?;
         if find_res.is_empty() {
-            self.insert()
+            self.insert_with_trans(trans)
         } else {
-            let error_info = "DBError::KeyAlreadyExsit: key already existed";
-            error!("{}", error_info);
-            Err(anyhow!(error_info.to_string()))
+            //let error_info = "DBError::KeyAlreadyExsit: key already existed";
+            //error!("{}", error_info);
+            //Err(anyhow!(error_info.to_string()))
+            info!("data {} already exist", filter_str);
+            Ok(())
         }
     }
 }

@@ -33,13 +33,11 @@ pub async fn req(
     let limit = display2raw(&limit).map_err(BackendError::RequestParamInvalid)?;
 
     //add wallet info
-    models::general::transaction_begin()?;
     let cli = ContractClient::<MultiSig>::new().await?;
 
     let txid = cli
         .update_subaccount_hold_limit(&main_account, &subaccount, limit)
         .await?;
-    models::general::transaction_commit()?;
 
     //todo: generate txid before call contract
     let record = WalletManageRecordView::new_with_specified(

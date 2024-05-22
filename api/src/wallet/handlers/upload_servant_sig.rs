@@ -6,6 +6,7 @@ use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_db_pool_connect;
 
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes, WalletError};
@@ -50,10 +51,13 @@ pub async fn req(
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
-    models::general::transaction_begin()?;
-    models::coin_transfer::CoinTxView::update_single(
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
+
+    models::coin_transfer::CoinTxView::update_single_with_trans(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
+        &mut trans
     )?;
 
     //collect enough signatures
@@ -104,18 +108,20 @@ pub async fn req(
                 )
                 .await?;
 
-            models::coin_transfer::CoinTxView::update_single(
+            models::coin_transfer::CoinTxView::update_single_with_trans(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
+                &mut trans
             )?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认
         } else {
-            models::coin_transfer::CoinTxView::update_single(
+            models::coin_transfer::CoinTxView::update_single_with_trans(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
+                &mut trans
             )?;
         }
     }
-    models::general::transaction_commit()?;
+    models::general::transaction_commit(trans)?;
     Ok(None)
 }

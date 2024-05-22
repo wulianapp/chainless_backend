@@ -1,7 +1,7 @@
 extern crate rustc_serialize;
 
 use common::data_structures::device_info::DeviceInfo;
-use postgres::Row;
+use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
 use std::fmt::Display;
 //#[derive(Serialize)]
@@ -169,6 +169,22 @@ impl PsqlOp for DeviceInfoView {
         Ok(execute_res)
     }
 
+    fn update_with_trans(
+            new_value: Self::UpdateContent<'_>, 
+            filter: Self::FilterContent<'_>,
+            trans: &mut Transaction
+    ) -> Result<u64> {
+        let sql = format!(
+            "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
+            new_value, filter
+        );
+        debug!("start update orders {} ", sql);
+        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        //assert_ne!(execute_res, 0);
+        debug!("success update orders {} rows", execute_res);
+        Ok(execute_res)
+    }
+
     fn insert(&self) -> Result<()> {
         let DeviceInfo {
             id,
@@ -201,6 +217,41 @@ impl PsqlOp for DeviceInfoView {
         );
         debug!("row sql {} rows", sql);
         let _execute_res = crate::execute(sql.as_str())?;
+        Ok(())
+    }
+
+    fn insert_with_trans(&self,trans: &mut Transaction) -> Result<()> {
+        let DeviceInfo {
+            id,
+            user_id,
+            state,
+            hold_pubkey,
+            brand: device_type,
+            holder_confirm_saved,
+            key_role,
+        } = &self.device_info;
+        let hold_pubkey: PsqlType = hold_pubkey.to_owned().into();
+
+        let sql = format!(
+            "insert into device_info (\
+                id,\
+                user_id,\
+                state,\
+                hold_pubkey,\
+                brand,\
+                holder_confirm_saved,\
+                key_role\
+         ) values ('{}',{},'{}',{},'{}',{},'{}');",
+            id,
+            user_id,
+            state,
+            hold_pubkey.to_psql_str(),
+            device_type,
+            holder_confirm_saved,
+            key_role
+        );
+        debug!("row sql {} rows", sql);
+        let _execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
         Ok(())
     }
 }

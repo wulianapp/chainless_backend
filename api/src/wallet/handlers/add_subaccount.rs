@@ -5,6 +5,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::{get_db_pool_connect, transaction_begin, transaction_commit};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
@@ -44,7 +45,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     //let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
     //user_info.user_info.account_ids.push(pubkey.clone());
 
-    models::general::transaction_begin()?;
+    let mut conn = get_db_pool_connect()?;
+    let mut trans = transaction_begin(&mut conn)?;
+
     //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
@@ -56,7 +59,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
-    secret.insert()?;
+    secret.insert_with_trans(&mut trans)?;
 
     let multi_cli = ContractClient::<MultiSig>::new().await?;
     let sub_confs = BTreeMap::from([(
@@ -76,10 +79,10 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &device.brand,
         vec![txid],
     );
-    record.insert()?;
+    record.insert_with_trans(&mut trans)?;
 
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
-    models::general::transaction_commit()?;
+    transaction_commit(trans)?;
     //info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)
 }

@@ -12,6 +12,7 @@ use common::encrypt::bs58_to_hex;
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_db_pool_connect;
 use tracing::error;
 
 use crate::utils::token_auth;
@@ -59,7 +60,7 @@ pub async fn req(
     let cli = ContractClient::<MultiSig>::new().await?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
-    models::general::transaction_begin()?;
+
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
         .await?;
@@ -76,6 +77,5 @@ pub async fn req(
     coin_info.transaction.tx_type = TxType::SubToMain;
     coin_info.transaction.tx_id = Some(tx_id.clone());
     coin_info.insert()?;
-    models::general::transaction_commit()?;
     Ok(Some(tx_id))
 }

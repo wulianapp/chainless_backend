@@ -5,6 +5,7 @@ use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_db_pool_connect;
 use tracing::{debug, info};
 
 use crate::utils::token_auth;
@@ -45,8 +46,9 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             "confirmed_sig is invalid".to_string(),
         ))?;
     }
+    let mut conn = get_db_pool_connect()?;
+    let mut trans =  models::general::transaction_begin(&mut conn)?;
 
-    models::general::transaction_begin()?;
     if strategy.sub_confs.get(&coin_tx.transaction.to).is_some() {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);
         let servant_sigs = coin_tx
@@ -70,13 +72,14 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             .await?;
 
         //todo:txid?
-        models::coin_transfer::CoinTxView::update_single(
+        models::coin_transfer::CoinTxView::update_single_with_trans(
             CoinTxUpdater::TxidStageChainStatus(
                 &tx_id,
                 CoinSendStage::SenderReconfirmed,
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
+            &mut trans
         )?;
     } else {
         //跨链转出，在无链端按照普通转账处理
@@ -85,14 +88,15 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             &confirmed_sig,
         )
         .await?;
-        models::coin_transfer::CoinTxView::update_single(
+        models::coin_transfer::CoinTxView::update_single_with_trans(
             CoinTxUpdater::StageChainStatus(
                 CoinSendStage::SenderReconfirmed,
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
+            &mut trans
         )?;
     }
-    models::general::transaction_commit()?;
+    models::general::transaction_commit(trans)?;
     Ok(None)
 }
