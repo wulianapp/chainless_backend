@@ -1,17 +1,18 @@
 extern crate rustc_serialize;
 
+use async_trait::async_trait;
 use common::data_structures::OpStatus;
-use r2d2_postgres::postgres::{Row, Transaction};
+use tokio_postgres::Row;
+//use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
 use std::num::ParseIntError;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::coin_transfer::{CoinTxFilter, CoinTxView};
-use crate::{vec_str2array_text, PsqlOp, PsqlType};
+use crate::{vec_str2array_text, FilterContent, PgLocalCli, PsqlOp, PsqlType, UpdaterContent};
 use anyhow::{Result};
-use serde::Serialize;
 
+use serde::Serialize;
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
     ById(u32),
@@ -32,6 +33,7 @@ pub enum UserUpdater<'a> {
     AnwserIndexes(&'a str),
     OpStatus(&'a str),
 }
+
 impl fmt::Display for UserUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
@@ -106,11 +108,11 @@ impl UserInfoView {
     }
 }
 
+#[async_trait]
 impl PsqlOp for UserInfoView {
-    type UpdateContent<'a> = UserUpdater<'a>;
+    type UpdaterContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
-
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -132,10 +134,10 @@ impl PsqlOp for UserInfoView {
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
-            filter
+            filter.to_string()
         );
-        let query_res = crate::query(sql.as_str())?;
-        debug!("get_snapshot: raw sql {}", sql);
+        let query_res = cli.query(&sql).await?;
+        //debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<UserInfoView> {
             let view = UserInfoView {
@@ -173,22 +175,22 @@ impl PsqlOp for UserInfoView {
         query_res.iter().map(gen_view).collect()
     }
 
-    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64> {
+    async fn update(new_value: Self::UpdaterContent<'_>,filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value, filter
+            new_value.to_string(), filter.to_string()
         );
         debug!("start update users {} ", sql);
-        let execute_res = crate::execute(sql.as_str())?;
+        let execute_res = cli.execute(&sql).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
         Ok(execute_res)
     }
 
-
+    /*** 
     fn update_with_trans(
-        new_value: Self::UpdateContent<'_>, 
-        filter: Self::FilterContent<'_>,
+        new_value: Self::UpdaterContent, 
+        filter: Self::FilterContent,
         trans:&mut Transaction
     ) -> Result<u64> {
         let sql = format!(
@@ -201,8 +203,8 @@ impl PsqlOp for UserInfoView {
         debug!("success update users {} rows", execute_res);
         Ok(execute_res)
     }
-
-    fn insert(&self) -> Result<()> {
+    **/
+    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
         let UserInfo {
             phone_number,
             email,
@@ -265,11 +267,11 @@ impl PsqlOp for UserInfoView {
             reserved_field3,
         );
         debug!("row sql {} rows", sql);
-        let execute_res = crate::execute(sql.as_str())?;
+        let execute_res = cli.execute(&sql).await?;
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
-
+    /*** 
     fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
         let UserInfo {
             phone_number,
@@ -337,12 +339,13 @@ impl PsqlOp for UserInfoView {
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
+    ***/
 }
 
-pub fn get_next_uid() -> Result<u32> {
-    let execute_res = crate::query(
+pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
+    let execute_res = cli.query(
         "select last_value,is_called from users_id_seq order by last_value desc limit 1",
-    )?;
+    ).await?;
     //todo:
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
@@ -362,41 +365,43 @@ mod tests {
 
     use super::*;
     use common::log::init_logger;
-    use futures::executor::block_on;
+    use tokio_postgres::types::ToSql;
     use std::env;
 
-    #[test]
-    fn test_db_user_info() {
+    #[tokio::test]
+    async fn test_db_user_info() {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
-        crate::general::table_all_clear();
-
+        crate::general::table_all_clear().await;
+        let mut conn = get_db_pool_connect().await.unwrap().into();
+    
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert().unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
+        user.insert(&mut conn).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut conn).await.unwrap();
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
+        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut conn).await.unwrap();
     }
+     
+    #[tokio::test]
+    async fn test_db_trans_user_info() {
+        env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
+        init_logger();
+        crate::general::table_all_clear().await;
+        let mut conn = get_db_pool_connect().await.unwrap();
+        let mut trans =  transaction_begin(&mut conn).await.unwrap().into();
 
-    #[test]
-    fn test_db_trans_user_info() {
-        block_on(async {
-            env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
-            init_logger();
-            crate::general::table_all_clear();
-            let mut conn = get_db_pool_connect().unwrap();
-            let mut trans =  transaction_begin(&mut conn).unwrap();
-            let user = UserInfoView::new_with_specified("0123456789", "1");
-            user.insert_with_trans(&mut trans).unwrap();
-            let user_by_find = UserInfoView::find(UserFilter::ById(1)).unwrap();
-            println!("by_conn__{:?}", user_by_find);
-            transaction_commit(trans);
-            let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
-            println!("by_trans__{:?}", user_by_find);
-            assert_eq!(user_by_find.user_info, user.user_info);
-            UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
-        });
+        let user = UserInfoView::new_with_specified("0123456789", "1");
+        user.insert(&mut trans).await.unwrap();
+        let user_by_find = UserInfoView::find(UserFilter::ById(1),&mut trans).await.unwrap();
+        println!("by_conn2__{:?}", user_by_find);
+        trans.commit().await.unwrap();
+
+        let mut conn = get_db_pool_connect().await.unwrap().into();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut conn).await.unwrap();
+        println!("by_trans3__{:?}", user_by_find);
+        assert_eq!(user_by_find.user_info, user.user_info);
+        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut conn).await.unwrap();
     }
+    
 }
