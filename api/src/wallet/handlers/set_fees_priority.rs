@@ -9,7 +9,10 @@ use common::{
     error_code::BackendError,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
+    device_info::{DeviceInfoFilter, DeviceInfoView},
+    general::get_pg_pool_connect,
+    wallet_manage_record::WalletManageRecordView,
+    PsqlOp,
 };
 use tracing::debug;
 
@@ -26,15 +29,16 @@ pub async fn req(
 
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
     let SetFeesPriorityRequest { fees_priority } = request_data.0;
 
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
 
     if fees_priority.len() != 5 {

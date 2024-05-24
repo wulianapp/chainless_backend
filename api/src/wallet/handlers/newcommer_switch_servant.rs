@@ -28,12 +28,12 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
     let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -45,8 +45,11 @@ pub(crate) async fn req(
         new_device_id,
     } = request_data;
 
-    let undefined_device =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),&mut pg_cli).await?;
+    let undefined_device = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?;
     if undefined_device.device_info.key_role != KeyRole2::Undefined {
         Err(BackendError::InternalError(format!(
             "your new_device_id's role  is {},and should be Undefined",
@@ -54,9 +57,9 @@ pub(crate) async fn req(
         )))?;
     }
 
-
     //check if stored already
-    let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&new_servant_pubkey),&mut pg_cli).await?;
+    let origin_secret =
+        SecretStoreView::find(SecretFilter::ByPubkey(&new_servant_pubkey), &mut pg_cli).await?;
     if origin_secret.is_empty() {
         let secret_info = SecretStoreView::new_with_specified(
             &new_servant_pubkey,
@@ -69,27 +72,31 @@ pub(crate) async fn req(
         SecretStoreView::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&new_servant_pubkey),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     }
 
     SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&old_servant_pubkey),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&new_device_id, user_id),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
     DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
 
     //add wallet info
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;

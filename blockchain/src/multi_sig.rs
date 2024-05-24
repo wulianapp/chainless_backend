@@ -73,8 +73,7 @@ pub struct StrategyData {
 }
 
 impl ContractClient<MultiSig> {
-
-    pub async fn new() -> Result<Self>{
+    pub async fn new() -> Result<Self> {
         let contract = &common::env::CONF.multi_sig_contract;
         Self::gen_signer(contract).await
     }

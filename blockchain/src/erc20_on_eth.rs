@@ -118,7 +118,10 @@ mod tests {
             let _approve_res = cli.relayer_approve(spender, amount).await.unwrap();
 
             let allow_amount = cli.allowance(relayer_addr, spender).await.unwrap();
-            println!("coin: {} ,spender={},relayer_addr={},allow_amount__{}", coin, spender,relayer_addr,allow_amount);
+            println!(
+                "coin: {} ,spender={},relayer_addr={},allow_amount__{}",
+                coin, spender, relayer_addr, allow_amount
+            );
         }
     }
 
@@ -132,11 +135,7 @@ mod tests {
             }
             let cli = EthContractClient::<Erc20>::new(&coin).unwrap();
             let balance: u128 = cli.balance_of(address).await.unwrap();
-            println!(
-                "coin {} balance__{}",
-                coin,
-                raw2display(balance)
-            );
+            println!("coin {} balance__{}", coin, raw2display(balance));
         }
     }
 }

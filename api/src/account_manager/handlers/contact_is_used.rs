@@ -16,7 +16,8 @@ pub struct UserSimpleInfo {
 pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserSimpleInfo> {
     let ContactIsUsedRequest { contact } = request_data;
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await;
+    let find_res =
+        UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli).await;
     match find_res {
         Ok(info) => Ok(Some(UserSimpleInfo {
             contact_is_register: true,

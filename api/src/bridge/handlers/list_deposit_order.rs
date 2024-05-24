@@ -38,10 +38,11 @@ async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
     let mut pg_cli = get_pg_pool_connect().await?;
-    EthBridgeOrderView::find(BridgeOrderFilter::ByTypeAndAccountId(
-        OrderType::Deposit,
-        main_account,
-    ),&mut pg_cli).await
+    EthBridgeOrderView::find(
+        BridgeOrderFilter::ByTypeAndAccountId(OrderType::Deposit, main_account),
+        &mut pg_cli,
+    )
+    .await
 }
 
 pub(crate) async fn req(
@@ -51,7 +52,7 @@ pub(crate) async fn req(
     let user_id = token_auth::validate_credentials(&req)?;
     //todo:
     let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
     let ListDepositOrderRequest {
         page,

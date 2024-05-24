@@ -22,19 +22,20 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
-use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::info;
 
 pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli:PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let RemoveSubaccountRequest { account_id } = request_data;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
 
-    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (_, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -51,7 +52,8 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     //check balance if is zero
     let coin_list = get_support_coin_list();
     for coin in &coin_list {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+        let coin_cli: ContractClient<Coin> =
+            ContractClient::<Coin>::new_with_type(coin.clone()).await?;
         if let Some(balance) = coin_cli.get_balance(&account_id).await? {
             //当前不会出现小于1聪的情况，以后和第三方交互可能会有
             if balance != *"0" {
@@ -59,15 +61,13 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
             }
         }
     }
-    
-  
-
 
     SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
     let multi_cli = ContractClient::<MultiSig>::new().await?;
     let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)

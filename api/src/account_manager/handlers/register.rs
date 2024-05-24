@@ -9,10 +9,10 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
+use models::general::*;
 use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::{debug, info};
-use models::general::*;
 
 async fn register(
     device_id: String,
@@ -29,7 +29,9 @@ async fn register(
     let mut pg_cli = pg_cli.begin().await?;
 
     //check userinfo form db
-    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await?;
+    let find_res =
+        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+            .await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -54,7 +56,8 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code),&mut pg_cli).await
+        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code), &mut pg_cli)
+            .await
             .map_err(|_e| InviteCodeNotExist)?;
         if !predecessor.user_info.secruity_is_seted {
             Err(PredecessorNotSetSecurity)?;
@@ -64,7 +67,7 @@ async fn register(
 
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
     //account_manager::single_insert(&view.user_info)?;
-    account_manager::UserInfoView::insert(&view,&mut pg_cli).await?;
+    account_manager::UserInfoView::insert(&view, &mut pg_cli).await?;
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
     device.insert(&mut pg_cli).await?;
 

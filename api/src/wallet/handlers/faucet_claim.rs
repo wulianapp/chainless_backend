@@ -18,10 +18,11 @@ use std::sync::Mutex;
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let coin_list = get_support_coin_list();
     for coin in coin_list {
-        let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+        let coin_cli: ContractClient<Coin> =
+            ContractClient::<Coin>::new_with_type(coin.clone()).await?;
         let amount = if coin.eq(&CoinType::ETH) {
             10000000000000000
         } else {

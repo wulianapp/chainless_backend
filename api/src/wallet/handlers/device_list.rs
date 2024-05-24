@@ -16,7 +16,8 @@ use std::cmp::Ordering;
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let devices: Vec<DeviceInfoView> = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id),&mut pg_cli).await?;
+    let devices: Vec<DeviceInfoView> =
+        DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut pg_cli).await?;
     let mut devices: Vec<DeviceInfo> = devices.into_iter().map(|x| x.device_info).collect();
     //order by master <- servant <- undefined
     devices.sort_by(|a, b| {

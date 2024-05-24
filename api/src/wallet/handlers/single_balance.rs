@@ -27,7 +27,7 @@ pub async fn req(
 ) -> BackendRes<SingleBalanceResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
     let main_account = user_info.user_info.main_account;
 
     let SingleBalanceRequest { coin, account_id } = request_data;
@@ -51,7 +51,8 @@ pub async fn req(
         None => (main_account.clone(), None),
     };
 
-    let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+    let coin_cli: ContractClient<Coin> =
+        ContractClient::<Coin>::new_with_type(coin.clone()).await?;
     let balance = coin_cli
         .get_balance(&dist_account)
         .await?

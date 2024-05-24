@@ -5,9 +5,9 @@ use common::data_structures::SecretKeyState;
 use common::data_structures::{secret_store::SecretStore, SecretKeyType};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
-use tokio_postgres::Row;
 use std::fmt;
 use std::fmt::Display;
+use tokio_postgres::Row;
 
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::{Ok, Result};
@@ -80,10 +80,13 @@ impl SecretStoreView {
     }
 }
 #[async_trait]
-impl PsqlOp for SecretStoreView  {
+impl PsqlOp for SecretStoreView {
     type UpdaterContent<'a> = SecretUpdater<'a>;
     type FilterContent<'b> = SecretFilter<'b>;
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<SecretStoreView>> {
+    async fn find(
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<Vec<SecretStoreView>> {
         let sql = format!(
             "select 
             pubkey,\
@@ -114,7 +117,11 @@ impl PsqlOp for SecretStoreView  {
 
         execute_res.iter().map(gen_view).collect()
     }
-    async fn update(new_value: Self::UpdaterContent<'_>, filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<u64> {
         let sql = format!(
             "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
@@ -125,8 +132,8 @@ impl PsqlOp for SecretStoreView  {
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
-    
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let SecretStore {
             pubkey,
             state,
@@ -149,8 +156,8 @@ impl PsqlOp for SecretStoreView  {
         let _execute_res = cli.execute(sql.as_str()).await?;
         Ok(())
     }
-    
-    async fn delete(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<()> {
+
+    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -169,7 +176,7 @@ mod tests {
     use common::log::init_logger;
     use std::env;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_secret_store() {
         env::set_var("SERVICE_MODE", "test");

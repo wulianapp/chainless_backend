@@ -4,10 +4,10 @@ use async_trait::async_trait;
 use common::data_structures::device_info::DeviceInfo;
 use common::data_structures::wallet_namage_record::{WalletManageRecord, WalletOperateType};
 use common::utils::math::generate_random_hex_string;
-use tokio_postgres::Row;
 use std::fmt;
 use std::fmt::Display;
 use std::ops::Deref;
+use tokio_postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::SecretKeyState;
@@ -34,7 +34,7 @@ impl fmt::Display for WalletManageRecordUpdater<'_> {
                 format!("tx_ids={} ", vec_str2array_text(ids.deref().to_owned()))
             }
             WalletManageRecordUpdater::Status(key) => {
-                format!("status='{}' ", key.to_string())
+                format!("status='{}' ", key)
             }
         };
         write!(f, "{}", description)
@@ -53,7 +53,7 @@ impl fmt::Display for WalletManageRecordFilter<'_> {
         let description = match self {
             Self::ByRecordId(record_id) => format!("record_id='{}' ", record_id),
             &Self::ByStatus(status) => {
-                format!("status='{}' ", status.to_string())
+                format!("status='{}' ", status)
             }
         };
         write!(f, "{}", description)
@@ -100,7 +100,7 @@ impl PsqlOp for WalletManageRecordView {
     type UpdaterContent<'a> = WalletManageRecordUpdater<'a>;
     type FilterContent<'b> = WalletManageRecordFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select 
             record_id,\
@@ -114,7 +114,7 @@ impl PsqlOp for WalletManageRecordView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from wallet_manage_record where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
@@ -137,10 +137,14 @@ impl PsqlOp for WalletManageRecordView {
 
         execute_res.iter().map(gen_view).collect()
     }
-    async fn update(new_value: Self::UpdaterContent<'_>, filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<u64> {
         let sql = format!(
             "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value.to_string(), filter.to_string()
+            new_value, filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = cli.execute(sql.as_str()).await?;
@@ -149,7 +153,7 @@ impl PsqlOp for WalletManageRecordView {
         Ok(execute_res)
     }
 
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let WalletManageRecord {
             record_id,
             user_id,
@@ -178,7 +182,7 @@ impl PsqlOp for WalletManageRecordView {
             operator_device_id,
             operator_device_brand,
             vec_str2array_text(tx_ids),
-            status.to_string()
+            status
         );
         debug!("row sql {} rows", sql);
         let _execute_res = cli.execute(sql.as_str()).await?;
@@ -193,7 +197,7 @@ mod tests {
     use common::{data_structures::wallet_namage_record::WalletOperateType, log::init_logger};
     use std::env;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");

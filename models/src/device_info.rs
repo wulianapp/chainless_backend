@@ -2,9 +2,9 @@ extern crate rustc_serialize;
 
 use async_trait::async_trait;
 use common::data_structures::device_info::DeviceInfo;
-use tokio_postgres::Row;
 use std::fmt;
 use std::fmt::Display;
+use tokio_postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::SecretKeyState;
 use common::data_structures::*;
@@ -69,7 +69,6 @@ pub enum DeviceInfoFilter<'b> {
     ByDeviceContact(&'b str, &'b str),
 }
 
-
 impl fmt::Display for DeviceInfoFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
@@ -125,7 +124,7 @@ impl PsqlOp for DeviceInfoView {
     type UpdaterContent<'a> = DeviceInfoUpdater<'a>;
     type FilterContent<'b> = DeviceInfoFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select 
             id,\
@@ -138,7 +137,7 @@ impl PsqlOp for DeviceInfoView {
          cast(updated_at as text), \
          cast(created_at as text) \
          from device_info where {}",
-            filter.to_string()
+            filter
         );
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
@@ -160,10 +159,14 @@ impl PsqlOp for DeviceInfoView {
 
         execute_res.iter().map(gen_view).collect()
     }
-    async fn update(new_value: Self::UpdaterContent<'_>, filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<u64> {
         let sql = format!(
             "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value.to_string(), filter.to_string()
+            new_value, filter
         );
         debug!("start update orders {} ", sql);
         let execute_res = cli.execute(sql.as_str()).await?;
@@ -172,7 +175,7 @@ impl PsqlOp for DeviceInfoView {
         Ok(execute_res)
     }
 
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let DeviceInfo {
             id,
             user_id,
@@ -215,7 +218,7 @@ mod tests {
     use common::log::init_logger;
     use std::env;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_device_info() {
         env::set_var("SERVICE_MODE", "test");

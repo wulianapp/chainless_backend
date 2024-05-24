@@ -20,27 +20,33 @@ use models::PsqlOp;
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let user = UserInfoView::find_single(UserFilter::ById(user_id,),&mut pg_cli).await?;
+    let user = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
 
     let mut messages = SearchMessageResponse::default();
     //if newcomer device not save,notify it to do
-    let device_info =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?
-            .device_info;
+    let device_info = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?
+    .device_info;
     if device_info.hold_pubkey.is_some() && !device_info.holder_confirm_saved {
-        let secret = SecretStoreView::find_single(SecretFilter::ByPubkey(
-            device_info.hold_pubkey.as_ref().unwrap(),
-        ),            &mut pg_cli
-    ).await?;
+        let secret = SecretStoreView::find_single(
+            SecretFilter::ByPubkey(device_info.hold_pubkey.as_ref().unwrap()),
+            &mut pg_cli,
+        )
+        .await?;
         messages.newcomer_became_sevant.push(secret.secret_store); //(AccountMessage::NewcomerBecameSevant())
     }
 
-    let coin_txs = CoinTxView::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account),&mut pg_cli).await?;
+    let coin_txs = CoinTxView::find(
+        CoinTxFilter::ByAccountPending(&user.user_info.main_account),
+        &mut pg_cli,
+    )
+    .await?;
     let mut tx_msg = coin_txs
         .into_iter()
-        .filter(|x| {
-            now_millis() <= x.transaction.expire_at
-        })
+        .filter(|x| now_millis() <= x.transaction.expire_at)
         .map(|tx| CoinTransactionTmp1 {
             order_id: tx.transaction.order_id,
             tx_id: tx.transaction.tx_id,
@@ -60,8 +66,11 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
         .collect::<Vec<CoinTransactionTmp1>>();
 
     messages.coin_tx.append(&mut tx_msg);
-    
-    if have_no_uncompleted_tx(&user.user_info.main_account,&mut pg_cli).await.is_err() {
+
+    if have_no_uncompleted_tx(&user.user_info.main_account, &mut pg_cli)
+        .await
+        .is_err()
+    {
         messages.have_uncompleted_txs = true;
     }
 

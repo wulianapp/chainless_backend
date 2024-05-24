@@ -1,6 +1,9 @@
 use std::{collections::HashMap, fmt::Display, str::FromStr};
 
-use crate::{data_structures::{coin_transaction::CoinSendStage, KeyRole2}, prelude::CoinType};
+use crate::{
+    data_structures::{coin_transaction::CoinSendStage, KeyRole2},
+    prelude::CoinType,
+};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -247,8 +250,7 @@ impl ErrorCode for WalletError {
             Self::StrategyRankIllegal => 3023,
             Self::ServantNumReachLimit => 3024,
             Self::TxExpired => 3025,
-            Self::ForbideTransferSelf => 3026
-
+            Self::ForbideTransferSelf => 3026,
         }
     }
 }

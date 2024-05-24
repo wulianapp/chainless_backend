@@ -19,9 +19,10 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
-    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (_user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -30,8 +31,11 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         confirmed_sig,
     } = request_data;
 
-    let coin_tx =
-        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id),&mut pg_cli).await?;
+    let coin_tx = models::coin_transfer::CoinTxView::find_single(
+        CoinTxFilter::ByOrderId(&order_id),
+        &mut pg_cli,
+    )
+    .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
@@ -50,7 +54,6 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             "confirmed_sig is invalid".to_string(),
         ))?;
     }
-
 
     if strategy.sub_confs.get(&coin_tx.transaction.to).is_some() {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);
@@ -82,8 +85,9 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     } else {
         //跨链转出，在无链端按照普通转账处理
         blockchain::general::broadcast_tx_commit_from_raw2(
@@ -97,8 +101,9 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     }
     pg_cli.commit().await?;
     Ok(None)

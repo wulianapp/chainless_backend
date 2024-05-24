@@ -46,7 +46,7 @@ pub enum Status {
     Default,
     Pending,
     Signed,
-    Completed
+    Completed,
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
@@ -60,8 +60,8 @@ pub struct BridgeOrder {
     pub signers: Vec<SignedOrder>,   //签名详情
     pub signature: Option<String>,   //充值签名
     pub status: Status,              //订单状态
-    pub block_number: u64,              //订单状态
-    pub txhash: Option<String>,              //创建时间
+    pub block_number: u64,           //订单状态
+    pub txhash: Option<String>,      //创建时间
     pub create_at: u64,              //更新时间
 }
 
@@ -98,7 +98,7 @@ struct DepositStruct {
 pub struct Bridge {}
 
 impl ContractClient<Bridge> {
-    pub async fn new() -> Result<Self>{
+    pub async fn new() -> Result<Self> {
         let contract = &common::env::CONF.bridge_near_contract;
         Self::gen_signer(contract).await
     }
@@ -260,8 +260,8 @@ impl ContractClient<Bridge> {
         self.query_call("get_last_deposit_id", &args_str).await
     }
     /**
-     * 
-     * 
+     *
+     *
      *     pub create_at: u64,//创建时间
             pub block_number: u64,
 
@@ -285,7 +285,6 @@ impl ContractClient<Bridge> {
         self.query_call("list_order", &args_str).await
     }
 
-    
     pub async fn list_deposit_order(
         &self,
         account_id: &str,
@@ -301,7 +300,6 @@ impl ContractClient<Bridge> {
         .to_string();
         self.query_call("list_order", &args_str).await
     }
-    
 
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
     pub async fn sign_deposit_info(
@@ -432,7 +430,9 @@ mod tests {
             .unwrap();
         println!("{:?}", deposit_res);
 
-        let coin_cli = ContractClient::<crate::coin::Coin>::new_with_type(CoinType::USDT).await.unwrap();
+        let coin_cli = ContractClient::<crate::coin::Coin>::new_with_type(CoinType::USDT)
+            .await
+            .unwrap();
         loop {
             let balance = coin_cli.get_balance("test").await.unwrap();
             tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
@@ -452,10 +452,7 @@ mod tests {
 
         let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await.unwrap();
-        println!(
-            "get_binded_eth_addr {:?} ",
-            current_binded_eth_addr
-        );
+        println!("get_binded_eth_addr {:?} ", current_binded_eth_addr);
 
         let set_res = bridge_cli.set_user_batch("test").await;
         println!("set_user_batch txid {} ", set_res.unwrap());
@@ -484,13 +481,11 @@ mod tests {
             };
 
             let coin_cli: ContractClient<crate::coin::Coin> =
-                ContractClient::<crate::coin::Coin>::new_with_type(coin.clone()).await.unwrap();
+                ContractClient::<crate::coin::Coin>::new_with_type(coin.clone())
+                    .await
+                    .unwrap();
             let balance1: Option<String> = coin_cli.get_balance("test").await.unwrap();
-            println!(
-                "test_coin_{}_balance1_——————{:?}",
-                coin,
-                balance1
-            );
+            println!("test_coin_{}_balance1_——————{:?}", coin, balance1);
 
             let (sig, deadline, cid) = bridge_cli
                 .sign_deposit_info(coin.clone(), deposit_amount, replayer_acccount_id)
@@ -528,24 +523,21 @@ mod tests {
             loop {
                 let balance2: Option<String> =
                     coin_cli.get_balance(replayer_acccount_id).await.unwrap();
-                println!(
-                    "test_coin_{}_balance2_——————{:?}",
-                    coin,
-                    balance2
-                );
+                println!("test_coin_{}_balance2_——————{:?}", coin, balance2);
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 if balance1.ne(&balance2) {
                     break;
                 }
             }
         }
-
     }
     #[tokio::test]
     async fn tool_list_order() {
         let bridge_cli = ContractClient::<Bridge>::new().await.unwrap();
-        let orders = bridge_cli.list_withdraw_order("25f1fd7f.local").await.unwrap();
-        println!("orders {:#?}",orders);
+        let orders = bridge_cli
+            .list_withdraw_order("25f1fd7f.local")
+            .await
+            .unwrap();
+        println!("orders {:#?}", orders);
     }
-
 }

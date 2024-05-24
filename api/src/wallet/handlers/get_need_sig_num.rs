@@ -20,7 +20,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: GetNeedSigNumRequest) ->
     let GetNeedSigNumRequest { coin, amount } = request_data;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (_user, strategy, _device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (_user, strategy, _device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
 
     let coin_type: CoinType = coin
         .parse()

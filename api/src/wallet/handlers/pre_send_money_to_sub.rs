@@ -34,7 +34,8 @@ pub(crate) async fn req(
 
     let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -54,7 +55,7 @@ pub(crate) async fn req(
     let coin_type = parse_str(&coin)?;
     let from = main_account.clone();
 
-    let available_balance = super::get_available_amount(&from, &coin_type,&mut pg_cli).await?;
+    let available_balance = super::get_available_amount(&from, &coin_type, &mut pg_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -69,7 +70,9 @@ pub(crate) async fn req(
     );
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new().await.map_err(|err| ChainError(err.to_string()))?;
+    let cli = ContractClient::<MultiSig>::new()
+        .await
+        .map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
         .await?

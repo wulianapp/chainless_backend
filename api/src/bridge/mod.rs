@@ -376,7 +376,9 @@ mod tests {
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let user_info = test_user_info!(service, sender_master).unwrap();
-        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new().await.unwrap();
+        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new()
+            .await
+            .unwrap();
         let sig = bridge_cli
             .sign_bind_info(
                 &user_info.main_account,

@@ -10,7 +10,7 @@ use std::num::ParseIntError;
 use common::data_structures::account_manager::UserInfo;
 
 use crate::{vec_str2array_text, FilterContent, PgLocalCli, PsqlOp, PsqlType, UpdaterContent};
-use anyhow::{Result};
+use anyhow::Result;
 
 use serde::Serialize;
 #[derive(Clone, Debug)]
@@ -112,7 +112,7 @@ impl UserInfoView {
 impl PsqlOp for UserInfoView {
     type UpdaterContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -134,7 +134,7 @@ impl PsqlOp for UserInfoView {
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
-            filter.to_string()
+            filter
         );
         let query_res = cli.query(&sql).await?;
         //debug!("get_snapshot: raw sql {}", sql);
@@ -175,10 +175,14 @@ impl PsqlOp for UserInfoView {
         query_res.iter().map(gen_view).collect()
     }
 
-    async fn update(new_value: Self::UpdaterContent<'_>,filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value.to_string(), filter.to_string()
+            new_value, filter
         );
         debug!("start update users {} ", sql);
         let execute_res = cli.execute(&sql).await?;
@@ -187,7 +191,7 @@ impl PsqlOp for UserInfoView {
         Ok(execute_res)
     }
 
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let UserInfo {
             phone_number,
             email,
@@ -257,9 +261,9 @@ impl PsqlOp for UserInfoView {
 }
 
 pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
-    let execute_res = cli.query(
-        "select last_value,is_called from users_id_seq order by last_value desc limit 1",
-    ).await?;
+    let execute_res = cli
+        .query("select last_value,is_called from users_id_seq order by last_value desc limit 1")
+        .await?;
     //todo:
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
@@ -279,44 +283,61 @@ mod tests {
 
     use super::*;
     use common::log::init_logger;
-    use tokio_postgres::types::ToSql;
     use std::env;
+    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
-    async fn test_db_user_info() -> Result<()>{
+    async fn test_db_user_info() -> Result<()> {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
         let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    
+
         let user = UserInfoView::new_with_specified("0123456789", "1");
         user.insert(&mut pg_cli).await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        UserInfoView::update(
+            UserUpdater::LoginPwdHash("0123"),
+            UserFilter::ById(1),
+            &mut pg_cli,
+        )
+        .await
+        .unwrap();
         Ok(())
     }
-     
+
     #[tokio::test]
     async fn test_db_trans_user_info() {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
         let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let mut pg_cli =  pg_cli.begin().await.unwrap();
+        let mut pg_cli = pg_cli.begin().await.unwrap();
 
         let user = UserInfoView::new_with_specified("0123456789", "1");
         user.insert(&mut pg_cli).await.unwrap();
-        let user_by_find = UserInfoView::find(UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
         println!("by_conn2__{:?}", user_by_find);
         pg_cli.commit().await.unwrap();
 
         let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
         println!("by_trans3__{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        UserInfoView::update(
+            UserUpdater::LoginPwdHash("0123"),
+            UserFilter::ById(1),
+            &mut pg_cli,
+        )
+        .await
+        .unwrap();
     }
-    
 }

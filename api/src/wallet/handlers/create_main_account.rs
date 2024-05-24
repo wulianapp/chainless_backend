@@ -22,7 +22,7 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::general::{get_pg_pool_connect, transaction_begin};
 use models::secret_store::SecretStoreView;
 use models::wallet_manage_record::WalletManageRecordView;
-use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::debug;
 use tracing::info;
 
@@ -45,9 +45,10 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
     //store user info
-    let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
+    let user_info =
+        account_manager::UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
 
     if !user_info.user_info.main_account.eq("") {
         Err(WalletError::MainAccountAlreadyExist(
@@ -63,8 +64,9 @@ pub(crate) async fn req(
     account_manager::UserInfoView::update_single(
         UserUpdater::SecruityInfo(&anwser_indexes, true, &main_account_id),
         UserFilter::ById(user_id),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
 
     let master_secret = SecretStoreView::new_with_specified(
         &master_pubkey,
@@ -83,13 +85,14 @@ pub(crate) async fn req(
     sub_account_secret.insert(&mut pg_cli).await?;
 
     //fixme: 这里遇到过一次没有commit，db事务，但是update_single成功的情况
-    debug!("__line_{}",line!());
+    debug!("__line_{}", line!());
     DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut pg_cli
-    ).await?;
-    debug!("__line_{}",line!());
+        &mut pg_cli,
+    )
+    .await?;
+    debug!("__line_{}", line!());
 
     let txid = multi_sig_cli
         .init_strategy(
@@ -100,7 +103,7 @@ pub(crate) async fn req(
         )
         .await?;
 
-    debug!("__line_{}",line!());
+    debug!("__line_{}", line!());
     let record = WalletManageRecordView::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::CreateAccount,

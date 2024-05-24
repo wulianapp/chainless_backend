@@ -19,7 +19,7 @@ use blockchain::ContractClient;
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
-use models::{PgLocalCli,  PsqlOp};
+use models::{PgLocalCli, PsqlOp};
 use tracing::error;
 
 use super::get_role;
@@ -36,12 +36,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     } = request_data;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
     let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     if current_strategy.servant_pubkeys.len() >= 11 {
         Err(WalletError::ServantNumReachLimit)?;
     }
@@ -49,9 +49,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
-    let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey),&mut pg_cli).await?;
+    let origin_secret =
+        SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey), &mut pg_cli).await?;
     if origin_secret.is_empty() {
         let secret_info = SecretStoreView::new_with_specified(
             &servant_pubkey,
@@ -64,8 +64,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         SecretStoreView::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&servant_pubkey),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     }
 
     //add wallet info
@@ -83,8 +84,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     DeviceInfoView::update_single(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
-        &mut pg_cli
-    ).await?;
+        &mut pg_cli,
+    )
+    .await?;
 
     //WalletManageRecordView
     let record = WalletManageRecordView::new_with_specified(

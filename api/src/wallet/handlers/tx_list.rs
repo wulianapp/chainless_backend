@@ -51,23 +51,23 @@ pub struct CoinTxViewTmp {
     pub updated_at: String,
     pub created_at: String,
 }
-pub enum FilterType{
+pub enum FilterType {
     OrderId,
     AccountId,
     Phone,
     Mail,
 }
-pub fn get_filter_type(data:&str) -> Result<FilterType,BackendError>{
-    let wallet_suffix = & common::env::CONF.relayer_pool.base_account_id;
+pub fn get_filter_type(data: &str) -> Result<FilterType, BackendError> {
+    let wallet_suffix = &common::env::CONF.relayer_pool.base_account_id;
     if data.contains('@') {
         Ok(FilterType::Mail)
-    }else if data.contains('+'){
+    } else if data.contains('+') {
         Ok(FilterType::Phone)
-    }else if data.contains(wallet_suffix){
+    } else if data.contains(wallet_suffix) {
         Ok(FilterType::AccountId)
-    }else if  data.len() == 32{
+    } else if data.len() == 32 {
         Ok(FilterType::OrderId)
-    }else{
+    } else {
         Err(BackendError::RequestParamInvalid(data.to_string()))
     }
 }
@@ -76,7 +76,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let TxListRequest {
         tx_role,
         counterparty,
@@ -89,52 +89,49 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         ))?;
     }
     let tx_role = tx_role.parse().map_err(to_param_invalid_error)?;
-    
-    
+
     //filter by tx_order_id 、account_id 、phone、mail or eth_addr
     //fixme:
     let find_res = if let Some(data) = counterparty.as_deref() {
-        match get_filter_type(&data)? {
+        match get_filter_type(data)? {
             FilterType::OrderId => {
-                CoinTxView::find(CoinTxFilter::ByOrderId(&data),&mut pg_cli).await
-            },
+                CoinTxView::find(CoinTxFilter::ByOrderId(data), &mut pg_cli).await
+            }
             FilterType::AccountId => {
-                CoinTxView::find(CoinTxFilter::ByTxRolePage(
-                    tx_role,
-                    &main_account,
-                    Some(data),
-                    per_page,
-                    page,
-                ),&mut pg_cli).await
-            },
+                CoinTxView::find(
+                    CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
+                    &mut pg_cli,
+                )
+                .await
+            }
             FilterType::Phone | FilterType::Mail => {
-                if let Ok(counterparty_main_account ) = UserInfoView::find_single(
-                    UserFilter::ByPhoneOrEmail(&data),&mut pg_cli).await{
-                        CoinTxView::find(CoinTxFilter::ByTxRolePage(
+                if let Ok(counterparty_main_account) =
+                    UserInfoView::find_single(UserFilter::ByPhoneOrEmail(data), &mut pg_cli).await
+                {
+                    CoinTxView::find(
+                        CoinTxFilter::ByTxRolePage(
                             tx_role,
                             &main_account,
                             Some(&counterparty_main_account.user_info.main_account),
                             per_page,
                             page,
-                        ),&mut pg_cli).await
-                }else{
-                    return Ok(None)
+                        ),
+                        &mut pg_cli,
+                    )
+                    .await
+                } else {
+                    return Ok(None);
                 }
-
             }
         }
-    }else{
-        CoinTxView::find( CoinTxFilter::ByTxRolePage(
-            tx_role,
-            &main_account,
-            None,
-            per_page,
-            page,
-        ),&mut pg_cli).await
+    } else {
+        CoinTxView::find(
+            CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
+            &mut pg_cli,
+        )
+        .await
     };
-    
-    
-    
+
     let txs = find_res?;
     let txs: Vec<CoinTxViewTmp> = txs
         .into_iter()

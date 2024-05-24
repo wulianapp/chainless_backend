@@ -48,7 +48,11 @@ fn is_locked(user_id: u32) -> Result<(bool, u8, u64)> {
                 (false, 0, 0)
             }
         } else {
-            (false, LOGIN_BY_PASSWORD_RETRY_NUM - 1 - records.len() as u8, 0)
+            (
+                false,
+                LOGIN_BY_PASSWORD_RETRY_NUM - 1 - records.len() as u8,
+                0,
+            )
         }
     } else {
         (false, LOGIN_BY_PASSWORD_RETRY_NUM - 1, 0)
@@ -69,8 +73,9 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
 
     let user_at_stored = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli
-    ).await
+        &mut pg_cli,
+    )
+    .await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
@@ -97,11 +102,12 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     }
 
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
-    device.safe_insert(DeviceInfoFilter::ByDeviceUser(
-        &device_id,
-        user_at_stored.id,
-    ),&mut pg_cli
-    ).await?;
+    device
+        .safe_insert(
+            DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+            &mut pg_cli,
+        )
+        .await?;
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
@@ -119,11 +125,11 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-
     let user_at_stored = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli
-    ).await
+        &mut pg_cli,
+    )
+    .await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
@@ -135,10 +141,12 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
 
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
-    device.safe_insert(DeviceInfoFilter::ByDeviceUser(
-        &device_id,
-        user_at_stored.id,
-    ),&mut pg_cli).await?;
+    device
+        .safe_insert(
+            DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+            &mut pg_cli,
+        )
+        .await?;
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;

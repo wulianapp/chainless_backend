@@ -7,7 +7,10 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
+    device_info::{DeviceInfoFilter, DeviceInfoView},
+    general::get_pg_pool_connect,
+    wallet_manage_record::WalletManageRecordView,
+    PsqlOp,
 };
 
 use crate::utils::token_auth;
@@ -21,10 +24,10 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 

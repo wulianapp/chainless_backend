@@ -21,32 +21,30 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::secret_store::SecretStoreView;
-use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::info;
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
-
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let AddSubaccountRequest {
         subaccount_pubkey,
         subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         hold_value_limit,
     } = request_data;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let hold_value_limit = display2raw(&hold_value_limit)?;
-    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (_, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
     //todo: 24小时内只能三次增加的限制
-
-   
 
     //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;

@@ -2,20 +2,20 @@ use std::borrow::BorrowMut;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-use anyhow::{Result};
+use anyhow::Result;
 //use r2d2::ManageConnection;
 //use r2d2::PooledConnection;
 //use r2d2_postgres::postgres::Transaction;
+use crate::LocalConn;
+use crate::PgLocalCli;
 use anyhow::anyhow;
 use deadpool::managed::Object;
 use deadpool_postgres::Manager;
 use deadpool_postgres::Transaction;
-use crate::LocalConn;
-use crate::PgLocalCli;
 //use crate::PoolConnect;
-use crate::{PG_POOL};
+use crate::PG_POOL;
 
-/*** 
+/***
 pub fn transaction_begin_() -> Result<()> {
     LOCAL_CONN.with_borrow_mut(|cn| {
         let transaction = cn.transaction()?;
@@ -23,23 +23,23 @@ pub fn transaction_begin_() -> Result<()> {
             *tx = Some(transaction);
             Ok(())
         })
-    })    
+    })
 }
 */
 pub async fn transaction_begin(conn: &mut LocalConn) -> Result<Transaction> {
-   Ok(conn.transaction().await?)
+    Ok(conn.transaction().await?)
 }
 
-pub async fn transaction_commit(tx: Transaction<'_>) -> Result<()>{
+pub async fn transaction_commit(tx: Transaction<'_>) -> Result<()> {
     Ok(tx.commit().await?)
 }
 
-pub async fn get_pg_pool_connect<T:From<LocalConn>>() -> Result<T> {
+pub async fn get_pg_pool_connect<T: From<LocalConn>>() -> Result<T> {
     let conn = PG_POOL.get().await?;
     Ok(conn.into())
 }
 
-pub fn transaction_rollback() -> Result<u64>{ 
+pub fn transaction_rollback() -> Result<u64> {
     todo!()
 }
 

@@ -7,9 +7,9 @@ use common::data_structures::{
 };
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
-use tokio_postgres::Row;
 use std::fmt;
 use std::fmt::Display;
+use tokio_postgres::Row;
 
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::Result;
@@ -20,7 +20,6 @@ pub enum BridgeOrderUpdater<'a> {
     Status(EthOrderStatus),
 }
 
-
 impl fmt::Display for BridgeOrderUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
@@ -29,9 +28,9 @@ impl fmt::Display for BridgeOrderUpdater<'_> {
                     "(encrypted_prikey_by_password,encrypted_prikey_by_answer)=('{}','{}')",
                     by_password, by_answer
                 )
-            },
+            }
             BridgeOrderUpdater::Status(status) => {
-                format!("status='{}' ",status)
+                format!("status='{}' ", status)
             }
         };
         write!(f, "{}", description)
@@ -48,15 +47,12 @@ pub enum BridgeOrderFilter<'b> {
 impl fmt::Display for BridgeOrderFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            BridgeOrderFilter::ByTypeAndId(order_type, id) => format!(
-                "where order_type='{}' and id='{}' ",
-                order_type.to_string(),
-                id
-            ),
+            BridgeOrderFilter::ByTypeAndId(order_type, id) => {
+                format!("where order_type='{}' and id='{}' ", order_type, id)
+            }
             BridgeOrderFilter::ByTypeAndAccountId(order_type, id) => format!(
                 "where order_type='{}' and chainless_acc='{}' order by created_at desc",
-                order_type.to_string(),
-                id
+                order_type, id
             ),
             BridgeOrderFilter::Limit(num) => format!("order by created_at desc limit {} ", num),
         };
@@ -104,7 +100,10 @@ impl EthBridgeOrderView {
 impl PsqlOp for EthBridgeOrderView {
     type UpdaterContent<'a> = BridgeOrderUpdater<'a>;
     type FilterContent<'b> = BridgeOrderFilter<'b>;
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<EthBridgeOrderView>> {
+    async fn find(
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<Vec<EthBridgeOrderView>> {
         let sql = format!(
             "select 
             id,\
@@ -144,7 +143,11 @@ impl PsqlOp for EthBridgeOrderView {
         execute_res.iter().map(gen_view).collect()
     }
     //没有更新的需求
-    async fn update(new_value: Self::UpdaterContent<'_>, filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<u64> {
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<u64> {
         let sql = format!(
             "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP {}",
             new_value, filter
@@ -156,9 +159,7 @@ impl PsqlOp for EthBridgeOrderView {
         Ok(execute_res)
     }
 
-  
-
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let EthBridgeOrder {
             id,
             order_type,
@@ -182,22 +183,14 @@ impl PsqlOp for EthBridgeOrderView {
                 height,\
                 reserved_field3\
          ) values ('{}','{}','{}','{}','{}','{}','{}',{},'{}');",
-            id,
-            order_type.to_string(),
-            chainless_acc,
-            eth_addr,
-            coin,
-            amount.to_string(),
-            status.to_string(),
-            height,
-            reserved_field3
+            id, order_type, chainless_acc, eth_addr, coin, amount, status, height, reserved_field3
         );
         debug!("row sql {} rows", sql);
         let _execute_res = cli.execute(sql.as_str()).await?;
         Ok(())
     }
 
-    async fn delete(_filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -209,7 +202,7 @@ mod tests {
     use common::{data_structures::bridge::EthOrderStatus, log::init_logger};
     use std::env;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_bridge_order() {
         env::set_var("SERVICE_MODE", "test");

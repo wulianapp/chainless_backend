@@ -1,8 +1,10 @@
 use common::data_structures::TxStatusOnChain;
 use models::{
-    general::get_pg_pool_connect, wallet_manage_record::{
+    general::get_pg_pool_connect,
+    wallet_manage_record::{
         WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView,
-    }, PsqlOp
+    },
+    PsqlOp,
 };
 use tracing::debug;
 
@@ -13,9 +15,11 @@ pub async fn start() -> Result<()> {
 
     loop {
         //check manage_opcord
-        let ops = WalletManageRecordView::find(WalletManageRecordFilter::ByStatus(
-            &TxStatusOnChain::Pending,
-        ),&mut pg_cli).await?;
+        let ops = WalletManageRecordView::find(
+            WalletManageRecordFilter::ByStatus(&TxStatusOnChain::Pending),
+            &mut pg_cli,
+        )
+        .await?;
 
         for op in ops {
             //有些业务(如创建从设备换成主设备) 会产生多个txid，此时以最后一个id为准
@@ -26,8 +30,9 @@ pub async fn start() -> Result<()> {
                 let _ = WalletManageRecordView::update_single(
                     WalletManageRecordUpdater::Status(status),
                     WalletManageRecordFilter::ByRecordId(&op.record.record_id),
-                    &mut pg_cli
-                ).await;
+                    &mut pg_cli,
+                )
+                .await;
             }
             //todo: try to call again when relayer operate
         }

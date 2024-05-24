@@ -158,7 +158,10 @@ impl PsqlOp for CoinTxView {
     type UpdaterContent<'a> = CoinTxUpdater<'a>;
     type FilterContent<'b> = CoinTxFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>,cli: &mut PgLocalCli<'_>) -> Result<Vec<CoinTxView>> {
+    async fn find(
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
+    ) -> Result<Vec<CoinTxView>> {
         let sql = format!(
             "select order_id,\
          tx_id,\
@@ -211,9 +214,10 @@ impl PsqlOp for CoinTxView {
         execute_res.iter().map(gen_view).collect()
     }
 
-    async fn update(new_value: Self::UpdaterContent<'_>, 
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>
+        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -226,7 +230,7 @@ impl PsqlOp for CoinTxView {
         Ok(execute_res)
     }
 
-    async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let CoinTransaction {
             order_id,
             tx_id,
@@ -249,7 +253,6 @@ impl PsqlOp for CoinTxView {
         let chain_raw_data: PsqlType = chain_tx_raw.into();
         let memo: PsqlType = memo.into();
         let receiver_contact: PsqlType = receiver_contact.into();
-
 
         //todo: amount specific type short or long
         let sql = format!(
@@ -300,24 +303,24 @@ impl PsqlOp for CoinTxView {
 mod tests {
     use std::env;
 
-    use common::data_structures::coin_transaction::CoinTransaction;
     use super::*;
+    use common::data_structures::coin_transaction::CoinTransaction;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_braced_models_coin_tx() {
-        
+
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear().await;
 
         let coin_tx = CoinTxView::new_with_specified(
-            CoinType::BTC, 
-            "1.test".to_string(), 
-            "2.test".to_string(), 
-            1, 
+            CoinType::BTC,
+            "1.test".to_string(),
+            "2.test".to_string(),
+            1,
             "".to_string(),
-             None, 
-             1715740449000, 
+             None,
+             1715740449000,
              CoinSendStage::Created);
 
         println!("start insert");

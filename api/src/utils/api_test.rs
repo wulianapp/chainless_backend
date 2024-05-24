@@ -87,7 +87,6 @@ pub async fn init() -> App<
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
         .configure(crate::air_reward::configure_routes)
-
 }
 
 pub fn simulate_sender_master() -> TestWulianApp2 {

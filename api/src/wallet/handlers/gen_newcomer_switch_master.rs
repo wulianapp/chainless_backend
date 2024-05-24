@@ -43,9 +43,10 @@ pub(crate) async fn req(
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Undefined)?;
 

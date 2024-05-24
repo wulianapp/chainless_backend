@@ -38,17 +38,21 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let servant_pubkey =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?
-            .device_info
-            .hold_pubkey
-            .ok_or(BackendError::InternalError(
-                "this haven't be servant yet".to_string(),
-            ))?;
+    let servant_pubkey = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?
+    .device_info
+    .hold_pubkey
+    .ok_or(BackendError::InternalError(
+        "this haven't be servant yet".to_string(),
+    ))?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 

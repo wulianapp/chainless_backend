@@ -1,4 +1,3 @@
-
 use common::utils::math::coin_amount::raw2display;
 use common::utils::math::hex_to_bs58;
 use near_crypto::SecretKey;
@@ -30,7 +29,7 @@ pub struct U128(pub u128);
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct NetUsers {
     pub user_receive_dw20: u64, //领取dw20人数
-    pub user_receive_cly: u64, //领取cly人数
+    pub user_receive_cly: u64,  //领取cly人数
 }
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct SettleTimesU64 {
@@ -39,35 +38,35 @@ pub struct SettleTimesU64 {
     pub twenty_one: u64,
 }
 #[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct SysInfo{
+pub struct SysInfo {
     pub net_users: NetUsers,
-    pub admin: Vec<(String,bool)>,
-    pub settle_times: SettleTimesU64,//3,9,21,top排行榜已结算时间
+    pub admin: Vec<(String, bool)>,
+    pub settle_times: SettleTimesU64, //3,9,21,top排行榜已结算时间
     pub next_settle_times: SettleTimesU64,
-    pub start_times: u64,// 合约开始时间
-    pub fire_times: u64,//点火时间，控制开始释放时间
-    pub free_times: u64, //全局释放至时间
-    pub free_off: bool, //仅控制释放操作是否允许
-    pub disuse_times: u64, //下次淘汰时间
-    pub times_elapsed: u64, //用于控制合约时间 用于测试
-    pub free_total_token: Vec<(String, u128)> //释放token总和
+    pub start_times: u64,                      // 合约开始时间
+    pub fire_times: u64,                       //点火时间，控制开始释放时间
+    pub free_times: u64,                       //全局释放至时间
+    pub free_off: bool,                        //仅控制释放操作是否允许
+    pub disuse_times: u64,                     //下次淘汰时间
+    pub times_elapsed: u64,                    //用于控制合约时间 用于测试
+    pub free_total_token: Vec<(String, u128)>, //释放token总和
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct User{
+pub struct User {
     pub user_account: AccountId,
-    pub user_is_real: bool,//是否实名
-    pub user_btc_address: String,//领取空投btc地址
-    pub user_level: u8,//用户级别
-    pub user_fans: u64,//用户粉丝
+    pub user_is_real: bool,       //是否实名
+    pub user_btc_address: String, //领取空投btc地址
+    pub user_level: u8,           //用户级别
+    pub user_fans: u64,           //用户粉丝
     pub receive_real: bool,
     pub receive_not_real: bool,
-    pub account_level: u8,//账户级别
-    pub invite_code: String,//推荐码
-    pub ref_account: AccountId,//上级账户id
-    pub invited_count: u64,//推荐人数
-    pub points: u64,// 总积分
-    pub expire_times: u64, // 修改上级倒计时时间，用于控制间隔时间
+    pub account_level: u8,      //账户级别
+    pub invite_code: String,    //推荐码
+    pub ref_account: AccountId, //上级账户id
+    pub invited_count: u64,     //推荐人数
+    pub points: u64,            // 总积分
+    pub expire_times: u64,      // 修改上级倒计时时间，用于控制间隔时间
 }
 
 pub struct MultiSig {}
@@ -76,64 +75,57 @@ pub struct MultiSig {}
 pub struct AirReward {}
 impl ContractClient<AirReward> {
     //todo: config
-    pub async fn new() -> Result<Self>{
+    pub async fn new() -> Result<Self> {
         //let contract = &common::env::CONF.fees_call_contract;
         let contract = "air100010";
         Self::gen_signer(contract).await
     }
 
-    pub async fn get_sys_info(
-        &self
-    ) -> Result<Option<SysInfo>> {
+    pub async fn get_sys_info(&self) -> Result<Option<SysInfo>> {
         //todo: verify user's ecdsa signature
-        let args_str = json!({})
-        .to_string();
+        let args_str = json!({}).to_string();
         self.query_call("get_sys_info", &args_str).await
     }
 
     pub async fn get_block_times(&self) -> Result<Option<u64>> {
-        let args_str = json!({})
-        .to_string();
+        let args_str = json!({}).to_string();
         self.query_call("get_block_times", &args_str).await
     }
 
     pub async fn get_reward_start_times(&self) -> Result<Option<u64>> {
-        let args_str = json!({})
-        .to_string();
+        let args_str = json!({}).to_string();
         self.query_call("get_reward_start_times", &args_str).await
     }
 
     pub async fn get_next_zero_sec(&self) -> Result<Option<u64>> {
-        let args_str = json!({})
-        .to_string();
+        let args_str = json!({}).to_string();
         self.query_call("get_next_zero_sec", &args_str).await
     }
 
-
     pub async fn get_net_users(&self) -> Result<Option<NetUsers>> {
-        let args_str = json!({})
-        .to_string();
+        let args_str = json!({}).to_string();
         self.query_call("get_next_zero_sec", &args_str).await
     }
 
     //
-    pub async fn is_invite_code_valid(&self,code:&str) -> Result<bool> {
+    pub async fn is_invite_code_valid(&self, code: &str) -> Result<bool> {
         let args_str = json!({
             "code":code
         })
         .to_string();
-        self.query_call("get_next_zero_sec", &args_str).await.map(|x| x.unwrap())
+        self.query_call("get_next_zero_sec", &args_str)
+            .await
+            .map(|x| x.unwrap())
     }
 
     //
-    pub async fn get_up_user_with_id(&self,account_id:&str) -> Result<Option<User>> {
+    pub async fn get_up_user_with_id(&self, account_id: &str) -> Result<Option<User>> {
         let args_str = json!({
             "account_id":account_id
         })
         .to_string();
         self.query_call("get_up_user_with_id", &args_str).await
     }
-
 
     //后台不做乘法计算，允许这里精度丢失
     pub async fn get_coin_price(&self, coin: &CoinType) -> Result<(u128, u128)> {
@@ -154,11 +146,12 @@ impl ContractClient<AirReward> {
         Ok(price)
     }
 
-    pub async fn receive_air(&self, 
+    pub async fn receive_air(
+        &self,
         id: &str,
         ref_id: &str,
-        btc_addr_level: Option<(String,u8)>,
-        is_real: Option<bool>
+        btc_addr_level: Option<(String, u8)>,
+        is_real: Option<bool>,
     ) -> Result<Option<String>> {
         let args_str = json!({
             "id":  id,
@@ -177,7 +170,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_get_sys_info() {
-        let cli = ContractClient::<AirReward>::new().await.unwrap();        
+        let cli = ContractClient::<AirReward>::new().await.unwrap();
         let sys_info = cli.get_sys_info().await.unwrap();
         println!("sys_info {:?} ", sys_info);
     }

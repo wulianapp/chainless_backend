@@ -34,8 +34,8 @@ pub(crate) async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-
-    let (user, current_strategy, device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
@@ -64,7 +64,7 @@ pub(crate) async fn req(
         CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
-    let available_balance = get_available_amount(&from, &coin_type,&mut pg_cli).await?;
+    let available_balance = get_available_amount(&from, &coin_type, &mut pg_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -75,7 +75,9 @@ pub(crate) async fn req(
     }
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new().await.map_err(|err| ChainError(err.to_string()))?;
+    let cli = ContractClient::<MultiSig>::new()
+        .await
+        .map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
         .await

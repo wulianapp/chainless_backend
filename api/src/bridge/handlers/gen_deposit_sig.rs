@@ -36,7 +36,8 @@ pub async fn req(
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let (user, current_strategy, device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
 
     if main_account.eq("") {

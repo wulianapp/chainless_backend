@@ -17,20 +17,28 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await
-        .map_err(|e| {
-            if e.to_string().contains("DBError::DataNotFound") {
-                AccountManagerError::PhoneOrEmailNotRegister.into()
-            } else {
-                BackendError::InternalError(e.to_string())
-            }
-        })?;
+    let user = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact),
+        &mut pg_cli,
+    )
+    .await
+    .map_err(|e| {
+        if e.to_string().contains("DBError::DataNotFound") {
+            AccountManagerError::PhoneOrEmailNotRegister.into()
+        } else {
+            BackendError::InternalError(e.to_string())
+        }
+    })?;
 
     if user.user_info.main_account.eq("") {
         return Ok(Some(KeyRole2::Undefined));
     }
     //todo:
-    let find_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user.id),&mut pg_cli).await;
+    let find_res = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user.id),
+        &mut pg_cli,
+    )
+    .await;
     if let Err(err) = find_res {
         if err.to_string().contains("DBError::DataNotFound") {
             return Ok(Some(KeyRole2::Undefined));
@@ -40,7 +48,7 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     }
 
     let (_, current_strategy, device) =
-        crate::wallet::handlers::get_session_state(user.id, &device_id,&mut pg_cli).await?;
+        crate::wallet::handlers::get_session_state(user.id, &device_id, &mut pg_cli).await?;
     let role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
     Ok(Some(role))
 }

@@ -20,8 +20,8 @@ use anyhow::Result;
 use common::data_structures::bridge::EthOrderStatus;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
-use serde::{Deserialize, Serialize};
 use models::general::get_pg_pool_connect;
+use serde::{Deserialize, Serialize};
 
 use super::paginate_vec;
 
@@ -39,10 +39,11 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
     let mut pg_cli = get_pg_pool_connect().await?;
-    EthBridgeOrderView::find(BridgeOrderFilter::ByTypeAndAccountId(
-        OrderType::Withdraw,
-        main_account,
-    ),&mut pg_cli).await
+    EthBridgeOrderView::find(
+        BridgeOrderFilter::ByTypeAndAccountId(OrderType::Withdraw, main_account),
+        &mut pg_cli,
+    )
+    .await
 }
 
 pub(crate) async fn req(
@@ -51,7 +52,7 @@ pub(crate) async fn req(
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = get_main_account(user_id,&mut pg_cli).await?;
+    let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
     let ListWithdrawOrderRequest {
         page,

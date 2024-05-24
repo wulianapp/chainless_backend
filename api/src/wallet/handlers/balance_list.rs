@@ -35,7 +35,7 @@ pub async fn req(
 ) -> BackendRes<BalanceListResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
 
     let main_account = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();
@@ -80,7 +80,8 @@ pub async fn req(
         let mut account_balance = vec![];
 
         for (index, account) in check_accounts.iter().enumerate() {
-            let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+            let coin_cli: ContractClient<Coin> =
+                ContractClient::<Coin>::new_with_type(coin.clone()).await?;
             let (balance_on_chain, hold_limit) = if user_info.user_info.secruity_is_seted {
                 let balance = coin_cli
                     .get_balance(account)
@@ -98,7 +99,7 @@ pub async fn req(
             } else {
                 ("0".to_string(), Some("0.0".to_string()))
             };
-            let freezn_amount = super::get_freezn_amount(account, &coin,&mut pg_cli).await;
+            let freezn_amount = super::get_freezn_amount(account, &coin, &mut pg_cli).await;
             let total_balance = parse_str(balance_on_chain)?;
             debug!(
                 "coin:{},total_balance:{},freezn_amount:{}",

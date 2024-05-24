@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
+pub mod air_reward;
 mod airdrop;
 pub mod bridge_on_near;
 pub mod coin;
@@ -8,8 +9,6 @@ pub mod erc20_on_eth;
 pub mod general;
 mod hello;
 pub mod multi_sig;
-pub mod air_reward;
-
 
 pub mod bridge_on_eth;
 pub mod eth_cli;
@@ -49,7 +48,7 @@ lazy_static! {
     };
 
     //static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
-    
+
 }
 
 //todo: deal with error detail
@@ -81,9 +80,9 @@ pub struct ContractClient<T> {
 }
 
 impl<T> ContractClient<T> {
-    pub async fn gen_signer(contract:&str) -> Result<Self> {
+    pub async fn gen_signer(contract: &str) -> Result<Self> {
         let relayer = wait_for_idle_relayer().await;
-        let relayer  = relayer.lock().map_err(to_internal_error)?;
+        let relayer = relayer.lock().map_err(to_internal_error)?;
         let pri_key: SecretKey = relayer.pri_key.parse()?;
         let account_id = AccountId::from_str(&relayer.account_id)?;
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
@@ -289,8 +288,6 @@ pub async fn test_connect() {
 
     println!("{:?}", tx_status);
 }
-
-
 
 /***
 todo:

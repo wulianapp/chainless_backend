@@ -20,14 +20,19 @@ pub async fn req(
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let _device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?;
-    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let _device = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?;
+    let (_user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
     //todo: check must be main device
     let CancelSendMoneyRequest { order_id } = request_data.0;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id),&mut pg_cli).await?;
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id), &mut pg_cli).await?;
     //todo: chain status
     /***
     if now_millis() > tx.transaction.expire_at {
@@ -45,8 +50,9 @@ pub async fn req(
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     }
     Ok(None)
 }

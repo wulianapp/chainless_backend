@@ -23,7 +23,8 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let (user, _current_strategy, _device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, _current_strategy, _device) =
+        get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
 
     let bridge_cli = ContractClient::<Bridge>::new().await?;

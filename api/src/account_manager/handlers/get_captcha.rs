@@ -87,29 +87,26 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_user_res = UserInfoView::find_single(
-                    UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await
-                .map_err(|err| {
-                    if err.to_string().contains("DBError::DataNotFound") {
-                        AccountManagerError::PhoneOrEmailNotRegister.into()
-                    } else {
-                        BackendError::InternalError(err.to_string())
-                    }
-                })?;
+            let find_user_res =
+                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+                    .await
+                    .map_err(|err| {
+                        if err.to_string().contains("DBError::DataNotFound") {
+                            AccountManagerError::PhoneOrEmailNotRegister.into()
+                        } else {
+                            BackendError::InternalError(err.to_string())
+                        }
+                    })?;
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {
                 let find_device_res = DeviceInfoView::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-                    &mut pg_cli
-                ).await;
+                    &mut pg_cli,
+                )
+                .await;
                 if find_device_res.is_ok()
-                    && find_device_res
-                        .as_ref()
-                        .unwrap()
-                        .device_info
-                        .key_role
-                        == KeyRole2::Master
+                    && find_device_res.as_ref().unwrap().device_info.key_role == KeyRole2::Master
                 {
                     debug!("line {}", line!());
                 } else if find_device_res.is_err() {
@@ -129,19 +126,16 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             get(device_id, contact, kind, Some(find_user_res.id))
         }
         Register => {
-            let find_res = UserInfoView::find_single(
-                UserFilter::ByPhoneOrEmail(&contact),
-                &mut pg_cli
-            ).await;
+            let find_res =
+                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli).await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
             get(device_id, contact, kind, None)
         }
-        Login => match UserInfoView::find_single(
-            UserFilter::ByPhoneOrEmail(&contact),
-            &mut pg_cli
-        ).await {
+        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+            .await
+        {
             Ok(info) => get(device_id, contact, kind, Some(info.id)),
             Err(err) => {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -167,8 +161,12 @@ pub async fn with_token_req(
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let mut pg_cli = get_pg_pool_connect().await?;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?;
+    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli).await?;
+    let device = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?;
 
     match kind {
         ResetLoginPassword | Register | Login => {

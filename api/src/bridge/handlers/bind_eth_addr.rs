@@ -23,7 +23,8 @@ pub async fn req(req: HttpRequest, request_data: BindEthAddrRequest) -> BackendR
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let (user, current_strategy, device) =
+        get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;

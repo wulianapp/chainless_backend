@@ -23,7 +23,7 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
 
@@ -41,27 +41,31 @@ pub(crate) async fn req(
     } = request_data;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli =  pg_cli.begin().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
     //get user's main_account 、mater_key、current servant_key
-    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
-    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
-    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    let (_user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
-    super::check_have_base_fee(&main_account,&mut pg_cli).await?;
+    super::check_have_base_fee(&main_account, &mut pg_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
 
     //todo: 检查防止用servantA的token操作servantB进行switch
     //外部注入和token解析结果对比
-    let servant_pubkey =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?
-            .device_info
-            .hold_pubkey
-            .ok_or(BackendError::InternalError(
-                "this haven't be servant yet".to_string(),
-            ))?;
+    let servant_pubkey = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?
+    .device_info
+    .hold_pubkey
+    .ok_or(BackendError::InternalError(
+        "this haven't be servant yet".to_string(),
+    ))?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
 
     //get old_master
@@ -79,8 +83,6 @@ pub(crate) async fn req(
         ))?;
         unreachable!("");
     };
-    
-
 
     //增加之前判断是否有
     if !master_list.contains(&servant_pubkey) {
@@ -89,8 +91,9 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     } else {
         warn!("newcomer_pubkey<{}> already is master", servant_pubkey);
     }
@@ -105,8 +108,9 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-            &mut pg_cli
-        ).await?;
+            &mut pg_cli,
+        )
+        .await?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {
         warn!("old_master<{}>  is already deleted ", old_master);
     } else {

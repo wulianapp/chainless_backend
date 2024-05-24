@@ -14,17 +14,20 @@ use tokio::time::error::Elapsed;
 use crate::air_reward::SysInfoResponse;
 use crate::utils::token_auth;
 
-
 pub async fn req(req: HttpRequest) -> BackendRes<SysInfoResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let _devices =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?;
-    let _res = account_manager::UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
+    let _devices = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?;
+    let _res =
+        account_manager::UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
 
     //todo:
-    /*** 
+    /***
     let role = if res.user_info.main_account.eq("") {
         KeyRole2::Undefined
     } else {
