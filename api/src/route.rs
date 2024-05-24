@@ -44,7 +44,7 @@ async fn main() -> std::io::Result<()> {
                     .max_age(3600),
             )
             .configure(account_manager::configure_routes)
-            //.configure(wallet::configure_routes)
+            .configure(wallet::configure_routes)
             .configure(bridge::configure_routes)
             .configure(air_reward::configure_routes)
 

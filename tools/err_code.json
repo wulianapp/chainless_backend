@@ -130,29 +130,29 @@
         "en_us": "Order does not exist"
       },
       "3022": {
-        "zh_tw": "禁止转0",
-        "zh_cn": "禁止转0",
-        "en_us": "todo: FobidTransferZero"
+        "zh_tw": "轉帳數量不能為0",
+        "zh_cn": "转账数量不能为0",
+        "en_us": "Forbid transfer zero amount"
       },
       "3023": {
-        "zh_tw": "非法梯度",
-        "zh_cn": "非法梯度",
-        "en_us": "todo:rank array of strategy is illegal"
+        "zh_tw": "非法多签配置",
+        "zh_cn": "非法多簽配置",
+        "en_us": "Multi strategy rank array of strategy is illegal"
       },
       "3024": {
-        "zh_tw": "达到从设备限制",
-        "zh_cn": "达到从设备限制",
-        "en_us": "todo:servant's num have already readch limit(11) "
+        "zh_tw": "達到從設備數量限製",
+        "zh_cn": "达到从设备数量限制",
+        "en_us": "Servant's num have already reach limit(11) "
       },
       "3025": {
-        "zh_tw": "用戶尚未綁定ETH地址",
-        "zh_cn": "用户尚未绑定ETH地址",
-        "en_us": "todo:Transaction is already more than 24h"
+        "zh_tw": "交易已過期",
+        "zh_cn": "交易已过期",
+        "en_us": "Transaction is expired "
       },
       "3026": {
-        "zh_tw": "不能转给自己",
-        "zh_cn": "不能转给自己",
-        "en_us": "todo:ForbideTransferSelf"
+        "zh_tw": "不能轉帳給自己",
+        "zh_cn": "不能转帐给自己",
+        "en_us": "Forbid transfer to yourself"
       },
       "4000": {
         "zh_tw": "用戶尚未綁定ETH地址",

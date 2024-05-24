@@ -70,10 +70,13 @@ pub mod update_strategy;
 pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
 
+//短地址允许碰撞的次数
+pub const FIND_VALID_ACCOUNT_RETRY_TIMES: u8 = 10;
+
 pub async fn gen_random_account_id(
     multi_sig_cli: &ContractClient<MultiSig>,
 ) -> Result<String, BackendError> {
-    for _ in 0..10 {
+    for _ in 0..FIND_VALID_ACCOUNT_RETRY_TIMES {
         let relayer_name = &common::env::CONF.relayer_pool.base_account_id;
         let hex_str = generate_random_hex_string(8);
         let account_id = format!("{}.{}", hex_str, relayer_name);

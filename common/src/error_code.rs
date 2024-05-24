@@ -218,7 +218,7 @@ pub enum WalletError {
     ServantNumReachLimit,
     #[error("transaction is already more than 24h")]
     TxExpired,
-    #[error("ForbideTransferSelf")]
+    #[error("Forbid Transfer to yourself")]
     ForbideTransferSelf,
 }
 impl ErrorCode for WalletError {

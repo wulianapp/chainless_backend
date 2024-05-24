@@ -1133,7 +1133,7 @@ async fn create_main_account(
  * @api {post} /wallet/faucetClaim 领取测试币
  * @apiVersion 0.0.1
  * @apiName faucetClaim
- * @apiQuery {String} accountId
+ * @apibody {String} accountId
  * @apiGroup Wallet
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/putPendingPubkey

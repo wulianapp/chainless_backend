@@ -17,7 +17,7 @@ use std::ops::Deref;
 use std::sync::Mutex;
 
 pub async fn req(req: HttpRequest,req_data:FaucetClaimRequest) -> BackendRes<String> {
-    let user_id = token_auth::validate_credentials(&req)?;
+    //let user_id = token_auth::validate_credentials(&req)?;
     //let mut pg_cli = get_pg_pool_connect().await?;
     //let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let account = req_data.account_id;
