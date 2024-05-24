@@ -375,21 +375,3 @@ pub struct ServentSigDetail {
     pub device_id: String,
     pub device_brand: String,
 }
-
-impl FromStr for ServentSigDetail {
-    type Err = anyhow::Error;
-
-    fn from_str(_s: &str) -> Result<Self, Self::Err> {
-        unimplemented!()
-        /***
-        let pubkey = s[..64].to_string();
-        let _sig = s[64..].to_string();
-        let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))?;
-        Ok(Self {
-            pubkey,
-            device_id: device.device_info.id,
-            device_brand: device.device_info.brand,
-        })
-        ***/
-    }
-}

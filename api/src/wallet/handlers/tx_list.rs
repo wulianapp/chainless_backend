@@ -133,40 +133,43 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     };
 
     let txs = find_res?;
-    let txs: Vec<CoinTxViewTmp> = txs
-        .into_iter()
-        .map(|tx| -> Result<_> {
-            let stage = if now_millis() > tx.transaction.expire_at {
-                CoinSendStage::MultiSigExpired
-            } else {
-                tx.transaction.stage
+
+    let mut view_txs = vec![];
+    for tx in txs {
+        let stage = if now_millis() > tx.transaction.expire_at {
+            CoinSendStage::MultiSigExpired
+        } else {
+            tx.transaction.stage
+        };
+        let mut sigs = vec![];
+        for sig in tx.transaction.signatures {
+            let pubkey = sig[..64].to_string();
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let sig = ServentSigDetail{
+                pubkey,
+                device_id: device.device_info.id,
+                device_brand: device.device_info.brand,
             };
-
-            Ok(CoinTxViewTmp {
-                order_id: tx.transaction.order_id,
-                tx_id: tx.transaction.tx_id,
-                coin_type: tx.transaction.coin_type,
-                from: tx.transaction.from,
-                to: tx.transaction.to,
-                amount: raw2display(tx.transaction.amount),
-                expire_at: tx.transaction.expire_at,
-                memo: tx.transaction.memo,
-                stage,
-                coin_tx_raw: tx.transaction.coin_tx_raw,
-                chain_tx_raw: tx.transaction.chain_tx_raw,
-                signatures: tx
-                    .transaction
-                    .signatures
-                    .iter()
-                    .map(|s| s.parse())
-                    .collect::<Result<Vec<_>>>()?,
-                tx_type: tx.transaction.tx_type,
-                chain_status: tx.transaction.chain_status,
-                updated_at: tx.updated_at,
-                created_at: tx.created_at,
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(Some(txs))
+            sigs.push(sig);
+        }
+        view_txs.push(CoinTxViewTmp {
+            order_id: tx.transaction.order_id,
+            tx_id: tx.transaction.tx_id,
+            coin_type: tx.transaction.coin_type,
+            from: tx.transaction.from,
+            to: tx.transaction.to,
+            amount: raw2display(tx.transaction.amount),
+            expire_at: tx.transaction.expire_at,
+            memo: tx.transaction.memo,
+            stage,
+            coin_tx_raw: tx.transaction.coin_tx_raw,
+            chain_tx_raw: tx.transaction.chain_tx_raw,
+            signatures: sigs,
+            tx_type: tx.transaction.tx_type,
+            chain_status: tx.transaction.chain_status,
+            updated_at: tx.updated_at,
+            created_at: tx.created_at,
+        });
+    }
+    Ok(Some(view_txs))
 }

@@ -23,7 +23,7 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{vec_deque, HashMap};
 use std::f64::consts::E;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -73,13 +73,18 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
                 BackendError::InternalError(e.to_string())
             }
         })?;
-
-    let signed_device: Vec<ServentSigDetail> = tx
-        .transaction
-        .signatures
-        .iter()
-        .map(|s| s.parse())
-        .collect::<Result<_>>()?;
+        
+    let mut signed_device = vec![];
+    for sig in tx.transaction.signatures {
+        let pubkey = sig[..64].to_string();
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let sig = ServentSigDetail{
+                pubkey,
+                device_id: device.device_info.id,
+                device_brand: device.device_info.brand,
+            };
+        signed_device.push(sig);
+    }
 
     //不从数据库去读
     let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut pg_cli)
