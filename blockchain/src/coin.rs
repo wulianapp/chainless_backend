@@ -30,7 +30,6 @@ lazy_static! {
     static ref DW20_CID: AccountId = AccountId::from_str("dw20.node0").unwrap();
 }
 
-
 pub struct Coin {}
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -181,7 +180,9 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new_with_type(CoinType::DW20).await.unwrap();
+        let coin_cli = ContractClient::<Coin>::new_with_type(CoinType::DW20)
+            .await
+            .unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";
         let balance1 = coin_cli.get_balance(receiver).await.unwrap();
         println!("balance1 {}", balance1.unwrap());

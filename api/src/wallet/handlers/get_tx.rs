@@ -20,9 +20,10 @@ use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{vec_deque, HashMap};
 use std::f64::consts::E;
 use std::ops::Deref;
 use std::str::FromStr;
@@ -60,25 +61,34 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id)).map_err(|e| {
-        if e.to_string().contains("DBError::DataNotFound") {
-            WalletError::OrderNotFound(order_id).into()
-        } else {
-            BackendError::InternalError(e.to_string())
-        }
-    })?;
-
-    let signed_device: Vec<ServentSigDetail> = tx
-        .transaction
-        .signatures
-        .iter()
-        .map(|s| s.parse())
-        .collect::<Result<_>>()?;
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id), &mut pg_cli)
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("DBError::DataNotFound") {
+                WalletError::OrderNotFound(order_id).into()
+            } else {
+                BackendError::InternalError(e.to_string())
+            }
+        })?;
+        
+    let mut signed_device = vec![];
+    for sig in tx.transaction.signatures {
+        let pubkey = sig[..64].to_string();
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let sig = ServentSigDetail{
+                pubkey,
+                device_id: device.device_info.id,
+                device_brand: device.device_info.brand,
+            };
+        signed_device.push(sig);
+    }
 
     //不从数据库去读
-    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id))?
+    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut pg_cli)
+        .await?
         .into_iter()
         .filter(|x| {
             x.device_info.hold_pubkey.is_some() && x.device_info.key_role == KeyRole2::Servant
@@ -108,9 +118,11 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
-    let fees_detail = if tx.transaction.tx_type == TxType::MainToSub || tx.transaction.tx_type == TxType::SubToMain{
+    let fees_detail = if tx.transaction.tx_type == TxType::MainToSub
+        || tx.transaction.tx_type == TxType::SubToMain
+    {
         vec![]
-    }else if tx.transaction.chain_status == TxStatusOnChain::Successful {
+    } else if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
         get_actual_fee(&tx.transaction.from, tx_id)
             .await?
@@ -133,15 +145,15 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         }]
     };
     let stage = if tx.transaction.stage <= CoinSendStage::ReceiverApproved
-        && now_millis() > tx.transaction.expire_at {
-            
+        && now_millis() > tx.transaction.expire_at
+    {
         CoinSendStage::MultiSigExpired
     } else {
         tx.transaction.stage
     };
-    let to = if let Some(contact) = tx.transaction.receiver_contact{
+    let to = if let Some(contact) = tx.transaction.receiver_contact {
         contact
-    }else{
+    } else {
         tx.transaction.to.clone()
     };
     let tx = GetTxResponse {

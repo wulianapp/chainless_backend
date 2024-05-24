@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
+use models::general::get_pg_pool_connect;
 
 use crate::{utils::token_auth, wallet::MultiSigRankExternal};
 use common::error_code::BackendError::ChainError;
@@ -26,7 +27,8 @@ pub struct MultiSigRankTmp {
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
 
     let strategy = multi_cli.get_strategy(&main_account).await?;

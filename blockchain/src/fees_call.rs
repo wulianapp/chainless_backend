@@ -31,7 +31,7 @@ pub struct U128(pub u128);
 pub struct FeesCall {}
 
 impl ContractClient<FeesCall> {
-    pub async fn new() -> Result<Self>{
+    pub async fn new() -> Result<Self> {
         let contract = &common::env::CONF.fees_call_contract;
         Self::gen_signer(contract).await
     }
@@ -185,6 +185,6 @@ mod tests {
     async fn test_toos_get_users_tx() {
         let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
         let res = fees_cli.get_user_txs("25f1fd7f.local").await;
-        println!("_____{:#?}",res);
+        println!("_____{:#?}", res);
     }
 }

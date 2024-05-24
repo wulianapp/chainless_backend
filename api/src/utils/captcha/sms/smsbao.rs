@@ -35,7 +35,7 @@ pub(crate) async fn send_code(phone: &str, msg: &str, username: &str, api_key: &
     let (entry, m) = if phone.starts_with("+86 ") {
         (LOCAL_ENTRY, phone.strip_prefix("+86 ").unwrap().to_owned())
     } else {
-        (GLOBAL_ENTRY, phone.replace(" ", ""))
+        (GLOBAL_ENTRY, phone.replace(' ', ""))
     };
 
     let client = reqwest::Client::new();

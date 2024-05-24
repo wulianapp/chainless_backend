@@ -11,6 +11,7 @@ use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
@@ -31,7 +32,10 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -51,7 +55,7 @@ pub(crate) async fn req(
     let coin_type = parse_str(&coin)?;
     let from = main_account.clone();
 
-    let available_balance = super::get_available_amount(&from, &coin_type).await?;
+    let available_balance = super::get_available_amount(&from, &coin_type, &mut pg_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -66,7 +70,9 @@ pub(crate) async fn req(
     );
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new().await.map_err(|err| ChainError(err.to_string()))?;
+    let cli = ContractClient::<MultiSig>::new()
+        .await
+        .map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli
         .get_strategy(&main_account)
         .await?
@@ -110,7 +116,7 @@ pub(crate) async fn req(
         gen_tx_with_status(CoinSendStage::Created)?
     };
     coin_info.transaction.tx_type = TxType::MainToSub;
-    coin_info.insert()?;
+    coin_info.insert(&mut pg_cli).await?;
     Ok(Some((
         coin_info.transaction.order_id,
         coin_info.transaction.coin_tx_raw,

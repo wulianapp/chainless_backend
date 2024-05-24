@@ -40,7 +40,7 @@ pub(crate) async fn send_code(
                 max_parts,
                 reference: reference.into(),
                 to: vec![To {
-                    number: format!("00{}", phone.strip_prefix("+").unwrap().replace(" ", "")),
+                    number: format!("00{}", phone.strip_prefix('+').unwrap().replace(' ', "")),
                 }],
             }],
         },

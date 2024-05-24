@@ -39,7 +39,7 @@ pub fn calc_wallet_grade(score: Decimal) -> u8 {
             return r.0;
         }
     }
-    return 0;
+    0
 }
 
 pub async fn query_wallet_grade(account: &str) -> Result<u8> {

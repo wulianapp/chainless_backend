@@ -5,6 +5,7 @@ use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::secret_store::SecretStoreView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
@@ -19,14 +20,16 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (_user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -34,7 +37,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let coin_tx = models::coin_transfer::CoinTxView::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
-    )?;
+        &mut pg_cli,
+    )
+    .await?;
 
     let servant_sigs = coin_tx
         .transaction
@@ -64,6 +69,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
-    )?;
+        &mut pg_cli,
+    )
+    .await?;
     Ok(Some(tx_id))
 }

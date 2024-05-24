@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
 use anyhow::{anyhow, Result};
-use chrono::{DateTime,Utc};
+use chrono::{DateTime, Utc};
 use common::env::CONF;
 use reqwest;
-use serde::Deserialize;
 use rust_decimal::Decimal;
+use serde::Deserialize;
 
 pub struct AccountSummary {
     pub days: i64,
@@ -38,9 +38,9 @@ pub async fn first_tx(account: &str) -> Result<Option<AccountSummary>> {
         (1, Some(data)) if data.time <= 0 => None,
         (1, Some(data)) => {
             let dt = DateTime::from_timestamp(data.time, 0).ok_or(anyhow!("invalid timestamp"))?;
-            let days=(Utc::now() - dt).num_days();
-            let balance=Decimal::from_str(data.balance.as_str())?;
-            Some(AccountSummary{days, balance})
+            let days = (Utc::now() - dt).num_days();
+            let balance = Decimal::from_str(data.balance.as_str())?;
+            Some(AccountSummary { days, balance })
         }
         (_, _) => None,
     };

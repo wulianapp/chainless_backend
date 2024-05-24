@@ -20,10 +20,10 @@ pub struct Relayer {
 pub struct RelayerPool {
     pub pri_key: String,
     pub base_account_id: String,
-    pub derive_size: u16
+    pub derive_size: u16,
 }
 
-#[derive(Deserialize, Debug, PartialEq,EnumString,Display)]
+#[derive(Deserialize, Debug, PartialEq, EnumString, Display)]
 pub enum ServiceMode {
     Product,
     Dev,
@@ -44,7 +44,7 @@ impl Database {
     pub fn db_uri(&self) -> String {
         format!(
             "host={} port={} user={} password={} dbname={}",
-            self.host, self.port, self.user,  self.password, self.dbname
+            self.host, self.port, self.user, self.password, self.dbname
         )
     }
 }
@@ -117,13 +117,13 @@ lazy_static! {
             pri_key: pri_key.clone(),
             account_id: base_account_id.clone()
         })];
-        for index in (0..derive_size).into_iter() {
+        for index in 0..derive_size {
             pool.push(Mutex::new(Relayer{
                 pri_key: pri_key.clone(),
                 account_id: format!("{}{}",base_account_id,index)
-            })); 
+            }));
         }
-        pool    
+        pool
     };
 }
 
@@ -167,7 +167,7 @@ mod tests {
         let mut handles = vec![];
         for index in 0..1000 {
             let handle = tokio::spawn(async move {
-                let relayer = wait_for_idle_relayer().await;
+                let _relayer = wait_for_idle_relayer().await;
                 //println!("envs {:?} index {}", relayer.lock().unwrap(),index);
                 index
             });
@@ -177,6 +177,6 @@ mod tests {
         for handle in handles {
             results.push(handle.await.unwrap());
         }
-        assert_eq!(results, (0..1000).into_iter().collect::<Vec<_>>());
+        assert_eq!(results, (0..1000).collect::<Vec<_>>());
     }
 }

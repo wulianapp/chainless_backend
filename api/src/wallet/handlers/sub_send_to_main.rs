@@ -12,7 +12,7 @@ use common::encrypt::bs58_to_hex;
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
-use models::general::get_db_pool_connect;
+use models::general::get_pg_pool_connect;
 use tracing::error;
 
 use crate::utils::token_auth;
@@ -28,7 +28,9 @@ pub async fn req(
 ) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -43,10 +45,11 @@ pub async fn req(
     let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
 
     let coin_type: CoinType = coin
-    .parse()
-    .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
+        .parse()
+        .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
 
-    let available_balance = super::get_available_amount(&subaccount_id, &coin_type).await?;
+    let available_balance =
+        super::get_available_amount(&subaccount_id, &coin_type, &mut pg_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -76,6 +79,6 @@ pub async fn req(
     );
     coin_info.transaction.tx_type = TxType::SubToMain;
     coin_info.transaction.tx_id = Some(tx_id.clone());
-    coin_info.insert()?;
+    coin_info.insert(&mut pg_cli).await?;
     Ok(Some(tx_id))
 }

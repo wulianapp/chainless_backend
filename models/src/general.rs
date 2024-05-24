@@ -2,50 +2,64 @@ use std::borrow::BorrowMut;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-use anyhow::{Result};
-use r2d2::ManageConnection;
-use r2d2::PooledConnection;
-use r2d2_postgres::postgres::Transaction;
+use anyhow::Result;
+//use r2d2::ManageConnection;
+//use r2d2::PooledConnection;
+//use r2d2_postgres::postgres::Transaction;
+use crate::LocalConn;
+use crate::PgLocalCli;
 use anyhow::anyhow;
-use crate::LocalConnect;
-use crate::{PG_POOL,LOCAL_CONN,LOCAL_TX};
+use deadpool::managed::Object;
+use deadpool_postgres::Manager;
+use deadpool_postgres::Transaction;
+//use crate::PoolConnect;
+use crate::PG_POOL;
 
-pub fn transaction_begin(conn:&mut LocalConnect) -> Result<Transaction> {
-   Ok(conn.transaction()?)
+/***
+pub fn transaction_begin_() -> Result<()> {
+    LOCAL_CONN.with_borrow_mut(|cn| {
+        let transaction = cn.transaction()?;
+        LOCAL_TX.with_borrow_mut(|tx|{
+            *tx = Some(transaction);
+            Ok(())
+        })
+    })
+}
+*/
+pub async fn transaction_begin(conn: &mut LocalConn) -> Result<Transaction> {
+    Ok(conn.transaction().await?)
 }
 
-pub fn transaction_commit(trans:Transaction) -> Result<()> {
-    Ok(trans.commit()?)
+pub async fn transaction_commit(tx: Transaction<'_>) -> Result<()> {
+    Ok(tx.commit().await?)
 }
 
-pub fn get_db_pool_connect() -> Result<LocalConnect> {
-    let conn =  
-        crate::LOCAL_CONN2.take();
-    Ok(conn.unwrap())
+pub async fn get_pg_pool_connect<T: From<LocalConn>>() -> Result<T> {
+    let conn = PG_POOL.get().await?;
+    Ok(conn.into())
 }
 
-
-pub fn transaction_rollback() -> Result<u64>{ 
+pub fn transaction_rollback() -> Result<u64> {
     todo!()
 }
 
-pub fn table_clear(table_name: &str) -> Result<(), String> {
+pub async fn table_clear(table_name: &str) -> Result<(), String> {
     let sql = format!("truncate table {} restart identity", table_name);
     crate::PG_POOL
-        .lock()
-        .map_err(|e| e.to_string())?
         .get()
+        .await
         .map_err(|e| e.to_string())?
         .execute(sql.as_str(), &[])
+        .await
         .map_err(|e| e.to_string())?;
     Ok(())
 }
 
-pub fn table_all_clear() {
+pub async fn table_all_clear() {
     //table_clear("accounts").unwrap();
-    table_clear("users").unwrap();
-    table_clear("coin_transaction").unwrap();
-    table_clear("device_info").unwrap();
-    table_clear("secret_store").unwrap();
-    table_clear("ethereum_bridge_order").unwrap();
+    table_clear("users").await.unwrap();
+    table_clear("coin_transaction").await.unwrap();
+    table_clear("device_info").await.unwrap();
+    table_clear("secret_store").await.unwrap();
+    table_clear("ethereum_bridge_order").await.unwrap();
 }

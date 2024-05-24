@@ -11,6 +11,7 @@ use blockchain::{
 use models::{
     account_manager::{UserFilter, UserInfoView},
     device_info::{DeviceInfoFilter, DeviceInfoView},
+    general::get_pg_pool_connect,
     secret_store::{SecretFilter, SecretStoreView},
     PsqlOp,
 };
@@ -37,7 +38,9 @@ pub(crate) async fn req(
     request_data: EstimateTransferFeeRequest,
 ) -> BackendRes<EstimateTransferFeeResponse> {
     let (user_id, _device_id, _) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
 
     let EstimateTransferFeeRequest { coin, amount } = request_data;
     let coin: CoinType = coin.parse().map_err(to_param_invalid_error)?;

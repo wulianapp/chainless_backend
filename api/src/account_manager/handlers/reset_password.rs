@@ -1,6 +1,7 @@
 use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use tokio::time::error::Elapsed;
 //use log::debug;
 use tracing::debug;
@@ -11,7 +12,7 @@ use crate::utils::token_auth;
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
-use models::{account_manager, PsqlOp};
+use models::{account_manager, PgLocalCli, PsqlOp};
 
 pub async fn req(
     _req: HttpRequest,
@@ -26,13 +27,19 @@ pub async fn req(
         device_id,
     } = request_data.clone();
 
-    let user_at_stored =
-        account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
-            .map_err(|_e| PhoneOrEmailNotRegister)?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
-        &device_id,
-        user_at_stored.id,
-    ))?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+
+    let user_at_stored = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact),
+        &mut pg_cli,
+    )
+    .await
+    .map_err(|_e| PhoneOrEmailNotRegister)?;
+    let device = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+        &mut pg_cli,
+    )
+    .await?;
 
     if user_at_stored.user_info.secruity_is_seted {
         //目前没有需要必须登陆才能改密码的需求
@@ -63,12 +70,14 @@ pub async fn req(
     account_manager::UserInfoView::update_single(
         UserUpdater::LoginPwdHash(&new_password),
         UserFilter::ById(user_at_stored.id),
-    )?;
+        &mut pg_cli,
+    )
+    .await?;
 
     //clear retry status after login by captcha
     let retry_storage = &mut super::login::LOGIN_RETRY
-    .lock()
-    .map_err(|e| BackendError::InternalError(e.to_string()))?;
+        .lock()
+        .map_err(|e| BackendError::InternalError(e.to_string()))?;
     retry_storage.remove(&user_at_stored.id);
 
     Ok(None::<String>)

@@ -11,10 +11,9 @@ pub mod general;
 pub mod newbie_reward;
 
 pub mod coin_transfer;
-pub mod secret_store;
-//pub mod wallet;
 pub mod device_info;
 pub mod eth_bridge_order;
+pub mod secret_store;
 pub mod wallet_manage_record;
 
 //#[macro_use]
@@ -26,28 +25,48 @@ extern crate lazy_static;
 extern crate chrono;
 extern crate jsonrpc_client_core;
 extern crate jsonrpc_client_http;
-extern crate postgres;
 extern crate rustc_serialize;
+extern crate tokio_postgres;
+
+//use postgres::{Client, NoTls, Row};
 
 use anyhow::anyhow;
 use anyhow::Result;
-use r2d2_postgres::postgres::GenericClient;
-use r2d2_postgres::postgres::Transaction;
+use deadpool::managed::Object;
+use general::get_pg_pool_connect;
+//use r2d2_postgres::postgres::GenericClient;
+//use r2d2_postgres::postgres::Transaction;
 use serde::Deserialize;
 use serde::Serialize;
 use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display};
+use std::future;
 use std::ops::Deref;
+use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::Arc;
 use std::sync::Mutex;
-use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
-use r2d2::Pool;
-use r2d2_postgres::postgres::Row;
+use tokio_postgres::NoTls;
+use tokio_postgres::Row;
+//use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
+//use r2d2::Pool;
+//use r2d2_postgres::postgres::Row;
+use deadpool_postgres::Manager;
+use deadpool_postgres::Pool;
+use deadpool_postgres::Transaction;
+use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod};
+
+use async_trait::async_trait;
+use tokio::runtime::Runtime;
+//use futures::executor::block_on;
+use async_std::task::block_on;
+
 use ouroboros::self_referencing;
 
-type LocalConnect = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
-type GlobalPool = Pool<PostgresConnectionManager<NoTls>>;
+//type PoolConnect = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
+type LocalConn = Object<Manager>;
+
 static TRY_TIMES: u8 = 5;
 
 /****
@@ -57,222 +76,191 @@ static TRY_TIMES: u8 = 5;
     DBError::KeyAlreadyExsit,
 */
 
-///time limit scope
-#[derive(Deserialize, Debug, PartialEq, Clone, Serialize)]
-pub enum TimeScope {
-    NoLimit,
-    SevenDay,
-    OneDay,
-}
-
-impl TimeScope {
-    // scope filter
-    pub fn filter_str(&self) -> &'static str {
-        match self {
-            TimeScope::NoLimit => "",
-            TimeScope::SevenDay => "where created_at > NOW() - INTERVAL '7 day'",
-            TimeScope::OneDay => "where created_at > NOW() - INTERVAL '24 hour'",
-        }
-    }
-}
-
-
 lazy_static! {
-    static ref PG_POOL: Mutex<GlobalPool> = {
-        Mutex::new(connect_pool().unwrap())
-    };
+    static ref PG_POOL: Pool = connect_pool().unwrap();
 }
-//todo: set global Transaction 
 
-
-
+/***
 thread_local! {
-    pub static LOCAL_CONN: RefCell<Option<LocalConnect>> = {
-        RefCell::new(Some(PG_POOL.lock().unwrap().get().unwrap()))
+    pub static  LOCAL_CONN: RefCell<LocalConn> = {
+        let conn = block_on(async{
+            error!("Gen LOCAL_CONN ");
+            PG_POOL.get().await.unwrap()
+        });
+        RefCell::new(conn)
     };
 
-    pub static LOCAL_CONN2: RefCell<Option<LocalConnect>> = {
-        RefCell::new(Some(PG_POOL.lock().unwrap().get().unwrap()))
+    pub static  LOCAL_CONN2: LocalConn = {
+        let conn = block_on(async{
+            error!("Gen LOCAL_CONN ");
+            PG_POOL.get().await.unwrap()
+        });
+        conn
     };
 
     pub static LOCAL_TX: RefCell<Option<Transaction<'static>>> = RefCell::new(None);
-  
+
+    pub static LOCAL_CONN4: (Pool,Option<Transaction<'static>>) = {
+        unimplemented!()
+    };
+
+}
+**/
+
+pub enum PgLocalCli<'a> {
+    Conn(LocalConn),
+    Trans(Transaction<'a>),
 }
 
-/*** 
-pub enum PgLocalCli<'a,'b,'c> {
-    Cli(&'b PoolConnect),
-    Tx(&'c Transaction<'a>)
+/***
+struct DBCli<'a,T: PsqlOp>{
+    pg_cli: PgLocalCli<'a>,
+    table: T
 }
+**/
 
-impl PgLocalCli<'_,'_,'_> {
-    pub fn execute(&mut self,sql:&str) -> Result<u64>{
+impl PgLocalCli<'_> {
+    pub async fn execute(&mut self, sql: &str) -> Result<u64> {
         let line = match self {
-            PgLocalCli::Cli(c) => {
-                c.execute(sql, &[])?
-            },
-            PgLocalCli::Tx(t) => {
-                t.execute(sql, &[])?
-            },
+            PgLocalCli::Conn(c) => c.execute(sql, &[]).await?,
+            PgLocalCli::Trans(t) => t.execute(sql, &[]).await?,
         };
         Ok(line)
     }
-    pub fn query(&mut self,sql:&str) -> Result<Vec<Row>>{
+    pub async fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
         let row = match self {
-            PgLocalCli::Cli(c) => {
-                c.query(sql, &[])?
-            },
-            PgLocalCli::Tx(t) => {
-                t.query(sql, &[])?
-            },
+            PgLocalCli::Conn(c) => c.query(sql, &[]).await?,
+            PgLocalCli::Trans(t) => t.query(sql, &[]).await?,
         };
         Ok(row)
     }
-    pub fn commit(mut self) -> Result<()>{
+    pub async fn commit(self) -> Result<()> {
         match self {
-            PgLocalCli::Cli(c) => {
-                debug!("as a connet no nothing");
-                Ok(())
-            },
-            PgLocalCli::Tx(t) => {
-                Ok(t.commit()?)
-            },
+            PgLocalCli::Conn(_c) => {
+                panic!("it's not a trans")
+            }
+            PgLocalCli::Trans(t) => Ok(t.commit().await?),
+        }
+    }
+
+    pub async fn begin(&mut self) -> Result<PgLocalCli<'_>> {
+        match self {
+            PgLocalCli::Conn(c) => {
+                let trans = c.transaction().await?;
+                Ok(PgLocalCli::Trans(trans))
+            }
+            PgLocalCli::Trans(_t) => {
+                panic!("It is already a trans")
+            }
         }
     }
 }
 
-impl<'b> From<&'b PoolConnect> for PgLocalCli<'_,'b,'_>{
-    fn from(value: &'b PoolConnect) -> Self {
-        Self::Cli(value)
+impl<'a> From<LocalConn> for PgLocalCli<'a> {
+    fn from(value: LocalConn) -> Self {
+        Self::Conn(value)
     }
 }
 
-impl<'a,'c> From<&'c Transaction<'a>> for PgLocalCli<'a,'_,'c>{
-    fn from(value: &'c Transaction<'a>) -> Self {
-        Self::Tx(value)
+impl<'a> From<Transaction<'a>> for PgLocalCli<'a> {
+    fn from(value: Transaction<'a>) -> Self {
+        Self::Trans(value)
     }
 }
-*/
 
-fn connect_pool() -> Result<GlobalPool>{
-    let manager = PostgresConnectionManager::new(
-        common::env::CONF.database.db_uri().parse().unwrap(),
-        NoTls,
-    );
-    let pool = r2d2::Pool::new(manager).unwrap();
+fn connect_pool() -> Result<Pool> {
+    let mut cfg = Config::new();
+    cfg.dbname = Some(common::env::CONF.database.dbname.clone());
+    cfg.user = Some(common::env::CONF.database.user.clone());
+    cfg.password = Some(common::env::CONF.database.password.clone());
+    cfg.host = Some(common::env::CONF.database.host.clone());
+    cfg.port = Some(common::env::CONF.database.port as u16);
+
+    cfg.manager = Some(ManagerConfig {
+        recycling_method: RecyclingMethod::Fast,
+    });
+    //let manager = Manager::new(common::env::CONF.database.db_uri().as_str(), NoTls2);
+    //let pool = Pool::builder(manager).max_size(16).build().unwrap();
+    let pool = cfg.create_pool(None, NoTls).unwrap();
     Ok(pool)
 }
 
-pub fn query(raw_sql: &str) -> Result<Vec<Row>> {
+/***
+pub async fn query(raw_sql: &str,cli: &mut PgLocalCli<'_>) -> Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
-    /*** 
-    let cli: &mut PgLocalCli =  LOCAL_TX.with_borrow_mut(|x|{
-        match *x {
-            Some(tx) => &mut tx.into(),
-            None => LOCAL_CONN.with_borrow_mut(|x|{
-                &mut x.into()
-            })
-        }
+    //let mut x = get_db_pool_connect().await?;
+    let res = cli.query(raw_sql).await?;
+    Ok(res)
+
+}
+
+pub async fn execute(raw_sql: String) -> Result<u64> {
+    let mut try_times = TRY_TIMES;
+    /***
+    let local_conn = LOCAL_CONN2.with(|x| {
+        x.clone()
     });
-    */
-    LOCAL_CONN.with_borrow_mut(|x|{
-        loop {
-            debug!("raw_sql {}", raw_sql);
-            match x.as_mut().unwrap().query(raw_sql,&[]) {
-                Ok(data) => {
-                    return Ok(data);
-                }
-                Err(error) => {
-                    if try_times == 0 {
-                        let error_info = format!("erro:{:?}, query still failed after retry", error);
-                        error!("{}", error_info);
-                        Err(anyhow!(error_info))?;
-                    } else {
-                        error!("error {:?}", error);
-                        let mut pool = crate::PG_POOL.lock().map_err(|e| anyhow!(e.to_string()))?;
-                        *pool = connect_pool()?;
-                        try_times -= 1;
-                        continue;
-                    }
+    loop {
+        error!("_0003_finish3 execute ");
+        let tmp1 = local_conn.lock().unwrap();
+        match tmp1.execute(&raw_sql, &[]).await{
+            Ok(data) => {
+                return Ok(data);
+            }
+            Err(error) => {
+                if try_times == 0 {
+                    let error_info = format!("erro:{:?}, query still failed after retry", error);
+                    error!("{}", error_info);
+                    Err(anyhow!(error_info))?;
+                } else {
+                    error!("error {:?}", error);
+                    //crate::PG_POOL = connect_pool()?;
+                    try_times -= 1;
+                    continue;
                 }
             }
         }
-    })
-    
-}
-
-
-pub fn query_with_trans(raw_sql: &str,tx: &mut Transaction) -> Result<Vec<Row>> {
-  Ok(tx.query(raw_sql, &[])?)
-}
-
-
-pub fn execute_with_trans(raw_sql: &str,tx: &mut Transaction) -> Result<u64> {
-    Ok(tx.execute(raw_sql, &[])?)
-}
-
-
-pub fn execute(raw_sql: &str) -> Result<u64> {
-    let mut try_times = TRY_TIMES;
-
-    /*** 
-    let cli: &mut PgLocalCli =  LOCAL_TX.with_borrow_mut(|x|{
-        match *x {
-            Some(tx) => &mut tx.into(),
-            None => LOCAL_CONN.with_borrow_mut(|x|{
-                &mut x.unwrap().into()
-            })
-        }
-    });
+    }
     **/
-    LOCAL_CONN.with_borrow_mut(|x|{
-        loop {
-            debug!("raw_sql {}", raw_sql);
-            match x.as_mut().unwrap().execute(raw_sql,&[]) {
-                Ok(data) => {
-                    return Ok(data);
-                }
-                Err(error) => {
-                    if try_times == 0 {
-                        let error_info = format!("erro:{:?}, query still failed after retry", error);
-                        error!("{}", error_info);
-                        Err(anyhow!(error_info))?;
-                    } else {
-                        error!("error {:?}", error);
-                        let mut pool = crate::PG_POOL.lock().map_err(|e| anyhow!(e.to_string()))?;
-                        *pool = connect_pool()?;
-                        try_times -= 1;
-                        continue;
-                    }
-                }
-            }
-        }
-    })
- 
+    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+    Ok(0)
+
 }
 
-/*** 
+pub async fn query_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Result<Vec<Row>> {
+    Ok(tx.query(raw_sql, &[]).await?)
+  }
+
+
+pub async fn execute_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Result<u64> {
+    Ok(tx.execute(raw_sql, &[]).await?)
+}
+
 pub fn execute2(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    //let mut client2 = LOCAL_CLI.take();
+    let mut pg_client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
+    //let mut pg_client2 = LOCAL_CLI.take();
     LOCAL_CLI.with_borrow_mut(|client|{
         Ok(client.execute(raw_sql, &[])?)
     })
 }
 ***/
 
+type UpdaterContent = String;
+type FilterContent = String;
+#[async_trait]
 pub trait PsqlOp {
-    type UpdateContent<'a>: Display;
-    type FilterContent<'b>: Display;
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>>
+    type UpdaterContent<'a>: Display + Send;
+    type FilterContent<'b>: Display + Send;
+
+    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>>
     where
-        Self: Sized;
-    fn find_single(filter: Self::FilterContent<'_>) -> Result<Self>
+        Self: Sized + Send;
+    async fn find_single(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Self>
     where
-        Self: Sized,
+        Self: Sized + Send,
     {
-        let mut get_res: Vec<Self> = Self::find(filter)?;
+        let mut get_res: Vec<Self> = Self::find(filter, cli).await?;
         let data_len = get_res.len();
         if data_len == 0 {
             //todo:return db error type
@@ -287,28 +275,25 @@ pub trait PsqlOp {
             Ok(get_res.pop().unwrap())
         }
     }
-    fn delete<T: Display>(_filter: T) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
         todo!()
     }
 
-    fn update(new_value: Self::UpdateContent<'_>, 
-        filter: Self::FilterContent<'_>
-    ) -> Result<u64>;
-
-    fn update_with_trans(new_value: Self::UpdateContent<'_>, 
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        trans:&mut Transaction
+        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64>;
 
-
-    fn update_single(
-        new_value: Self::UpdateContent<'_>,
-        filter: Self::FilterContent<'_>
+    async fn update_single(
+        new_value: Self::UpdaterContent<'_>,
+        filter: Self::FilterContent<'_>,
+        cli: &mut PgLocalCli<'_>,
     ) -> Result<()>
     where
-        Self: Sized,
+        Self: Sized + Send,
     {
-        let row_num = Self::update(new_value, filter)?;
+        let row_num = Self::update(new_value, filter, cli).await?;
         if row_num == 0 {
             //todo:return db error type
             let error_info = "DBError::DataNotFound: data isn't existed";
@@ -323,61 +308,21 @@ pub trait PsqlOp {
         }
     }
 
-    fn update_single_with_trans(
-        new_value: Self::UpdateContent<'_>,
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()>;
+
+    //insert after check key
+    async fn safe_insert(
+        &self,
         filter: Self::FilterContent<'_>,
-        trans: &mut Transaction
+        cli: &mut PgLocalCli<'_>,
     ) -> Result<()>
     where
-        Self: Sized,
-    {
-        let row_num = Self::update_with_trans(new_value, filter,trans)?;
-        if row_num == 0 {
-            //todo:return db error type
-            let error_info = "DBError::DataNotFound: data isn't existed";
-            error!("{}", error_info);
-            Err(anyhow!(error_info.to_string()))
-        } else if row_num > 1 {
-            let error_info = "DBError::RepeatedData: data is repeated";
-            error!("{}", error_info);
-            Err(anyhow!(error_info.to_string()))
-        } else {
-            Ok(())
-        }
-    }
-
-    fn insert(&self) -> Result<()>;
-
-    fn insert_with_trans(&self,trans: &mut Transaction) -> Result<()>;
-
-
-    //insert after check key
-    fn safe_insert(&self, filter: Self::FilterContent<'_>) -> Result<()>
-    where
-        Self: Sized,
+        Self: Sized + Send,
     {
         let filter_str = filter.to_string();
-        let find_res: Vec<Self> = Self::find(filter)?;
+        let find_res: Vec<Self> = Self::find(filter, cli).await?;
         if find_res.is_empty() {
-            self.insert()
-        } else {
-            //let error_info = "DBError::KeyAlreadyExsit: key already existed";
-            //error!("{}", error_info);
-            //Err(anyhow!(error_info.to_string()))
-            info!("data {} already exist", filter_str);
-            Ok(())
-        }
-    }
-
-    //insert after check key
-    fn safe_insert_with_trans(&self, filter: Self::FilterContent<'_>,trans:&mut Transaction) -> Result<()>
-    where
-        Self: Sized,
-    {
-        let filter_str = filter.to_string();
-        let find_res: Vec<Self> = Self::find(filter)?;
-        if find_res.is_empty() {
-            self.insert_with_trans(trans)
+            self.insert(cli).await
         } else {
             //let error_info = "DBError::KeyAlreadyExsit: key already existed";
             //error!("{}", error_info);

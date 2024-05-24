@@ -46,7 +46,7 @@ async fn get_captcha_without_token(
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::get_captcha::without_token_req(request_data.into_inner()),
+        handlers::get_captcha::without_token_req(request_data.into_inner()).await,
     )
 }
 
@@ -79,7 +79,7 @@ async fn get_captcha_with_token(
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::get_captcha::with_token_req(req, request_data.into_inner()),
+        handlers::get_captcha::with_token_req(req, request_data.into_inner()).await,
     )
 }
 
@@ -113,7 +113,7 @@ async fn contact_is_used(
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::contact_is_used::req(request_data.into_inner()),
+        handlers::contact_is_used::req(request_data.into_inner()).await,
     )
 }
 
@@ -152,7 +152,7 @@ async fn check_captcha(
     );
     gen_extra_respond(
         get_lang(&req),
-        handlers::check_captcha::req(request_data.into_inner()),
+        handlers::check_captcha::req(request_data.into_inner()).await,
     )
 }
 
@@ -485,7 +485,9 @@ mod tests {
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {
-        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new().await.unwrap();
+        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new()
+            .await
+            .unwrap();
         cli.clear_all().await.unwrap();
         //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
         //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();

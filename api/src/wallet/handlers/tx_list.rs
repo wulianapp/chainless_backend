@@ -21,6 +21,7 @@ use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -50,30 +51,32 @@ pub struct CoinTxViewTmp {
     pub updated_at: String,
     pub created_at: String,
 }
-pub enum FilterType{
+pub enum FilterType {
     OrderId,
     AccountId,
     Phone,
     Mail,
 }
-pub fn get_filter_type(data:&str) -> Result<FilterType,BackendError>{
-    let wallet_suffix = & common::env::CONF.relayer_pool.base_account_id;
+pub fn get_filter_type(data: &str) -> Result<FilterType, BackendError> {
+    let wallet_suffix = &common::env::CONF.relayer_pool.base_account_id;
     if data.contains('@') {
         Ok(FilterType::Mail)
-    }else if data.contains('+'){
+    } else if data.contains('+') {
         Ok(FilterType::Phone)
-    }else if data.contains(wallet_suffix){
+    } else if data.contains(wallet_suffix) {
         Ok(FilterType::AccountId)
-    }else if  data.len() == 32{
+    } else if data.len() == 32 {
         Ok(FilterType::OrderId)
-    }else{
+    } else {
         Err(BackendError::RequestParamInvalid(data.to_string()))
     }
 }
 
 pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let TxListRequest {
         tx_role,
         counterparty,
@@ -86,87 +89,87 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         ))?;
     }
     let tx_role = tx_role.parse().map_err(to_param_invalid_error)?;
-    
-    
+
     //filter by tx_order_id 、account_id 、phone、mail or eth_addr
     //fixme:
     let find_res = if let Some(data) = counterparty.as_deref() {
-        match get_filter_type(&data)? {
+        match get_filter_type(data)? {
             FilterType::OrderId => {
-                CoinTxView::find(CoinTxFilter::ByOrderId(&data))
-            },
+                CoinTxView::find(CoinTxFilter::ByOrderId(data), &mut pg_cli).await
+            }
             FilterType::AccountId => {
-                CoinTxView::find(CoinTxFilter::ByTxRolePage(
-                    tx_role,
-                    &main_account,
-                    Some(data),
-                    per_page,
-                    page,
-                ))
-            },
+                CoinTxView::find(
+                    CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
+                    &mut pg_cli,
+                )
+                .await
+            }
             FilterType::Phone | FilterType::Mail => {
-                if let Ok(counterparty_main_account ) = UserInfoView::find_single(
-                    UserFilter::ByPhoneOrEmail(&data)){
-                        CoinTxView::find(CoinTxFilter::ByTxRolePage(
+                if let Ok(counterparty_main_account) =
+                    UserInfoView::find_single(UserFilter::ByPhoneOrEmail(data), &mut pg_cli).await
+                {
+                    CoinTxView::find(
+                        CoinTxFilter::ByTxRolePage(
                             tx_role,
                             &main_account,
                             Some(&counterparty_main_account.user_info.main_account),
                             per_page,
                             page,
-                        ))
-                }else{
-                    return Ok(None)
+                        ),
+                        &mut pg_cli,
+                    )
+                    .await
+                } else {
+                    return Ok(None);
                 }
-
             }
         }
-    }else{
-        CoinTxView::find( CoinTxFilter::ByTxRolePage(
-            tx_role,
-            &main_account,
-            None,
-            per_page,
-            page,
-        ))
+    } else {
+        CoinTxView::find(
+            CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
+            &mut pg_cli,
+        )
+        .await
     };
-    
-    
-    
+
     let txs = find_res?;
-    let txs: Vec<CoinTxViewTmp> = txs
-        .into_iter()
-        .map(|tx| -> Result<_> {
-            let stage = if now_millis() > tx.transaction.expire_at {
-                CoinSendStage::MultiSigExpired
-            } else {
-                tx.transaction.stage
+
+    let mut view_txs = vec![];
+    for tx in txs {
+        let stage = if now_millis() > tx.transaction.expire_at {
+            CoinSendStage::MultiSigExpired
+        } else {
+            tx.transaction.stage
+        };
+        let mut sigs = vec![];
+        for sig in tx.transaction.signatures {
+            let pubkey = sig[..64].to_string();
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let sig = ServentSigDetail{
+                pubkey,
+                device_id: device.device_info.id,
+                device_brand: device.device_info.brand,
             };
-
-            Ok(CoinTxViewTmp {
-                order_id: tx.transaction.order_id,
-                tx_id: tx.transaction.tx_id,
-                coin_type: tx.transaction.coin_type,
-                from: tx.transaction.from,
-                to: tx.transaction.to,
-                amount: raw2display(tx.transaction.amount),
-                expire_at: tx.transaction.expire_at,
-                memo: tx.transaction.memo,
-                stage,
-                coin_tx_raw: tx.transaction.coin_tx_raw,
-                chain_tx_raw: tx.transaction.chain_tx_raw,
-                signatures: tx
-                    .transaction
-                    .signatures
-                    .iter()
-                    .map(|s| s.parse())
-                    .collect::<Result<Vec<_>>>()?,
-                tx_type: tx.transaction.tx_type,
-                chain_status: tx.transaction.chain_status,
-                updated_at: tx.updated_at,
-                created_at: tx.created_at,
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
-
-    Ok(Some(txs))
+            sigs.push(sig);
+        }
+        view_txs.push(CoinTxViewTmp {
+            order_id: tx.transaction.order_id,
+            tx_id: tx.transaction.tx_id,
+            coin_type: tx.transaction.coin_type,
+            from: tx.transaction.from,
+            to: tx.transaction.to,
+            amount: raw2display(tx.transaction.amount),
+            expire_at: tx.transaction.expire_at,
+            memo: tx.transaction.memo,
+            stage,
+            coin_tx_raw: tx.transaction.coin_tx_raw,
+            chain_tx_raw: tx.transaction.chain_tx_raw,
+            signatures: sigs,
+            tx_type: tx.transaction.tx_type,
+            chain_status: tx.transaction.chain_status,
+            updated_at: tx.updated_at,
+            created_at: tx.created_at,
+        });
+    }
+    Ok(Some(view_txs))
 }

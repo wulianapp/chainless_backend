@@ -1,17 +1,18 @@
 extern crate rustc_serialize;
 
+use async_trait::async_trait;
 use common::data_structures::OpStatus;
-use r2d2_postgres::postgres::{Row, Transaction};
+use tokio_postgres::Row;
+//use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
 use std::num::ParseIntError;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::coin_transfer::{CoinTxFilter, CoinTxView};
-use crate::{vec_str2array_text, PsqlOp, PsqlType};
-use anyhow::{Result};
-use serde::Serialize;
+use crate::{vec_str2array_text, FilterContent, PgLocalCli, PsqlOp, PsqlType, UpdaterContent};
+use anyhow::Result;
 
+use serde::Serialize;
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
     ById(u32),
@@ -32,6 +33,7 @@ pub enum UserUpdater<'a> {
     AnwserIndexes(&'a str),
     OpStatus(&'a str),
 }
+
 impl fmt::Display for UserUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
@@ -106,11 +108,11 @@ impl UserInfoView {
     }
 }
 
+#[async_trait]
 impl PsqlOp for UserInfoView {
-    type UpdateContent<'a> = UserUpdater<'a>;
+    type UpdaterContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
-
-    fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -134,8 +136,8 @@ impl PsqlOp for UserInfoView {
             from users where {}",
             filter
         );
-        let query_res = crate::query(sql.as_str())?;
-        debug!("get_snapshot: raw sql {}", sql);
+        let query_res = cli.query(&sql).await?;
+        //debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<UserInfoView> {
             let view = UserInfoView {
@@ -173,36 +175,23 @@ impl PsqlOp for UserInfoView {
         query_res.iter().map(gen_view).collect()
     }
 
-    fn update(new_value: Self::UpdateContent<'_>, filter: Self::FilterContent<'_>) -> Result<u64> {
-        let sql = format!(
-            "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value, filter
-        );
-        debug!("start update users {} ", sql);
-        let execute_res = crate::execute(sql.as_str())?;
-        //assert_ne!(execute_res, 0);
-        debug!("success update users {} rows", execute_res);
-        Ok(execute_res)
-    }
-
-
-    fn update_with_trans(
-        new_value: Self::UpdateContent<'_>, 
+    async fn update(
+        new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        trans:&mut Transaction
+        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update users {} ", sql);
-        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        let execute_res = cli.execute(&sql).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
         Ok(execute_res)
     }
 
-    fn insert(&self) -> Result<()> {
+    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let UserInfo {
             phone_number,
             email,
@@ -265,84 +254,16 @@ impl PsqlOp for UserInfoView {
             reserved_field3,
         );
         debug!("row sql {} rows", sql);
-        let execute_res = crate::execute(sql.as_str())?;
-        debug!("success insert {} rows", execute_res);
-        Ok(())
-    }
-
-    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
-        let UserInfo {
-            phone_number,
-            email,
-            login_pwd_hash,
-            anwser_indexes,
-            is_frozen,
-            predecessor,
-            laste_predecessor_replace_time,
-            invite_code,
-            kyc_is_verified,
-            secruity_is_seted,
-            create_subacc_time,
-            main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
-        } = &self.user_info;
-
-        let _predecessor_str = predecessor
-            .map(|x| format!("{}", x))
-            .unwrap_or("NULL".to_string());
-        //assembly string array to sql string
-        let create_subacc_time = create_subacc_time.iter().map(|x| x.to_string()).collect();
-        let create_subacc_time_str = vec_str2array_text(create_subacc_time);
-
-        let sql = format!(
-            "insert into users (phone_number,
-                email,
-                login_pwd_hash,\
-                anwser_indexes,
-                is_frozen,
-                predecessor,
-                laste_predecessor_replace_time,
-                invite_code,
-                kyc_is_verified,
-                secruity_is_seted,
-                create_subacc_time,
-                main_account,
-                op_status,
-                reserved_field1,
-                reserved_field2,
-                reserved_field3
-            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
-            phone_number,
-            email,
-            login_pwd_hash,
-            anwser_indexes,
-            is_frozen,
-            PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
-            laste_predecessor_replace_time,
-            invite_code,
-            kyc_is_verified,
-            secruity_is_seted,
-            create_subacc_time_str,
-            main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
-        );
-        debug!("row sql {} rows", sql);
-        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
+        let execute_res = cli.execute(&sql).await?;
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
 }
 
-pub fn get_next_uid() -> Result<u32> {
-    let execute_res = crate::query(
-        "select last_value,is_called from users_id_seq order by last_value desc limit 1",
-    )?;
+pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
+    let execute_res = cli
+        .query("select last_value,is_called from users_id_seq order by last_value desc limit 1")
+        .await?;
     //todo:
     let row = execute_res.first().unwrap();
     let current_user_id = row.get::<usize, i64>(0) as u32;
@@ -358,45 +279,65 @@ pub fn get_next_uid() -> Result<u32> {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_db_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 
     use super::*;
     use common::log::init_logger;
-    use futures::executor::block_on;
     use std::env;
+    use tokio_postgres::types::ToSql;
 
-    #[test]
-    fn test_db_user_info() {
+    #[tokio::test]
+    async fn test_db_user_info() -> Result<()> {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
-        crate::general::table_all_clear();
+        crate::general::table_all_clear().await;
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
 
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert().unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
+        user.insert(&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
+        UserInfoView::update(
+            UserUpdater::LoginPwdHash("0123"),
+            UserFilter::ById(1),
+            &mut pg_cli,
+        )
+        .await
+        .unwrap();
+        Ok(())
     }
 
-    #[test]
-    fn test_db_trans_user_info() {
-        block_on(async {
-            env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
-            init_logger();
-            crate::general::table_all_clear();
-            let mut conn = get_db_pool_connect().unwrap();
-            let mut trans =  transaction_begin(&mut conn).unwrap();
-            let user = UserInfoView::new_with_specified("0123456789", "1");
-            user.insert_with_trans(&mut trans).unwrap();
-            let user_by_find = UserInfoView::find(UserFilter::ById(1)).unwrap();
-            println!("by_conn__{:?}", user_by_find);
-            transaction_commit(trans);
-            let user_by_find = UserInfoView::find_single(UserFilter::ById(1)).unwrap();
-            println!("by_trans__{:?}", user_by_find);
-            assert_eq!(user_by_find.user_info, user.user_info);
-            UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1)).unwrap();
-        });
+    #[tokio::test]
+    async fn test_db_trans_user_info() {
+        env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
+        init_logger();
+        crate::general::table_all_clear().await;
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut pg_cli = pg_cli.begin().await.unwrap();
+
+        let user = UserInfoView::new_with_specified("0123456789", "1");
+        user.insert(&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
+        println!("by_conn2__{:?}", user_by_find);
+        pg_cli.commit().await.unwrap();
+
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+            .await
+            .unwrap();
+        println!("by_trans3__{:?}", user_by_find);
+        assert_eq!(user_by_find.user_info, user.user_info);
+        UserInfoView::update(
+            UserUpdater::LoginPwdHash("0123"),
+            UserFilter::ById(1),
+            &mut pg_cli,
+        )
+        .await
+        .unwrap();
     }
 }

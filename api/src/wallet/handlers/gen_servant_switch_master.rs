@@ -3,6 +3,7 @@ use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::secret_store::SecretStoreView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
@@ -17,7 +18,7 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
@@ -36,17 +37,22 @@ pub(crate) async fn req(
     let GenServantSwitchMasterRequest { captcha } = data;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
-    let servant_pubkey =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?
-            .device_info
-            .hold_pubkey
-            .ok_or(BackendError::InternalError(
-                "this haven't be servant yet".to_string(),
-            ))?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let servant_pubkey = DeviceInfoView::find_single(
+        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        &mut pg_cli,
+    )
+    .await?
+    .device_info
+    .hold_pubkey
+    .ok_or(BackendError::InternalError(
+        "this haven't be servant yet".to_string(),
+    ))?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account)?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 

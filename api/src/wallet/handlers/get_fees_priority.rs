@@ -1,4 +1,5 @@
 use actix_web::HttpRequest;
+use models::general::get_pg_pool_connect;
 use std::collections::BTreeMap;
 
 use blockchain::{
@@ -21,7 +22,8 @@ pub struct StrategyDataTmp {
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<CoinType>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
 
     let fees_priority = fees_call_cli.get_fees_priority(&main_account).await?;

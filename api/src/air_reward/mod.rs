@@ -1,12 +1,11 @@
-
 #![feature(async_closure)]
 //! account manager http service
 pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-use blockchain::{air_reward::SysInfo, bridge_on_near};
 use blockchain::bridge_on_near::Status;
+use blockchain::{air_reward::SysInfo, bridge_on_near};
 use common::data_structures::{
     bridge::{DepositStatus, WithdrawStatus},
     CoinType,
@@ -41,13 +40,13 @@ use common::log::generate_trace_id;
 * @apiSuccess {String} data.admin.0            -
 * @apiSuccess {String} data.admin.1            -
 * @apiSuccess {Object} data.settle_times       3,9,21,top排行榜已结算时间
-* @apiSuccess {Number} data.settle_times.three       
-* @apiSuccess {Number} data.settle_times.nine       
-* @apiSuccess {Number} data.settle_times.twenty_one   
+* @apiSuccess {Number} data.settle_times.three
+* @apiSuccess {Number} data.settle_times.nine
+* @apiSuccess {Number} data.settle_times.twenty_one
 * @apiSuccess {Object} data.next_settle_times   下一次结算时间
-* @apiSuccess {Number} data.next_settle_times.three       
-* @apiSuccess {Number} data.next_settle_times.nine       
-* @apiSuccess {Number} data.next_settle_times.twenty_one   
+* @apiSuccess {Number} data.next_settle_times.three
+* @apiSuccess {Number} data.next_settle_times.nine
+* @apiSuccess {Number} data.next_settle_times.twenty_one
 * @apiSuccess {Number} data.start_times     合约开始时间
 * @apiSuccess {Number} data.fire_times      点火时间，控制开始释放时间
 * @apiSuccess {Number} data.free_times      全局释放至时间
@@ -64,15 +63,9 @@ use common::log::generate_trace_id;
 type SysInfoResponse = SysInfo;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/airReward/getSysInfo")]
-async fn get_sys_info(
-    req: HttpRequest
-) -> impl Responder {
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::get_sys_info::req(req).await,
-    )
+async fn get_sys_info(req: HttpRequest) -> impl Responder {
+    gen_extra_respond(get_lang(&req), handlers::get_sys_info::req(req).await)
 }
-
 
 /**
  * @api {post} /AirReward/receiveAir 主设备添加从公钥
@@ -91,7 +84,7 @@ async fn get_sys_info(
     OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
-* @apiSuccess {String}    msg              错误信息 
+* @apiSuccess {String}    msg              错误信息
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
@@ -103,13 +96,10 @@ pub struct ReceiveAirRequest {
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airReward/receiveAir")]
-async fn receive_air(
-    req: HttpRequest,
-    req_data: web::Json<ReceiveAirRequest>
-) -> impl Responder {
+async fn receive_air(req: HttpRequest, req_data: web::Json<ReceiveAirRequest>) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::receive_air::req(req,req_data.into_inner()).await,
+        handlers::receive_air::req(req, req_data.into_inner()).await,
     )
 }
 //todo: 空投卡的条件
@@ -174,7 +164,6 @@ mod tests {
 
         let sys_info = test_air_reward_get_sys_info!(service, sender_master).unwrap();
         println!("sys_info {:?}", sys_info);
-
     }
 
     #[actix_web::test]
@@ -191,6 +180,5 @@ mod tests {
 
         let call_res = test_receive_air!(service, sender_master);
         println!("sys_info {:?}", call_res);
-
     }
 }

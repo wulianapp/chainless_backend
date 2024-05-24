@@ -8,6 +8,7 @@ use common::{
 };
 use models::{
     device_info::{DeviceInfoFilter, DeviceInfoView},
+    general::get_pg_pool_connect,
     wallet_manage_record::WalletManageRecordView,
     PsqlOp,
 };
@@ -22,10 +23,12 @@ pub async fn req(
     request_data: UpdateSubaccountHoldLimitRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account)?;
+    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -48,6 +51,6 @@ pub async fn req(
         &device.brand,
         vec![txid],
     );
-    record.insert()?;
+    record.insert(&mut pg_cli).await?;
     Ok(None::<String>)
 }

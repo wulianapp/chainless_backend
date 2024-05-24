@@ -19,7 +19,7 @@ use blockchain::ContractClient;
 use common::data_structures::device_info::DeviceInfo;
 use common::data_structures::KeyRole;
 use models::coin_transfer::CoinTxView;
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde_json::json;
 
 use actix_web::Error;
@@ -87,7 +87,6 @@ pub async fn init() -> App<
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
         .configure(crate::air_reward::configure_routes)
-
 }
 
 pub fn simulate_sender_master() -> TestWulianApp2 {

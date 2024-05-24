@@ -12,6 +12,8 @@ pub mod utils;
 
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate strum_macros;
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }

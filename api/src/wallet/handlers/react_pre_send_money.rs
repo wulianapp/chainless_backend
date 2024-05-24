@@ -5,6 +5,7 @@ use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole2;
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 
 use crate::utils::token_auth;
 use crate::wallet::ReactPreSendMoney;
@@ -15,7 +16,9 @@ use models::PsqlOp;
 pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let (user, current_strategy, device) =
+        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
     let _main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -25,8 +28,11 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         is_agreed,
     } = request_data;
 
-    let coin_tx =
-        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+    let coin_tx = models::coin_transfer::CoinTxView::find_single(
+        CoinTxFilter::ByOrderId(&order_id),
+        &mut pg_cli,
+    )
+    .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
@@ -63,12 +69,16 @@ pub(crate) async fn req(req: HttpRequest, request_data: ReactPreSendMoney) -> Ba
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
             CoinTxFilter::ByOrderId(&order_id),
-        )?;
+            &mut pg_cli,
+        )
+        .await?;
     } else {
         models::coin_transfer::CoinTxView::update_single(
             CoinTxUpdater::Stage(CoinSendStage::ReceiverRejected),
             CoinTxFilter::ByOrderId(&order_id),
-        )?;
+            &mut pg_cli,
+        )
+        .await?;
     };
 
     Ok(None)
