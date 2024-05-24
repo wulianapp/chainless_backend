@@ -54,7 +54,7 @@ pub(crate) async fn req(
         memo,
     } = request_data;
 
-    let expire_at = now_millis() + DAY1;
+    let expire_at = now_millis() + TX_EXPAIRE_TIME;
     let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;

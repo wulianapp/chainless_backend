@@ -4,6 +4,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
+use common::constants::TX_EXPAIRE_TIME;
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxType};
 use common::data_structures::CoinType;
 
@@ -47,7 +48,7 @@ pub(crate) async fn req(
         expire_at: _,
         memo,
     } = request_data;
-    let expire_at = now_millis() + DAY1;
+    let expire_at = now_millis() + TX_EXPAIRE_TIME;
     let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
