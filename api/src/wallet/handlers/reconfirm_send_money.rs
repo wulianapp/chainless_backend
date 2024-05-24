@@ -3,6 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
+use common::encrypt::ed25519_verify;
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
@@ -10,13 +11,17 @@ use tracing::{debug, info};
 
 use crate::utils::token_auth;
 use crate::wallet::ReconfirmSendMoneyRequest;
-use common::error_code::{BackendError, BackendRes, WalletError};
+use common::error_code::{to_internal_error, BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
 
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let ReconfirmSendMoneyRequest {
+        order_id,
+        confirmed_sig,
+    } = request_data;
 
     let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut pg_cli = pg_cli.begin().await?;
@@ -26,10 +31,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let ReconfirmSendMoneyRequest {
-        order_id,
-        confirmed_sig,
-    } = request_data;
+
 
     let coin_tx = models::coin_transfer::CoinTxView::find_single(
         CoinTxFilter::ByOrderId(&order_id),
@@ -57,6 +59,14 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
 
     if strategy.sub_confs.get(&coin_tx.transaction.to).is_some() {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);
+
+        //提前进行签名校验
+        let data = coin_tx.transaction.coin_tx_raw;
+        let sign_info: PubkeySignInfo = confirmed_sig.as_str().parse()?;
+        if ed25519_verify(&data,&sign_info.pubkey,&sign_info.signature)? == false {
+            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        }
+
         let servant_sigs = coin_tx
             .transaction
             .signatures
@@ -89,6 +99,13 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         )
         .await?;
     } else {
+        //提前进行签名校验
+        let data = coin_tx.transaction.tx_id.ok_or(BackendError::InternalError("".to_string()))?;
+        let pubkey = current_strategy.master_pubkey;
+        if ed25519_verify(&data,&pubkey,&confirmed_sig)? == false {
+            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        }
+
         //跨链转出，在无链端按照普通转账处理
         blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().ok_or("")?,

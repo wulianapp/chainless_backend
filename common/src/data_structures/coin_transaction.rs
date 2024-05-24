@@ -72,3 +72,11 @@ pub struct CoinTransaction {
     pub receiver_contact: Option<String>,
     pub reserved_field3: String,
 }
+
+
+//sub to main
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct SubToMainTx {
+    pub coin_id: String,
+    pub amount: u128,
+}

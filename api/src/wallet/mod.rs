@@ -1133,8 +1133,8 @@ async fn create_main_account(
  * @api {post} /wallet/faucetClaim 领取测试币
  * @apiVersion 0.0.1
  * @apiName faucetClaim
+ * @apiQuery {String} accountId
  * @apiGroup Wallet
- * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/putPendingPubkey
    -d '  {
@@ -1148,10 +1148,17 @@ async fn create_main_account(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/faucetClaim
 */
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FaucetClaimRequest {
+    pub account_id: String,
+}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
-async fn faucet_claim(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(get_lang(&req), handlers::faucet_claim::req(req).await)
+async fn faucet_claim(req: HttpRequest,    
+    request_data: web::Json<FaucetClaimRequest>,
+) -> impl Responder {
+    gen_extra_respond(get_lang(&req), handlers::faucet_claim::req(req,request_data.into_inner()).await)
 }
 
 /**

@@ -4,6 +4,7 @@ use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
+use common::encrypt::ed25519_verify;
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
@@ -40,12 +41,20 @@ pub async fn req(
     if sign_info.pubkey != device.hold_pubkey.unwrap() {
         Err(BackendError::RequestParamInvalid(signature.clone()))?;
     }
+  
+
     //todo: two update action is unnecessary
     let mut tx = models::coin_transfer::CoinTxView::find_single(
         CoinTxFilter::ByOrderId(&order_id),
         &mut pg_cli,
     )
     .await?;
+
+    let data = tx.transaction.coin_tx_raw;
+    if ed25519_verify(&data,&sign_info.signature,&sign_info.pubkey)? == false {
+        Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+    }
+
     if tx.transaction.stage != CoinSendStage::Created {
         Err(WalletError::TxStageIllegal(
             tx.transaction.stage,

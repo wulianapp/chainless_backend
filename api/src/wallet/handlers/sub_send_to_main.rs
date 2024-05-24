@@ -4,11 +4,11 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::coin_transaction::{CoinSendStage, TxType};
+use common::data_structures::coin_transaction::{CoinSendStage, SubToMainTx, TxType};
 use common::data_structures::CoinType;
 
 use common::data_structures::KeyRole2;
-use common::encrypt::bs58_to_hex;
+use common::encrypt::{bs58_to_hex, ed25519_verify};
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -39,14 +39,28 @@ pub async fn req(
     let SubSendToMainRequest {
         sub_sig,
         subaccount_id,
-        coin,
+        coin: coin_id,
         amount,
     } = request_data.0;
     let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
 
-    let coin_type: CoinType = coin
+    let coin_type: CoinType = coin_id
         .parse()
         .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
+
+    let cli = ContractClient::<MultiSig>::new().await?;
+
+    //    
+    let tx = SubToMainTx{coin_id,amount};
+    let sign_data = serde_json::to_string(&tx).unwrap();
+    let key = cli.get_master_pubkey_list(&subaccount_id).await?;
+    if key.len() != 1 {
+        return Err(BackendError::InternalError("".to_string()))?;
+    } else {
+        if ed25519_verify(&sign_data,&key[0],&sub_sig)? == false {
+            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        }
+    };
 
     let available_balance =
         super::get_available_amount(&subaccount_id, &coin_type, &mut pg_cli).await?;
@@ -60,7 +74,6 @@ pub async fn req(
     }
 
     //from必须是用户的子账户
-    let cli = ContractClient::<MultiSig>::new().await?;
 
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
 
