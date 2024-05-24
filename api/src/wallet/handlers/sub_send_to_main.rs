@@ -8,7 +8,7 @@ use common::data_structures::coin_transaction::{CoinSendStage, SubToMainTx, TxTy
 use common::data_structures::CoinType;
 
 use common::data_structures::KeyRole2;
-use common::encrypt::{bs58_to_hex, ed25519_verify};
+use common::encrypt::{bs58_to_hex, ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
@@ -57,7 +57,7 @@ pub async fn req(
     if key.len() != 1 {
         return Err(BackendError::InternalError("".to_string()))?;
     } else {
-        if ed25519_verify(&sign_data,&key[0],&sub_sig)? == false {
+        if !ed25519_verify_hex(&sign_data,&key[0],&sub_sig)? {
             Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
         }
     };

@@ -4,10 +4,11 @@ use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
-use common::encrypt::ed25519_verify;
+use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
+use tracing::warn;
 
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes, WalletError};
@@ -41,8 +42,7 @@ pub async fn req(
     if sign_info.pubkey != device.hold_pubkey.unwrap() {
         Err(BackendError::RequestParamInvalid(signature.clone()))?;
     }
-  
-
+    
     //todo: two update action is unnecessary
     let mut tx = models::coin_transfer::CoinTxView::find_single(
         CoinTxFilter::ByOrderId(&order_id),
@@ -51,7 +51,8 @@ pub async fn req(
     .await?;
 
     let data = tx.transaction.coin_tx_raw;
-    if ed25519_verify(&data,&sign_info.signature,&sign_info.pubkey)? == false {
+
+    if !ed25519_verify_hex(&data,&sign_info.pubkey,&sign_info.signature)? {
         Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
     }
 
@@ -67,7 +68,6 @@ pub async fn req(
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
-
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),

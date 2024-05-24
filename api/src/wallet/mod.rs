@@ -1151,7 +1151,7 @@ async fn create_main_account(
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct FaucetClaimRequest {
-    pub account_id: String,
+    pub account_id: Option<String>,
 }
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
@@ -1801,6 +1801,7 @@ mod tests {
     use crate::*;
 
     use super::*;
+    use core::panic;
     use std::default::Default;
     use std::env;
     use std::ops::Deref;
@@ -1827,7 +1828,7 @@ mod tests {
     use common::data_structures::coin_transaction::{CoinSendStage, TxType};
     use common::data_structures::secret_store::SecretStore;
     use common::data_structures::AccountMessage;
-    use common::encrypt::ed25519_key_gen;
+    use common::encrypt::{ed25519_key_gen, ed25519_verify_hex, ed25519_verify_raw};
 
     use common::utils::math;
     use models::secret_store::SecretStoreView;
@@ -2869,11 +2870,23 @@ mod tests {
             &tx.coin_tx_raw,
         )
         .unwrap();
+        if !ed25519_verify_hex(&tx.coin_tx_raw,
+            sender_servant.wallet.pubkey.as_ref().unwrap(),
+            &signature).unwrap() {
+            panic!()
+        }
+        println!("ed25519_verify__{}_{}_{}",
+        tx.coin_tx_raw,
+        sender_servant.wallet.pubkey.as_ref().unwrap(),
+        signature
+    );
+        
         let signature = format!(
             "{}{}",
             sender_servant.wallet.pubkey.as_ref().unwrap(),
             signature
         );
+
 
         //upload_servant_sig
         test_upload_servant_sig!(service, sender_servant, tx.order_id, signature);

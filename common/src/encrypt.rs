@@ -64,11 +64,23 @@ pub fn ed25519_key_gen() -> (String, String) {
     (prikey, pubkey)
 }
 
-pub fn ed25519_verify(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
+pub fn ed25519_verify_raw(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
     let public_key_bytes: Vec<u8> = hex::decode(pubkey_hex)?;
     let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes)?;
     let signature = ed25519_dalek::Signature::from_str(sig)?;
     if public_key.verify(data.as_bytes(), &signature).is_ok() {
+        Ok(true)
+    } else {
+        Ok(false)
+    }
+}
+
+pub fn ed25519_verify_hex(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
+    let public_key_bytes: Vec<u8> = hex::decode(pubkey_hex)?;
+    let data: Vec<u8> = hex::decode(data)?;
+    let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes)?;
+    let signature = ed25519_dalek::Signature::from_str(sig)?;
+    if public_key.verify(data.as_slice(), &signature).is_ok() {
         Ok(true)
     } else {
         Ok(false)
@@ -115,7 +127,7 @@ mod tests {
         let (prikey, pubkey) = ed25519_key_gen();
         let input_hex = "hello";
         let sig = ed25519_sign_raw(&prikey, input_hex).unwrap();
-        let verify_res = ed25519_verify(input_hex, &pubkey, &sig).unwrap();
+        let verify_res = ed25519_verify_raw(input_hex, &pubkey, &sig).unwrap();
         assert!(verify_res);
     }
 }

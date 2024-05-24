@@ -17,10 +17,16 @@ use std::ops::Deref;
 use std::sync::Mutex;
 
 pub async fn req(req: HttpRequest,req_data:FaucetClaimRequest) -> BackendRes<String> {
-    //let user_id = token_auth::validate_credentials(&req)?;
-    //let mut pg_cli = get_pg_pool_connect().await?;
-    //let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
-    let account = req_data.account_id;
+ 
+    let account = match req_data.account_id{
+        Some(id) => id, 
+        None => {
+            let user_id = token_auth::validate_credentials(&req)?;
+            let mut pg_cli = get_pg_pool_connect().await?;
+            super::get_main_account(user_id, &mut pg_cli).await?
+        }
+    };
+    
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&account).await?;
     if master_list.len() != 1 {

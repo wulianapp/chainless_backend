@@ -25,13 +25,10 @@ lazy_static! {
     pub static ref ERR_CONF: HashMap<u16, MultiLangErrMsg> = {
         let mut json_path = std::env::current_dir().unwrap();
         json_path.pop();
-        //todo:
+        //todo: relative path
         json_path.push("/root/chainless_backend/tools/err_code.json");
-        debug!("json_path__{:?}", json_path);
-
         let json_str = std::fs::read_to_string(json_path).unwrap();
         let err_code_map: HashMap<u16, MultiLangErrMsg> = serde_json::from_str(&json_str).unwrap();
-        debug!("all_error_code_{:#?}", err_code_map);
         err_code_map
     };
 }

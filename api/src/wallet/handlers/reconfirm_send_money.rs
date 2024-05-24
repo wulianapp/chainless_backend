@@ -3,7 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
-use common::encrypt::ed25519_verify;
+use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
@@ -63,7 +63,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         //提前进行签名校验
         let data = coin_tx.transaction.coin_tx_raw;
         let sign_info: PubkeySignInfo = confirmed_sig.as_str().parse()?;
-        if ed25519_verify(&data,&sign_info.pubkey,&sign_info.signature)? == false {
+        if !ed25519_verify_hex(&data,&sign_info.pubkey,&sign_info.signature)?{
             Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
         }
 
@@ -102,7 +102,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         //提前进行签名校验
         let data = coin_tx.transaction.tx_id.ok_or(BackendError::InternalError("".to_string()))?;
         let pubkey = current_strategy.master_pubkey;
-        if ed25519_verify(&data,&pubkey,&confirmed_sig)? == false {
+        if !ed25519_verify_hex(&data,&pubkey,&confirmed_sig)? {
             Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
         }
 

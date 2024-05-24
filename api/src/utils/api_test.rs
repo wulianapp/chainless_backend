@@ -970,12 +970,15 @@ macro_rules! test_commit_servant_switch_master {
 #[macro_export]
 macro_rules! test_faucet_claim {
     ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "accountId":  None::<String>
+        });
         let url = format!("/wallet/faucetClaim");
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
             &url,
-            None::<String>,
+            Some(payload.to_string()),
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code, 0);
