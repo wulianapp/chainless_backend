@@ -13,10 +13,7 @@ use common::{
     utils::{math::{coin_amount::raw2display, generate_random_hex_string}, time::now_millis},
 };
 use models::{
-    account_manager::{UserFilter, UserInfoView},
-    coin_transfer::{CoinTxFilter, CoinTxView},
-    device_info::{DeviceInfoFilter, DeviceInfoView},
-    PsqlOp,
+    account_manager::{UserFilter, UserInfoView}, coin_transfer::{CoinTxFilter, CoinTxView}, device_info::{DeviceInfoFilter, DeviceInfoView}, PgLocalCli, PsqlOp
 };
 use serde::{Deserialize, Serialize};
 use tracing::{error, info, warn};
@@ -84,8 +81,10 @@ pub async fn gen_random_account_id(
     ))
 }
 
-pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
-    let mut txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(account))?;
+pub async fn get_uncompleted_tx(account: &str,    
+    conn: &mut PgLocalCli<'_>,
+) -> Result<Vec<CoinTxView>> {
+    let mut txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(account),conn).await?;
     txs.retain(|tx| {
         tx.transaction.stage <= CoinSendStage::ReceiverApproved
             && now_millis() < tx.transaction.expire_at
@@ -94,21 +93,24 @@ pub fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxView>> {
 }
 
 //todo: return bool
-pub fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
-    let tx = get_uncompleted_tx(account)?;
+pub async fn have_no_uncompleted_tx(account: &str,    conn: &mut PgLocalCli<'_>,
+) -> Result<(), BackendError> {
+    let tx = get_uncompleted_tx(account,conn).await?;
     if !tx.is_empty() {
         Err(WalletError::HaveUncompleteTx)?;
     }
     Ok(())
 }
 
-pub fn get_freezn_amount(account: &str, coin: &CoinType) -> u128 {
-    let mut tx = get_uncompleted_tx(account).unwrap();
+pub async fn get_freezn_amount(account: &str, coin: &CoinType,    conn: &mut PgLocalCli<'_>,
+) -> u128 {
+    let mut tx = get_uncompleted_tx(account,conn).await.unwrap();
     tx.retain(|x| x.transaction.coin_type == *coin);
     tx.iter().map(|x| x.transaction.amount).sum()
 }
 
-pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendRes<u128> {
+pub async fn get_available_amount(account_id: &str, coin: &CoinType,    conn: &mut PgLocalCli<'_>,
+) -> BackendRes<u128> {
     let coin_cli =
         ContractClient::<Coin>::new_with_type(coin.clone()).await.map_err(|err| ChainError(err.to_string()))?;
     let balance = coin_cli
@@ -116,7 +118,7 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
         .await
         .unwrap()
         .unwrap_or("0".to_string());
-    let freezn_amount = get_freezn_amount(account_id, coin);
+    let freezn_amount = get_freezn_amount(account_id, coin,conn).await;
     let total: u128 = balance.parse().unwrap();
     if total < freezn_amount {
         Err(BackendError::InternalError(format!(
@@ -128,8 +130,10 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
     }
 }
 
-pub fn get_main_account(user_id: u32) -> Result<String, BackendError> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id))?;
+pub async fn get_main_account(user_id: u32,    
+    conn: &mut PgLocalCli<'_>,
+) -> Result<String, BackendError> {
+    let user = UserInfoView::find_single(UserFilter::ById(user_id),conn).await?;
     if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
     }
@@ -182,8 +186,9 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
 pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
+    conn: &mut PgLocalCli<'_>,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id)).map_err(|err| {
+    let user = UserInfoView::find_single(UserFilter::ById(user_id),conn).await.map_err(|err| {
         if err.to_string().contains("DBError::DataNotFound") {
             WalletError::MainAccountNotExist(err.to_string()).into()
         } else {
@@ -206,7 +211,7 @@ pub async fn get_session_state(
 
     //注册过的一定有设备信息
     let mut device =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id))?;
+        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id),conn).await?;
     device.device_info.key_role =
         get_role(&current_strategy, device.device_info.hold_pubkey.as_deref());
     Ok((user.user_info, current_strategy, device.device_info))
@@ -227,7 +232,8 @@ pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> 
 
 //fixme: 查一次最多rpc调用 1 + 5 * 2
 //检查所有的手续费币是否全部小于1u
-pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError> {
+pub async fn check_have_base_fee(main_account: &str,    conn: &mut PgLocalCli<'_>,
+) -> Result<(), BackendError> {
     let fee_coins = get_fees_priority(main_account)
         .await?
         .ok_or(InternalError("not set fees priority".to_string()))?;
@@ -242,7 +248,7 @@ pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError>
             .unwrap()
             .parse()
             .map_err(|e: ParseIntError| e.to_string())?;
-        let freezn_amount = get_freezn_amount(main_account, &fee_coin);
+        let freezn_amount = get_freezn_amount(main_account, &fee_coin,conn).await;
         balance -= freezn_amount;
 
         let value = get_value(&fee_coin, balance).await;
@@ -351,6 +357,8 @@ impl FromStr for ServentSigDetail {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        unimplemented!()
+        /*** 
         let pubkey = s[..64].to_string();
         let _sig = s[64..].to_string();
         let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))?;
@@ -359,5 +367,6 @@ impl FromStr for ServentSigDetail {
             device_id: device.device_info.id,
             device_brand: device.device_info.brand,
         })
+        ***/
     }
 }

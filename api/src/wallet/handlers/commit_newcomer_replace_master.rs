@@ -4,7 +4,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
-use models::general::{get_db_pool_connect, transaction_begin, transaction_commit};
+use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
@@ -22,7 +22,7 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
 
@@ -41,12 +41,17 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
 
-    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli =  pg_cli.begin().await?;
+
+
+    let (user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account)?;
+
+    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Undefined)?;
-    super::check_have_base_fee(&main_account).await?;
+    super::check_have_base_fee(&main_account,&mut pg_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
@@ -67,15 +72,14 @@ pub(crate) async fn req(
         unreachable!("");
     };
 
-    let mut conn = get_db_pool_connect()?;
-    let mut trans = transaction_begin(&mut conn)?;
+   
 
     //增加之前判断是否有
     if !master_list.contains(&newcomer_pubkey.to_string()) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
 
         //check if stored already ,if not insert sercret_store or update
-        let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey))?;
+        let origin_secret = SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey),&mut pg_cli).await?;
         if origin_secret.is_empty() {
             let secret_info = SecretStoreView::new_with_specified(
                 &newcomer_pubkey,
@@ -83,21 +87,21 @@ pub(crate) async fn req(
                 &newcomer_prikey_encrypted_by_password,
                 &newcomer_prikey_encrypted_by_answer,
             );
-            secret_info.insert_with_trans(&mut trans)?;
+            secret_info.insert(&mut pg_cli).await?;
         } else {
-            SecretStoreView::update_single_with_trans(
+            SecretStoreView::update_single(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
-                &mut trans
-            )?;
+                &mut pg_cli
+            ).await?;
         }
 
         //更新设备信息
-        DeviceInfoView::update_single_with_trans(
+        DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-            &mut trans
-        )?;
+            &mut pg_cli
+        ).await?;
     } else {
         let err: String = format!("newcomer_pubkey<{}> already is master", newcomer_pubkey);
         Err(BackendError::InternalError(err))?;
@@ -111,11 +115,11 @@ pub(crate) async fn req(
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update_single_with_trans(
+        DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeUndefined(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-            &mut trans
-        )?;
+            &mut pg_cli
+        ).await?;
     } else {
         Err(BackendError::InternalError(
             "main account is unnormal".to_string(),
@@ -136,7 +140,7 @@ pub(crate) async fn req(
         &device.brand,
         vec![txid],
     );
-    record.insert_with_trans(&mut trans)?;
-    transaction_commit(trans)?;
+    record.insert(&mut pg_cli).await?;
+    pg_cli.commit().await?;
     Ok(None::<String>)
 }

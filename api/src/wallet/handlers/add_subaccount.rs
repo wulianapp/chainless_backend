@@ -5,7 +5,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
-use models::general::{get_db_pool_connect, transaction_begin, transaction_commit};
+use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
@@ -21,32 +21,32 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::secret_store::SecretStoreView;
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
 use tracing::info;
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli =  pg_cli.begin().await?;
+
+
+    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
     let AddSubaccountRequest {
         subaccount_pubkey,
         subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         hold_value_limit,
     } = request_data;
-    super::have_no_uncompleted_tx(&main_account)?;
+    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
     let hold_value_limit = display2raw(&hold_value_limit)?;
-    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
     //todo: 24小时内只能三次增加的限制
 
-    //store user info
-    //let mut user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
-    //user_info.user_info.account_ids.push(pubkey.clone());
-
-    let mut conn = get_db_pool_connect()?;
-    let mut trans = transaction_begin(&mut conn)?;
+   
 
     //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
@@ -59,7 +59,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
-    secret.insert_with_trans(&mut trans)?;
+    secret.insert(&mut pg_cli).await?;
 
     let multi_cli = ContractClient::<MultiSig>::new().await?;
     let sub_confs = BTreeMap::from([(
@@ -79,10 +79,10 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &device.brand,
         vec![txid],
     );
-    record.insert_with_trans(&mut trans)?;
+    record.insert(&mut pg_cli).await?;
 
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
-    transaction_commit(trans)?;
+    pg_cli.commit().await?;
     //info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)
 }

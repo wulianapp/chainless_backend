@@ -1,12 +1,13 @@
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
 use models::account_manager::UserFilter;
-use models::{account_manager, PsqlOp};
+use models::general::get_pg_pool_connect;
+use models::{account_manager, PgLocalCli, PsqlOp};
 //use super::super::ContactIsUsedRequest;
 use crate::account_manager::CheckCaptchaRequest;
 use crate::utils::captcha::{Captcha, Usage};
 
-pub fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
+pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     let CheckCaptchaRequest {
         contact,
         captcha,
@@ -17,11 +18,12 @@ pub fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
         .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
     //todo: register can check captcha
 
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
     let check_res = match kind {
         Usage::Register => Captcha::check_user_code2(&contact, &captcha, kind),
         _ => {
             let user =
-                account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
+                account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await
                     .map_err(|e| {
                         if e.to_string().contains("DBError::DataNotFound") {
                             AccountManagerError::PhoneOrEmailNotRegister.into()

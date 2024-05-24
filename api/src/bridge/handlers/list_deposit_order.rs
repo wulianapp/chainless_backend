@@ -8,6 +8,7 @@ use blockchain::ContractClient;
 use common::data_structures::bridge::{DepositStatus, OrderType};
 use common::utils::time::timestamp2utc;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 
 use crate::bridge::{ListDepositOrderRequest, ListDepositOrderResponse, ListWithdrawOrderResponse};
@@ -35,11 +36,12 @@ async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
     Ok(orders)
 }
 
-pub fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
+pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
+    let mut pg_cli = get_pg_pool_connect().await?;
     EthBridgeOrderView::find(BridgeOrderFilter::ByTypeAndAccountId(
         OrderType::Deposit,
         main_account,
-    ))
+    ),&mut pg_cli).await
 }
 
 pub(crate) async fn req(
@@ -48,7 +50,8 @@ pub(crate) async fn req(
 ) -> BackendRes<Vec<ListDepositOrderResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
     //todo:
-    let main_account = get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = get_main_account(user_id,&mut pg_cli).await?;
 
     let ListDepositOrderRequest {
         page,
@@ -56,7 +59,7 @@ pub(crate) async fn req(
     } = request_data;
 
     let order_ids_on_chainless = list_chainless_order_ids(&main_account).await?;
-    let orders_on_external = list_external_orders(&main_account)?;
+    let orders_on_external = list_external_orders(&main_account).await?;
 
     let mut all_order = vec![];
     for order in orders_on_external {

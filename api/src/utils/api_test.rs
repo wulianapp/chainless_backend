@@ -19,7 +19,7 @@ use blockchain::ContractClient;
 use common::data_structures::device_info::DeviceInfo;
 use common::data_structures::KeyRole;
 use models::coin_transfer::CoinTxView;
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde_json::json;
 
 use actix_web::Error;

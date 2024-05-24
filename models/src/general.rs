@@ -11,6 +11,7 @@ use deadpool::managed::Object;
 use deadpool_postgres::Manager;
 use deadpool_postgres::Transaction;
 use crate::LocalConn;
+use crate::PgLocalCli;
 //use crate::PoolConnect;
 use crate::{PG_POOL};
 
@@ -33,10 +34,10 @@ pub async fn transaction_commit(tx: Transaction<'_>) -> Result<()>{
     Ok(tx.commit().await?)
 }
 
-pub async fn get_db_pool_connect() -> Result<LocalConn> {
-    Ok(PG_POOL.get().await?)
+pub async fn get_pg_pool_connect<T:From<LocalConn>>() -> Result<T> {
+    let conn = PG_POOL.get().await?;
+    Ok(conn.into())
 }
-
 
 pub fn transaction_rollback() -> Result<u64>{ 
     todo!()

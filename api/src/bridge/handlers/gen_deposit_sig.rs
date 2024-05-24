@@ -5,6 +5,7 @@ use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use serde::Deserialize;
 use serde::Serialize;
 //use log::debug;
@@ -34,7 +35,8 @@ pub async fn req(
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let (user, current_strategy, device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let main_account = user.main_account;
 
     if main_account.eq("") {

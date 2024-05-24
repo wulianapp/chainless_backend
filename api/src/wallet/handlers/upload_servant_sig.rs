@@ -6,12 +6,12 @@ use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
-use models::general::get_db_pool_connect;
+use models::general::get_pg_pool_connect;
 
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::PsqlOp;
+use models::{PgLocalCli, PsqlOp};
 
 use crate::wallet::UploadTxSignatureRequest;
 
@@ -22,7 +22,10 @@ pub async fn req(
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli =  pg_cli.begin().await?;
+
+    let (_user, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 
@@ -38,7 +41,7 @@ pub async fn req(
     }
     //todo: two update action is unnecessary
     let mut tx =
-        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id))?;
+        models::coin_transfer::CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id),&mut pg_cli).await?;
     if tx.transaction.stage != CoinSendStage::Created {
         Err(WalletError::TxStageIllegal(
             tx.transaction.stage,
@@ -51,14 +54,13 @@ pub async fn req(
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
-    let mut conn = get_db_pool_connect()?;
-    let mut trans =  models::general::transaction_begin(&mut conn)?;
 
-    models::coin_transfer::CoinTxView::update_single_with_trans(
+
+    models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
-        &mut trans
-    )?;
+        &mut pg_cli
+    ).await?;
 
     //collect enough signatures
     let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
@@ -83,7 +85,8 @@ pub async fn req(
             models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
-            )?;
+                &mut pg_cli
+            ).await?;
         //给其他主账户转是用户自己签名，需要生成tx_raw
         } else if tx.transaction.tx_type == TxType::Forced {
             //todo: 83~102 line is redundant，txid生成在gen_send_money的时候进行了
@@ -108,20 +111,20 @@ pub async fn req(
                 )
                 .await?;
 
-            models::coin_transfer::CoinTxView::update_single_with_trans(
+            models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
-                &mut trans
-            )?;
+                &mut pg_cli
+            ).await?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认
         } else {
-            models::coin_transfer::CoinTxView::update_single_with_trans(
+            models::coin_transfer::CoinTxView::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
-                &mut trans
-            )?;
+                &mut pg_cli
+            ).await?;
         }
     }
-    models::general::transaction_commit(trans)?;
+    pg_cli.commit().await?;
     Ok(None)
 }

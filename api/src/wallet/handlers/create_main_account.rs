@@ -19,10 +19,10 @@ use common::error_code::{BackendError, BackendRes, WalletError};
 use common::utils::math::generate_random_hex_string;
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
-use models::general::get_db_pool_connect;
+use models::general::{get_pg_pool_connect, transaction_begin};
 use models::secret_store::SecretStoreView;
 use models::wallet_manage_record::WalletManageRecordView;
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
 use tracing::debug;
 use tracing::info;
 
@@ -44,8 +44,10 @@ pub(crate) async fn req(
 
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli =  pg_cli.begin().await?;
     //store user info
-    let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let user_info = account_manager::UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
 
     if !user_info.user_info.main_account.eq("") {
         Err(WalletError::MainAccountAlreadyExist(
@@ -58,14 +60,11 @@ pub(crate) async fn req(
     let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
-    let mut conn = get_db_pool_connect()?;
-    let mut trans =  models::general::transaction_begin(&mut conn)?;
-
-    account_manager::UserInfoView::update_single_with_trans(
+    account_manager::UserInfoView::update_single(
         UserUpdater::SecruityInfo(&anwser_indexes, true, &main_account_id),
         UserFilter::ById(user_id),
-        &mut trans
-    )?;
+        &mut pg_cli
+    ).await?;
 
     let master_secret = SecretStoreView::new_with_specified(
         &master_pubkey,
@@ -73,7 +72,7 @@ pub(crate) async fn req(
         &master_prikey_encrypted_by_password,
         &master_prikey_encrypted_by_answer,
     );
-    master_secret.insert_with_trans(&mut trans)?;
+    master_secret.insert(&mut pg_cli).await?;
 
     let sub_account_secret = SecretStoreView::new_with_specified(
         &subaccount_pubkey,
@@ -81,15 +80,15 @@ pub(crate) async fn req(
         &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
-    sub_account_secret.insert_with_trans(&mut trans)?;
+    sub_account_secret.insert(&mut pg_cli).await?;
 
     //fixme: 这里遇到过一次没有commit，db事务，但是update_single成功的情况
     debug!("__line_{}",line!());
-    DeviceInfoView::update_single_with_trans(
+    DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut trans
-    )?;
+        &mut pg_cli
+    ).await?;
     debug!("__line_{}",line!());
 
     let txid = multi_sig_cli
@@ -110,14 +109,14 @@ pub(crate) async fn req(
         &device_brand,
         vec![txid],
     );
-    record.insert_with_trans(&mut trans)?;
+    record.insert(&mut pg_cli).await?;
 
     //注册的时候就把允许跨链的状态设置了
     let bridge_cli = ContractClient::<Bridge>::new().await?;
     let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
     debug!("set_user_batch txid {} ,{}", set_res, main_account_id);
 
-    models::general::transaction_commit(trans)?;
+    pg_cli.commit().await?;
     info!("new wallet {:#?}  successfully", user_info);
     Ok(None)
 }

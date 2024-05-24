@@ -10,11 +10,11 @@ pub mod airdrop;
 pub mod general;
 pub mod newbie_reward;
 
-//pub mod coin_transfer;
-//pub mod secret_store;
-//pub mod device_info;
-//pub mod eth_bridge_order;
-//pub mod wallet_manage_record;
+pub mod coin_transfer;
+pub mod secret_store;
+pub mod device_info;
+pub mod eth_bridge_order;
+pub mod wallet_manage_record;
 
 //#[macro_use]
 //extern crate log;
@@ -33,7 +33,7 @@ extern crate rustc_serialize;
 use anyhow::anyhow;
 use anyhow::Result;
 use deadpool::managed::Object;
-use general::get_db_pool_connect;
+use general::get_pg_pool_connect;
 //use r2d2_postgres::postgres::GenericClient;
 //use r2d2_postgres::postgres::Transaction;
 use serde::Deserialize;
@@ -78,34 +78,10 @@ static TRY_TIMES: u8 = 5;
     DBError::KeyAlreadyExsit,
 */
 
-///time limit scope
-#[derive(Deserialize, Debug, PartialEq, Clone, Serialize)]
-pub enum TimeScope {
-    NoLimit,
-    SevenDay,
-    OneDay,
-}
-
-impl TimeScope {
-    // scope filter
-    pub fn filter_str(&self) -> &'static str {
-        match self {
-            TimeScope::NoLimit => "",
-            TimeScope::SevenDay => "where created_at > NOW() - INTERVAL '7 day'",
-            TimeScope::OneDay => "where created_at > NOW() - INTERVAL '24 hour'",
-        }
-    }
-}
-
 
 lazy_static! {
-    static ref PG_POOL: Pool = {
-        error!("Gen PG_POOL");
-        connect_pool().unwrap()
-    };
+    static ref PG_POOL: Pool = {connect_pool().unwrap()};
 }
-//todo: set global Transaction 
-
 
 /*** 
 thread_local! {
@@ -135,17 +111,24 @@ thread_local! {
 **/
 
 pub enum PgLocalCli<'a> {
-    Cli(LocalConn),
-    Tx(Transaction<'a>)
+    Conn(LocalConn),
+    Trans(Transaction<'a>)
 }
+
+/*** 
+struct DBCli<'a,T: PsqlOp>{
+    pg_cli: PgLocalCli<'a>,
+    table: T
+}
+**/
 
 impl PgLocalCli<'_> {
     pub async fn execute(&mut self,sql:&str) -> Result<u64>{
         let line = match self {
-            PgLocalCli::Cli(c) => {
+            PgLocalCli::Conn(c) => {
                 c.execute(sql, &[]).await?
             },
-            PgLocalCli::Tx(t) => {
+            PgLocalCli::Trans(t) => {
                 t.execute(sql, &[]).await?
             },
         };
@@ -153,10 +136,10 @@ impl PgLocalCli<'_> {
     }
     pub async fn query(&mut self,sql:&str) -> Result<Vec<Row>>{
         let row = match self {
-            PgLocalCli::Cli(c) => {
+            PgLocalCli::Conn(c) => {
                 c.query(sql, &[]).await?
             },
-            PgLocalCli::Tx(t) => {
+            PgLocalCli::Trans(t) => {
                 t.query(sql, &[]).await?
             },
         };
@@ -164,26 +147,41 @@ impl PgLocalCli<'_> {
     }
     pub async fn commit(mut self) -> Result<()>{
         match self {
-            PgLocalCli::Cli(c) => {
-                debug!("as a connet no nothing");
-                Ok(())
+            PgLocalCli::Conn(c) => {
+                panic!("it's not a trans")
             },
-            PgLocalCli::Tx(t) => {
+            PgLocalCli::Trans(t) => {
                 Ok(t.commit().await?)
             },
         }
     }
+
+    
+    pub async fn begin(&mut self) -> Result<PgLocalCli<'_>>{
+        match self {
+            PgLocalCli::Conn(c) => {
+                let trans = c.transaction().await?;
+                Ok(PgLocalCli::Trans(trans))
+            },
+            PgLocalCli::Trans(t) => {
+                panic!("It is already a trans")
+            },
+        }
+    }
+
+    
+    
 }
 
 impl<'a> From<LocalConn> for PgLocalCli<'a>{
     fn from(value: LocalConn) -> Self {
-        Self::Cli(value)
+        Self::Conn(value)
     }
 }
 
 impl<'a> From<Transaction<'a>> for PgLocalCli<'a>{
     fn from(value: Transaction<'a>) -> Self {
-        Self::Tx(value)
+        Self::Trans(value)
     }
 }
 
@@ -257,8 +255,8 @@ pub async fn execute_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Resul
 
 pub fn execute2(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
-    let mut client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    //let mut client2 = LOCAL_CLI.take();
+    let mut pg_client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
+    //let mut pg_client2 = LOCAL_CLI.take();
     LOCAL_CLI.with_borrow_mut(|client|{
         Ok(client.execute(raw_sql, &[])?)
     })

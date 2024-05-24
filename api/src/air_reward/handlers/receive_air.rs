@@ -7,9 +7,7 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
-    wallet_manage_record::WalletManageRecordView,
-    PsqlOp,
+    device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
 use tracing::{debug, info};
 
@@ -23,11 +21,12 @@ pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRe
     //todo: must be called by main device
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (_user, current_strategy, device) = get_session_state(user_id, &device_id).await?;
+    let (_user, current_strategy, device) = get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id)?;
+    let main_account = get_main_account(user_id,&mut pg_cli).await?;
 
 
     let ReceiveAirRequest {

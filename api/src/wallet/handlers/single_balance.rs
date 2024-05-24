@@ -13,6 +13,7 @@ use common::error_code::BackendRes;
 use common::error_code::{to_internal_error, BackendError};
 use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -25,7 +26,8 @@ pub async fn req(
     request_data: SingleBalanceRequest,
 ) -> BackendRes<SingleBalanceResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id))?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id),&mut pg_cli).await?;
     let main_account = user_info.user_info.main_account;
 
     let SingleBalanceRequest { coin, account_id } = request_data;

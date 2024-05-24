@@ -82,6 +82,18 @@ mod tests {
     use near_crypto::{ED25519SecretKey, PublicKey};
 
     #[test]
+    fn test_ed25519_gen_pubkey_sign() {
+        let prikey= "d4b1b6b824f7ce4651df65a9071ad0363388675a09bbec646d4a3a1d40b67fe8";
+        let data = "79a30e8d88df32b8e2d89f1467fb0f238e28f2070c9fb16f64343522a3fa77f0045e27c63bc1895ac3d36bf5a5c9d01d2e22ac40ee1d84d822123b1819947b0c";
+        let hex = ed25519_gen_pubkey_sign(prikey,data).unwrap();
+        println!("____{}",hex);
+        assert_eq!(
+            hex,
+            "0fcaff42a5dada720c865dcf0589413559447d361dd307f17aac1a2679944ad9"
+        );
+    }
+
+    #[test]
     fn test_bs58_to_hex() {
         let data = "24eeXypYZLjg4oUGhtqZ8BUaiBvsUQKXE6HV5tkj7yWx";
         let hex = bs58_to_hex(data).unwrap();

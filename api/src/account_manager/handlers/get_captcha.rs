@@ -5,6 +5,7 @@ use common::data_structures::KeyRole2;
 use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently};
 use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use tracing::{debug, error, info};
 
@@ -72,7 +73,7 @@ fn get(
     Ok(None::<String>)
 }
 
-pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
+pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
     let GetCaptchaWithoutTokenRequest {
         device_id,
         contact,
@@ -81,11 +82,13 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
+    let mut pg_cli = get_pg_pool_connect().await?;
 
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_user_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))
+            let find_user_res = UserInfoView::find_single(
+                    UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await
                 .map_err(|err| {
                     if err.to_string().contains("DBError::DataNotFound") {
                         AccountManagerError::PhoneOrEmailNotRegister.into()
@@ -96,9 +99,10 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {
-                let find_device_res = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(
-                    &device_id, user_id,
-                ));
+                let find_device_res = DeviceInfoView::find_single(
+                    DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+                    &mut pg_cli
+                ).await;
                 if find_device_res.is_ok()
                     && find_device_res
                         .as_ref()
@@ -125,13 +129,19 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
             get(device_id, contact, kind, Some(find_user_res.id))
         }
         Register => {
-            let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));
+            let find_res = UserInfoView::find_single(
+                UserFilter::ByPhoneOrEmail(&contact),
+                &mut pg_cli
+            ).await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
             get(device_id, contact, kind, None)
         }
-        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact)) {
+        Login => match UserInfoView::find_single(
+            UserFilter::ByPhoneOrEmail(&contact),
+            &mut pg_cli
+        ).await {
             Ok(info) => get(device_id, contact, kind, Some(info.id)),
             Err(err) => {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -147,7 +157,7 @@ pub fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> Backend
     }
 }
 
-pub fn with_token_req(
+pub async fn with_token_req(
     req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
@@ -156,8 +166,9 @@ pub fn with_token_req(
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact))?;
-    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id))?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await?;
+    let device = DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, user_id),&mut pg_cli).await?;
 
     match kind {
         ResetLoginPassword | Register | Login => {

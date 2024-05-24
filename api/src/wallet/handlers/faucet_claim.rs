@@ -9,6 +9,7 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use std::collections::HashMap;
 use std::ops::Deref;
@@ -16,7 +17,8 @@ use std::sync::Mutex;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
     let coin_list = get_support_coin_list();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> = ContractClient::<Coin>::new_with_type(coin.clone()).await?;

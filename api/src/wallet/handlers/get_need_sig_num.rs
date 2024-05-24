@@ -4,6 +4,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
 use common::data_structures::CoinType;
+use models::general::get_pg_pool_connect;
 
 use crate::utils::token_auth;
 use crate::wallet::GetNeedSigNumRequest;
@@ -17,7 +18,9 @@ use serde::{Deserialize, Serialize};
 pub(crate) async fn req(req: HttpRequest, request_data: GetNeedSigNumRequest) -> BackendRes<u8> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let GetNeedSigNumRequest { coin, amount } = request_data;
-    let (_user, strategy, _device) = super::get_session_state(user_id, &device_id).await?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+
+    let (_user, strategy, _device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
 
     let coin_type: CoinType = coin
         .parse()

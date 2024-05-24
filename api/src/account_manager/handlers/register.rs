@@ -10,7 +10,7 @@ use blockchain::ContractClient;
 use common::error_code::BackendRes;
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::secret_store::SecretStoreView;
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::{debug, info};
 use models::general::*;
 
@@ -25,8 +25,11 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli = pg_cli.begin().await?;
+
     //check userinfo form db
-    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact))?;
+    let find_res = account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact),&mut pg_cli).await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -34,7 +37,7 @@ async fn register(
     //todo: register multi_sig_contract account
 
     //store user info
-    let this_user_id = get_next_uid()?;
+    let this_user_id = get_next_uid(&mut pg_cli).await?;
     debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
@@ -51,7 +54,7 @@ async fn register(
     }
 
     if let Some(code) = predecessor_invite_code {
-        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code))
+        let predecessor = UserInfoView::find_single(UserFilter::ByInviteCode(&code),&mut pg_cli).await
             .map_err(|_e| InviteCodeNotExist)?;
         if !predecessor.user_info.secruity_is_seted {
             Err(PredecessorNotSetSecurity)?;
@@ -60,23 +63,12 @@ async fn register(
     }
 
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
-    let mut conn = get_db_pool_connect()?;
-    let mut trans = transaction_begin(&mut conn)?;
     //account_manager::single_insert(&view.user_info)?;
-    account_manager::UserInfoView::insert_with_trans(&view,&mut trans)?;
-    /***
-    let secret = SecretStore2::new_with_specified(pubkey.clone(), this_user_id, encrypted_prikey);
-    secret.insert()?;
-    ***/
-    //注册多签账户放在安全问答之后
-    //let multi_cli = ContractClient::<MultiSig>::new().await;
-    //multi_cli.init_strategy(&pubkey).await?;
-    //let device = models::device_info::DeviceInfoView::new_with_specified(&device_id, &device_brand,this_user_id, &pubkey,true);
-    //device.insert()?;
+    account_manager::UserInfoView::insert(&view,&mut pg_cli).await?;
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
-    device.insert_with_trans(&mut trans)?;
+    device.insert(&mut pg_cli).await?;
 
-    transaction_commit(trans)?;
+    pg_cli.commit().await?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
     info!("user {:?} register successfully", view.user_info);

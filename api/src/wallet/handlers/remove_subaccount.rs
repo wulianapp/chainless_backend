@@ -6,7 +6,7 @@ use common::data_structures::get_support_coin_list;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
-use models::general::get_db_pool_connect;
+use models::general::get_pg_pool_connect;
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
@@ -22,16 +22,19 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
-use models::{account_manager, secret_store, PsqlOp};
+use models::{account_manager, secret_store, PgLocalCli,  PsqlOp};
 use tracing::info;
 
 pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
-    let main_account = super::get_main_account(user_id)?;
-    let RemoveSubaccountRequest { account_id } = request_data;
-    super::have_no_uncompleted_tx(&main_account)?;
+    let mut pg_cli:PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli =  pg_cli.begin().await?;
 
-    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id).await?;
+    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
+    let RemoveSubaccountRequest { account_id } = request_data;
+    super::have_no_uncompleted_tx(&main_account,&mut pg_cli).await?;
+
+    let (_, current_strategy, device) = super::get_session_state(user_id, &device_id,&mut pg_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -57,19 +60,14 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         }
     }
     
-    println!("0001__");
-    let mut conn = get_db_pool_connect()?;
-    println!("0002__");
-    let mut trans =  models::general::transaction_begin(&mut conn)?;
-    println!("0003__");
+  
 
 
-
-    SecretStoreView::update_single_with_trans(
+    SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
-        &mut trans
-    )?;
+        &mut pg_cli
+    ).await?;
     let multi_cli = ContractClient::<MultiSig>::new().await?;
     let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)
@@ -84,7 +82,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         &device_brand,
         vec![tx_id],
     );
-    record.insert_with_trans(&mut trans)?;
-    models::general::transaction_commit(trans)?;
+    record.insert(&mut pg_cli).await?;
+    pg_cli.commit().await?;
     Ok(None::<String>)
 }

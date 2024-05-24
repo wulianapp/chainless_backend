@@ -20,6 +20,7 @@ use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -60,9 +61,10 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id)).map_err(|e| {
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id),&mut pg_cli).await.map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             WalletError::OrderNotFound(order_id).into()
         } else {
@@ -78,7 +80,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .collect::<Result<_>>()?;
 
     //不从数据库去读
-    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id))?
+    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id),&mut pg_cli).await?
         .into_iter()
         .filter(|x| {
             x.device_info.hold_pubkey.is_some() && x.device_info.key_role == KeyRole2::Servant

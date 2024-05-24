@@ -187,23 +187,6 @@ impl PsqlOp for UserInfoView {
         Ok(execute_res)
     }
 
-    /*** 
-    fn update_with_trans(
-        new_value: Self::UpdaterContent, 
-        filter: Self::FilterContent,
-        trans:&mut Transaction
-    ) -> Result<u64> {
-        let sql = format!(
-            "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
-            new_value, filter
-        );
-        debug!("start update users {} ", sql);
-        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
-        //assert_ne!(execute_res, 0);
-        debug!("success update users {} rows", execute_res);
-        Ok(execute_res)
-    }
-    **/
     async fn insert(&self,cli: &mut PgLocalCli<'_>) -> Result<()> {
         let UserInfo {
             phone_number,
@@ -271,75 +254,6 @@ impl PsqlOp for UserInfoView {
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
-    /*** 
-    fn insert_with_trans(&self,trans:&mut Transaction) -> Result<()> {
-        let UserInfo {
-            phone_number,
-            email,
-            login_pwd_hash,
-            anwser_indexes,
-            is_frozen,
-            predecessor,
-            laste_predecessor_replace_time,
-            invite_code,
-            kyc_is_verified,
-            secruity_is_seted,
-            create_subacc_time,
-            main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
-        } = &self.user_info;
-
-        let _predecessor_str = predecessor
-            .map(|x| format!("{}", x))
-            .unwrap_or("NULL".to_string());
-        //assembly string array to sql string
-        let create_subacc_time = create_subacc_time.iter().map(|x| x.to_string()).collect();
-        let create_subacc_time_str = vec_str2array_text(create_subacc_time);
-
-        let sql = format!(
-            "insert into users (phone_number,
-                email,
-                login_pwd_hash,\
-                anwser_indexes,
-                is_frozen,
-                predecessor,
-                laste_predecessor_replace_time,
-                invite_code,
-                kyc_is_verified,
-                secruity_is_seted,
-                create_subacc_time,
-                main_account,
-                op_status,
-                reserved_field1,
-                reserved_field2,
-                reserved_field3
-            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
-            phone_number,
-            email,
-            login_pwd_hash,
-            anwser_indexes,
-            is_frozen,
-            PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
-            laste_predecessor_replace_time,
-            invite_code,
-            kyc_is_verified,
-            secruity_is_seted,
-            create_subacc_time_str,
-            main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
-        );
-        debug!("row sql {} rows", sql);
-        let execute_res = crate::execute_with_trans(sql.as_str(),trans)?;
-        debug!("success insert {} rows", execute_res);
-        Ok(())
-    }
-    ***/
 }
 
 pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
@@ -361,7 +275,7 @@ pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_db_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 
     use super::*;
     use common::log::init_logger;
@@ -369,18 +283,19 @@ mod tests {
     use std::env;
 
     #[tokio::test]
-    async fn test_db_user_info() {
+    async fn test_db_user_info() -> Result<()>{
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut conn = get_db_pool_connect().await.unwrap().into();
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
     
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert(&mut conn).await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut conn).await.unwrap();
+        user.insert(&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut pg_cli).await.unwrap();
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut conn).await.unwrap();
+        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut pg_cli).await.unwrap();
+        Ok(())
     }
      
     #[tokio::test]
@@ -388,20 +303,20 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut conn = get_db_pool_connect().await.unwrap();
-        let mut trans =  transaction_begin(&mut conn).await.unwrap().into();
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut pg_cli =  pg_cli.begin().await.unwrap();
 
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert(&mut trans).await.unwrap();
-        let user_by_find = UserInfoView::find(UserFilter::ById(1),&mut trans).await.unwrap();
+        user.insert(&mut pg_cli).await.unwrap();
+        let user_by_find = UserInfoView::find(UserFilter::ById(1),&mut pg_cli).await.unwrap();
         println!("by_conn2__{:?}", user_by_find);
-        trans.commit().await.unwrap();
+        pg_cli.commit().await.unwrap();
 
-        let mut conn = get_db_pool_connect().await.unwrap().into();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut conn).await.unwrap();
+        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1),&mut pg_cli).await.unwrap();
         println!("by_trans3__{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut conn).await.unwrap();
+        UserInfoView::update(UserUpdater::LoginPwdHash("0123"), UserFilter::ById(1),&mut pg_cli).await.unwrap();
     }
     
 }

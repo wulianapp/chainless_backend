@@ -21,6 +21,7 @@ use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoView};
 use models::coin_transfer::{CoinTxFilter, CoinTxView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -73,7 +74,9 @@ pub fn get_filter_type(data:&str) -> Result<FilterType,BackendError>{
 
 pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let main_account = super::get_main_account(user_id)?;
+    let mut pg_cli = get_pg_pool_connect().await?;
+
+    let main_account = super::get_main_account(user_id,&mut pg_cli).await?;
     let TxListRequest {
         tx_role,
         counterparty,
@@ -93,7 +96,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     let find_res = if let Some(data) = counterparty.as_deref() {
         match get_filter_type(&data)? {
             FilterType::OrderId => {
-                CoinTxView::find(CoinTxFilter::ByOrderId(&data))
+                CoinTxView::find(CoinTxFilter::ByOrderId(&data),&mut pg_cli).await
             },
             FilterType::AccountId => {
                 CoinTxView::find(CoinTxFilter::ByTxRolePage(
@@ -102,18 +105,18 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
                     Some(data),
                     per_page,
                     page,
-                ))
+                ),&mut pg_cli).await
             },
             FilterType::Phone | FilterType::Mail => {
                 if let Ok(counterparty_main_account ) = UserInfoView::find_single(
-                    UserFilter::ByPhoneOrEmail(&data)){
+                    UserFilter::ByPhoneOrEmail(&data),&mut pg_cli).await{
                         CoinTxView::find(CoinTxFilter::ByTxRolePage(
                             tx_role,
                             &main_account,
                             Some(&counterparty_main_account.user_info.main_account),
                             per_page,
                             page,
-                        ))
+                        ),&mut pg_cli).await
                 }else{
                     return Ok(None)
                 }
@@ -127,7 +130,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
             None,
             per_page,
             page,
-        ))
+        ),&mut pg_cli).await
     };
     
     

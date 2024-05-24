@@ -6,6 +6,7 @@ use common::error_code::AccountManagerError::{
     self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
 };
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::general::get_pg_pool_connect;
 use tracing::debug;
 
 use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
@@ -15,7 +16,7 @@ use common::error_code::{BackendError, BackendRes};
 use common::prelude::*;
 use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
-use models::{account_manager, PsqlOp};
+use models::{account_manager, PgLocalCli, PsqlOp};
 
 lazy_static! {
     pub static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
@@ -64,9 +65,12 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(
-        &contact,
-    ))
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+
+    let user_at_stored = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact),
+        &mut pg_cli
+    ).await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
@@ -96,7 +100,8 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     device.safe_insert(DeviceInfoFilter::ByDeviceUser(
         &device_id,
         user_at_stored.id,
-    ))?;
+    ),&mut pg_cli
+    ).await?;
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
@@ -112,9 +117,13 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(UserFilter::ByPhoneOrEmail(
-        &contact,
-    ))
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+
+
+    let user_at_stored = account_manager::UserInfoView::find_single(
+        UserFilter::ByPhoneOrEmail(&contact),
+        &mut pg_cli
+    ).await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
@@ -129,7 +138,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     device.safe_insert(DeviceInfoFilter::ByDeviceUser(
         &device_id,
         user_at_stored.id,
-    ))?;
+    ),&mut pg_cli).await?;
 
     //generate auth token
     let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
