@@ -1,16 +1,17 @@
-use std::sync::{Mutex, MutexGuard};
+//use std::sync::{Mutex, MutexGuard};
+use tokio::sync::{Mutex,MutexGuard};
 use std::{env, fmt, fs};
 
 use std::fmt::Debug;
 use std::str::FromStr;
 
 use serde::Deserialize;
-use strum::{Display, EnumString};
 use tracing::{info, warn};
 use tracing_futures::Instrument;
 
 use crate::utils::time::MINUTE30;
 
+#[derive(Debug)]
 pub struct Relayer {
     pub pri_key: String,
     pub account_id: String,
@@ -156,6 +157,10 @@ pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer> {
 
 #[cfg(test)]
 mod tests {
+    use tracing::error;
+
+    use crate::log::init_logger;
+
     use super::*;
     #[test]
     fn test_get_env() {
@@ -164,11 +169,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_relayer_pool() {
+        init_logger();
         let mut handles = vec![];
-        for index in 0..1000 {
+        for index in 0..10{
             let handle = tokio::spawn(async move {
-                let _relayer = wait_for_idle_relayer().await;
-                //println!("envs {:?} index {}", relayer.lock().unwrap(),index);
+                tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 100)).await;
+                let relayer = wait_for_idle_relayer().await.lock().await;
+                error!("relayer {:?} index {}", relayer,index);
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;                
                 index
             });
             handles.push(handle);
@@ -177,6 +185,6 @@ mod tests {
         for handle in handles {
             results.push(handle.await.unwrap());
         }
-        assert_eq!(results, (0..1000).collect::<Vec<_>>());
+        assert_eq!(results, (0..10).collect::<Vec<_>>());
     }
 }
