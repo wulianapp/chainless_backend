@@ -37,8 +37,8 @@ tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-futures  = { workspace = true }
 tracing-subscriber = { workspace = true }
+hex = { workspace = true }
 
 [dev-dependencies]
 actix-http = { workspace = true }
-hex = { workspace = true }
 

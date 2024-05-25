@@ -50,9 +50,9 @@ pub async fn req(
 
     let cli = ContractClient::<MultiSig>::new().await?;
 
-    //    
-    let tx = SubToMainTx{coin_id,amount};
-    let sign_data = serde_json::to_string(&tx).unwrap();
+    // check sig
+    let tx = SubToMainTx{coin_id:coin_type.to_string(),amount};
+    let sign_data = hex::encode(serde_json::to_string(&tx).unwrap().as_bytes());
     let key = cli.get_master_pubkey_list(&subaccount_id).await?;
     if key.len() != 1 {
         return Err(BackendError::InternalError("".to_string()))?;
@@ -61,10 +61,11 @@ pub async fn req(
             Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
         }
     };
-
+    
     let available_balance =
         super::get_available_amount(&subaccount_id, &coin_type, &mut pg_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
+    
     if amount > available_balance {
         error!(
             "{},  {}(amount)  big_than1 {}(available_balance) ",
@@ -74,12 +75,12 @@ pub async fn req(
     }
 
     //from必须是用户的子账户
-
     let sub_sig = AccountSignInfo::new(&subaccount_id, &sub_sig);
 
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
         .await?;
+    
     let mut coin_info = CoinTxView::new_with_specified(
         coin_type,
         sub_sig.account_id,

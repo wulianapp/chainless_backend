@@ -147,6 +147,7 @@ pub(crate) async fn req(
             .gen_send_money_raw(vec![], &from, &to_account_id, coin_type, amount, expire_at)
             .await?;
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
+        coin_info.transaction.tx_id = Some(tx_id.clone());
         coin_info.transaction.tx_type = TxType::Forced;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
