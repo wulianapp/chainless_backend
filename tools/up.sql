@@ -129,3 +129,21 @@ create table ethereum_bridge_order
     --考虑到回滚的情况，唯一限制的时候加上状态
     CONSTRAINT bridge_order_type_status_id PRIMARY KEY (order_type,status,id)
 );
+
+
+create table airdrop
+(
+    user_id text primary key,
+    account_id text unique,
+    invite_code text not null unique,
+    predecessor_user_id text not null,
+    predecessor_account_id text,
+    btc_address text unique,
+    btc_level smallint,
+    airdrop_reserved_field1 text,
+    airdrop_reserved_field2 text,
+    airdrop_reserved_field3 text,
+    updated_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
+);
+

@@ -56,7 +56,7 @@ pub async fn table_clear(table_name: &str) -> Result<(), String> {
 }
 
 pub async fn table_all_clear() {
-    //table_clear("accounts").unwrap();
+    table_clear("airdrop").await.unwrap();
     table_clear("users").await.unwrap();
     table_clear("coin_transaction").await.unwrap();
     table_clear("device_info").await.unwrap();

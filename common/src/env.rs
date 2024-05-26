@@ -128,11 +128,11 @@ lazy_static! {
     };
 }
 
-pub fn find_idle_relayer() -> Option<&'static Mutex<Relayer>> {
+pub fn find_idle_relayer() -> Option<MutexGuard<'static, Relayer>> {
     for relayer in MULTI_SIG_RELAYER_POOL.iter() {
         match relayer.try_lock() {
-            Ok(_) => {
-                return Some(relayer);
+            Ok(guard) => {
+                return Some(guard);
             }
             Err(_) => continue,
         }
@@ -140,7 +140,7 @@ pub fn find_idle_relayer() -> Option<&'static Mutex<Relayer>> {
     None
 }
 
-pub async fn wait_for_idle_relayer() -> &'static Mutex<Relayer> {
+pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
     loop {
         match find_idle_relayer() {
             Some(x) => {
@@ -174,8 +174,8 @@ mod tests {
         for index in 0..10{
             let handle = tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 100)).await;
-                let relayer = wait_for_idle_relayer().await.lock().await;
-                error!("relayer {:?} index {}", relayer,index);
+                let relayer = wait_for_idle_relayer().await;
+                error!("relayer {} index {}", relayer.account_id,index);
                 tokio::time::sleep(std::time::Duration::from_millis(1000)).await;                
                 index
             });

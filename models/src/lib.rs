@@ -380,6 +380,7 @@ pub enum PsqlType {
     VecU64(Vec<u64>),
     OptionStr(Option<String>),
     OptionU64(Option<u64>),
+    OptionU8(Option<u8>),
 }
 
 impl PsqlType {
@@ -403,6 +404,9 @@ impl PsqlType {
                 .map(|x| format!("'{}'", x))
                 .unwrap_or("NULL".to_string()),
             PsqlType::OptionU64(data) => {
+                data.map(|x| format!("{}", x)).unwrap_or("NULL".to_string())
+            },
+            PsqlType::OptionU8(data) => {
                 data.map(|x| format!("{}", x)).unwrap_or("NULL".to_string())
             }
         }
@@ -430,6 +434,12 @@ impl From<Option<String>> for PsqlType {
 impl From<Option<u64>> for PsqlType {
     fn from(value: Option<u64>) -> Self {
         PsqlType::OptionU64(value)
+    }
+}
+
+impl From<Option<u8>> for PsqlType {
+    fn from(value: Option<u8>) -> Self {
+        PsqlType::OptionU8(value)
     }
 }
 
