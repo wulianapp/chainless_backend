@@ -9,7 +9,7 @@ extern crate common;
 extern crate lazy_static;
 
 pub mod account_manager;
-pub mod air_reward;
+pub mod airdrop;
 pub mod bridge;
 pub mod general;
 pub mod newbie_reward;
@@ -46,7 +46,7 @@ async fn main() -> std::io::Result<()> {
             .configure(account_manager::configure_routes)
             .configure(wallet::configure_routes)
             .configure(bridge::configure_routes)
-            .configure(air_reward::configure_routes)
+            .configure(airdrop::configure_routes)
 
     })
     .bind(service)?

@@ -18,6 +18,7 @@ use anyhow::{Ok, Result};
 pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
+    predecessor(&'a str),
     BtcLevel(u8)
 }
 
@@ -29,6 +30,9 @@ impl fmt::Display for AirdropUpdater<'_> {
             },
             AirdropUpdater::BtcAddress(addr) => {
                 format!("btc_address='{}'", addr)
+            },
+            AirdropUpdater::predecessor(account_id) => {
+                format!("predecessor_account_id='{}'", account_id)
             },
             AirdropUpdater::BtcLevel(level) => {
                 format!("btc_level='{}'", level)
@@ -42,6 +46,8 @@ impl fmt::Display for AirdropUpdater<'_> {
 pub enum AirdropFilter<'b> {
     ByInviteCode(&'b str),
     ByAccountId(&'b str),
+    ByBtcAddress(&'b str),
+    ByUserId(&'b str),
 }
 
 impl fmt::Display for AirdropFilter<'_> {
@@ -49,6 +55,8 @@ impl fmt::Display for AirdropFilter<'_> {
         let description = match self {
             AirdropFilter::ByInviteCode(code) => format!("invite_code='{}' ", code),
             AirdropFilter::ByAccountId(id) => format!("account_id='{}' ", id),
+            AirdropFilter::ByUserId(id) => format!("user_id='{}' ", id),
+            AirdropFilter::ByBtcAddress(addr) => format!("btc_address='{}' ", addr),
         };
         write!(f, "{}", description)
     }
@@ -65,6 +73,7 @@ impl AirdropView {
     pub fn new_with_specified(
         user_id: &str,
         predecessor_user_id: &str,
+        predecessor_account_id: &str,
     ) -> Self {
         AirdropView {
             airdrop: Airdrop {
@@ -72,7 +81,7 @@ impl AirdropView {
                 account_id: None,
                 invite_code: user_id.to_string(),
                 predecessor_user_id: predecessor_user_id.to_string(),
-                predecessor_account_id: None,
+                predecessor_account_id: predecessor_account_id.to_string(),
                 btc_address: None,
                 btc_level: None,
                 airdrop_reserved_field1: "".to_string(),
@@ -118,7 +127,7 @@ impl PsqlOp for AirdropView {
                     account_id: row.get::<usize, Option<String>>(1),
                     invite_code: row.get(2), 
                     predecessor_user_id: row.get(3), 
-                    predecessor_account_id: row.get::<usize, Option<String>>(4), 
+                    predecessor_account_id: row.get::<usize, String>(4), 
                     btc_address: row.get::<usize, Option<String>>(5), 
                     btc_level: row.get::<usize, Option<i16>>(6).map(|x| x as u8), 
                     airdrop_reserved_field1: row.get(7), 
@@ -162,7 +171,6 @@ impl PsqlOp for AirdropView {
             airdrop_reserved_field3 
         } = self.airdrop.clone();
         let account_id: PsqlType = account_id.into();
-        let predecessor_account_id: PsqlType = predecessor_account_id.into();
         let btc_address: PsqlType = btc_address.into();
         let btc_level: PsqlType = btc_level.into();
 
@@ -178,12 +186,12 @@ impl PsqlOp for AirdropView {
                 airdrop_reserved_field1,\
                 airdrop_reserved_field2,\
                 airdrop_reserved_field3
-         ) values ('{}',{},'{}','{}',{},{},{},'{}','{}','{}');",
+         ) values ('{}',{},'{}','{}','{}',{},{},'{}','{}','{}');",
             user_id, 
             account_id.to_psql_str(),
             invite_code,
             predecessor_user_id,
-            predecessor_account_id.to_psql_str(),
+            predecessor_account_id,
             btc_address.to_psql_str(),
             btc_level.to_psql_str(),
             airdrop_reserved_field1,
@@ -217,7 +225,7 @@ mod tests {
         let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
         let airdrop =
-            AirdropView::new_with_specified("1", "2");
+            AirdropView::new_with_specified("1", "2","3.local");
         airdrop.insert(&mut pg_cli).await.unwrap();
         let airdrop_by_find =
             AirdropView::find_single(AirdropFilter::ByInviteCode("1"),&mut pg_cli).await.unwrap();

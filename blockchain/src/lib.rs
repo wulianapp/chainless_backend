@@ -1,8 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-pub mod air_reward;
-mod airdrop;
+pub mod airdrop;
 pub mod bridge_on_near;
 pub mod coin;
 pub mod erc20_on_eth;
@@ -82,7 +81,6 @@ pub struct ContractClient<T> {
 impl<T> ContractClient<T> {
     pub async fn gen_signer(contract: &str) -> Result<Self> {
         let relayer = wait_for_idle_relayer().await;
-        let relayer = relayer.lock().map_err(to_internal_error)?;
         let pri_key: SecretKey = relayer.pri_key.parse()?;
         let account_id = AccountId::from_str(&relayer.account_id)?;
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);

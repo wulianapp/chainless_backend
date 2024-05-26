@@ -86,7 +86,7 @@ pub async fn init() -> App<
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
-        .configure(crate::air_reward::configure_routes)
+        .configure(crate::airdrop::configure_routes)
 }
 
 pub fn simulate_sender_master() -> TestWulianApp2 {
@@ -1087,10 +1087,10 @@ macro_rules! test_get_device_list {
 }
 
 #[macro_export]
-macro_rules! test_air_reward_get_sys_info {
+macro_rules! test_airdrop_status {
     ($service:expr, $app:expr) => {{
-        let url = format!("/airReward/getSysInfo");
-        let res: BackendRespond<SysInfoResponse> = test_service_call!(
+        let url = format!("/airdrop/status");
+        let res: BackendRespond<AirdropStatusResponse> = test_service_call!(
             $service,
             "get",
             &url,
@@ -1109,7 +1109,7 @@ macro_rules! test_receive_air {
             "btc_addr": "aa",
             "sig": ""
         });
-        let url = format!("/airReward/receiveAir");
+        let url = format!("/airdrop/receiveAir");
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "Post",

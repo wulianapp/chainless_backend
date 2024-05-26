@@ -1,8 +1,7 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::{
-    air_reward::AirReward,
-    multi_sig::{MultiSig, MultiSigRank},
+    airdrop::Airdrop, multi_sig::{MultiSig, MultiSigRank}
 };
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
@@ -16,17 +15,18 @@ use models::{
     PsqlOp,
 };
 use tracing::{debug, info};
+use lettre::transport::smtp::client;
+use serde::{Deserialize, Serialize};
 
 use crate::wallet::handlers::*;
 use crate::wallet::UpdateStrategy;
 use crate::{
-    air_reward::ReceiveAirRequest,
     utils::{token_auth, wallet_grades::query_wallet_grade},
 };
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
-pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRes<String> {
+pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
@@ -38,34 +38,9 @@ pub async fn req(req: HttpRequest, request_data: ReceiveAirRequest) -> BackendRe
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
-    let ReceiveAirRequest { btc_addr, sig } = request_data;
-
-    let btc_addr_level = match (btc_addr, sig) {
-        (None, None) => None,
-        (Some(addr), Some(_)) => {
-            //todo: check sig
-            let grade = query_wallet_grade(&addr).await?;
-            Some((addr, grade))
-        }
-        _ => Err(BackendError::RequestParamInvalid("".to_string()))?,
-    };
-
-    let is_real = Some(false);
-
-    let cli = ContractClient::<AirReward>::new().await?;
-    let ref_user = cli
-        .get_up_user_with_id(&main_account)
-        .await?
-        .ok_or(AccountManagerError::PredecessorNotSetSecurity)?;
-
-    let receive_res = cli
-        .receive_air(
-            &main_account,
-            ref_user.user_account.as_ref(),
-            btc_addr_level,
-            is_real,
-        )
-        .await?;
+    //todo: check if claimed already
+    let cli = ContractClient::<Airdrop>::new().await?;
+    let receive_res = cli.claim_cly(&main_account).await?;
     debug!("successful claim air_reward {:?}", receive_res);
     Ok(None)
 }
