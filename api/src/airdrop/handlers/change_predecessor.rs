@@ -5,7 +5,7 @@ use blockchain::{
     multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    data_structures::{airdrop::Airdrop, wallet_namage_record::WalletOperateType, KeyRole2},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
 };
@@ -27,7 +27,7 @@ use common::error_code::{BackendRes, WalletError};
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ChangePredecessorRequest {
-    predecessor_account_id: String,
+    predecessor_invite_code: String,
 }
 
 pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> BackendRes<String> {
@@ -43,20 +43,29 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
-    let ChangePredecessorRequest { predecessor_account_id} = request_data;
+    let ChangePredecessorRequest { predecessor_invite_code} = request_data;
 
     //todo: check predecessor_account_id if exist
     //todo： check if called claim_dw20
-    //fixme：是否允许安全问答之前进行修改
+    
+    let predecessor_airdrop = AirdropView::find_single(
+        AirdropFilter::ByInviteCode(&predecessor_invite_code), 
+        &mut pg_cli
+    ).await?;
 
+    //
+    let Airdrop{
+        user_id: predecessor_user_id,
+        account_id:predecessor_account_id ,..
+    } = predecessor_airdrop.airdrop;
     AirdropView::update_single(
-        AirdropUpdater::predecessor(&predecessor_account_id),
+        AirdropUpdater::Predecessor(&predecessor_user_id,predecessor_account_id.as_ref().unwrap()),
          AirdropFilter::ByUserId(&user_id.to_string()), 
          &mut pg_cli
     ).await?;
 
     let cli = ContractClient::<ChainAirdrop>::new().await?;
-    cli.change_predecessor(&main_account,&predecessor_account_id).await?;
+    cli.change_predecessor(&main_account,predecessor_account_id.as_ref().unwrap()).await?;
 
     pg_cli.commit().await?;
     //todo: change ref

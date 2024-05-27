@@ -94,8 +94,7 @@ async fn bind_btc_address(req: HttpRequest, req_data: web::Json<BindBtcAddressRe
  * @apiVersion 0.0.1
  * @apiName ChangeInviteCode
  * @apiGroup Airdrop
- * @apiBody {String} [btc_addr]   btc地址
- * @apiBody {String} [sig]   btc对字符串[ChainlessAirdrop]签名结果
+ * @apiBody {String} code   新的邀请码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -125,7 +124,7 @@ async fn change_invite_code(req: HttpRequest, req_data: web::Json<ChangeInviteCo
  * @apiVersion 0.0.1
  * @apiName ChangePredecessor
  * @apiGroup Airdrop
- * @apiBody {String} predecessor_account_id   上级钱包地址
+ * @apiBody {String} predecessorInviteCode   上级钱包的邀请码
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney

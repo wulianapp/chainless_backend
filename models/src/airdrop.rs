@@ -19,7 +19,8 @@ pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
     AccountId(&'a str),
-    predecessor(&'a str),
+    //user_id,account_id
+    Predecessor(&'a str,&'a str),
     BtcLevel(u8)
 }
 
@@ -35,8 +36,8 @@ impl fmt::Display for AirdropUpdater<'_> {
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)
             },
-            AirdropUpdater::predecessor(account_id) => {
-                format!("predecessor_account_id='{}'", account_id)
+            AirdropUpdater::Predecessor(user_id,account_id) => {
+                format!("predecessor_user_id='{}',predecessor_account_id='{}'",user_id,account_id)
             },
             AirdropUpdater::BtcLevel(level) => {
                 format!("btc_level='{}'", level)

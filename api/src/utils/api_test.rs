@@ -1094,7 +1094,7 @@ macro_rules! test_airdrop_status {
 macro_rules! test_bind_btc_address {
     ($service:expr, $app:expr) => {{
         let payload = json!({
-            "btcAddress": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuadyn",
+            "btcAddress": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuady4",
             "sig": "aabbcc"
         });
         let url = format!("/airdrop/bindBtcAddress");
@@ -1116,7 +1116,7 @@ macro_rules! test_new_btc_deposit {
     ($service:expr, $app:expr) => {{
         let payload = json!({
             "sender": "bc1q2uk2gwmhpx3c3ez54cvveettz0uyk7rwj8avmy",
-            "receiver": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuadyn"
+            "receiver": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuady4"
         });
         let url = format!("/airdrop/newBtcDeposit");
         let res: BackendRespond<String> = test_service_call!(
@@ -1154,7 +1154,7 @@ macro_rules! test_change_invite_code {
 macro_rules! test_change_predecessor {
     ($service:expr, $app:expr) => {{
         let payload = json!({
-            "predecessorAccountId": "new_predecessor.local",
+            "predecessorInviteCode": "chainless.hk",
         });
         let url = format!("/airdrop/changePredecessor");
         let res: BackendRespond<String> = test_service_call!(
