@@ -54,10 +54,12 @@ tracing-subscriber = "0.2.22"
 ## crypto
 base58 = "0.2.0"
 base64 = "0.10.1"
+bitcoin = "0.32.0"
 bs58 = "0.5.1"
 ed25519-dalek = "=1.0.1"
 hex = "0.4"
 rand = "0.7"
+secp256k1 = "0.29.0"
 serde_json = { version = "1.0.108", default-features = false, features = ["alloc", "arbitrary_precision"] }
 uuid = { version = "1.7.0" ,features = ["v4"]}
 

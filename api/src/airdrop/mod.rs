@@ -62,8 +62,8 @@ async fn status(req: HttpRequest) -> impl Responder {
  * @apiVersion 0.0.1
  * @apiName BindBtcAddress
  * @apiGroup Airdrop
- * @apiBody {String} [btc_addr]   btc地址
- * @apiBody {String} [sig]   btc对字符串[ChainlessAirdrop]签名结果
+ * @apiBody {String} btcAddress   btc地址
+ * @apiBody {String} sig   btc私钥对字符串 ChainlessAirdrop 签名结果
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -149,7 +149,7 @@ async fn change_predecessor(req: HttpRequest, req_data: web::Json<ChangePredeces
 }
 
 /**
- * @api {post} /airdrop/claimCly 申领cly空投
+ * @api {post} /airdrop/claimCly 登记cly空投
  * @apiVersion 0.0.1
  * @apiName ClaimCly
  * @apiGroup Airdrop
@@ -177,7 +177,7 @@ async fn claim_cly(req: HttpRequest) -> impl Responder {
 }
 
 /**
- * @api {post} /airdrop/claimDw20 申领Dw20空投
+ * @api {post} /airdrop/claimDw20 登记Dw20空投
  * @apiVersion 0.0.1
  * @apiName ClaimDw20
  * @apiGroup Airdrop

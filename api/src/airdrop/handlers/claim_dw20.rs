@@ -43,8 +43,8 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         .claim_dw20(
             &main_account,
             &user_airdrop.airdrop.predecessor_account_id,
-            &user_airdrop.airdrop.btc_address.unwrap(),
-            user_airdrop.airdrop.btc_level.unwrap()
+            user_airdrop.airdrop.btc_address.as_deref(),
+            user_airdrop.airdrop.btc_level.unwrap_or_default()
         )
         .await?;
     debug!("successful claim dw20 txid {}", ref_user);

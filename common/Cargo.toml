@@ -10,6 +10,7 @@ actix-web = { workspace = true }
 anyhow = { workspace = true }
 base58 = { workspace = true }
 bs58 = { workspace = true }
+bitcoin = { workspace = true }
 chrono = { workspace = true }
 ed25519-dalek = { workspace = true }
 env_logger = { workspace = true }
@@ -22,6 +23,7 @@ rand = { workspace = true }
 serde = { workspace = true }
 serde_derive = { workspace = true }
 serde_json = { workspace = true }
+secp256k1 = { workspace = true }
 strum = { workspace = true }
 strum_macros = { workspace = true }
 thiserror = { workspace = true }

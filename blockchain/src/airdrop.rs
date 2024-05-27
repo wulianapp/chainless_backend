@@ -38,7 +38,7 @@ impl ContractClient<Airdrop> {
         &self,
         account_id: &str,
         predecessor_account_id: &str,
-        btc_address: &str,
+        btc_address: Option<&str>,
         btc_level: u8,
     ) -> Result<String> {
         let args_str = json!({

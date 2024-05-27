@@ -9,6 +9,7 @@ pub mod error_code;
 pub mod log;
 pub mod prelude;
 pub mod utils;
+pub mod btc_crypto;
 
 #[macro_use]
 extern crate lazy_static;
