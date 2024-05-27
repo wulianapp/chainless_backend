@@ -11,7 +11,7 @@ use common::{
 };
 use lettre::transport::smtp::client;
 use models::{
-    airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
+    airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PgLocalCli, PsqlOp
 };
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
@@ -34,7 +34,8 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     //todo: must be called by main device
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut pg_cli = pg_cli.begin().await?;
 
     let (_user, current_strategy, device) =
         get_session_state(user_id, &device_id, &mut pg_cli).await?;
@@ -42,12 +43,12 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
-    if main_account == "".to_string(){
-       Err(BackendError::InternalError("".to_string()))?; 
-    }
-
     let ChangePredecessorRequest { predecessor_account_id} = request_data;
+
+    //todo: check predecessor_account_id if exist
+    //todo： check if called claim_dw20
     //fixme：是否允许安全问答之前进行修改
+
     AirdropView::update_single(
         AirdropUpdater::predecessor(&predecessor_account_id),
          AirdropFilter::ByUserId(&user_id.to_string()), 
@@ -57,7 +58,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     let cli = ContractClient::<ChainAirdrop>::new().await?;
     cli.change_predecessor(&main_account,&predecessor_account_id).await?;
 
-
+    pg_cli.commit().await?;
     //todo: change ref
     Ok(None)
 }

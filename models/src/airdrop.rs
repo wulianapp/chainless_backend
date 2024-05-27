@@ -18,6 +18,7 @@ use anyhow::{Ok, Result};
 pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
+    AccountId(&'a str),
     predecessor(&'a str),
     BtcLevel(u8)
 }
@@ -30,6 +31,9 @@ impl fmt::Display for AirdropUpdater<'_> {
             },
             AirdropUpdater::BtcAddress(addr) => {
                 format!("btc_address='{}'", addr)
+            },
+            AirdropUpdater::AccountId(id) => {
+                format!("account_id='{}'", id)
             },
             AirdropUpdater::predecessor(account_id) => {
                 format!("predecessor_account_id='{}'", account_id)

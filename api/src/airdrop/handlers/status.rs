@@ -48,13 +48,10 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
 
     //todo: check sig,
     //todo: get kyc info
-    let user_airdrop = AirdropView::find(
+    let user_airdrop = AirdropView::find_single(
         AirdropFilter::ByUserId(&user_id.to_string()), 
         &mut pg_cli
     ).await?;
-    if !user_airdrop.is_empty(){
-        Err(BackendError::InternalError("already bind".to_string()))?;
-    }
     let Airdrop { 
         user_id, 
         account_id, 
@@ -64,7 +61,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         btc_address, 
         btc_level, 
         ..
-     } = user_airdrop[0].airdrop.clone();
+     } = user_airdrop.airdrop.clone();
     Ok(Some(AirdropStatusResponse{
         user_id,
         account_id,

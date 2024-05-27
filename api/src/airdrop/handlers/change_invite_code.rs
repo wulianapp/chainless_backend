@@ -24,11 +24,11 @@ use common::error_code::{BackendRes, WalletError};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ChangeInviteCOdeRequest {
+pub struct ChangeInviteCodeRequest {
     code: String
 }
 
-pub async fn req(req: HttpRequest, request_data: ChangeInviteCOdeRequest) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
@@ -39,7 +39,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCOdeRequest) -> Bac
     let main_account = get_main_account(user_id, &mut pg_cli).await?;
 
 
-    let ChangeInviteCOdeRequest { code} = request_data;
+    let ChangeInviteCodeRequest { code} = request_data;
     //todo: check sig,
     //todo: get kyc info
     let user_airdrop = AirdropView::find(

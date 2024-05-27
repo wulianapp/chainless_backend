@@ -80,7 +80,7 @@ pub async fn init() -> App<
 > {
     env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
-    models::general::table_all_clear();
+    models::general::table_all_clear().await;
     clear_contract().await;
     App::new()
         .configure(configure_routes)
@@ -302,28 +302,14 @@ macro_rules! test_service_call {
 #[macro_export]
 macro_rules! test_register {
     ( $service:expr,$app:expr) => {{
-            let _payload = json!({
-                "deviceId":  $app.device.id,
-                "contact": $app.user.contact,
-                "kind": "Register2"
-            });
-            /***
-            let _res: BackendRespond<String> = test_service_call!(
-                $service,
-                "post",
-                "/accountManager/getCaptchaWithoutToken",
-                Some(payload.to_string()),
-                None::<String>
-            );
-            ***/
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
                 "email": $app.user.contact,
                 //"captcha": $app.user.captcha,
                 "captcha": "000000",
-                "password": $app.user.password
-                //"predecessorInviteCode":"chainless.hk"
+                "password": $app.user.password,
+                "predecessorInviteCode":"chainless.hk"
             });
 
             let res: BackendRespond<String> = test_service_call!(
@@ -1086,6 +1072,8 @@ macro_rules! test_get_device_list {
     }};
 }
 
+
+/// airdrop 
 #[macro_export]
 macro_rules! test_airdrop_status {
     ($service:expr, $app:expr) => {{
@@ -1103,18 +1091,109 @@ macro_rules! test_airdrop_status {
 }
 
 #[macro_export]
-macro_rules! test_receive_air {
+macro_rules! test_bind_btc_address {
     ($service:expr, $app:expr) => {{
         let payload = json!({
-            "btc_addr": "aa",
-            "sig": ""
+            "btcAddress": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuadyn",
+            "sig": "aabbcc"
         });
-        let url = format!("/airdrop/receiveAir");
+        let url = format!("/airdrop/bindBtcAddress");
+        println!("______{}",payload.to_string());
         let res: BackendRespond<String> = test_service_call!(
             $service,
-            "Post",
+            "post",
             &url,
             Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_new_btc_deposit {
+    ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "sender": "bc1q2uk2gwmhpx3c3ez54cvveettz0uyk7rwj8avmy",
+            "receiver": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuadyn"
+        });
+        let url = format!("/airdrop/newBtcDeposit");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_change_invite_code {
+    ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "code": "newcode",
+        });
+        let url = format!("/airdrop/changeInviteCode");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_change_predecessor {
+    ($service:expr, $app:expr) => {{
+        let payload = json!({
+            "predecessorAccountId": "new_predecessor.local",
+        });
+        let url = format!("/airdrop/changePredecessor");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            Some(payload.to_string()),
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_claim_cly {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/airdrop/claimCly");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            None::<String>,
+            Some($app.user.token.as_ref().unwrap())
+        );
+        assert_eq!(res.status_code, 0);
+        res.data
+    }};
+}
+
+#[macro_export]
+macro_rules! test_claim_dw20 {
+    ($service:expr, $app:expr) => {{
+        let url = format!("/airdrop/claimDw20");
+        let res: BackendRespond<String> = test_service_call!(
+            $service,
+            "post",
+            &url,
+            None::<String>,
             Some($app.user.token.as_ref().unwrap())
         );
         assert_eq!(res.status_code, 0);

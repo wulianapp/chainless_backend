@@ -43,11 +43,11 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     let BindBtcAddressRequest { btc_address, sig } = request_data;
     //todo: check sig,
     //todo: get kyc info
-    let user_airdrop = AirdropView::find(
+    let user_airdrop = AirdropView::find_single(
         AirdropFilter::ByAccountId(&main_account), 
         &mut pg_cli
     ).await?;
-    if !user_airdrop.is_empty(){
+    if user_airdrop.airdrop.btc_address.is_some(){
         Err(BackendError::InternalError("already bind".to_string()))?;
     }
     AirdropView::update_single(

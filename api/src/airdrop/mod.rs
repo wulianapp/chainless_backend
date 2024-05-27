@@ -2,6 +2,8 @@
 //! account manager http service
 pub mod handlers;
 
+use std::future::IntoFuture;
+
 use actix_web::{get, post, web, HttpRequest, Responder};
 
 use blockchain::bridge_on_near::Status;
@@ -16,6 +18,7 @@ use tracing::{debug, Level};
 //use captcha::{ContactType, VerificationCode};
 
 use crate::airdrop::handlers::bind_btc_address::BindBtcAddressRequest;
+use crate::airdrop::handlers::change_invite_code::ChangeInviteCodeRequest;
 use crate::airdrop::handlers::change_predecessor::ChangePredecessorRequest;
 use crate::airdrop::handlers::new_btc_deposit::NewBtcDepositRequest;
 use crate::utils::respond::gen_extra_respond;
@@ -109,10 +112,10 @@ async fn bind_btc_address(req: HttpRequest, req_data: web::Json<BindBtcAddressRe
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/changeInviteCode")]
-async fn change_invite_code(req: HttpRequest, req_data: web::Json<BindBtcAddressRequest>) -> impl Responder {
+async fn change_invite_code(req: HttpRequest, req_data: web::Json<ChangeInviteCodeRequest>) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::bind_btc_address::req(req, req_data.into_inner()).await,
+        handlers::change_invite_code::req(req, req_data.into_inner()).await,
     )
 }
 
@@ -142,7 +145,7 @@ async fn change_invite_code(req: HttpRequest, req_data: web::Json<BindBtcAddress
 async fn change_predecessor(req: HttpRequest, req_data: web::Json<ChangePredecessorRequest>) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::change_predecessor::req(req, req_data.into_inner()).await,
+        handlers::change_predecessor::req(req, req_data.into_inner()).await
     )
 }
 
@@ -283,8 +286,7 @@ mod tests {
     use super::handlers::status::AirdropStatusResponse;
 
     #[actix_web::test]
-    async fn test_air_reward_get_sys_info() {
-        println!("start test_get_sys_info");
+    async fn test_airdrop_braced() {
         let app = init().await;
         let service = test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -292,25 +294,26 @@ mod tests {
 
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        //tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
-        println!("sys_info {:?}", status_info);
+        println!("status_info1 {:#?}", status_info);
+
+        test_bind_btc_address!(service, sender_master);
+        test_new_btc_deposit!(service, sender_master);
+        test_change_invite_code!(service,sender_master);
+        //test_change_predecessor!(service,sender_master);
+
+        //test_change_invite_code!(service,sender_master);1
+        let status_info = test_airdrop_status!(service, sender_master).unwrap();
+        println!("status_info2 {:#?}", status_info);
+
+        test_claim_dw20!(service,sender_master);
+        test_claim_cly!(service,sender_master);
+        test_change_predecessor!(service,sender_master);
+
+        let status_info = test_airdrop_status!(service, sender_master).unwrap();
+        println!("status_info3 {:#?}", status_info);
     }
 
-    #[actix_web::test]
-    async fn test_receive_air() {
-        println!("start test_receive_air");
-        let app = init().await;
-        let service = test::init_service(app).await;
-        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
-            gen_some_accounts_with_new_key();
-
-        test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
-        let call_res = test_receive_air!(service, sender_master);
-        println!("sys_info {:?}", call_res);
-    }
 }

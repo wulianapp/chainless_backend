@@ -18,6 +18,7 @@ use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use common::utils::math::generate_random_hex_string;
 use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
+use models::airdrop::{AirdropFilter, AirdropUpdater, AirdropView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::general::{get_pg_pool_connect, transaction_begin};
 use models::secret_store::SecretStoreView;
@@ -113,6 +114,13 @@ pub(crate) async fn req(
         vec![txid],
     );
     record.insert(&mut pg_cli).await?;
+
+
+    AirdropView::update_single(
+        AirdropUpdater::AccountId(&main_account_id),
+        AirdropFilter::ByUserId(&user_id.to_string()), 
+         &mut pg_cli
+    ).await?;
 
     //注册的时候就把允许跨链的状态设置了
     let bridge_cli = ContractClient::<Bridge>::new().await?;
