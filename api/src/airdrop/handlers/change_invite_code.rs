@@ -9,7 +9,7 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
+    account_manager::{UserFilter, UserInfoView}, airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
 use serde::{Deserialize,Serialize};
 use tracing::{debug, info};
@@ -32,28 +32,31 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut pg_cli = get_pg_pool_connect().await?;
 
-    let (_user, current_strategy, device) =
+    let user = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
+    if user.user_info.main_account.ne("") {
+        let (_user, current_strategy, device) =
         get_session_state(user_id, &device_id, &mut pg_cli).await?;
-    let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
-
-
+        let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
+        check_role(current_role, KeyRole2::Master)?;
+    }
     let ChangeInviteCodeRequest { code} = request_data;
-    //todo: check sig,
+
+    if code.len() < 4 || code.len() > 20 {
+        Err(AirdropError::InviteCodeIllegal)?;
+    }
+
     //todo: get kyc info
     let user_airdrop = AirdropView::find(
         AirdropFilter::ByInviteCode(&code), 
         &mut pg_cli
     ).await?;
-    if !user_airdrop.is_empty(){
-        Err(BackendError::RequestParamInvalid("code already used".to_string()))?;
+    if user_airdrop.len() != 0{
+        Err(AirdropError::InviteCodeAlreadyUsed)?;
     }
-
 
     AirdropView::update_single(
         AirdropUpdater::InviteCode(&code),
-         AirdropFilter::ByAccountId(&main_account),
+         AirdropFilter::ByUserId(&user_id.to_string()),
          &mut pg_cli
     ).await?;
 

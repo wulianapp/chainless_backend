@@ -45,3 +45,11 @@ pub const ETH_TX_CONFIRM_BLOCK_NUM: u8 = 6;
 
 //密码登陆错误允许的重试次数
 pub const LOGIN_BY_PASSWORD_RETRY_NUM: u8 = 5;
+
+//邀请码长度规则
+pub const INVITE_CODE_MIN_LEN: u8 = 4;
+pub const INVITE_CODE_MAX_LEN: u8 = 20;
+
+//btc地址验证使用的签名数据
+pub const CHAINLESS_AIRDROP: &str = "ChainlessAirdrop";
+

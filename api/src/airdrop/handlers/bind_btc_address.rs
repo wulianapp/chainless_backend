@@ -4,9 +4,7 @@ use blockchain::{
     multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    btc_crypto::{self, CHAINLESS_AIRDROP}, data_structures::{wallet_namage_record::WalletOperateType, KeyRole2}, error_code::{AccountManagerError, BackendError}, utils::math::coin_amount::display2raw
 };
 use models::{
     airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
@@ -42,13 +40,25 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
 
     let BindBtcAddressRequest { btc_address, sig } = request_data;
     //todo: check sig,
+    if !btc_crypto::verify(CHAINLESS_AIRDROP, &sig, &btc_address)?{
+        Err(BackendError::SigVerifyFailed)?;
+    }
+
+    if AirdropView::find(
+        AirdropFilter::ByBtcAddress(&btc_address), 
+        &mut pg_cli
+    ).await?.len() != 0
+    {
+        Err(AirdropError::BtcAddressAlreadyUsed)?;
+    }
+
     //todo: get kyc info
     let user_airdrop = AirdropView::find_single(
         AirdropFilter::ByAccountId(&main_account), 
         &mut pg_cli
     ).await?;
     if user_airdrop.airdrop.btc_address.is_some(){
-        Err(BackendError::InternalError("already bind".to_string()))?;
+        Err(AirdropError::AlreadyBindedBtcAddress)?;
     }
     AirdropView::update_single(
         AirdropUpdater::BtcAddress(&btc_address),

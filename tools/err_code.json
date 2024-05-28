@@ -9,6 +9,11 @@
       "zh_tw": "參數錯誤",
       "en_us": "Parameter Error"
     },
+    "3": {
+      "zh_cn": "无效签名",
+      "zh_tw": "無效簽名",
+      "en_us": "Invalid Signature"
+    },
     "2002": {
       "zh_tw": "驗證碼不存在",
       "zh_cn": "验证码不存在",
@@ -158,6 +163,36 @@
         "zh_tw": "用戶尚未綁定ETH地址",
         "zh_cn": "用户尚未绑定ETH地址",
         "en_us": "User has not bound ETH address"
+      },
+      "5000": {
+        "zh_tw": "不能重复绑定BTC地址",
+        "zh_cn": "不能重復綁定BTC地址",
+        "en_us": "Forbid bind btc address repeatedly"
+      },
+      "5001": {
+        "zh_tw": "BTC地址已被使用",
+        "zh_cn": "BTC地址已被使用",
+        "en_us": "Btc address have been used already"
+      },
+      "5002": {
+        "zh_tw": "邀请码已被占用",
+        "zh_cn": "邀請碼已被占用",
+        "en_us": "Invite code have been used already"
+      },
+      "5003": {
+        "zh_tw": "邀请码格式错误",
+        "zh_cn": "邀請碼格式錯誤",
+        "en_us": "Invite code is illegal"
+      },
+      "5004": {
+        "zh_tw": "上级邀请码不存在",
+        "zh_cn": "上級邀請碼不存在",
+        "en_us": "Invite code of predecessor is nonexistent"
+      },
+      "5005": {
+        "zh_tw": "禁止绑定自己为上级",
+        "zh_cn": "禁止綁定自己為上級",
+        "en_us": "Forbid bind yourself as predecessor"
       }
       
 }

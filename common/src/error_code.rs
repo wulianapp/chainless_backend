@@ -39,8 +39,8 @@ pub enum BackendError {
     InternalError(String),
     #[error("Request param is invalid: {0}")]
     RequestParamInvalid(String),
-    #[error("Db error: {0}")]
-    DBError(String),
+    #[error("Check Signature failed")]
+    SigVerifyFailed,
     #[error("chain error: {0}")]
     ChainError(String),
     #[error("Authorization error: {0}")]
@@ -53,6 +53,8 @@ pub enum BackendError {
     Wallet(#[from] WalletError),
     #[error("{0}")]
     Bridge(#[from] BridgeError),
+    #[error("{0}")]
+    Airdrop(#[from] AirdropError),
 }
 
 impl From<AnyhowError> for BackendError {
@@ -102,13 +104,14 @@ impl ErrorCode for BackendError {
         match self {
             BackendError::InternalError(_) => 1,
             BackendError::RequestParamInvalid(_) => 2,
-            BackendError::DBError(_) => 3,
+            BackendError::SigVerifyFailed => 3,
             BackendError::ChainError(_) => 4,
             BackendError::Authorization(_) => 5,
             BackendError::ExternalService(err) => err.code(),
             BackendError::AccountManager(err) => err.code(),
             BackendError::Wallet(err) => err.code(),
             BackendError::Bridge(err) => err.code(),
+            BackendError::Airdrop(err) => err.code(),
         }
     }
 }
@@ -242,7 +245,6 @@ impl ErrorCode for WalletError {
             Self::ReceiverIsNotSubaccount => 3019,
             Self::MainAccountAlreadyExist(_) => 3020,
             Self::OrderNotFound(_) => 3021,
-
             Self::FobidTransferZero => 3022,
             Self::StrategyRankIllegal => 3023,
             Self::ServantNumReachLimit => 3024,
@@ -268,6 +270,37 @@ impl ErrorCode for BridgeError {
         }
     }
 }
+
+#[derive(Error, Debug)]
+pub enum AirdropError {
+    #[error("Have bond a btc address")]
+    AlreadyBindedBtcAddress,
+    #[error("this address is already used")]
+    BtcAddressAlreadyUsed,
+    #[error("this invite code  is already used")]
+    InviteCodeAlreadyUsed,
+    #[error("this invite code  is illgae")]
+    InviteCodeIllegal,
+    #[error("this predecessor invite code  isn't  exist")]
+    PredecessorInviteCodeNotExist,
+    #[error("this predecessor cann't be your self")]
+    ForbidSetSelfAsPredecessor,
+}
+
+impl ErrorCode for AirdropError {
+    fn code(&self) -> u16 {
+        match self {
+            Self::AlreadyBindedBtcAddress => 5000,
+            Self::BtcAddressAlreadyUsed => 5001,
+            Self::InviteCodeAlreadyUsed => 5002,
+            Self::InviteCodeIllegal => 5003,
+            Self::PredecessorInviteCodeNotExist => 5004,
+            Self::ForbidSetSelfAsPredecessor => 5005,
+        }
+    }
+}
+
+//不能设置自己为上级
 
 #[derive(Error, Debug)]
 pub enum ExternalServiceError {

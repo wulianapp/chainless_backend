@@ -51,13 +51,19 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     let predecessor_airdrop = AirdropView::find_single(
         AirdropFilter::ByInviteCode(&predecessor_invite_code), 
         &mut pg_cli
-    ).await?;
+    )
+    .await
+    .map_err(|_e| AirdropError::PredecessorInviteCodeNotExist)?;
 
-    //
     let Airdrop{
         user_id: predecessor_user_id,
         account_id:predecessor_account_id ,..
     } = predecessor_airdrop.airdrop;
+
+    if predecessor_account_id.as_ref().unwrap().eq(&main_account){
+        Err(AirdropError::ForbidSetSelfAsPredecessor)?;
+    }
+
     AirdropView::update_single(
         AirdropUpdater::Predecessor(&predecessor_user_id,predecessor_account_id.as_ref().unwrap()),
          AirdropFilter::ByUserId(&user_id.to_string()), 

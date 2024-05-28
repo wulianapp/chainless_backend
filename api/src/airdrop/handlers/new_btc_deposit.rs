@@ -1,5 +1,4 @@
 use actix_web::{web, HttpRequest};
-
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
@@ -10,7 +9,7 @@ use models::{
     airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 use crate::wallet::handlers::*;
 use crate::wallet::UpdateStrategy;
@@ -28,13 +27,9 @@ pub struct NewBtcDepositRequest {
 }
 
 pub async fn req(req: HttpRequest,request_data: NewBtcDepositRequest) -> BackendRes<String> {
-    //todo: must be called by main device
-    //todo: sync tx records after claim
-
     let mut pg_cli = get_pg_pool_connect().await?;
 
     //todo: 目前该接口不做限制，后续看怎么收拢权限
-    //todo: receiver 需要哪些权限
     let NewBtcDepositRequest{sender,receiver} = request_data;
 
     let airdrop_info = AirdropView::find(
@@ -42,15 +37,19 @@ pub async fn req(req: HttpRequest,request_data: NewBtcDepositRequest) -> Backend
         &mut pg_cli
     ).await?;
     if airdrop_info.is_empty(){
-        Err(BackendError::InternalError("".to_string()))?;
+        //Err(BackendError::InternalError("".to_string()))?;
+        warn!("receiver {} isn't belong us",receiver);
+        return Ok(None);
     }
 
 
-    let grade = query_wallet_grade(&receiver).await?;
+    let grade = query_wallet_grade(&sender).await?;
     AirdropView::update_single(
         AirdropUpdater::BtcLevel(grade), 
         AirdropFilter::ByBtcAddress(&receiver), 
         &mut pg_cli
     ).await?;
+    info!("check deposit(sender={},receiver={}) sucessfully,and get grade  {}",
+    sender,receiver,grade);
     Ok(None)
 }
