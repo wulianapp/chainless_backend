@@ -8,8 +8,6 @@ use models::general::get_pg_pool_connect;
 //use log::debug;
 use tracing::debug;
 
-use crate::account_manager::ResetPasswordRequest;
-use crate::bridge::GenDepositSigRequest;
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
@@ -22,9 +20,9 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     let (user, _current_strategy, _device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
 
     let bridge_cli = ContractClient::<Bridge>::new().await?;

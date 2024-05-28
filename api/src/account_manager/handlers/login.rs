@@ -9,7 +9,6 @@ use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::general::get_pg_pool_connect;
 use tracing::debug;
 
-use crate::account_manager::{LoginByCaptchaRequest, LoginRequest};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{BackendError, BackendRes};
@@ -17,9 +16,28 @@ use common::prelude::*;
 use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
 use models::{account_manager, PgLocalCli, PsqlOp};
+use serde::{Deserialize,Serialize};
 
 lazy_static! {
     pub static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginRequest {
+    device_id: String,
+    device_brand: String,
+    contact: String,
+    password: String,
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginByCaptchaRequest {
+    device_id: String,
+    device_brand: String,
+    contact: String,
+    captcha: String,
 }
 
 fn record_once_retry(user_id: u32) -> Result<()> {
@@ -69,11 +87,11 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_at_stored = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
     .map_err(|e| {
@@ -105,7 +123,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
 
@@ -123,11 +141,11 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_at_stored = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
     .map_err(|e| {
@@ -144,7 +162,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
 

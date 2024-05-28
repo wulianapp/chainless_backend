@@ -22,9 +22,18 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 
 use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
-
-use crate::wallet::PreSendMoneyToSubRequest;
+use serde::{Deserialize,Serialize};
 use common::error_code::BackendError::ChainError;
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreSendMoneyToSubRequest {
+    to: String,
+    coin: String,
+    amount: String,
+    expire_at: u64,
+    memo: Option<String>,
+}
 
 //todo: DRY
 pub(crate) async fn req(
@@ -33,10 +42,10 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, String)> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
 
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -56,7 +65,7 @@ pub(crate) async fn req(
     let coin_type = parse_str(&coin)?;
     let from = main_account.clone();
 
-    let available_balance = super::get_available_amount(&from, &coin_type, &mut pg_cli).await?;
+    let available_balance = super::get_available_amount(&from, &coin_type, &mut db_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -117,7 +126,7 @@ pub(crate) async fn req(
         gen_tx_with_status(CoinSendStage::Created)?
     };
     coin_info.transaction.tx_type = TxType::MainToSub;
-    coin_info.insert(&mut pg_cli).await?;
+    coin_info.insert(&mut db_cli).await?;
     Ok(Some((
         coin_info.transaction.order_id,
         coin_info.transaction.coin_tx_raw,

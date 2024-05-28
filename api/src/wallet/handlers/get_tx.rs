@@ -1,6 +1,4 @@
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, FeesDetailResponse};
-use crate::wallet::{GetTxRequest, GetTxResponse};
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Result};
 use blockchain::coin::Coin;
@@ -33,6 +31,42 @@ use tracing::error;
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetTxRequest {
+    order_id: String,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FeesDetailResponse {
+    fee_coin: CoinType,
+    fee_amount: String,
+}
+#[derive(Deserialize, Serialize, Debug)]
+pub struct GetTxResponse {
+    pub order_id: String,
+    pub tx_id: Option<String>,
+    pub coin_type: CoinType,
+    pub from: String,
+    pub to: String,
+    pub to_account_id: String,
+    pub amount: String,
+    pub expire_at: u64,
+    pub memo: Option<String>,
+    pub stage: CoinSendStage,
+    pub coin_tx_raw: String,
+    pub chain_tx_raw: Option<String>,
+    pub need_sig_num: u8,
+    pub signed_device: Vec<ServentSigDetail>,
+    pub unsigned_device: Vec<ServentSigDetail>,
+    pub tx_type: TxType,
+    pub chain_status: TxStatusOnChain,
+    pub fees_detail: Vec<FeesDetailResponse>,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 //todo: txs 放在上层
 async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinType, u128)>> {
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
@@ -61,10 +95,10 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id), &mut pg_cli)
+    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
         .await
         .map_err(|e| {
             if e.to_string().contains("DBError::DataNotFound") {
@@ -77,7 +111,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let mut signed_device = vec![];
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut db_cli).await?;
             let sig = ServentSigDetail{
                 pubkey,
                 device_id: device.device_info.id,
@@ -87,7 +121,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     }
 
     //不从数据库去读
-    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut pg_cli)
+    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut db_cli)
         .await?
         .into_iter()
         .filter(|x| {

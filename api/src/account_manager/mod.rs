@@ -5,6 +5,16 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use handlers::check_captcha::CheckCaptchaRequest;
+use handlers::contact_is_used::ContactIsUsedRequest;
+use handlers::get_captcha::GetCaptchaWithTokenRequest;
+use handlers::get_captcha::GetCaptchaWithoutTokenRequest;
+use handlers::get_user_device_role::GetUserDeviceRoleRequest;
+use handlers::login::LoginByCaptchaRequest;
+use handlers::login::LoginRequest;
+use handlers::register::RegisterByEmailRequest;
+use handlers::register::RegisterByPhoneRequest;
+use handlers::reset_password::ResetPasswordRequest;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
 
@@ -30,13 +40,6 @@ use common::log::generate_trace_id;
  * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GetCaptchaWithoutTokenRequest {
-    device_id: String,
-    contact: String,
-    kind: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithoutToken")]
 async fn get_captcha_without_token(
@@ -64,12 +67,7 @@ async fn get_captcha_without_token(
  * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GetCaptchaWithTokenRequest {
-    contact: String,
-    kind: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/getCaptchaWithToken")]
 async fn get_captcha_with_token(
@@ -98,15 +96,10 @@ async fn get_captcha_with_token(
  * @apiSuccess {bool} data.secruity_is_seted              是否进行安全问答.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ContactIsUsedRequest {
-    contact: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
-    //request_data: web::Json<ContactIsUsedRequest>,
     req: HttpRequest,
     request_data: web::Query<ContactIsUsedRequest>,
 ) -> impl Responder {
@@ -133,13 +126,6 @@ async fn contact_is_used(
 * @apiSuccess {bool} data                验证码是否存在
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
 */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CheckCaptchaRequest {
-    contact: String,
-    captcha: String,
-    usage: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/checkCaptcha")]
 async fn check_captcha(
@@ -184,7 +170,6 @@ async fn check_captcha(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 
-type UserInfoRequest = ContactIsUsedRequest;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/userInfo")]
 async fn user_info(req: HttpRequest) -> impl Responder {
@@ -212,17 +197,6 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data                token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct RegisterByEmailRequest {
-    device_id: String,
-    device_brand: String,
-    email: String,
-    captcha: String,
-    password: String,
-    //第一个账户肯定没有predecessor
-    predecessor_invite_code: String,
-}
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByEmail")]
@@ -257,18 +231,6 @@ async fn register_by_email(
 * @apiSuccess {String} data         token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct RegisterByPhoneRequest {
-    device_id: String,
-    device_brand: String,
-    phone_number: String,
-    captcha: String,
-    password: String,
-    //encrypted_prikey: String,
-    //pubkey: String,
-    predecessor_invite_code: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/registerByPhone")]
 async fn register_by_phone(
@@ -299,14 +261,6 @@ async fn register_by_phone(
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
-#[derive(Deserialize, Serialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginRequest {
-    device_id: String,
-    device_brand: String,
-    contact: String,
-    password: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/login")]
 //todo: rename with loginByPassword
@@ -336,12 +290,7 @@ async fn login_by_password(
  * @apiSuccess {String=Master,Servant,Undefined} data               角色信息.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getUserDeviceRole
  */
-#[derive(Deserialize, Serialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct GetUserDeviceRoleRequest {
-    device_id: String,
-    contact: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/accountManager/getUserDeviceRole")]
 async fn get_user_device_role(
@@ -372,14 +321,6 @@ async fn get_user_device_role(
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
-#[derive(Deserialize, Serialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct LoginByCaptchaRequest {
-    device_id: String,
-    device_brand: String,
-    contact: String,
-    captcha: String,
-}
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/loginByCaptcha")]
 async fn login_by_captcha(
@@ -410,14 +351,7 @@ async fn login_by_captcha(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ResetPasswordRequest {
-    contact: String,
-    captcha: String,
-    new_password: String,
-    device_id: String,
-}
+
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
@@ -481,7 +415,7 @@ mod tests {
     use actix_web::http::header::HeaderValue;
     use actix_web::{test, App, Error};
     use std::env;
-    use tests::handlers::user_info::UserInfoTmp;
+    use tests::handlers::user_info::UserInfoResponse;
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {
@@ -632,7 +566,7 @@ mod tests {
         println!("{:?}", res.data);
         assert_eq!(res.status_code, 0);
 
-        let res: BackendRespond<UserInfoTmp> = test_service_call!(
+        let res: BackendRespond<UserInfoResponse> = test_service_call!(
             service,
             "get",
             "/accountManager/userInfo",

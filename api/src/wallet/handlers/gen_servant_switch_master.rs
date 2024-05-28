@@ -8,7 +8,6 @@ use models::secret_store::SecretStoreView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, GenServantSwitchMasterRequest};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -22,8 +21,14 @@ use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenServantSwitchMasterRequest {
+    captcha: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct GenReplaceKeyInfo {
+pub struct GenReplaceKeyResponse {
     pub add_key_txid: String,
     pub add_key_raw: String,
     pub delete_key_txid: String,
@@ -32,15 +37,15 @@ pub struct GenReplaceKeyInfo {
 pub(crate) async fn req(
     req: HttpRequest,
     data: GenServantSwitchMasterRequest,
-) -> BackendRes<GenReplaceKeyInfo> {
+) -> BackendRes<GenReplaceKeyResponse> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let GenServantSwitchMasterRequest { captcha } = data;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let servant_pubkey = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?
     .device_info
@@ -50,9 +55,9 @@ pub(crate) async fn req(
     ))?;
 
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 
@@ -62,7 +67,7 @@ pub(crate) async fn req(
     let (add_key_txid, add_key_raw) = client.add_key(&main_account, &servant_pubkey).await?;
     let (delete_key_txid, delete_key_raw) =
         client.delete_key(&main_account, &master_pubkey).await?;
-    let replace_txids = GenReplaceKeyInfo {
+    let replace_txids = GenReplaceKeyResponse {
         add_key_txid,
         add_key_raw,
         delete_key_txid,

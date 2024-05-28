@@ -13,12 +13,19 @@ use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
-use crate::wallet::{AddServantRequest, RemoveServantRequest};
 use blockchain::ContractClient;
 use common::error_code::BackendError::{self, InternalError};
 use models::secret_store::SecretStoreView;
 use models::{PgLocalCli, PsqlOp};
 use tracing::error;
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveServantRequest {
+    servant_pubkey: String,
+}
+
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -27,13 +34,13 @@ pub(crate) async fn req(
     //todo: must be called by main device
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
     let RemoveServantRequest { servant_pubkey } = request_data;
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -41,7 +48,7 @@ pub(crate) async fn req(
     SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&servant_pubkey),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 
@@ -49,7 +56,7 @@ pub(crate) async fn req(
     DeviceInfoView::update_single(
         DeviceInfoUpdater::BecomeUndefined(&servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&servant_pubkey),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 
@@ -71,7 +78,7 @@ pub(crate) async fn req(
         &device_brand,
         vec![tx_id],
     );
-    record.insert(&mut pg_cli).await?;
-    pg_cli.commit().await?;
+    record.insert(&mut db_cli).await?;
+    db_cli.commit().await?;
     Ok(None::<String>)
 }

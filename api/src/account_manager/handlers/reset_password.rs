@@ -2,17 +2,26 @@ use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
+use serde::{Deserialize,Serialize};
 use tokio::time::error::Elapsed;
 //use log::debug;
 use tracing::debug;
 
-use crate::account_manager::ResetPasswordRequest;
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PgLocalCli, PsqlOp};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ResetPasswordRequest {
+    contact: String,
+    captcha: String,
+    new_password: String,
+    device_id: String,
+}
 
 pub async fn req(
     _req: HttpRequest,
@@ -27,17 +36,17 @@ pub async fn req(
         device_id,
     } = request_data.clone();
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_at_stored = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
     .map_err(|_e| PhoneOrEmailNotRegister)?;
     let device = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 
@@ -70,7 +79,7 @@ pub async fn req(
     account_manager::UserInfoView::update_single(
         UserUpdater::LoginPwdHash(&new_password),
         UserFilter::ById(user_at_stored.id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 

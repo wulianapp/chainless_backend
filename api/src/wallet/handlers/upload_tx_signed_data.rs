@@ -9,7 +9,7 @@ use crate::wallet::uploadTxSignatureRequest;
 
 pub async fn req(
     req: HttpRequest,
-    request_data: web::Json<uploadTxSignatureRequest>,
+    request_data: uploadTxSignatureRequest,
 ) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
@@ -24,7 +24,7 @@ pub async fn req(
         device_id,
         tx_id,
         signature,
-    } = request_data.0;
+    } = request_data;
 
     //todo: validate signature
 

@@ -10,10 +10,17 @@ use models::general::get_pg_pool_connect;
 use tracing::{debug, info};
 
 use crate::utils::token_auth;
-use crate::wallet::ReconfirmSendMoneyRequest;
 use common::error_code::{to_internal_error, BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ReconfirmSendMoneyRequest {
+    order_id: String,
+    confirmed_sig: String,
+}
 
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
@@ -23,11 +30,11 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         confirmed_sig,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -35,7 +42,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
 
     let coin_tx = models::coin_transfer::CoinTxView::find_single(
         CoinTxFilter::ByOrderId(&order_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
     if now_millis() > coin_tx.transaction.expire_at {
@@ -95,7 +102,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     } else {
@@ -118,10 +125,10 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     }
-    pg_cli.commit().await?;
+    db_cli.commit().await?;
     Ok(None)
 }

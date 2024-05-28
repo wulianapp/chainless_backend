@@ -14,24 +14,38 @@ use models::{
 };
 
 use crate::utils::token_auth;
-use crate::wallet::UpdateStrategy;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
+use serde::{Deserialize,Serialize};
 
-pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> BackendRes<String> {
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MultiSigRankRequest {
+    min: String,
+    max_eq: String,
+    sig_num: u8,
+}
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateStrategyRequest {
+    strategy: Vec<MultiSigRankRequest>,
+}
+
+
+pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> BackendRes<String> {
     //todo: must be called by main device
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let UpdateStrategy { strategy } = request_data.0;
+    let UpdateStrategyRequest { strategy } = request_data;
     if strategy.len() > current_strategy.servant_pubkeys.len() + 1 {
         Err(WalletError::StrategyRankIllegal)?;
     }
@@ -62,7 +76,7 @@ pub async fn req(req: HttpRequest, request_data: web::Json<UpdateStrategy>) -> B
         &device.brand,
         vec![tx_id],
     );
-    record.insert(&mut pg_cli).await?;
+    record.insert(&mut db_cli).await?;
 
     Ok(None::<String>)
 }

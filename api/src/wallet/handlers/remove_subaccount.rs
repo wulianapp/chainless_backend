@@ -10,7 +10,6 @@ use models::general::get_pg_pool_connect;
 use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, ReconfirmSendMoneyRequest, RemoveSubaccountRequest};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -24,18 +23,25 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdate
 use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::info;
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RemoveSubaccountRequest {
+    account_id: String,
+}
 
 pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> BackendRes<String> {
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let RemoveSubaccountRequest { account_id } = request_data;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     let (_, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -65,7 +71,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     SecretStoreView::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
     let multi_cli = ContractClient::<MultiSig>::new().await?;
@@ -82,7 +88,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         &device_brand,
         vec![tx_id],
     );
-    record.insert(&mut pg_cli).await?;
-    pg_cli.commit().await?;
+    record.insert(&mut db_cli).await?;
+    db_cli.commit().await?;
     Ok(None::<String>)
 }

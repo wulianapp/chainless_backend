@@ -1,5 +1,4 @@
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, FaucetClaimRequest};
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
@@ -15,6 +14,13 @@ use models::PsqlOp;
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Mutex;
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FaucetClaimRequest {
+    pub account_id: Option<String>,
+}
 
 pub async fn req(req: HttpRequest,req_data:FaucetClaimRequest) -> BackendRes<String> {
  
@@ -22,8 +28,8 @@ pub async fn req(req: HttpRequest,req_data:FaucetClaimRequest) -> BackendRes<Str
         Some(id) => id, 
         None => {
             let user_id = token_auth::validate_credentials(&req)?;
-            let mut pg_cli = get_pg_pool_connect().await?;
-            super::get_main_account(user_id, &mut pg_cli).await?
+            let mut db_cli = get_pg_pool_connect().await?;
+            super::get_main_account(user_id, &mut db_cli).await?
         }
     };
     

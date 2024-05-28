@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
 use crate::wallet::handlers::*;
-use crate::wallet::UpdateStrategy;
 use crate::{
     utils::{token_auth, wallet_grades::query_wallet_grade},
 };
@@ -27,14 +26,14 @@ pub struct NewBtcDepositRequest {
 }
 
 pub async fn req(req: HttpRequest,request_data: NewBtcDepositRequest) -> BackendRes<String> {
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     //todo: 目前该接口不做限制，后续看怎么收拢权限
     let NewBtcDepositRequest{sender,receiver} = request_data;
 
     let airdrop_info = AirdropView::find(
         AirdropFilter::ByBtcAddress(&receiver),
-        &mut pg_cli
+        &mut db_cli
     ).await?;
     if airdrop_info.is_empty(){
         //Err(BackendError::InternalError("".to_string()))?;
@@ -47,7 +46,7 @@ pub async fn req(req: HttpRequest,request_data: NewBtcDepositRequest) -> Backend
     AirdropView::update_single(
         AirdropUpdater::BtcLevel(grade), 
         AirdropFilter::ByBtcAddress(&receiver), 
-        &mut pg_cli
+        &mut db_cli
     ).await?;
     info!("check deposit(sender={},receiver={}) sucessfully,and get grade  {}",
     sender,receiver,grade);

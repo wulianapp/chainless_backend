@@ -9,8 +9,7 @@ use models::{
     PsqlOp,
 };
 
-use crate::wallet::SecretType;
-use crate::{utils::token_auth, wallet::GetSecretRequest};
+use crate::{utils::token_auth};
 use common::error_code::{BackendError::ChainError, WalletError};
 use common::{
     data_structures::secret_store::SecretStore,
@@ -18,14 +17,27 @@ use common::{
 };
 use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub enum SecretType {
+    Single,
+    All,
+}
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetSecretRequest {
+    pub r#type: SecretType,
+    pub account_id: Option<String>,
+}
+
+
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
 ) -> BackendRes<Vec<SecretStore>> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let cli = blockchain::ContractClient::<MultiSig>::new().await?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let GetSecretRequest { r#type, account_id } = request_data;
     match r#type {
         //如果指定则获取指定账户的key，否则获取当前设备的key(master_key,或者servant_key)
@@ -33,13 +45,13 @@ pub(crate) async fn req(
             if let Some(account_id) = account_id {
                 let pubkey = cli.get_master_pubkey(&account_id).await?;
                 let secret =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey), &mut pg_cli)
+                    SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey), &mut db_cli)
                         .await?;
                 Ok(Some(vec![secret.secret_store]))
             } else {
                 let device = DeviceInfoView::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-                    &mut pg_cli,
+                    &mut db_cli,
                 )
                 .await?;
                 let pubkey = device
@@ -48,7 +60,7 @@ pub(crate) async fn req(
                     .as_deref()
                     .ok_or(WalletError::PubkeyNotExist)?;
                 let secrete =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey), &mut pg_cli)
+                    SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey), &mut db_cli)
                         .await?;
                 Ok(Some(vec![secrete.secret_store]))
             }
@@ -71,7 +83,7 @@ pub(crate) async fn req(
             let mut secrets = vec![];
             for key in keys {
                 let secrete =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(&key), &mut pg_cli).await?;
+                    SecretStoreView::find_single(SecretFilter::ByPubkey(&key), &mut db_cli).await?;
                 secrets.push(secrete.secret_store);
             }
             Ok(Some(secrets))

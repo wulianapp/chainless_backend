@@ -1,6 +1,4 @@
 use crate::utils::token_auth;
-use crate::wallet::{BalanceDetail, CreateMainAccountRequest};
-use crate::wallet::{BalanceListRequest, BalanceListResponse};
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::fees_call::FeesCall;
@@ -29,13 +27,31 @@ pub enum AccountType {
     All,
 }
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BalanceListRequest {
+    kind: AccountType,
+}
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct BalanceDetail {
+    account_id: String,
+    coin: CoinType,
+    total_balance: String,
+    total_dollar_value: String,
+    total_rmb_value: String,
+    available_balance: String,
+    freezn_amount: String,
+    hold_limit: Option<String>,
+}
+pub type BalanceListResponse = Vec<(CoinType, Vec<BalanceDetail>)>;
+
 pub async fn req(
     req: HttpRequest,
     request_data: BalanceListRequest,
 ) -> BackendRes<BalanceListResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
 
     let main_account = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();
@@ -99,7 +115,7 @@ pub async fn req(
             } else {
                 ("0".to_string(), Some("0.0".to_string()))
             };
-            let freezn_amount = super::get_freezn_amount(account, &coin, &mut pg_cli).await;
+            let freezn_amount = super::get_freezn_amount(account, &coin, &mut db_cli).await;
             let total_balance = parse_str(balance_on_chain)?;
             debug!(
                 "coin:{},total_balance:{},freezn_amount:{}",

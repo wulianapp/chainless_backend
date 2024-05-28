@@ -11,6 +11,7 @@ use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
+use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
@@ -21,9 +22,17 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 
-use crate::bridge::PreWithdrawRequest;
 use crate::wallet::handlers::*;
 use common::error_code::BackendError::ChainError;
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreWithdrawRequest {
+    coin: String,
+    amount: String,
+    expire_at: u64,
+    memo: Option<String>,
+}
 
 //todo: DRY
 pub(crate) async fn req(
@@ -32,10 +41,10 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, String)> {
     println!("__0001_start preWithdraw ");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
@@ -64,7 +73,7 @@ pub(crate) async fn req(
         CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
-    let available_balance = get_available_amount(&from, &coin_type, &mut pg_cli).await?;
+    let available_balance = get_available_amount(&from, &coin_type, &mut db_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -114,7 +123,7 @@ pub(crate) async fn req(
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.to = eth_addr;
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((
             coin_info.transaction.order_id,
             coin_info.transaction.coin_tx_raw,
@@ -123,7 +132,7 @@ pub(crate) async fn req(
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.to = eth_addr;
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((
             coin_info.transaction.order_id,
             coin_info.transaction.coin_tx_raw,

@@ -4,11 +4,10 @@ use blockchain::ContractClient;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
+use serde::{Deserialize,Serialize};
 //use log::debug;
 use tracing::debug;
 
-use crate::account_manager::ResetPasswordRequest;
-use crate::bridge::BindEthAddrRequest;
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
@@ -17,14 +16,21 @@ use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PsqlOp};
 
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct BindEthAddrRequest {
+    eth_addr: String,
+    user_eth_sig: String,
+}
+
 pub async fn req(req: HttpRequest, request_data: BindEthAddrRequest) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;

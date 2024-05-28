@@ -3,9 +3,16 @@ use common::error_code::{AccountManagerError, BackendError, BackendRes};
 use models::account_manager::UserFilter;
 use models::general::get_pg_pool_connect;
 use models::{account_manager, PgLocalCli, PsqlOp};
-//use super::super::ContactIsUsedRequest;
-use crate::account_manager::CheckCaptchaRequest;
+use serde::{Serialize,Deserialize};
 use crate::utils::captcha::{Captcha, Usage};
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckCaptchaRequest {
+    contact: String,
+    captcha: String,
+    usage: String,
+}
 
 pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     let CheckCaptchaRequest {
@@ -18,13 +25,13 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
         .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
     //todo: register can check captcha
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let check_res = match kind {
         Usage::Register => Captcha::check_user_code2(&contact, &captcha, kind),
         _ => {
             let user = account_manager::UserInfoView::find_single(
                 UserFilter::ByPhoneOrEmail(&contact),
-                &mut pg_cli,
+                &mut db_cli,
             )
             .await
             .map_err(|e| {

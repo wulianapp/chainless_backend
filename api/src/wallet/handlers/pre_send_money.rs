@@ -27,8 +27,18 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
 use models::coin_transfer::CoinTxView;
 use models::PsqlOp;
 
-use crate::wallet::PreSendMoneyRequest;
 use anyhow::Result;
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PreSendMoneyRequest {
+    to: String,
+    coin: String,
+    amount: String,
+    expire_at: u64,
+    memo: Option<String>,
+    is_forced: bool,
+}
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -49,12 +59,12 @@ pub(crate) async fn req(
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
     }
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
 
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
-        let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to), &mut pg_cli)
+        let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -69,7 +79,7 @@ pub(crate) async fn req(
         }
         (receiver.user_info.main_account, Some(to))
     } else {
-        let _receiver = UserInfoView::find_single(UserFilter::ByMainAccount(&to), &mut pg_cli)
+        let _receiver = UserInfoView::find_single(UserFilter::ByMainAccount(&to), &mut db_cli)
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -90,7 +100,7 @@ pub(crate) async fn req(
     let from = user.main_account.clone();
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
-    let available_balance = super::get_available_amount(&from, &coin_type, &mut pg_cli).await?;
+    let available_balance = super::get_available_amount(&from, &coin_type, &mut db_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -153,14 +163,14 @@ pub(crate) async fn req(
             coin_info.transaction.receiver_contact = to_contact;
         }
 
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
     } else if need_sig_num == 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
@@ -168,14 +178,14 @@ pub(crate) async fn req(
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else if need_sig_num != 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
-        coin_info.insert(&mut pg_cli).await?;
+        coin_info.insert(&mut db_cli).await?;
         Ok(Some((coin_info.transaction.order_id, None)))
     } else {
         unreachable!("all case is considered")

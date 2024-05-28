@@ -9,17 +9,23 @@ use models::{account_manager, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
-use crate::account_manager::{GetUserDeviceRoleRequest, UserInfoRequest};
 use crate::utils::token_auth;
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct GetUserDeviceRoleRequest {
+    device_id: String,
+    contact: String,
+}
 
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user = account_manager::UserInfoView::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
     .map_err(|e| {
@@ -36,7 +42,7 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     //todo:
     let find_res = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user.id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await;
     if let Err(err) = find_res {
@@ -48,7 +54,7 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     }
 
     let (_, current_strategy, device) =
-        crate::wallet::handlers::get_session_state(user.id, &device_id, &mut pg_cli).await?;
+        crate::wallet::handlers::get_session_state(user.id, &device_id, &mut db_cli).await?;
     let role = crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
     Ok(Some(role))
 }

@@ -275,7 +275,7 @@ mod tests {
     use common::utils::math;
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
-    use crate::account_manager::handlers::user_info::UserInfoTmp;
+    use crate::account_manager::handlers::user_info::UserInfoResponse;
     use actix_web::http::header::HeaderName;
     use actix_web::http::header::HeaderValue;
     use common::data_structures::CoinType;

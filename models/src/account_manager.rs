@@ -291,11 +291,11 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert(&mut pg_cli).await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+        user.insert(&mut db_cli).await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("{:?}", user_by_find);
@@ -303,7 +303,7 @@ mod tests {
         UserInfoView::update(
             UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await
         .unwrap();
@@ -315,19 +315,19 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let mut pg_cli = pg_cli.begin().await.unwrap();
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut db_cli = db_cli.begin().await.unwrap();
 
         let user = UserInfoView::new_with_specified("0123456789", "1");
-        user.insert(&mut pg_cli).await.unwrap();
-        let user_by_find = UserInfoView::find(UserFilter::ById(1), &mut pg_cli)
+        user.insert(&mut db_cli).await.unwrap();
+        let user_by_find = UserInfoView::find(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("by_conn2__{:?}", user_by_find);
-        pg_cli.commit().await.unwrap();
+        db_cli.commit().await.unwrap();
 
-        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut pg_cli)
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("by_trans3__{:?}", user_by_find);
@@ -335,7 +335,7 @@ mod tests {
         UserInfoView::update(
             UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await
         .unwrap();

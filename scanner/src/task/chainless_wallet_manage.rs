@@ -11,13 +11,13 @@ use tracing::debug;
 use anyhow::Result;
 
 pub async fn start() -> Result<()> {
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     loop {
         //check manage_opcord
         let ops = WalletManageRecordView::find(
             WalletManageRecordFilter::ByStatus(&TxStatusOnChain::Pending),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
 
@@ -30,7 +30,7 @@ pub async fn start() -> Result<()> {
                 let _ = WalletManageRecordView::update_single(
                     WalletManageRecordUpdater::Status(status),
                     WalletManageRecordFilter::ByRecordId(&op.record.record_id),
-                    &mut pg_cli,
+                    &mut db_cli,
                 )
                 .await;
             }

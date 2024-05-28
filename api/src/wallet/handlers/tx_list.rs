@@ -1,6 +1,4 @@
 use crate::utils::token_auth;
-use crate::wallet::CreateMainAccountRequest;
-use crate::wallet::TxListRequest;
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
@@ -32,8 +30,17 @@ use std::sync::Mutex;
 use super::ServentSigDetail;
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TxListRequest {
+    tx_role: String,
+    counterparty: Option<String>,
+    per_page: u32,
+    page: u32,
+}
+
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CoinTxViewTmp {
+pub struct CoinTxViewResponse {
     pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
@@ -72,11 +79,11 @@ pub fn get_filter_type(data: &str) -> Result<FilterType, BackendError> {
     }
 }
 
-pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewTmp>> {
+pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let TxListRequest {
         tx_role,
         counterparty,
@@ -95,18 +102,18 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     let find_res = if let Some(data) = counterparty.as_deref() {
         match get_filter_type(data)? {
             FilterType::OrderId => {
-                CoinTxView::find(CoinTxFilter::ByOrderId(data), &mut pg_cli).await
+                CoinTxView::find(CoinTxFilter::ByOrderId(data), &mut db_cli).await
             }
             FilterType::AccountId => {
                 CoinTxView::find(
                     CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
-                    &mut pg_cli,
+                    &mut db_cli,
                 )
                 .await
             }
             FilterType::Phone | FilterType::Mail => {
                 if let Ok(counterparty_main_account) =
-                    UserInfoView::find_single(UserFilter::ByPhoneOrEmail(data), &mut pg_cli).await
+                    UserInfoView::find_single(UserFilter::ByPhoneOrEmail(data), &mut db_cli).await
                 {
                     CoinTxView::find(
                         CoinTxFilter::ByTxRolePage(
@@ -116,7 +123,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
                             per_page,
                             page,
                         ),
-                        &mut pg_cli,
+                        &mut db_cli,
                     )
                     .await
                 } else {
@@ -127,7 +134,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     } else {
         CoinTxView::find(
             CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await
     };
@@ -144,7 +151,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         let mut sigs = vec![];
         for sig in tx.transaction.signatures {
             let pubkey = sig[..64].to_string();
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut pg_cli).await?;
+            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut db_cli).await?;
             let sig = ServentSigDetail{
                 pubkey,
                 device_id: device.device_info.id,
@@ -152,7 +159,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
             };
             sigs.push(sig);
         }
-        view_txs.push(CoinTxViewTmp {
+        view_txs.push(CoinTxViewResponse {
             order_id: tx.transaction.order_id,
             tx_id: tx.transaction.tx_id,
             coin_type: tx.transaction.coin_type,

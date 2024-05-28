@@ -12,11 +12,7 @@ use models::{
 use serde::{Deserialize,Serialize};
 use tracing::{debug, info};
 
-use crate::wallet::handlers::*;
-use crate::wallet::UpdateStrategy;
-use crate::{
-    utils::{token_auth, wallet_grades::query_wallet_grade},
-};
+use crate::{utils::token_auth, wallet::handlers::*};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
@@ -29,13 +25,13 @@ pub struct BindBtcAddressRequest {
 
 pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = get_main_account(user_id, &mut db_cli).await?;
 
 
     let BindBtcAddressRequest { btc_address, sig } = request_data;
@@ -46,7 +42,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
 
     if AirdropView::find(
         AirdropFilter::ByBtcAddress(&btc_address), 
-        &mut pg_cli
+        &mut db_cli
     ).await?.len() != 0
     {
         Err(AirdropError::BtcAddressAlreadyUsed)?;
@@ -55,7 +51,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     //todo: get kyc info
     let user_airdrop = AirdropView::find_single(
         AirdropFilter::ByAccountId(&main_account), 
-        &mut pg_cli
+        &mut db_cli
     ).await?;
     if user_airdrop.airdrop.btc_address.is_some(){
         Err(AirdropError::AlreadyBindedBtcAddress)?;
@@ -63,7 +59,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     AirdropView::update_single(
         AirdropUpdater::BtcAddress(&btc_address),
          AirdropFilter::ByAccountId(&main_account),
-         &mut pg_cli
+         &mut db_cli
     ).await?;
 
     Ok(None)

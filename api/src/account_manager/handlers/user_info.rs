@@ -9,11 +9,10 @@ use models::{account_manager, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
-use crate::account_manager::UserInfoRequest;
 use crate::utils::token_auth;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct UserInfoTmp {
+pub struct UserInfoResponse {
     pub id: u32,
     pub phone_number: String,
     pub email: String,
@@ -27,34 +26,32 @@ pub struct UserInfoTmp {
     pub main_account: String,
     pub role: String,
     pub name: Option<String>,
-    //todo: birthday
     pub birth: Option<String>,
-    //pub op_status: OpStatus,
 }
 
-pub async fn req(req: HttpRequest) -> BackendRes<UserInfoTmp> {
+pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let _devices = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
     let res =
-        account_manager::UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
+        account_manager::UserInfoView::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
 
     //todo:
     let role = if res.user_info.main_account.eq("") {
         KeyRole2::Undefined
     } else {
         let (_, current_strategy, device) =
-            crate::wallet::handlers::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+            crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
         let current_role =
             crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
         current_role
     };
 
-    let info = UserInfoTmp {
+    let info = UserInfoResponse {
         id: res.id,
         phone_number: res.user_info.phone_number,
         email: res.user_info.email,

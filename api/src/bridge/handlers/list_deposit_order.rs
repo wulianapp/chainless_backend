@@ -11,16 +11,36 @@ use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 
-use crate::bridge::{ListDepositOrderRequest, ListDepositOrderResponse, ListWithdrawOrderResponse};
 use crate::wallet::handlers::*;
-use crate::{utils::token_auth, wallet::MultiSigRankExternal};
+use crate::{utils::token_auth};
 use anyhow::Result;
 use common::data_structures::bridge::EthOrderStatus;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
+use common::data_structures::{CoinType};
 
 use super::paginate_vec;
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct ListDepositOrderResponse {
+    pub order_id: String,
+    pub chain_id: u128,        //外链id
+    pub account_id: String,    //无链id
+    pub symbol: CoinType,      //代币符号
+    pub amount: String,        //
+    pub address: String,       //外链地址
+    pub status: DepositStatus, //订单充值状态
+    pub updated_at: String,    //更新时间
+    pub created_at: String,    //创建时间
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ListDepositOrderRequest {
+    pub page: usize,
+    pub per_page: usize,
+}
 
 //DRY
 async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
@@ -37,10 +57,10 @@ async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
 }
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     EthBridgeOrderView::find(
         BridgeOrderFilter::ByTypeAndAccountId(OrderType::Deposit, main_account),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
 }
@@ -51,8 +71,8 @@ pub(crate) async fn req(
 ) -> BackendRes<Vec<ListDepositOrderResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
     //todo:
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     let ListDepositOrderRequest {
         page,

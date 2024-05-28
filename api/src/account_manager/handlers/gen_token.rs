@@ -8,7 +8,6 @@ use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
-use crate::account_manager::{GetUserDeviceRoleRequest, UserInfoRequest};
 use crate::utils::token_auth;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {

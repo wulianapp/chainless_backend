@@ -16,11 +16,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-use crate::wallet::handlers::*;
-use crate::wallet::UpdateStrategy;
-use crate::{
-    utils::{token_auth, wallet_grades::query_wallet_grade},
-};
+use crate::{utils::token_auth, wallet::handlers::*};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
@@ -34,14 +30,14 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     //todo: must be called by main device
 
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     let (_user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     let ChangePredecessorRequest { predecessor_invite_code} = request_data;
 
@@ -50,7 +46,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     
     let predecessor_airdrop = AirdropView::find_single(
         AirdropFilter::ByInviteCode(&predecessor_invite_code), 
-        &mut pg_cli
+        &mut db_cli
     )
     .await
     .map_err(|_e| AirdropError::PredecessorInviteCodeNotExist)?;
@@ -67,13 +63,13 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     AirdropView::update_single(
         AirdropUpdater::Predecessor(&predecessor_user_id,predecessor_account_id.as_ref().unwrap()),
          AirdropFilter::ByUserId(&user_id.to_string()), 
-         &mut pg_cli
+         &mut db_cli
     ).await?;
 
     let cli = ContractClient::<ChainAirdrop>::new().await?;
     cli.change_predecessor(&main_account,predecessor_account_id.as_ref().unwrap()).await?;
 
-    pg_cli.commit().await?;
+    db_cli.commit().await?;
     //todo: change ref
     Ok(None)
 }

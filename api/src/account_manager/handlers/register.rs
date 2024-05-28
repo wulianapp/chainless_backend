@@ -14,6 +14,30 @@ use models::general::*;
 use models::secret_store::SecretStoreView;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use tracing::{debug, info};
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterByPhoneRequest {
+    device_id: String,
+    device_brand: String,
+    phone_number: String,
+    captcha: String,
+    password: String,
+    predecessor_invite_code: String,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterByEmailRequest {
+    device_id: String,
+    device_brand: String,
+    email: String,
+    captcha: String,
+    password: String,
+    //第一个账户肯定没有predecessor
+    predecessor_invite_code: String,
+}
 
 async fn register(
     device_id: String,
@@ -26,13 +50,13 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     
     //check userinfo form db
     let find_res =
-        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+        account_manager::UserInfoView::find(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
             .await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
@@ -41,7 +65,7 @@ async fn register(
     //todo: register multi_sig_contract account
 
     //store user info
-    let this_user_id = get_next_uid(&mut pg_cli).await?;
+    let this_user_id = get_next_uid(&mut db_cli).await?;
     debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
@@ -58,19 +82,19 @@ async fn register(
             view.user_info.email = contact.clone();
         }
     }
-    account_manager::UserInfoView::insert(&view, &mut pg_cli).await?;
+    account_manager::UserInfoView::insert(&view, &mut db_cli).await?;
 
 
 
     //register airdrop 
     //todo: user_id
-    let predecessor_airdrop = AirdropView::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code), &mut pg_cli)
+    let predecessor_airdrop = AirdropView::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code), &mut db_cli)
         .await
         .map_err(|_e| InviteCodeNotExist)?;
     let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id.parse().unwrap();
     let predecessor_info = UserInfoView::find_single(
         UserFilter::ById(predecessor_userinfo_id),
-         &mut pg_cli).await?;
+         &mut db_cli).await?;
     if !predecessor_info.user_info.secruity_is_seted{
         Err(PredecessorNotSetSecurity)?;
     }else{
@@ -79,15 +103,15 @@ async fn register(
             &predecessor_info.id.to_string(),
             &predecessor_info.user_info.main_account
         );
-        user_airdrop.insert(&mut pg_cli).await?;
+        user_airdrop.insert(&mut db_cli).await?;
     }
 
     let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, this_user_id);
-    device.insert(&mut pg_cli).await?;
+    device.insert(&mut db_cli).await?;
 
 
 
-    pg_cli.commit().await?;
+    db_cli.commit().await?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
     info!("user {:?} register successfully", view.user_info);
@@ -96,8 +120,7 @@ async fn register(
 
 pub mod by_email {
     use super::*;
-    use crate::account_manager::RegisterByEmailRequest;
-
+    
     pub async fn req(request_data: RegisterByEmailRequest) -> BackendRes<String> {
         let RegisterByEmailRequest {
             device_id,
@@ -127,7 +150,6 @@ pub mod by_email {
 
 pub mod by_phone {
     use super::*;
-    use crate::account_manager::RegisterByPhoneRequest;
 
     pub async fn req(request_data: RegisterByPhoneRequest) -> BackendRes<String> {
         let RegisterByPhoneRequest {

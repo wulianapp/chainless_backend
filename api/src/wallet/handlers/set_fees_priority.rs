@@ -17,28 +17,34 @@ use models::{
 use tracing::debug;
 
 use crate::utils::token_auth;
-use crate::wallet::SetFeesPriorityRequest;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SetFeesPriorityRequest {
+    fees_priority: Vec<String>,
+}
 
 pub async fn req(
     req: HttpRequest,
-    request_data: web::Json<SetFeesPriorityRequest>,
+    request_data: SetFeesPriorityRequest,
 ) -> BackendRes<String> {
     //todo: must be called by main device
 
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let SetFeesPriorityRequest { fees_priority } = request_data.0;
+    let SetFeesPriorityRequest { fees_priority } = request_data;
 
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
 
     if fees_priority.len() != 5 {
@@ -72,6 +78,6 @@ pub async fn req(
         &device_brand,
         vec![tx_id],
     );
-    record.insert(&mut pg_cli).await?;
+    record.insert(&mut db_cli).await?;
     Ok(None)
 }

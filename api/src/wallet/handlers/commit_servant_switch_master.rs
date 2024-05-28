@@ -10,10 +10,6 @@ use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
-use crate::wallet::{
-    CommitNewcomerSwitchMasterRequest, CommitServantSwitchMasterRequest, CreateMainAccountRequest,
-    ReconfirmSendMoneyRequest,
-};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -26,6 +22,15 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdate
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitServantSwitchMasterRequest {
+    add_key_raw: String,
+    delete_key_raw: String,
+    add_key_sig: String,
+    delete_key_sig: String,
+}
 
 //todo：这里后边加上channel的异步处理，再加一张表用来记录所有非交易的交互的状态，先pending，再更新状态
 pub(crate) async fn req(
@@ -40,17 +45,17 @@ pub(crate) async fn req(
         delete_key_sig,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     //get user's main_account 、mater_key、current servant_key
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
-    super::check_have_base_fee(&main_account, &mut pg_cli).await?;
+    super::check_have_base_fee(&main_account, &mut db_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
 
@@ -58,7 +63,7 @@ pub(crate) async fn req(
     //外部注入和token解析结果对比
     let servant_pubkey = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?
     .device_info
@@ -91,7 +96,7 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     } else {
@@ -108,7 +113,7 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {
@@ -158,8 +163,8 @@ pub(crate) async fn req(
             &device.brand,
             vec![txid],
         );
-        record.insert(&mut pg_cli).await?;
+        record.insert(&mut db_cli).await?;
     }
-    pg_cli.commit().await?;
+    db_cli.commit().await?;
     Ok(None::<String>)
 }

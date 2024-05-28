@@ -11,8 +11,6 @@ use serde::Serialize;
 //use log::debug;
 use tracing::debug;
 
-use crate::account_manager::ResetPasswordRequest;
-use crate::bridge::GenDepositSigRequest;
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
@@ -22,22 +20,29 @@ use models::account_manager::{UserFilter, UserUpdater};
 use models::{account_manager, PsqlOp};
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct GenDepositRes {
+pub struct GenDepositResponse {
     pub cid: u64,
     pub deadline: u64,
     pub sig: String,
 }
 
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenDepositSigRequest {
+    coin: String,
+    amount: String,
+}
+
 pub async fn req(
     req: HttpRequest,
     request_data: GenDepositSigRequest,
-) -> BackendRes<GenDepositRes> {
+) -> BackendRes<GenDepositResponse> {
     //todo: check jwt token
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
 
     if main_account.eq("") {
@@ -64,5 +69,5 @@ pub async fn req(
         .await?;
     println!("sig {} ", sig);
 
-    Ok(Some(GenDepositRes { cid, deadline, sig }))
+    Ok(Some(GenDepositResponse { cid, deadline, sig }))
 }

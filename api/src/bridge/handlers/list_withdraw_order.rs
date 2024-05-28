@@ -13,17 +13,36 @@ use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
 use models::PsqlOp;
 use tracing_subscriber::filter;
 
-use crate::bridge::{ListWithdrawOrderRequest, ListWithdrawOrderResponse};
 use crate::wallet::handlers::*;
-use crate::{utils::token_auth, wallet::MultiSigRankExternal};
+use crate::{utils::token_auth};
 use anyhow::Result;
 use common::data_structures::bridge::EthOrderStatus;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use models::general::get_pg_pool_connect;
 use serde::{Deserialize, Serialize};
+use common::data_structures::CoinType;
 
 use super::paginate_vec;
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct ListWithdrawOrderResponse {
+    pub order_id: String,
+    pub chain_id: u128,     //外链id
+    pub account_id: String, //无链id
+    pub symbol: CoinType,   //代币符号
+    pub amount: String,
+    pub address: String,         //外链地址
+    pub signatures: Vec<String>, //签名详情
+    pub status: WithdrawStatus,  //订单提现状态
+    pub created_at: String,      //创建时间
+}
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ListWithdrawOrderRequest {
+    pub page: usize,
+    pub per_page: usize,
+}
 
 pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, BridgeOrder)>> {
     let bridge_cli = ContractClient::<Bridge>::new().await?;
@@ -38,10 +57,10 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
 }
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     EthBridgeOrderView::find(
         BridgeOrderFilter::ByTypeAndAccountId(OrderType::Withdraw, main_account),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await
 }
@@ -51,8 +70,8 @@ pub(crate) async fn req(
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     let ListWithdrawOrderRequest {
         page,

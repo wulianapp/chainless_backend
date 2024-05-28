@@ -10,12 +10,12 @@ use tracing::{debug, error};
 use anyhow::Result;
 
 pub async fn start() -> Result<()> {
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
     loop {
         //check manage_opcord
         let txs = CoinTxView::find(
             CoinTxFilter::ByChainStatus(TxStatusOnChain::Pending),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
 
@@ -33,7 +33,7 @@ pub async fn start() -> Result<()> {
                 CoinTxView::update_single(
                     CoinTxUpdater::StageChainStatus(tx.transaction.stage, status),
                     CoinTxFilter::ByOrderId(&tx.transaction.order_id),
-                    &mut pg_cli,
+                    &mut db_cli,
                 )
                 .await?;
             }

@@ -32,7 +32,7 @@ use common::encrypt::ed25519_key_gen;
 use common::utils::math::{self, gen_random_verify_code};
 use models::secret_store::SecretStoreView;
 // use log::{info, LevelFilter,debug,error};
-use crate::account_manager::handlers::user_info::UserInfoTmp;
+use crate::account_manager::handlers::user_info::UserInfoResponse;
 use crate::wallet::handlers::get_strategy::StrategyDataTmp;
 use crate::wallet::*;
 use actix_web::http::header::HeaderName;
@@ -435,7 +435,7 @@ macro_rules! test_get_strategy {
 macro_rules! test_user_info {
     ($service:expr, $app:expr) => {{
         let url = format!("/accountManager/userInfo");
-        let res: BackendRespond<UserInfoTmp> = test_service_call!(
+        let res: BackendRespond<UserInfoResponse> = test_service_call!(
             $service,
             "get",
             &url,
@@ -476,7 +476,7 @@ macro_rules! test_tx_list {
                 $role,$per_page,$page)
             }
         };
-        let res: BackendRespond<Vec<$crate::wallet::handlers::tx_list::CoinTxViewTmp>> = test_service_call!(
+        let res: BackendRespond<Vec<$crate::wallet::handlers::tx_list::CoinTxViewResponse>> = test_service_call!(
             $service,
             "get",
             &url,
@@ -808,7 +808,7 @@ macro_rules! test_gen_newcommer_switch_master {
             "captcha":"000000"
         });
         let url = format!("/wallet/genNewcomerSwitchMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyResponse> = test_service_call!(
             $service,
             "post",
             &url,
@@ -827,7 +827,7 @@ macro_rules! test_gen_servant_switch_master {
             "captcha": "000000",
         });
         let url = format!("/wallet/genServantSwitchMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyInfo> = test_service_call!(
+        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyResponse> = test_service_call!(
             $service,
             "post",
             &url,

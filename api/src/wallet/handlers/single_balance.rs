@@ -1,6 +1,4 @@
 use crate::utils::token_auth;
-use crate::wallet::{BalanceDetail, CreateMainAccountRequest};
-use crate::wallet::{SingleBalanceRequest, SingleBalanceResponse};
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::fees_call::FeesCall;
@@ -21,13 +19,27 @@ use std::ops::Deref;
 use std::sync::Mutex;
 use tracing::debug;
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct SingleBalanceRequest {
+    coin: String,
+    account_id: Option<String>,
+}
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct SingleBalanceResponse {
+    total_balance: String,
+    total_dollar_value: String,
+    total_rmb_value: String,
+    hold_limit: Option<String>,
+}
+
 pub async fn req(
     req: HttpRequest,
     request_data: SingleBalanceRequest,
 ) -> BackendRes<SingleBalanceResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
     let main_account = user_info.user_info.main_account;
 
     let SingleBalanceRequest { coin, account_id } = request_data;

@@ -14,21 +14,28 @@ use models::{
 };
 
 use crate::utils::token_auth;
-use crate::wallet::UpdateSubaccountHoldLimitRequest;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateSubaccountHoldLimitRequest {
+    subaccount: String,
+    limit: String,
+}
 
 pub async fn req(
     req: HttpRequest,
     request_data: UpdateSubaccountHoldLimitRequest,
 ) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -51,6 +58,6 @@ pub async fn req(
         &device.brand,
         vec![txid],
     );
-    record.insert(&mut pg_cli).await?;
+    record.insert(&mut db_cli).await?;
     Ok(None::<String>)
 }

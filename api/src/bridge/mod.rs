@@ -10,6 +10,7 @@ use common::data_structures::{
     bridge::{DepositStatus, WithdrawStatus},
     CoinType,
 };
+use handlers::{bind_eth_addr::BindEthAddrRequest, gen_bind_eth_addr_sig::GenBindEthAddrSigRequest, gen_deposit_sig::GenDepositSigRequest, list_deposit_order::ListDepositOrderRequest, list_withdraw_order::ListWithdrawOrderRequest, pre_withdraw::PreWithdrawRequest};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
 
@@ -44,14 +45,7 @@ use common::log::generate_trace_id;
 * @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
 */
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct PreWithdrawRequest {
-    coin: String,
-    amount: String,
-    expire_at: u64,
-    memo: Option<String>,
-}
+
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/preWithdraw")]
@@ -84,12 +78,7 @@ async fn pre_withdraw(
  * @apiSuccess {String} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8066/bridge/bindEthAddr
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct BindEthAddrRequest {
-    eth_addr: String,
-    user_eth_sig: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/bindEthAddr")]
 async fn bind_eth_addr(
@@ -117,11 +106,7 @@ async fn bind_eth_addr(
  * @apiSuccess {String} data                nothing.
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GenBindEthAddrSigRequest {
-    eth_addr: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genBindEthAddrSig")]
 async fn gen_bind_eth_addr_sig(
@@ -154,12 +139,7 @@ async fn gen_bind_eth_addr_sig(
 
 * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
 */
-#[derive(Deserialize, Serialize, Default, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct GenDepositSigRequest {
-    coin: String,
-    amount: String,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/genDepositSig")]
 async fn gen_deposit_sig(
@@ -228,24 +208,7 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct ListWithdrawOrderResponse {
-    pub order_id: String,
-    pub chain_id: u128,     //外链id
-    pub account_id: String, //无链id
-    pub symbol: CoinType,   //代币符号
-    pub amount: String,
-    pub address: String,         //外链地址
-    pub signatures: Vec<String>, //签名详情
-    pub status: WithdrawStatus,  //订单提现状态
-    pub created_at: String,      //创建时间
-}
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ListWithdrawOrderRequest {
-    pub page: usize,
-    pub per_page: usize,
-}
+
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listWithdrawOrder")]
 async fn list_withdraw_order(
@@ -289,19 +252,6 @@ async fn list_withdraw_order(
 * @apiSuccess {String} data.created_at   创建时间
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
-#[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct ListDepositOrderResponse {
-    pub order_id: String,
-    pub chain_id: u128,        //外链id
-    pub account_id: String,    //无链id
-    pub symbol: CoinType,      //代币符号
-    pub amount: String,        //
-    pub address: String,       //外链地址
-    pub status: DepositStatus, //订单充值状态
-    pub updated_at: String,    //更新时间
-    pub created_at: String,    //创建时间
-}
-type ListDepositOrderRequest = ListWithdrawOrderRequest;
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listDepositOrder")]
 async fn list_deposit_order(
@@ -356,13 +306,14 @@ mod tests {
     use common::utils::math;
     use models::secret_store::SecretStoreView;
     // use log::{info, LevelFilter,debug,error};
-    use crate::account_manager::handlers::user_info::UserInfoTmp;
+    use crate::account_manager::handlers::user_info::UserInfoResponse;
     use actix_web::http::header::HeaderName;
     use actix_web::http::header::HeaderValue;
     use common::data_structures::CoinType;
     use models::account_manager::UserInfoView;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
+    use super::handlers::list_withdraw_order::ListWithdrawOrderResponse;
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {

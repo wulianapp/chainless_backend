@@ -15,7 +15,6 @@ use serde::{Deserialize,Serialize};
 use tracing::{debug, info};
 
 use crate::wallet::handlers::*;
-use crate::wallet::UpdateStrategy;
 use crate::{
     utils::{token_auth, wallet_grades::query_wallet_grade},
 };
@@ -37,20 +36,20 @@ pub struct AirdropStatusResponse {
 
 pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = get_main_account(user_id, &mut db_cli).await?;
 
 
     //todo: check sig,
     //todo: get kyc info
     let user_airdrop = AirdropView::find_single(
         AirdropFilter::ByUserId(&user_id.to_string()), 
-        &mut pg_cli
+        &mut db_cli
     ).await?;
     let Airdrop { 
         user_id, 

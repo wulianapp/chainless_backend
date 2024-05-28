@@ -114,7 +114,7 @@ pub enum PgLocalCli<'a> {
 
 /***
 struct DBCli<'a,T: PsqlOp>{
-    pg_cli: PgLocalCli<'a>,
+    db_cli: PgLocalCli<'a>,
     table: T
 }
 **/
@@ -238,8 +238,8 @@ pub async fn execute_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Resul
 
 pub fn execute2(raw_sql: &str) -> Result<u64> {
     let mut try_times = TRY_TIMES;
-    let mut pg_client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    //let mut pg_client2 = LOCAL_CLI.take();
+    let mut db_client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
+    //let mut db_client2 = LOCAL_CLI.take();
     LOCAL_CLI.with_borrow_mut(|client|{
         Ok(client.execute(raw_sql, &[])?)
     })

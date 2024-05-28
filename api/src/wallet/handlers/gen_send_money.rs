@@ -10,7 +10,6 @@ use models::secret_store::SecretStoreView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
-use crate::wallet::{CreateMainAccountRequest, GenSendMoneyRequest};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -24,12 +23,18 @@ use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
 
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GenSendMoneyRequest {
+    order_id: String,
+}
+
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -37,7 +42,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let coin_tx = models::coin_transfer::CoinTxView::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 
@@ -69,7 +74,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
     models::coin_transfer::CoinTxView::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
     Ok(Some(tx_id))

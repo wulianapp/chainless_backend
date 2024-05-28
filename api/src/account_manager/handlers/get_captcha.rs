@@ -7,11 +7,9 @@ use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoView};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
+use serde::{Serialize,Deserialize};
 use tracing::{debug, error, info};
 
-use crate::account_manager::{
-    self, user_info, GetCaptchaWithTokenRequest, GetCaptchaWithoutTokenRequest,
-};
 use crate::utils::captcha::Usage::*;
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
 use crate::utils::{captcha, token_auth};
@@ -19,6 +17,21 @@ use common::env::CONF;
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::prelude::*;
 use common::utils::time::now_millis;
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetCaptchaWithoutTokenRequest {
+    device_id: String,
+    contact: String,
+    kind: String,
+}
+
+#[derive(Deserialize, Serialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct GetCaptchaWithTokenRequest {
+    contact: String,
+    kind: String,
+}
 
 fn get(
     device_id: String,
@@ -82,13 +95,13 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
     //重置登录密码
     match kind {
         ResetLoginPassword => {
             let find_user_res =
-                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
                     .await
                     .map_err(|err| {
                         if err.to_string().contains("DBError::DataNotFound") {
@@ -102,7 +115,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             if find_user_res.user_info.secruity_is_seted {
                 let find_device_res = DeviceInfoView::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-                    &mut pg_cli,
+                    &mut db_cli,
                 )
                 .await;
                 if find_device_res.is_ok()
@@ -127,13 +140,13 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
         }
         Register => {
             let find_res =
-                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli).await;
+                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
             get(device_id, contact, kind, None)
         }
-        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli)
+        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
             .await
         {
             Ok(info) => get(device_id, contact, kind, Some(info.id)),
@@ -160,11 +173,11 @@ pub async fn with_token_req(
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let mut pg_cli = get_pg_pool_connect().await?;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut pg_cli).await?;
+    let mut db_cli = get_pg_pool_connect().await?;
+    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
     let device = DeviceInfoView::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 

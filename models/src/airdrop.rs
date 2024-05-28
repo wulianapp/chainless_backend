@@ -227,20 +227,20 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut pg_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
         let airdrop =
             AirdropView::new_with_specified("1", "2","3.local");
-        airdrop.insert(&mut pg_cli).await.unwrap();
+        airdrop.insert(&mut db_cli).await.unwrap();
         let airdrop_by_find =
-            AirdropView::find_single(AirdropFilter::ByInviteCode("1"),&mut pg_cli).await.unwrap();
+            AirdropView::find_single(AirdropFilter::ByInviteCode("1"),&mut db_cli).await.unwrap();
         println!("{:?}", airdrop_by_find);
         assert_eq!(airdrop.airdrop, airdrop_by_find.airdrop);
 
         AirdropView::update_single(
             AirdropUpdater::InviteCode("3"),
             AirdropFilter::ByInviteCode("1"),
-            &mut pg_cli
+            &mut db_cli
         ).await
         .unwrap();
     }

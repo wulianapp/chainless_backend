@@ -17,8 +17,7 @@ use models::{
 };
 use tracing::{debug, info, warn};
 
-use crate::wallet::{EstimateTransferFeeResponse, SecretType};
-use crate::{utils::token_auth, wallet::EstimateTransferFeeRequest};
+use crate::{utils::token_auth};
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{AccountManagerError, BackendError, BackendRes},
@@ -33,14 +32,29 @@ use serde::{de::value, Deserialize, Serialize};
 
 use super::get_fees_priority;
 
+#[derive(Deserialize, Serialize, Clone, Default, Debug)]
+pub struct EstimateTransferFeeResponse {
+    pub coin: CoinType,
+    pub amount: String,
+    pub balance_enough: bool,
+}
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EstimateTransferFeeRequest {
+    pub coin: String,
+    pub amount: String,
+}
+
+
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: EstimateTransferFeeRequest,
 ) -> BackendRes<EstimateTransferFeeResponse> {
     let (user_id, _device_id, _) = token_auth::validate_credentials2(&req)?;
-    let mut pg_cli = get_pg_pool_connect().await?;
+    let mut db_cli = get_pg_pool_connect().await?;
 
-    let main_account = super::get_main_account(user_id, &mut pg_cli).await?;
+    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
 
     let EstimateTransferFeeRequest { coin, amount } = request_data;
     let coin: CoinType = coin.parse().map_err(to_param_invalid_error)?;

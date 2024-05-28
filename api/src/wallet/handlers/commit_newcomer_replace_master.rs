@@ -10,9 +10,6 @@ use models::wallet_manage_record::WalletManageRecordView;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
-use crate::wallet::{
-    CommitNewcomerSwitchMasterRequest, CreateMainAccountRequest, ReconfirmSendMoneyRequest,
-};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -25,6 +22,19 @@ use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdate
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CommitNewcomerSwitchMasterRequest {
+    newcomer_pubkey: String,
+    add_key_raw: String,
+    delete_key_raw: String,
+    add_key_sig: String,
+    delete_key_sig: String,
+    newcomer_prikey_encrypted_by_password: String,
+    newcomer_prikey_encrypted_by_answer: String,
+}
+
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -41,17 +51,17 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
 
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Undefined)?;
-    super::check_have_base_fee(&main_account, &mut pg_cli).await?;
+    super::check_have_base_fee(&main_account, &mut db_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
@@ -78,7 +88,7 @@ pub(crate) async fn req(
 
         //check if stored already ,if not insert sercret_store or update
         let origin_secret =
-            SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey), &mut pg_cli).await?;
+            SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey), &mut db_cli).await?;
         if origin_secret.is_empty() {
             let secret_info = SecretStoreView::new_with_specified(
                 &newcomer_pubkey,
@@ -86,12 +96,12 @@ pub(crate) async fn req(
                 &newcomer_prikey_encrypted_by_password,
                 &newcomer_prikey_encrypted_by_answer,
             );
-            secret_info.insert(&mut pg_cli).await?;
+            secret_info.insert(&mut db_cli).await?;
         } else {
             SecretStoreView::update_single(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
-                &mut pg_cli,
+                &mut db_cli,
             )
             .await?;
         }
@@ -100,7 +110,7 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     } else {
@@ -119,7 +129,7 @@ pub(crate) async fn req(
         DeviceInfoView::update_single(
             DeviceInfoUpdater::BecomeUndefined(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     } else {
@@ -142,7 +152,7 @@ pub(crate) async fn req(
         &device.brand,
         vec![txid],
     );
-    record.insert(&mut pg_cli).await?;
-    pg_cli.commit().await?;
+    record.insert(&mut db_cli).await?;
+    db_cli.commit().await?;
     Ok(None::<String>)
 }

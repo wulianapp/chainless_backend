@@ -14,7 +14,6 @@ use models::account_manager::{UserFilter, UserInfoView};
 use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
-use crate::wallet::AddServantRequest;
 use blockchain::ContractClient;
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::{self, InternalError};
@@ -23,6 +22,18 @@ use models::{PgLocalCli, PsqlOp};
 use tracing::error;
 
 use super::get_role;
+use serde::{Deserialize,Serialize};
+
+#[derive(Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AddServantRequest {
+    servant_pubkey: String,
+    servant_prikey_encryped_by_password: String,
+    servant_prikey_encryped_by_answer: String,
+    holder_device_id: String,
+    holder_device_brand: String,
+}
+
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -35,13 +46,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_brand: _,
     } = request_data;
 
-    let mut pg_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut pg_cli = pg_cli.begin().await?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
 
     let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut pg_cli).await?;
+        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account;
-    super::have_no_uncompleted_tx(&main_account, &mut pg_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     if current_strategy.servant_pubkeys.len() >= 11 {
         Err(WalletError::ServantNumReachLimit)?;
     }
@@ -51,7 +62,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret =
-        SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey), &mut pg_cli).await?;
+        SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey), &mut db_cli).await?;
     if origin_secret.is_empty() {
         let secret_info = SecretStoreView::new_with_specified(
             &servant_pubkey,
@@ -59,12 +70,12 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
             &servant_prikey_encryped_by_password,
             &servant_prikey_encryped_by_answer,
         );
-        secret_info.insert(&mut pg_cli).await?;
+        secret_info.insert(&mut db_cli).await?;
     } else {
         SecretStoreView::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&servant_pubkey),
-            &mut pg_cli,
+            &mut db_cli,
         )
         .await?;
     }
@@ -84,7 +95,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     DeviceInfoView::update_single(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
-        &mut pg_cli,
+        &mut db_cli,
     )
     .await?;
 
@@ -97,8 +108,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         &device.brand,
         vec![txid],
     );
-    record.insert(&mut pg_cli).await?;
+    record.insert(&mut db_cli).await?;
 
-    pg_cli.commit().await?;
+    db_cli.commit().await?;
     Ok(None::<String>)
 }
