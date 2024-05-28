@@ -19,9 +19,9 @@ use common::{
     },
 };
 use models::{
-    account_manager::{UserFilter, UserInfoView},
-    coin_transfer::{CoinTxFilter, CoinTxView},
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    account_manager::{UserFilter, UserInfoEntity},
+    coin_transfer::{CoinTxEntity, CoinTxFilter},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     PgLocalCli, PsqlOp,
 };
 use serde::{Deserialize, Serialize};
@@ -96,8 +96,8 @@ pub async fn gen_random_account_id(
 pub async fn get_uncompleted_tx(
     account: &str,
     conn: &mut PgLocalCli<'_>,
-) -> Result<Vec<CoinTxView>> {
-    let mut txs = CoinTxView::find(CoinTxFilter::BySenderUncompleted(account), conn).await?;
+) -> Result<Vec<CoinTxEntity>> {
+    let mut txs = CoinTxEntity::find(CoinTxFilter::BySenderUncompleted(account), conn).await?;
     txs.retain(|tx| {
         tx.transaction.stage <= CoinSendStage::ReceiverApproved
             && now_millis() < tx.transaction.expire_at
@@ -152,7 +152,7 @@ pub async fn get_main_account(
     user_id: u32,
     conn: &mut PgLocalCli<'_>,
 ) -> Result<String, BackendError> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id), conn).await?;
+    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn).await?;
     if user.user_info.main_account.eq("") {
         Err(WalletError::NotSetSecurity)?
     }
@@ -207,7 +207,7 @@ pub async fn get_session_state(
     device_id: &str,
     conn: &mut PgLocalCli<'_>,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
-    let user = UserInfoView::find_single(UserFilter::ById(user_id), conn)
+    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn)
         .await
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
@@ -232,7 +232,7 @@ pub async fn get_session_state(
 
     //注册过的一定有设备信息
     let mut device =
-        DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id), conn)
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id), conn)
             .await?;
     device.device_info.key_role =
         get_role(&current_strategy, device.device_info.hold_pubkey.as_deref());

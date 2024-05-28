@@ -405,7 +405,7 @@ impl PsqlType {
                 .unwrap_or("NULL".to_string()),
             PsqlType::OptionU64(data) => {
                 data.map(|x| format!("{}", x)).unwrap_or("NULL".to_string())
-            },
+            }
             PsqlType::OptionU8(data) => {
                 data.map(|x| format!("{}", x)).unwrap_or("NULL".to_string())
             }

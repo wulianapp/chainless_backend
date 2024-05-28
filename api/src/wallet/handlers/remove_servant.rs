@@ -3,29 +3,28 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use models::general::{get_pg_pool_connect, transaction_begin};
-use models::wallet_manage_record::WalletManageRecordView;
+use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::utils::token_auth;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
 use common::error_code::BackendError::{self, InternalError};
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 use models::{PgLocalCli, PsqlOp};
+use serde::{Deserialize, Serialize};
 use tracing::error;
-use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct RemoveServantRequest {
     servant_pubkey: String,
 }
-
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -45,7 +44,7 @@ pub(crate) async fn req(
     super::check_role(current_role, KeyRole2::Master)?;
 
     //old key_store set abandoned
-    SecretStoreView::update_single(
+    SecretStoreEntity::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&servant_pubkey),
         &mut db_cli,
@@ -53,7 +52,7 @@ pub(crate) async fn req(
     .await?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update_single(
+    DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeUndefined(&servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&servant_pubkey),
         &mut db_cli,
@@ -70,7 +69,7 @@ pub(crate) async fn req(
         .await?;
 
     //todo: generate txid before call contract
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::RemoveServant,
         &current_strategy.master_pubkey,

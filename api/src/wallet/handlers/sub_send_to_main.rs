@@ -10,17 +10,17 @@ use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::encrypt::{bs58_to_hex, ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::math::coin_amount::display2raw;
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::error;
 
 use crate::utils::token_auth;
 use blockchain::multi_sig::AccountSignInfo;
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::coin_transfer::{CoinTxFilter, CoinTxUpdater, CoinTxView};
+use models::coin_transfer::{CoinTxEntity, CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,11 +31,7 @@ pub struct SubSendToMainRequest {
     amount: String,
 }
 
-
-pub async fn req(
-    req: HttpRequest,
-    request_data: SubSendToMainRequest,
-) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> BackendRes<String> {
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
@@ -61,21 +57,26 @@ pub async fn req(
     let cli = ContractClient::<MultiSig>::new().await?;
 
     // check sig
-    let tx = SubToMainTx{coin_id:coin_type.to_string(),amount};
+    let tx = SubToMainTx {
+        coin_id: coin_type.to_string(),
+        amount,
+    };
     let sign_data = hex::encode(serde_json::to_string(&tx).unwrap().as_bytes());
     let key = cli.get_master_pubkey_list(&subaccount_id).await?;
     if key.len() != 1 {
         return Err(BackendError::InternalError("".to_string()))?;
     } else {
-        if !ed25519_verify_hex(&sign_data,&key[0],&sub_sig)? {
-            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        if !ed25519_verify_hex(&sign_data, &key[0], &sub_sig)? {
+            Err(BackendError::RequestParamInvalid(
+                "siganature is illegal".to_string(),
+            ))?;
         }
     };
-    
+
     let available_balance =
         super::get_available_amount(&subaccount_id, &coin_type, &mut db_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
-    
+
     if amount > available_balance {
         error!(
             "{},  {}(amount)  big_than1 {}(available_balance) ",
@@ -90,8 +91,8 @@ pub async fn req(
     let tx_id = cli
         .internal_transfer_sub_to_main(&main_account, sub_sig.clone(), coin_type.clone(), amount)
         .await?;
-    
-    let mut coin_info = CoinTxView::new_with_specified(
+
+    let mut coin_info = CoinTxEntity::new_with_specified(
         coin_type,
         sub_sig.account_id,
         main_account,

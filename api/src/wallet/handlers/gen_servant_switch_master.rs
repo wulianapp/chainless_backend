@@ -2,9 +2,9 @@ use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -16,7 +16,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -43,7 +43,7 @@ pub(crate) async fn req(
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let servant_pubkey = DeviceInfoView::find_single(
+    let servant_pubkey = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,
     )

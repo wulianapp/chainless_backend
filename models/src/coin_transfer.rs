@@ -10,20 +10,20 @@ use jsonrpc_http_server::jsonrpc_core::futures::future::OrElse;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::Row;
 
-use crate::secret_store::{SecretFilter, SecretStoreView};
+use crate::secret_store::{SecretFilter, SecretStoreEntity};
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxRole, TxType};
 use common::data_structures::{CoinType, TxStatusOnChain};
 
 #[derive(Deserialize, Serialize, Debug)]
-pub struct CoinTxView {
+pub struct CoinTxEntity {
     pub transaction: CoinTransaction,
     pub updated_at: String,
     pub created_at: String,
 }
 
-impl CoinTxView {
+impl CoinTxEntity {
     pub fn new_with_specified(
         coin_type: CoinType,
         from: String,
@@ -52,7 +52,7 @@ impl CoinTxView {
             receiver_contact: None,
             reserved_field3: "".to_string(),
         };
-        CoinTxView {
+        CoinTxEntity {
             transaction: coin_tx,
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -154,14 +154,14 @@ impl fmt::Display for CoinTxUpdater<'_> {
     }
 }
 #[async_trait]
-impl PsqlOp for CoinTxView {
+impl PsqlOp for CoinTxEntity {
     type UpdaterContent<'a> = CoinTxUpdater<'a>;
     type FilterContent<'b> = CoinTxFilter<'b>;
 
     async fn find(
         filter: Self::FilterContent<'_>,
         cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<CoinTxView>> {
+    ) -> Result<Vec<CoinTxEntity>> {
         let sql = format!(
             "select order_id,\
          tx_id,\
@@ -187,8 +187,8 @@ impl PsqlOp for CoinTxView {
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get_snapshot: raw sql {}", sql);
 
-        let gen_view = |row: &Row| -> Result<CoinTxView> {
-            Ok(CoinTxView {
+        let gen_view = |row: &Row| -> Result<CoinTxEntity> {
+            Ok(CoinTxEntity {
                 transaction: CoinTransaction {
                     order_id: row.get(0),
                     tx_id: row.get(1),

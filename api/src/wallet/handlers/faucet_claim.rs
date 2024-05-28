@@ -8,13 +8,13 @@ use common::error_code::BackendError;
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
-use models::account_manager::{UserFilter, UserInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Mutex;
-use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -22,17 +22,16 @@ pub struct FaucetClaimRequest {
     pub account_id: Option<String>,
 }
 
-pub async fn req(req: HttpRequest,req_data:FaucetClaimRequest) -> BackendRes<String> {
- 
-    let account = match req_data.account_id{
-        Some(id) => id, 
+pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<String> {
+    let account = match req_data.account_id {
+        Some(id) => id,
         None => {
             let user_id = token_auth::validate_credentials(&req)?;
             let mut db_cli = get_pg_pool_connect().await?;
             super::get_main_account(user_id, &mut db_cli).await?
         }
     };
-    
+
     let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&account).await?;
     if master_list.len() != 1 {

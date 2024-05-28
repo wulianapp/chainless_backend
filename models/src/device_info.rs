@@ -15,6 +15,13 @@ use slog_term::PlainSyncRecordDecorator;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct DeviceInfoEntity {
+    pub device_info: DeviceInfo,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug)]
 pub enum DeviceInfoUpdater<'a> {
     State(SecretKeyState),
@@ -94,16 +101,9 @@ impl fmt::Display for DeviceInfoFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-pub struct DeviceInfoView {
-    pub device_info: DeviceInfo,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl DeviceInfoView {
+impl DeviceInfoEntity {
     pub fn new_with_specified(id: &str, brand: &str, user_id: u32) -> Self {
-        DeviceInfoView {
+        DeviceInfoEntity {
             device_info: DeviceInfo {
                 id: id.to_owned(),
                 user_id,
@@ -120,7 +120,7 @@ impl DeviceInfoView {
 }
 
 #[async_trait]
-impl PsqlOp for DeviceInfoView {
+impl PsqlOp for DeviceInfoEntity {
     type UpdaterContent<'a> = DeviceInfoUpdater<'a>;
     type FilterContent<'b> = DeviceInfoFilter<'b>;
 
@@ -141,8 +141,8 @@ impl PsqlOp for DeviceInfoView {
         );
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
-        let gen_view = |row: &Row| -> Result<DeviceInfoView> {
-            Ok(DeviceInfoView {
+        let gen_view = |row: &Row| -> Result<DeviceInfoEntity> {
+            Ok(DeviceInfoEntity {
                 device_info: DeviceInfo {
                     id: row.get(0),
                     user_id: row.get::<usize, i32>(1) as u32,

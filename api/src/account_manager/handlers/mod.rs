@@ -13,7 +13,7 @@ use common::{
     error_code::{AccountManagerError, BackendError, ExternalServiceError},
 };
 use models::{
-    account_manager::{UserFilter, UserInfoView},
+    account_manager::{UserFilter, UserInfoEntity},
     PsqlOp,
 };
 

@@ -10,7 +10,7 @@ use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
 use common::error_code::{parse_str, BackendError};
 use common::utils::math::coin_amount::raw2display;
-use models::account_manager::{UserFilter, UserInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
@@ -51,7 +51,7 @@ pub async fn req(
 ) -> BackendRes<BalanceListResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoView::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
 
     let main_account = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();

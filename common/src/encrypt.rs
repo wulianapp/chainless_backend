@@ -87,7 +87,6 @@ pub fn ed25519_verify_hex(data: &str, pubkey_hex: &str, sig: &str) -> Result<boo
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -5,9 +5,9 @@ use blockchain::coin::Coin;
 use common::data_structures::get_support_coin_list;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
-use models::wallet_manage_record::WalletManageRecordView;
+use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::token_auth;
 use blockchain::multi_sig::{MultiSig, SubAccConf};
@@ -19,11 +19,11 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+use serde::{Deserialize, Serialize};
 use tracing::info;
-use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -68,7 +68,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         }
     }
 
-    SecretStoreView::update_single(
+    SecretStoreEntity::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(sub_pubkey),
         &mut db_cli,
@@ -80,7 +80,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         .await?;
 
     //todo: generate txid before call contract
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::RemoveSubaccount,
         &current_strategy.master_pubkey,

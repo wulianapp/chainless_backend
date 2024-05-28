@@ -12,6 +12,13 @@ use tokio_postgres::Row;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::{Ok, Result};
 
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct SecretStoreEntity {
+    pub secret_store: SecretStore,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug)]
 pub enum SecretUpdater<'a> {
     //todo:
@@ -52,21 +59,14 @@ impl fmt::Display for SecretFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-pub struct SecretStoreView {
-    pub secret_store: SecretStore,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl SecretStoreView {
+impl SecretStoreEntity {
     pub fn new_with_specified(
         pubkey: &str,
         user_id: u32,
         encrypted_prikey_by_password: &str,
         encrypted_prikey_by_answer: &str,
     ) -> Self {
-        SecretStoreView {
+        SecretStoreEntity {
             secret_store: SecretStore {
                 pubkey: pubkey.to_string(),
                 state: SecretKeyState::Incumbent,
@@ -80,13 +80,13 @@ impl SecretStoreView {
     }
 }
 #[async_trait]
-impl PsqlOp for SecretStoreView {
+impl PsqlOp for SecretStoreEntity {
     type UpdaterContent<'a> = SecretUpdater<'a>;
     type FilterContent<'b> = SecretFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
         cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<SecretStoreView>> {
+    ) -> Result<Vec<SecretStoreEntity>> {
         let sql = format!(
             "select 
             pubkey,\
@@ -102,7 +102,7 @@ impl PsqlOp for SecretStoreView {
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
-            Ok(SecretStoreView {
+            Ok(SecretStoreEntity {
                 secret_store: SecretStore {
                     pubkey: row.get(0),
                     state: row.get::<usize, String>(1).parse()?,
@@ -164,7 +164,7 @@ impl PsqlOp for SecretStoreView {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct SecretView {
-    pub secret_store: SecretStoreView,
+    pub secret_store: SecretStoreEntity,
     pub updated_at: String,
     pub created_at: String,
 }

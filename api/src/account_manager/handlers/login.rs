@@ -5,7 +5,7 @@ use anyhow::Result;
 use common::error_code::AccountManagerError::{
     self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
 };
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::general::get_pg_pool_connect;
 use tracing::debug;
 
@@ -16,7 +16,7 @@ use common::prelude::*;
 use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
 use models::{account_manager, PgLocalCli, PsqlOp};
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 lazy_static! {
     pub static ref LOGIN_RETRY: Mutex<HashMap<u32, Vec<u64>>> = Mutex::new(HashMap::new());
@@ -89,7 +89,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(
+    let user_at_stored = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
     )
@@ -119,7 +119,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         let _ = retry_storage.remove(&user_at_stored.id);
     }
 
-    let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_at_stored.id);
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
@@ -143,7 +143,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(
+    let user_at_stored = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
     )
@@ -158,7 +158,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
 
-    let device = DeviceInfoView::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_at_stored.id);
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),

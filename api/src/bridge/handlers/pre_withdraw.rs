@@ -9,7 +9,7 @@ use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{CoinType, KeyRole2};
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
@@ -17,9 +17,9 @@ use tracing::{debug, error};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
 
-use models::coin_transfer::CoinTxView;
+use models::coin_transfer::CoinTxEntity;
 use models::PsqlOp;
 
 use crate::wallet::handlers::*;
@@ -94,11 +94,11 @@ pub(crate) async fn req(
         .ok_or(WalletError::SenderNotFound)?;
 
     let gen_tx_with_status =
-        |stage: CoinSendStage| -> std::result::Result<CoinTxView, BackendError> {
+        |stage: CoinSendStage| -> std::result::Result<CoinTxEntity, BackendError> {
             let coin_tx_raw = cli
                 .gen_send_money_info(&from, &bridge_ca, coin_type.clone(), amount, expire_at)
                 .map_err(|err| ChainError(err.to_string()))?;
-            Ok(CoinTxView::new_with_specified(
+            Ok(CoinTxEntity::new_with_specified(
                 coin_type.clone(),
                 from.clone(),
                 bridge_ca.clone(),

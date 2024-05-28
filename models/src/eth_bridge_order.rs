@@ -14,6 +14,13 @@ use tokio_postgres::Row;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct EthBridgeOrderEntity {
+    pub order: EthBridgeOrder,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug)]
 pub enum BridgeOrderUpdater<'a> {
     EncrypedPrikey(&'a str, &'a str),
@@ -60,14 +67,7 @@ impl fmt::Display for BridgeOrderFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-pub struct EthBridgeOrderView {
-    pub order: EthBridgeOrder,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl EthBridgeOrderView {
+impl EthBridgeOrderEntity {
     pub fn new_with_specified(
         id: &str,
         chainless_acc: &str,
@@ -78,7 +78,7 @@ impl EthBridgeOrderView {
         status: EthOrderStatus,
         height: u64,
     ) -> Self {
-        EthBridgeOrderView {
+        EthBridgeOrderEntity {
             order: EthBridgeOrder {
                 id: id.to_string(),
                 order_type,
@@ -97,13 +97,13 @@ impl EthBridgeOrderView {
 }
 
 #[async_trait]
-impl PsqlOp for EthBridgeOrderView {
+impl PsqlOp for EthBridgeOrderEntity {
     type UpdaterContent<'a> = BridgeOrderUpdater<'a>;
     type FilterContent<'b> = BridgeOrderFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
         cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<EthBridgeOrderView>> {
+    ) -> Result<Vec<EthBridgeOrderEntity>> {
         let sql = format!(
             "select 
             id,\
@@ -123,7 +123,7 @@ impl PsqlOp for EthBridgeOrderView {
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
-            Ok(EthBridgeOrderView {
+            Ok(EthBridgeOrderEntity {
                 order: EthBridgeOrder {
                     id: row.get(0),
                     order_type: row.get::<usize, String>(1).parse()?,

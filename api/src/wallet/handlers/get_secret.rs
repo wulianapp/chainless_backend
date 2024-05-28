@@ -2,14 +2,14 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
 use models::{
-    account_manager::{UserFilter, UserInfoView},
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    account_manager::{UserFilter, UserInfoEntity},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    secret_store::{SecretFilter, SecretStoreView},
+    secret_store::{SecretFilter, SecretStoreEntity},
     PsqlOp,
 };
 
-use crate::{utils::token_auth};
+use crate::utils::token_auth;
 use common::error_code::{BackendError::ChainError, WalletError};
 use common::{
     data_structures::secret_store::SecretStore,
@@ -29,7 +29,6 @@ pub struct GetSecretRequest {
     pub account_id: Option<String>,
 }
 
-
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
@@ -45,11 +44,11 @@ pub(crate) async fn req(
             if let Some(account_id) = account_id {
                 let pubkey = cli.get_master_pubkey(&account_id).await?;
                 let secret =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(&pubkey), &mut db_cli)
+                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(&pubkey), &mut db_cli)
                         .await?;
                 Ok(Some(vec![secret.secret_store]))
             } else {
-                let device = DeviceInfoView::find_single(
+                let device = DeviceInfoEntity::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
                     &mut db_cli,
                 )
@@ -60,7 +59,7 @@ pub(crate) async fn req(
                     .as_deref()
                     .ok_or(WalletError::PubkeyNotExist)?;
                 let secrete =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(pubkey), &mut db_cli)
+                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(pubkey), &mut db_cli)
                         .await?;
                 Ok(Some(vec![secrete.secret_store]))
             }
@@ -83,7 +82,8 @@ pub(crate) async fn req(
             let mut secrets = vec![];
             for key in keys {
                 let secrete =
-                    SecretStoreView::find_single(SecretFilter::ByPubkey(&key), &mut db_cli).await?;
+                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(&key), &mut db_cli)
+                        .await?;
                 secrets.push(secrete.secret_store);
             }
             Ok(Some(secrets))

@@ -55,7 +55,6 @@ pub async fn table_clear(table_name: &str) -> Result<(), String> {
     Ok(())
 }
 
-
 pub async fn init_system_config() -> Result<(), String> {
     let insert_root_user = "insert into users (id,phone_number,
         email,
@@ -84,10 +83,7 @@ pub async fn init_system_config() -> Result<(), String> {
         airdrop_reserved_field2,
         airdrop_reserved_field3
         ) values ('10000','10000.local','chainless.hk','0','0.local','btc_address_abc',0,'','','');";
-    let mut cli = crate::PG_POOL
-        .get()
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut cli = crate::PG_POOL.get().await.map_err(|e| e.to_string())?;
 
     cli.execute(insert_root_user, &[])
         .await

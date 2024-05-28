@@ -3,7 +3,7 @@ use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 //use log::debug;
 use tracing::debug;

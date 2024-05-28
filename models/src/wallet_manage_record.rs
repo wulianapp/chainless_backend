@@ -21,6 +21,14 @@ use slog_term::PlainSyncRecordDecorator;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::Result;
 
+#[derive(Deserialize, Serialize, Debug, AsRef, Clone)]
+pub struct WalletManageRecordEntity {
+    #[as_ref]
+    pub record: WalletManageRecord,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug)]
 pub enum WalletManageRecordUpdater<'a> {
     TxIds(&'a Vec<String>),
@@ -60,15 +68,7 @@ impl fmt::Display for WalletManageRecordFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, AsRef, Clone)]
-pub struct WalletManageRecordView {
-    #[as_ref]
-    pub record: WalletManageRecord,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl WalletManageRecordView {
+impl WalletManageRecordEntity {
     pub fn new_with_specified(
         user_id: &str,
         operation_type: WalletOperateType,
@@ -77,7 +77,7 @@ impl WalletManageRecordView {
         operator_device_brand: &str,
         tx_ids: Vec<String>,
     ) -> Self {
-        WalletManageRecordView {
+        WalletManageRecordEntity {
             record: WalletManageRecord {
                 record_id: generate_random_hex_string(64),
                 user_id: user_id.to_string(),
@@ -96,7 +96,7 @@ impl WalletManageRecordView {
 
 //wallet_manage_history
 #[async_trait]
-impl PsqlOp for WalletManageRecordView {
+impl PsqlOp for WalletManageRecordEntity {
     type UpdaterContent<'a> = WalletManageRecordUpdater<'a>;
     type FilterContent<'b> = WalletManageRecordFilter<'b>;
 
@@ -118,8 +118,8 @@ impl PsqlOp for WalletManageRecordView {
         );
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
-        let gen_view = |row: &Row| -> Result<WalletManageRecordView> {
-            Ok(WalletManageRecordView {
+        let gen_view = |row: &Row| -> Result<WalletManageRecordEntity> {
+            Ok(WalletManageRecordEntity {
                 record: WalletManageRecord {
                     record_id: row.get(0),
                     user_id: row.get(1),

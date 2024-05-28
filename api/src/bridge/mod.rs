@@ -10,7 +10,11 @@ use common::data_structures::{
     bridge::{DepositStatus, WithdrawStatus},
     CoinType,
 };
-use handlers::{bind_eth_addr::BindEthAddrRequest, gen_bind_eth_addr_sig::GenBindEthAddrSigRequest, gen_deposit_sig::GenDepositSigRequest, list_deposit_order::ListDepositOrderRequest, list_withdraw_order::ListWithdrawOrderRequest, pre_withdraw::PreWithdrawRequest};
+use handlers::{
+    bind_eth_addr::BindEthAddrRequest, gen_bind_eth_addr_sig::GenBindEthAddrSigRequest,
+    gen_deposit_sig::GenDepositSigRequest, list_deposit_order::ListDepositOrderRequest,
+    list_withdraw_order::ListWithdrawOrderRequest, pre_withdraw::PreWithdrawRequest,
+};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
 
@@ -45,7 +49,6 @@ use common::log::generate_trace_id;
 * @apiSuccess {String} data                nothing.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
 */
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/bridge/preWithdraw")]
@@ -208,7 +211,6 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
 
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/bridge/listWithdrawOrder")]
 async fn list_withdraw_order(
@@ -293,7 +295,7 @@ mod tests {
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
-    use models::coin_transfer::CoinTxView;
+    use models::coin_transfer::CoinTxEntity;
     use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
     use serde_json::json;
 
@@ -304,16 +306,16 @@ mod tests {
     use common::data_structures::secret_store::SecretStore;
     use common::encrypt::ed25519_key_gen;
     use common::utils::math;
-    use models::secret_store::SecretStoreView;
+    use models::secret_store::SecretStoreEntity;
     // use log::{info, LevelFilter,debug,error};
+    use super::handlers::list_withdraw_order::ListWithdrawOrderResponse;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
     use actix_web::http::header::HeaderName;
     use actix_web::http::header::HeaderValue;
     use common::data_structures::CoinType;
-    use models::account_manager::UserInfoView;
+    use models::account_manager::UserInfoEntity;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
-    use super::handlers::list_withdraw_order::ListWithdrawOrderResponse;
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {

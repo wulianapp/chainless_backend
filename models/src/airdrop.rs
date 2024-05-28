@@ -1,4 +1,3 @@
-
 extern crate rustc_serialize;
 
 use async_trait::async_trait;
@@ -14,14 +13,21 @@ use tokio_postgres::Row;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+pub struct AirdropEntity {
+    pub airdrop: Airdrop,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 #[derive(Debug)]
 pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
     AccountId(&'a str),
     //user_id,account_id
-    Predecessor(&'a str,&'a str),
-    BtcLevel(u8)
+    Predecessor(&'a str, &'a str),
+    BtcLevel(u8),
 }
 
 impl fmt::Display for AirdropUpdater<'_> {
@@ -29,19 +35,22 @@ impl fmt::Display for AirdropUpdater<'_> {
         let description = match self {
             AirdropUpdater::InviteCode(code) => {
                 format!("invite_code='{}'", code)
-            },
+            }
             AirdropUpdater::BtcAddress(addr) => {
                 format!("btc_address='{}'", addr)
-            },
+            }
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)
-            },
-            AirdropUpdater::Predecessor(user_id,account_id) => {
-                format!("predecessor_user_id='{}',predecessor_account_id='{}'",user_id,account_id)
-            },
+            }
+            AirdropUpdater::Predecessor(user_id, account_id) => {
+                format!(
+                    "predecessor_user_id='{}',predecessor_account_id='{}'",
+                    user_id, account_id
+                )
+            }
             AirdropUpdater::BtcLevel(level) => {
                 format!("btc_level='{}'", level)
-            },
+            }
         };
         write!(f, "{}", description)
     }
@@ -67,22 +76,15 @@ impl fmt::Display for AirdropFilter<'_> {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-pub struct AirdropView {
-    pub airdrop: Airdrop,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl AirdropView {
+impl AirdropEntity {
     pub fn new_with_specified(
         user_id: &str,
         predecessor_user_id: &str,
         predecessor_account_id: &str,
     ) -> Self {
-        AirdropView {
+        AirdropEntity {
             airdrop: Airdrop {
-                user_id:user_id.to_string(),
+                user_id: user_id.to_string(),
                 account_id: None,
                 invite_code: user_id.to_string(),
                 predecessor_user_id: predecessor_user_id.to_string(),
@@ -90,8 +92,8 @@ impl AirdropView {
                 btc_address: None,
                 btc_level: None,
                 airdrop_reserved_field1: "".to_string(),
-                airdrop_reserved_field2:  "".to_string(),
-                airdrop_reserved_field3:  "".to_string(),
+                airdrop_reserved_field2: "".to_string(),
+                airdrop_reserved_field3: "".to_string(),
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -99,13 +101,13 @@ impl AirdropView {
     }
 }
 #[async_trait]
-impl PsqlOp for AirdropView {
+impl PsqlOp for AirdropEntity {
     type UpdaterContent<'a> = AirdropUpdater<'a>;
     type FilterContent<'b> = AirdropFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
         cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<AirdropView>> {
+    ) -> Result<Vec<AirdropEntity>> {
         let sql = format!(
             "select 
             user_id,\
@@ -126,18 +128,18 @@ impl PsqlOp for AirdropView {
         let execute_res = cli.query(sql.as_str()).await?;
         debug!("get_airdrop: raw sql {}", sql);
         let gen_view = |row: &Row| {
-            Ok(AirdropView {
-                airdrop: Airdrop { 
-                    user_id: row.get(0), 
+            Ok(AirdropEntity {
+                airdrop: Airdrop {
+                    user_id: row.get(0),
                     account_id: row.get::<usize, Option<String>>(1),
-                    invite_code: row.get(2), 
-                    predecessor_user_id: row.get(3), 
-                    predecessor_account_id: row.get::<usize, String>(4), 
-                    btc_address: row.get::<usize, Option<String>>(5), 
-                    btc_level: row.get::<usize, Option<i16>>(6).map(|x| x as u8), 
-                    airdrop_reserved_field1: row.get(7), 
-                    airdrop_reserved_field2: row.get(8), 
-                    airdrop_reserved_field3: row.get(9)
+                    invite_code: row.get(2),
+                    predecessor_user_id: row.get(3),
+                    predecessor_account_id: row.get::<usize, String>(4),
+                    btc_address: row.get::<usize, Option<String>>(5),
+                    btc_level: row.get::<usize, Option<i16>>(6).map(|x| x as u8),
+                    airdrop_reserved_field1: row.get(7),
+                    airdrop_reserved_field2: row.get(8),
+                    airdrop_reserved_field3: row.get(9),
                 },
                 updated_at: row.get(10),
                 created_at: row.get(11),
@@ -163,17 +165,17 @@ impl PsqlOp for AirdropView {
     }
 
     async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
-        let Airdrop { 
-            user_id, 
-            account_id, 
-            invite_code, 
-            predecessor_user_id, 
+        let Airdrop {
+            user_id,
+            account_id,
+            invite_code,
+            predecessor_user_id,
             predecessor_account_id,
-            btc_address, 
-            btc_level, 
-            airdrop_reserved_field1, 
-            airdrop_reserved_field2, 
-            airdrop_reserved_field3 
+            btc_address,
+            btc_level,
+            airdrop_reserved_field1,
+            airdrop_reserved_field2,
+            airdrop_reserved_field3,
         } = self.airdrop.clone();
         let account_id: PsqlType = account_id.into();
         let btc_address: PsqlType = btc_address.into();
@@ -192,7 +194,7 @@ impl PsqlOp for AirdropView {
                 airdrop_reserved_field2,\
                 airdrop_reserved_field3
          ) values ('{}',{},'{}','{}','{}',{},{},'{}','{}','{}');",
-            user_id, 
+            user_id,
             account_id.to_psql_str(),
             invite_code,
             predecessor_user_id,
@@ -229,19 +231,21 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
-        let airdrop =
-            AirdropView::new_with_specified("1", "2","3.local");
+        let airdrop = AirdropEntity::new_with_specified("1", "2", "3.local");
         airdrop.insert(&mut db_cli).await.unwrap();
         let airdrop_by_find =
-            AirdropView::find_single(AirdropFilter::ByInviteCode("1"),&mut db_cli).await.unwrap();
+            AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"), &mut db_cli)
+                .await
+                .unwrap();
         println!("{:?}", airdrop_by_find);
         assert_eq!(airdrop.airdrop, airdrop_by_find.airdrop);
 
-        AirdropView::update_single(
+        AirdropEntity::update_single(
             AirdropUpdater::InviteCode("3"),
             AirdropFilter::ByInviteCode("1"),
-            &mut db_cli
-        ).await
+            &mut db_cli,
+        )
+        .await
         .unwrap();
     }
 }

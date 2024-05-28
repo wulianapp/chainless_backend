@@ -9,15 +9,15 @@ use blockchain::{
     ContractClient,
 };
 use models::{
-    account_manager::{UserFilter, UserInfoView},
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    account_manager::{UserFilter, UserInfoEntity},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    secret_store::{SecretFilter, SecretStoreView},
+    secret_store::{SecretFilter, SecretStoreEntity},
     PsqlOp,
 };
 use tracing::{debug, info, warn};
 
-use crate::{utils::token_auth};
+use crate::utils::token_auth;
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{AccountManagerError, BackendError, BackendRes},
@@ -45,7 +45,6 @@ pub struct EstimateTransferFeeRequest {
     pub coin: String,
     pub amount: String,
 }
-
 
 pub(crate) async fn req(
     req: HttpRequest,

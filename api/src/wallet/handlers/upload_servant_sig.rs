@@ -6,7 +6,7 @@ use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::time::now_millis;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::warn;
 
@@ -15,7 +15,7 @@ use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
 
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -24,10 +24,7 @@ pub struct UploadTxSignatureRequest {
     signature: String,
 }
 
-pub async fn req(
-    req: HttpRequest,
-    request_data: UploadTxSignatureRequest,
-) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
@@ -49,9 +46,9 @@ pub async fn req(
     if sign_info.pubkey != device.hold_pubkey.unwrap() {
         Err(BackendError::RequestParamInvalid(signature.clone()))?;
     }
-    
+
     //todo: two update action is unnecessary
-    let mut tx = models::coin_transfer::CoinTxView::find_single(
+    let mut tx = models::coin_transfer::CoinTxEntity::find_single(
         CoinTxFilter::ByOrderId(&order_id),
         &mut db_cli,
     )
@@ -59,8 +56,10 @@ pub async fn req(
 
     let data = tx.transaction.coin_tx_raw;
 
-    if !ed25519_verify_hex(&data,&sign_info.pubkey,&sign_info.signature)? {
-        Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+    if !ed25519_verify_hex(&data, &sign_info.pubkey, &sign_info.signature)? {
+        Err(BackendError::RequestParamInvalid(
+            "siganature is illegal".to_string(),
+        ))?;
     }
 
     if tx.transaction.stage != CoinSendStage::Created {
@@ -75,7 +74,7 @@ pub async fn req(
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
-    models::coin_transfer::CoinTxView::update_single(
+    models::coin_transfer::CoinTxEntity::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
         &mut db_cli,
@@ -102,7 +101,7 @@ pub async fn req(
         if tx.transaction.tx_type == TxType::MainToSub
             || tx.transaction.tx_type == TxType::MainToBridge
         {
-            models::coin_transfer::CoinTxView::update_single(
+            models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
                 &mut db_cli,
@@ -132,7 +131,7 @@ pub async fn req(
                 )
                 .await?;
 
-            models::coin_transfer::CoinTxView::update_single(
+            models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
                 &mut db_cli,
@@ -140,7 +139,7 @@ pub async fn req(
             .await?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认
         } else {
-            models::coin_transfer::CoinTxView::update_single(
+            models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
                 &mut db_cli,

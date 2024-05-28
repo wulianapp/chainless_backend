@@ -4,9 +4,9 @@ use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{KeyRole2, PubkeySignInfo};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -18,7 +18,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -40,7 +40,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let GenSendMoneyRequest { order_id } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxView::find_single(
+    let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
         &mut db_cli,
     )
@@ -71,7 +71,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
             coin_tx.transaction.expire_at,
         )
         .await?;
-    models::coin_transfer::CoinTxView::update_single(
+    models::coin_transfer::CoinTxEntity::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
         &mut db_cli,

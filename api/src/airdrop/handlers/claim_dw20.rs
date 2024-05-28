@@ -7,14 +7,14 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    airdrop::{AirdropFilter, AirdropView}, general::get_pg_pool_connect, PsqlOp
+    airdrop::{AirdropEntity, AirdropFilter},
+    general::get_pg_pool_connect,
+    PsqlOp,
 };
 use tracing::{debug, info};
 
+use crate::utils::{token_auth, wallet_grades::query_wallet_grade};
 use crate::wallet::handlers::*;
-use crate::{
-    utils::{token_auth, wallet_grades::query_wallet_grade},
-};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
@@ -31,11 +31,9 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
-    let user_airdrop = AirdropView::find_single(
-        AirdropFilter::ByUserId(&user_id.to_string()), 
-        &mut db_cli
-    ).await?;
- 
+    let user_airdrop =
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id.to_string()), &mut db_cli)
+            .await?;
 
     let cli = ContractClient::<ChainAirdrop>::new().await?;
     let ref_user = cli
@@ -43,7 +41,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
             &main_account,
             &user_airdrop.airdrop.predecessor_account_id,
             user_airdrop.airdrop.btc_address.as_deref(),
-            user_airdrop.airdrop.btc_level.unwrap_or_default()
+            user_airdrop.airdrop.btc_level.unwrap_or_default(),
         )
         .await?;
     debug!("successful claim dw20 txid {}", ref_user);

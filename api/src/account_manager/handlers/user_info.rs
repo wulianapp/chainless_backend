@@ -2,8 +2,8 @@ use actix_web::HttpRequest;
 use common::data_structures::{KeyRole2, OpStatus};
 use common::error_code::BackendRes;
 
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::{account_manager, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
@@ -32,13 +32,13 @@ pub struct UserInfoResponse {
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let _devices = DeviceInfoView::find_single(
+    let _devices = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,
     )
     .await?;
-    let res =
-        account_manager::UserInfoView::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
+    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli)
+        .await?;
 
     //todo:
     let role = if res.user_info.main_account.eq("") {

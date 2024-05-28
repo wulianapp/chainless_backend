@@ -1,10 +1,10 @@
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
+use crate::utils::captcha::{Captcha, Usage};
 use models::account_manager::UserFilter;
 use models::general::get_pg_pool_connect;
 use models::{account_manager, PgLocalCli, PsqlOp};
-use serde::{Serialize,Deserialize};
-use crate::utils::captcha::{Captcha, Usage};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -29,7 +29,7 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     let check_res = match kind {
         Usage::Register => Captcha::check_user_code2(&contact, &captcha, kind),
         _ => {
-            let user = account_manager::UserInfoView::find_single(
+            let user = account_manager::UserInfoEntity::find_single(
                 UserFilter::ByPhoneOrEmail(&contact),
                 &mut db_cli,
             )

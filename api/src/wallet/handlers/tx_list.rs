@@ -16,9 +16,9 @@ use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
 use common::utils::math::coin_amount::raw2display;
 use common::utils::time::now_millis;
-use models::account_manager::{UserFilter, UserInfoView};
-use models::coin_transfer::{CoinTxFilter, CoinTxView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::coin_transfer::{CoinTxEntity, CoinTxFilter};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
@@ -79,7 +79,10 @@ pub fn get_filter_type(data: &str) -> Result<FilterType, BackendError> {
     }
 }
 
-pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Vec<CoinTxViewResponse>> {
+pub async fn req(
+    req: HttpRequest,
+    request_data: TxListRequest,
+) -> BackendRes<Vec<CoinTxViewResponse>> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
@@ -102,10 +105,10 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
     let find_res = if let Some(data) = counterparty.as_deref() {
         match get_filter_type(data)? {
             FilterType::OrderId => {
-                CoinTxView::find(CoinTxFilter::ByOrderId(data), &mut db_cli).await
+                CoinTxEntity::find(CoinTxFilter::ByOrderId(data), &mut db_cli).await
             }
             FilterType::AccountId => {
-                CoinTxView::find(
+                CoinTxEntity::find(
                     CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
                     &mut db_cli,
                 )
@@ -113,9 +116,9 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
             }
             FilterType::Phone | FilterType::Mail => {
                 if let Ok(counterparty_main_account) =
-                    UserInfoView::find_single(UserFilter::ByPhoneOrEmail(data), &mut db_cli).await
+                    UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(data), &mut db_cli).await
                 {
-                    CoinTxView::find(
+                    CoinTxEntity::find(
                         CoinTxFilter::ByTxRolePage(
                             tx_role,
                             &main_account,
@@ -132,7 +135,7 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
             }
         }
     } else {
-        CoinTxView::find(
+        CoinTxEntity::find(
             CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
             &mut db_cli,
         )
@@ -151,8 +154,10 @@ pub async fn req(req: HttpRequest, request_data: TxListRequest) -> BackendRes<Ve
         let mut sigs = vec![];
         for sig in tx.transaction.signatures {
             let pubkey = sig[..64].to_string();
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut db_cli).await?;
-            let sig = ServentSigDetail{
+            let device =
+                DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
+                    .await?;
+            let sig = ServentSigDetail {
                 pubkey,
                 device_id: device.device_info.id,
                 device_brand: device.device_info.brand,

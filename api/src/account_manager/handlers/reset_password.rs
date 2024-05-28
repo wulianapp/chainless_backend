@@ -1,8 +1,8 @@
 use actix_web::{web, HttpRequest};
 use common::data_structures::KeyRole2;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 //use log::debug;
 use tracing::debug;
@@ -38,13 +38,13 @@ pub async fn req(
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoView::find_single(
+    let user_at_stored = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
     )
     .await
     .map_err(|_e| PhoneOrEmailNotRegister)?;
-    let device = DeviceInfoView::find_single(
+    let device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
         &mut db_cli,
     )
@@ -76,7 +76,7 @@ pub async fn req(
     )?;
 
     //modify user's password  at db
-    account_manager::UserInfoView::update_single(
+    account_manager::UserInfoEntity::update_single(
         UserUpdater::LoginPwdHash(&new_password),
         UserFilter::ById(user_at_stored.id),
         &mut db_cli,

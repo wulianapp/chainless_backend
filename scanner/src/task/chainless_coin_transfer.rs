@@ -1,5 +1,5 @@
 use common::data_structures::TxStatusOnChain;
-use models::coin_transfer::CoinTxView;
+use models::coin_transfer::CoinTxEntity;
 use models::general::get_pg_pool_connect;
 use models::{
     coin_transfer::{CoinTxFilter, CoinTxUpdater},
@@ -13,7 +13,7 @@ pub async fn start() -> Result<()> {
     let mut db_cli = get_pg_pool_connect().await?;
     loop {
         //check manage_opcord
-        let txs = CoinTxView::find(
+        let txs = CoinTxEntity::find(
             CoinTxFilter::ByChainStatus(TxStatusOnChain::Pending),
             &mut db_cli,
         )
@@ -30,7 +30,7 @@ pub async fn start() -> Result<()> {
             debug!("start check tx {}", tx_id);
             let status = blockchain::general::tx_status(&tx_id).await?;
             if status != TxStatusOnChain::Pending {
-                CoinTxView::update_single(
+                CoinTxEntity::update_single(
                     CoinTxUpdater::StageChainStatus(tx.transaction.stage, status),
                     CoinTxFilter::ByOrderId(&tx.transaction.order_id),
                     &mut db_cli,

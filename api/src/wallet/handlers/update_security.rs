@@ -2,18 +2,16 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
 use models::{
-    account_manager::{UserFilter, UserInfoView, UserUpdater},
-    device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView},
+    account_manager::{UserFilter, UserInfoEntity, UserUpdater},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater},
     general::get_pg_pool_connect,
-    secret_store::{SecretFilter, SecretStoreView, SecretUpdater},
+    secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater},
     PgLocalCli, PsqlOp,
 };
 
-use crate::{
-    utils::{
-        captcha::{Captcha, Usage},
-        token_auth,
-    }
+use crate::utils::{
+    captcha::{Captcha, Usage},
+    token_auth,
 };
 use common::{
     data_structures::{secret_store::SecretStore, KeyRole2},
@@ -59,7 +57,7 @@ pub(crate) async fn req(
     } = request_data;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
-    UserInfoView::update_single(
+    UserInfoEntity::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),
         UserFilter::ById(user_id),
         &mut db_cli,
@@ -67,7 +65,7 @@ pub(crate) async fn req(
     .await?;
 
     for secret in secrets {
-        SecretStoreView::update_single(
+        SecretStoreEntity::update_single(
             SecretUpdater::EncrypedPrikey(
                 &secret.encrypted_prikey_by_password,
                 &secret.encrypted_prikey_by_answer,
@@ -79,7 +77,7 @@ pub(crate) async fn req(
 
         //设备表不存子账户信息
         if current_strategy.sub_confs.get(&secret.pubkey).is_some() {
-            DeviceInfoView::update_single(
+            DeviceInfoEntity::update_single(
                 DeviceInfoUpdater::HolderSaved(false),
                 DeviceInfoFilter::ByHoldKey(&secret.pubkey),
                 &mut db_cli,

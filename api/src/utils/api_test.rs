@@ -18,7 +18,7 @@ use actix_web::{body::MessageBody as _, test, App};
 use blockchain::ContractClient;
 use common::data_structures::device_info::DeviceInfo;
 use common::data_structures::KeyRole;
-use models::coin_transfer::CoinTxView;
+use models::coin_transfer::CoinTxEntity;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde_json::json;
 
@@ -30,7 +30,7 @@ use common::data_structures::secret_store::SecretStore;
 use common::encrypt::ed25519_key_gen;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::{self, gen_random_verify_code};
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 // use log::{info, LevelFilter,debug,error};
 use crate::account_manager::handlers::user_info::UserInfoResponse;
 use crate::wallet::handlers::get_strategy::StrategyDataTmp;
@@ -38,7 +38,7 @@ use crate::wallet::*;
 use actix_web::http::header::HeaderName;
 use actix_web::http::header::HeaderValue;
 use common::data_structures::CoinType;
-use models::account_manager::UserInfoView;
+use models::account_manager::UserInfoEntity;
 use tracing::{debug, error, info};
 
 #[derive(Debug, Clone)]
@@ -1072,8 +1072,7 @@ macro_rules! test_get_device_list {
     }};
 }
 
-
-/// airdrop 
+/// airdrop
 #[macro_export]
 macro_rules! test_airdrop_status {
     ($service:expr, $app:expr) => {{

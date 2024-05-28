@@ -352,7 +352,6 @@ async fn login_by_captcha(
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */
 
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/accountManager/resetPassword")]
 async fn reset_password(

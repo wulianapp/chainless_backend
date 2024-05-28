@@ -3,26 +3,26 @@ use actix_web::HttpRequest;
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
-use models::wallet_manage_record::WalletManageRecordView;
+use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::account_manager::user_info;
 use crate::utils::token_auth;
 use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::{self, InternalError};
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 use models::{PgLocalCli, PsqlOp};
 use tracing::error;
 
 use super::get_role;
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -33,7 +33,6 @@ pub struct AddServantRequest {
     holder_device_id: String,
     holder_device_brand: String,
 }
-
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -62,9 +61,9 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret =
-        SecretStoreView::find(SecretFilter::ByPubkey(&servant_pubkey), &mut db_cli).await?;
+        SecretStoreEntity::find(SecretFilter::ByPubkey(&servant_pubkey), &mut db_cli).await?;
     if origin_secret.is_empty() {
-        let secret_info = SecretStoreView::new_with_specified(
+        let secret_info = SecretStoreEntity::new_with_specified(
             &servant_pubkey,
             user_id,
             &servant_prikey_encryped_by_password,
@@ -72,7 +71,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         );
         secret_info.insert(&mut db_cli).await?;
     } else {
-        SecretStoreView::update_single(
+        SecretStoreEntity::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&servant_pubkey),
             &mut db_cli,
@@ -92,7 +91,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         .await?;
 
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
-    DeviceInfoView::update_single(
+    DeviceInfoEntity::update_single(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
         &mut db_cli,
@@ -100,7 +99,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     .await?;
 
     //WalletManageRecordView
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::AddServant,
         &device.hold_pubkey.unwrap(),

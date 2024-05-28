@@ -1,6 +1,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 //#![allow(non_camel_case_types)]
+pub mod btc_crypto;
 pub mod constants;
 pub mod data_structures;
 pub mod encrypt;
@@ -9,7 +10,6 @@ pub mod error_code;
 pub mod log;
 pub mod prelude;
 pub mod utils;
-pub mod btc_crypto;
 
 #[macro_use]
 extern crate lazy_static;

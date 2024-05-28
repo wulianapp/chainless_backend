@@ -5,7 +5,7 @@ use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole2, PubkeySignInfo, TxStatusOnChain};
 use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::time::now_millis;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::{debug, info};
 
@@ -13,7 +13,7 @@ use crate::utils::token_auth;
 use common::error_code::{to_internal_error, BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -38,9 +38,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-
-
-    let coin_tx = models::coin_transfer::CoinTxView::find_single(
+    let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
         CoinTxFilter::ByOrderId(&order_id),
         &mut db_cli,
     )
@@ -70,8 +68,10 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         //提前进行签名校验
         let data = coin_tx.transaction.coin_tx_raw;
         let sign_info: PubkeySignInfo = confirmed_sig.as_str().parse()?;
-        if !ed25519_verify_hex(&data,&sign_info.pubkey,&sign_info.signature)?{
-            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        if !ed25519_verify_hex(&data, &sign_info.pubkey, &sign_info.signature)? {
+            Err(BackendError::RequestParamInvalid(
+                "siganature is illegal".to_string(),
+            ))?;
         }
 
         let servant_sigs = coin_tx
@@ -95,7 +95,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             .await?;
 
         //todo:txid?
-        models::coin_transfer::CoinTxView::update_single(
+        models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::TxidStageChainStatus(
                 &tx_id,
                 CoinSendStage::SenderReconfirmed,
@@ -107,10 +107,15 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         .await?;
     } else {
         //提前进行签名校验
-        let data = coin_tx.transaction.tx_id.ok_or(BackendError::InternalError("".to_string()))?;
+        let data = coin_tx
+            .transaction
+            .tx_id
+            .ok_or(BackendError::InternalError("".to_string()))?;
         let pubkey = current_strategy.master_pubkey;
-        if !ed25519_verify_hex(&data,&pubkey,&confirmed_sig)? {
-            Err(BackendError::RequestParamInvalid("siganature is illegal".to_string()))?;
+        if !ed25519_verify_hex(&data, &pubkey, &confirmed_sig)? {
+            Err(BackendError::RequestParamInvalid(
+                "siganature is illegal".to_string(),
+            ))?;
         }
 
         //跨链转出，在无链端按照普通转账处理
@@ -119,7 +124,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             &confirmed_sig,
         )
         .await?;
-        models::coin_transfer::CoinTxView::update_single(
+        models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::StageChainStatus(
                 CoinSendStage::SenderReconfirmed,
                 TxStatusOnChain::Pending,

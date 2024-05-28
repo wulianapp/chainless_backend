@@ -11,19 +11,19 @@ use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
 use common::error_code::{parse_str, AccountManagerError, BackendError, BackendRes, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
 
-use models::coin_transfer::CoinTxView;
-use models::PsqlOp;
-use serde::{Deserialize,Serialize};
 use common::error_code::BackendError::ChainError;
+use models::coin_transfer::CoinTxEntity;
+use models::PsqlOp;
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -101,11 +101,11 @@ pub(crate) async fn req(
     }
 
     let gen_tx_with_status =
-        |stage: CoinSendStage| -> std::result::Result<CoinTxView, BackendError> {
+        |stage: CoinSendStage| -> std::result::Result<CoinTxEntity, BackendError> {
             let coin_tx_raw = cli
                 .gen_send_money_info(&from, &to, coin_type.clone(), amount, expire_at)
                 .map_err(|err| ChainError(err.to_string()))?;
-            Ok(CoinTxView::new_with_specified(
+            Ok(CoinTxEntity::new_with_specified(
                 coin_type.clone(),
                 from.clone(),
                 to.clone(),

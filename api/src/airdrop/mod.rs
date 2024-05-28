@@ -6,8 +6,8 @@ use std::future::IntoFuture;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use blockchain::bridge_on_near;
 use blockchain::bridge_on_near::Status;
-use blockchain::{bridge_on_near};
 use common::data_structures::{
     bridge::{DepositStatus, WithdrawStatus},
     CoinType,
@@ -40,14 +40,14 @@ use common::log::generate_trace_id;
 * @apiSuccess {String} msg 状态信息
 * @apiSuccess {Object} data                          空投状态详情.
 * @apiSuccess {String} data.user_id       用户id
-* @apiSuccess {String} [data.account_id]    钱包id  
+* @apiSuccess {String} [data.account_id]    钱包id
 * @apiSuccess {String} data.invite_code   邀请码
 * @apiSuccess {String} data.predecessor_user_id      上级用户id
 * @apiSuccess {String} data.predecessor_account_id   上级钱包id
 * @apiSuccess {String} [data.btc_address]       绑定的btc钱包地址
 * @apiSuccess {Number} [data.btc_level]         btc地址对应的等级
 * @apiSuccess {String} [data.cly_claimed]       cly的空投数量
-* @apiSuccess {String} [data.dw20_claimed]      dw20的空投数量 
+* @apiSuccess {String} [data.dw20_claimed]      dw20的空投数量
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/status
 */
 
@@ -80,14 +80,15 @@ async fn status(req: HttpRequest) -> impl Responder {
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/bindBtcAddress")]
-async fn bind_btc_address(req: HttpRequest, req_data: web::Json<BindBtcAddressRequest>) -> impl Responder {
+async fn bind_btc_address(
+    req: HttpRequest,
+    req_data: web::Json<BindBtcAddressRequest>,
+) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
         handlers::bind_btc_address::req(req, req_data.into_inner()).await,
     )
 }
-
-
 
 /**
  * @api {post} /airdrop/changeInviteCode 修改邀请码
@@ -111,13 +112,15 @@ async fn bind_btc_address(req: HttpRequest, req_data: web::Json<BindBtcAddressRe
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/changeInviteCode")]
-async fn change_invite_code(req: HttpRequest, req_data: web::Json<ChangeInviteCodeRequest>) -> impl Responder {
+async fn change_invite_code(
+    req: HttpRequest,
+    req_data: web::Json<ChangeInviteCodeRequest>,
+) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
         handlers::change_invite_code::req(req, req_data.into_inner()).await,
     )
 }
-
 
 /**
  * @api {post} /airdrop/changePredecessor 修改上级
@@ -141,10 +144,13 @@ async fn change_invite_code(req: HttpRequest, req_data: web::Json<ChangeInviteCo
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/changePredecessor")]
-async fn change_predecessor(req: HttpRequest, req_data: web::Json<ChangePredecessorRequest>) -> impl Responder {
+async fn change_predecessor(
+    req: HttpRequest,
+    req_data: web::Json<ChangePredecessorRequest>,
+) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::change_predecessor::req(req, req_data.into_inner()).await
+        handlers::change_predecessor::req(req, req_data.into_inner()).await,
     )
 }
 
@@ -170,10 +176,7 @@ async fn change_predecessor(req: HttpRequest, req_data: web::Json<ChangePredeces
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/claimCly")]
 async fn claim_cly(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::claim_cly::req(req).await,
-    )
+    gen_extra_respond(get_lang(&req), handlers::claim_cly::req(req).await)
 }
 
 /**
@@ -198,10 +201,7 @@ async fn claim_cly(req: HttpRequest) -> impl Responder {
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/claimDw20")]
 async fn claim_dw20(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::claim_dw20::req(req).await,
-    )
+    gen_extra_respond(get_lang(&req), handlers::claim_dw20::req(req).await)
 }
 
 /**
@@ -225,22 +225,24 @@ async fn claim_dw20(req: HttpRequest) -> impl Responder {
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/airdrop/newBtcDeposit")]
-async fn new_btc_deposit(req: HttpRequest,request_data:web::Json<NewBtcDepositRequest>) -> impl Responder {
+async fn new_btc_deposit(
+    req: HttpRequest,
+    request_data: web::Json<NewBtcDepositRequest>,
+) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::new_btc_deposit::req(req,request_data.into_inner()).await,
+        handlers::new_btc_deposit::req(req, request_data.into_inner()).await,
     )
 }
 
-
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(status)
-       .service(bind_btc_address) 
-       .service(change_invite_code)
-       .service(change_predecessor)
-       .service(claim_cly)
-       .service(claim_dw20)
-       .service(new_btc_deposit);
+        .service(bind_btc_address)
+        .service(change_invite_code)
+        .service(change_predecessor)
+        .service(claim_cly)
+        .service(claim_dw20)
+        .service(new_btc_deposit);
 }
 
 #[cfg(test)]
@@ -262,7 +264,7 @@ mod tests {
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
-    use models::coin_transfer::CoinTxView;
+    use models::coin_transfer::CoinTxEntity;
     use models::{account_manager, secret_store, PsqlOp};
     use serde_json::json;
 
@@ -273,16 +275,16 @@ mod tests {
     use common::data_structures::secret_store::SecretStore;
     use common::encrypt::ed25519_key_gen;
     use common::utils::math;
-    use models::secret_store::SecretStoreView;
+    use models::secret_store::SecretStoreEntity;
     // use log::{info, LevelFilter,debug,error};
+    use super::handlers::status::AirdropStatusResponse;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
     use actix_web::http::header::HeaderName;
     use actix_web::http::header::HeaderValue;
     use common::data_structures::CoinType;
-    use models::account_manager::UserInfoView;
+    use models::account_manager::UserInfoEntity;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
-    use super::handlers::status::AirdropStatusResponse;
 
     #[actix_web::test]
     async fn test_airdrop_braced() {
@@ -300,19 +302,18 @@ mod tests {
 
         test_bind_btc_address!(service, sender_master);
         test_new_btc_deposit!(service, sender_master);
-        test_change_invite_code!(service,sender_master);
+        test_change_invite_code!(service, sender_master);
         //test_change_predecessor!(service,sender_master);
 
         //test_change_invite_code!(service,sender_master);1
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info2 {:#?}", status_info);
 
-        test_claim_dw20!(service,sender_master);
-        test_claim_cly!(service,sender_master);
-        test_change_predecessor!(service,sender_master);
+        test_claim_dw20!(service, sender_master);
+        test_claim_cly!(service, sender_master);
+        test_change_predecessor!(service, sender_master);
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info3 {:#?}", status_info);
     }
-
 }

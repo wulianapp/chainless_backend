@@ -7,13 +7,13 @@ use crate::utils::token_auth;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
 use common::error_code::BackendError::{self, InternalError};
-use models::secret_store::SecretStoreView;
+use models::secret_store::SecretStoreEntity;
 use models::PsqlOp;
 use tracing::error;
 
@@ -26,7 +26,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Servant)?;
 
-    DeviceInfoView::update(
+    DeviceInfoEntity::update(
         DeviceInfoUpdater::HolderSaved(true),
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,

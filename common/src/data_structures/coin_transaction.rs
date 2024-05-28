@@ -73,7 +73,6 @@ pub struct CoinTransaction {
     pub reserved_field3: String,
 }
 
-
 //sub to main
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SubToMainTx {

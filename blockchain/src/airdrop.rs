@@ -21,7 +21,7 @@ use serde_json::json;
 
 use crate::multi_sig::get_pubkey;
 use crate::ContractClient;
-use anyhow::{Result};
+use anyhow::Result;
 
 //air100010
 pub struct Airdrop {}
@@ -52,10 +52,7 @@ impl ContractClient<Airdrop> {
     }
 
     //claim anonymously
-    pub async fn claim_cly(
-        &self,
-        account_id: &str,
-    ) -> Result<String> {
+    pub async fn claim_cly(&self, account_id: &str) -> Result<String> {
         let args_str = json!({
             "account_id":  account_id,
         })

@@ -7,18 +7,18 @@ use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
 use blockchain::ContractClient;
 use common::data_structures::bridge::{DepositStatus, OrderType};
 use common::utils::time::timestamp2utc;
-use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
+use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 
+use crate::utils::token_auth;
 use crate::wallet::handlers::*;
-use crate::{utils::token_auth};
 use anyhow::Result;
 use common::data_structures::bridge::EthOrderStatus;
+use common::data_structures::CoinType;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
-use common::data_structures::{CoinType};
 
 use super::paginate_vec;
 
@@ -56,9 +56,9 @@ async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
     Ok(orders)
 }
 
-pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
+pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderEntity>> {
     let mut db_cli = get_pg_pool_connect().await?;
-    EthBridgeOrderView::find(
+    EthBridgeOrderEntity::find(
         BridgeOrderFilter::ByTypeAndAccountId(OrderType::Deposit, main_account),
         &mut db_cli,
     )

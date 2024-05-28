@@ -52,4 +52,3 @@ pub const INVITE_CODE_MAX_LEN: u8 = 20;
 
 //btc地址验证使用的签名数据
 pub const CHAINLESS_AIRDROP: &str = "ChainlessAirdrop";
-

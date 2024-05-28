@@ -2,8 +2,8 @@ use actix_web::HttpRequest;
 use common::data_structures::{KeyRole2, OpStatus};
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;

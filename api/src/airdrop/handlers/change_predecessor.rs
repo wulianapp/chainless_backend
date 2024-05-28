@@ -11,7 +11,11 @@ use common::{
 };
 use lettre::transport::smtp::client;
 use models::{
-    airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PgLocalCli, PsqlOp
+    airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
+    general::get_pg_pool_connect,
+    wallet_manage_record::WalletManageRecordEntity,
+    PgLocalCli, PsqlOp,
 };
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
@@ -39,35 +43,43 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
-    let ChangePredecessorRequest { predecessor_invite_code} = request_data;
+    let ChangePredecessorRequest {
+        predecessor_invite_code,
+    } = request_data;
 
     //todo: check predecessor_account_id if exist
     //todo： check if called claim_dw20
-    
-    let predecessor_airdrop = AirdropView::find_single(
-        AirdropFilter::ByInviteCode(&predecessor_invite_code), 
-        &mut db_cli
+
+    let predecessor_airdrop = AirdropEntity::find_single(
+        AirdropFilter::ByInviteCode(&predecessor_invite_code),
+        &mut db_cli,
     )
     .await
     .map_err(|_e| AirdropError::PredecessorInviteCodeNotExist)?;
 
-    let Airdrop{
+    let Airdrop {
         user_id: predecessor_user_id,
-        account_id:predecessor_account_id ,..
+        account_id: predecessor_account_id,
+        ..
     } = predecessor_airdrop.airdrop;
 
-    if predecessor_account_id.as_ref().unwrap().eq(&main_account){
+    if predecessor_account_id.as_ref().unwrap().eq(&main_account) {
         Err(AirdropError::ForbidSetSelfAsPredecessor)?;
     }
 
-    AirdropView::update_single(
-        AirdropUpdater::Predecessor(&predecessor_user_id,predecessor_account_id.as_ref().unwrap()),
-         AirdropFilter::ByUserId(&user_id.to_string()), 
-         &mut db_cli
-    ).await?;
+    AirdropEntity::update_single(
+        AirdropUpdater::Predecessor(
+            &predecessor_user_id,
+            predecessor_account_id.as_ref().unwrap(),
+        ),
+        AirdropFilter::ByUserId(&user_id.to_string()),
+        &mut db_cli,
+    )
+    .await?;
 
     let cli = ContractClient::<ChainAirdrop>::new().await?;
-    cli.change_predecessor(&main_account,predecessor_account_id.as_ref().unwrap()).await?;
+    cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
+        .await?;
 
     db_cli.commit().await?;
     //todo: change ref

@@ -7,16 +7,16 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordView,
+    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 
 use crate::utils::token_auth;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -50,7 +50,7 @@ pub async fn req(
         .await?;
 
     //todo: generate txid before call contract
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::UpdateSubaccountHoldLimit,
         &device.hold_pubkey.unwrap(),

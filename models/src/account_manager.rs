@@ -12,6 +12,14 @@ use common::data_structures::account_manager::UserInfo;
 use crate::{vec_str2array_text, FilterContent, PgLocalCli, PsqlOp, PsqlType, UpdaterContent};
 use anyhow::Result;
 
+#[derive(Serialize, Debug)]
+pub struct UserInfoEntity {
+    pub id: u32,
+    pub user_info: UserInfo,
+    pub updated_at: String,
+    pub created_at: String,
+}
+
 use serde::Serialize;
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
@@ -70,15 +78,7 @@ impl fmt::Display for UserFilter<'_> {
     }
 }
 
-#[derive(Serialize, Debug)]
-pub struct UserInfoView {
-    pub id: u32,
-    pub user_info: UserInfo,
-    pub updated_at: String,
-    pub created_at: String,
-}
-
-impl UserInfoView {
+impl UserInfoEntity {
     pub fn new_with_specified(login_pwd_hash: &str, invite_code: &str) -> Self {
         let user = UserInfo {
             phone_number: "".to_string(),
@@ -99,7 +99,7 @@ impl UserInfoView {
             reserved_field2: "".to_string(),
             reserved_field3: "".to_string(),
         };
-        UserInfoView {
+        UserInfoEntity {
             id: 0,
             user_info: user,
             updated_at: "".to_string(),
@@ -109,7 +109,7 @@ impl UserInfoView {
 }
 
 #[async_trait]
-impl PsqlOp for UserInfoView {
+impl PsqlOp for UserInfoEntity {
     type UpdaterContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
     async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
@@ -139,8 +139,8 @@ impl PsqlOp for UserInfoView {
         let query_res = cli.query(&sql).await?;
         //debug!("get_snapshot: raw sql {}", sql);
 
-        let gen_view = |row: &Row| -> Result<UserInfoView> {
-            let view = UserInfoView {
+        let gen_view = |row: &Row| -> Result<UserInfoEntity> {
+            let view = UserInfoEntity {
                 id: row.get::<usize, i32>(0) as u32,
                 user_info: UserInfo {
                     phone_number: row.get(1),
@@ -293,14 +293,14 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-        let user = UserInfoView::new_with_specified("0123456789", "1");
+        let user = UserInfoEntity::new_with_specified("0123456789", "1");
         user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(
+        UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),
             &mut db_cli,
@@ -318,21 +318,21 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();
 
-        let user = UserInfoView::new_with_specified("0123456789", "1");
+        let user = UserInfoEntity::new_with_specified("0123456789", "1");
         user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoView::find(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("by_conn2__{:?}", user_by_find);
         db_cli.commit().await.unwrap();
 
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let user_by_find = UserInfoView::find_single(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(1), &mut db_cli)
             .await
             .unwrap();
         println!("by_trans3__{:?}", user_by_find);
         assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoView::update(
+        UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),
             &mut db_cli,

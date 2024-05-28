@@ -1,15 +1,20 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::{
-    multi_sig::{MultiSig, MultiSigRank},
-};
+use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use common::{
-    btc_crypto::{self, CHAINLESS_AIRDROP}, data_structures::{wallet_namage_record::WalletOperateType, KeyRole2}, error_code::{AccountManagerError, BackendError}, utils::math::coin_amount::display2raw
+    btc_crypto::{self, CHAINLESS_AIRDROP},
+    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    error_code::{AccountManagerError, BackendError},
+    utils::math::coin_amount::display2raw,
 };
 use models::{
-    airdrop::{AirdropFilter, AirdropUpdater, AirdropView}, device_info::{DeviceInfoFilter, DeviceInfoView}, general::get_pg_pool_connect, wallet_manage_record::WalletManageRecordView, PsqlOp
+    airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
+    general::get_pg_pool_connect,
+    wallet_manage_record::WalletManageRecordEntity,
+    PsqlOp,
 };
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
 use crate::{utils::token_auth, wallet::handlers::*};
@@ -33,34 +38,32 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
-
     let BindBtcAddressRequest { btc_address, sig } = request_data;
     //todo: check sig,
-    if !btc_crypto::verify(CHAINLESS_AIRDROP, &sig, &btc_address)?{
+    if !btc_crypto::verify(CHAINLESS_AIRDROP, &sig, &btc_address)? {
         Err(BackendError::SigVerifyFailed)?;
     }
 
-    if AirdropView::find(
-        AirdropFilter::ByBtcAddress(&btc_address), 
-        &mut db_cli
-    ).await?.len() != 0
+    if AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address), &mut db_cli)
+        .await?
+        .len()
+        != 0
     {
         Err(AirdropError::BtcAddressAlreadyUsed)?;
     }
 
     //todo: get kyc info
-    let user_airdrop = AirdropView::find_single(
-        AirdropFilter::ByAccountId(&main_account), 
-        &mut db_cli
-    ).await?;
-    if user_airdrop.airdrop.btc_address.is_some(){
+    let user_airdrop =
+        AirdropEntity::find_single(AirdropFilter::ByAccountId(&main_account), &mut db_cli).await?;
+    if user_airdrop.airdrop.btc_address.is_some() {
         Err(AirdropError::AlreadyBindedBtcAddress)?;
     }
-    AirdropView::update_single(
+    AirdropEntity::update_single(
         AirdropUpdater::BtcAddress(&btc_address),
-         AirdropFilter::ByAccountId(&main_account),
-         &mut db_cli
-    ).await?;
+        AirdropFilter::ByAccountId(&main_account),
+        &mut db_cli,
+    )
+    .await?;
 
     Ok(None)
 }

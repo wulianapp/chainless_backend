@@ -15,9 +15,9 @@ use common::error_code::{BackendError, WalletError};
 use common::utils::math::coin_amount::raw2display;
 use common::utils::math::hex_to_bs58;
 use common::utils::time::now_millis;
-use models::account_manager::{UserFilter, UserInfoView};
-use models::coin_transfer::{CoinTxFilter, CoinTxView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::coin_transfer::{CoinTxEntity, CoinTxFilter};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
@@ -98,7 +98,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let mut db_cli = get_pg_pool_connect().await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxView::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
+    let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
         .await
         .map_err(|e| {
             if e.to_string().contains("DBError::DataNotFound") {
@@ -107,21 +107,23 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
                 BackendError::InternalError(e.to_string())
             }
         })?;
-        
+
     let mut signed_device = vec![];
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
-            let device = DeviceInfoView::find_single(DeviceInfoFilter::ByHoldKey(&pubkey),&mut db_cli).await?;
-            let sig = ServentSigDetail{
-                pubkey,
-                device_id: device.device_info.id,
-                device_brand: device.device_info.brand,
-            };
+        let device =
+            DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
+                .await?;
+        let sig = ServentSigDetail {
+            pubkey,
+            device_id: device.device_info.id,
+            device_brand: device.device_info.brand,
+        };
         signed_device.push(sig);
     }
 
     //不从数据库去读
-    let all_device = DeviceInfoView::find(DeviceInfoFilter::ByUser(user_id), &mut db_cli)
+    let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(user_id), &mut db_cli)
         .await?
         .into_iter()
         .filter(|x| {

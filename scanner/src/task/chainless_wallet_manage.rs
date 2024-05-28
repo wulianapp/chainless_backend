@@ -2,7 +2,7 @@ use common::data_structures::TxStatusOnChain;
 use models::{
     general::get_pg_pool_connect,
     wallet_manage_record::{
-        WalletManageRecordFilter, WalletManageRecordUpdater, WalletManageRecordView,
+        WalletManageRecordEntity, WalletManageRecordFilter, WalletManageRecordUpdater,
     },
     PsqlOp,
 };
@@ -15,7 +15,7 @@ pub async fn start() -> Result<()> {
 
     loop {
         //check manage_opcord
-        let ops = WalletManageRecordView::find(
+        let ops = WalletManageRecordEntity::find(
             WalletManageRecordFilter::ByStatus(&TxStatusOnChain::Pending),
             &mut db_cli,
         )
@@ -27,7 +27,7 @@ pub async fn start() -> Result<()> {
             debug!("start check tx {}", tx_id);
             let status = blockchain::general::tx_status(tx_id).await.unwrap();
             if status != TxStatusOnChain::Pending {
-                let _ = WalletManageRecordView::update_single(
+                let _ = WalletManageRecordEntity::update_single(
                     WalletManageRecordUpdater::Status(status),
                     WalletManageRecordFilter::ByRecordId(&op.record.record_id),
                     &mut db_cli,

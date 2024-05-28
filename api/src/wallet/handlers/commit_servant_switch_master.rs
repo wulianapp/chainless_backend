@@ -3,10 +3,10 @@ use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::general::{get_pg_pool_connect, transaction_begin};
-use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
-use models::wallet_manage_record::WalletManageRecordView;
+use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
+use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -18,7 +18,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
@@ -61,7 +61,7 @@ pub(crate) async fn req(
 
     //todo: 检查防止用servantA的token操作servantB进行switch
     //外部注入和token解析结果对比
-    let servant_pubkey = DeviceInfoView::find_single(
+    let servant_pubkey = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,
     )
@@ -93,7 +93,7 @@ pub(crate) async fn req(
     if !master_list.contains(&servant_pubkey) {
         blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
             &mut db_cli,
@@ -110,7 +110,7 @@ pub(crate) async fn req(
         && master_list.contains(&old_master)
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
-        DeviceInfoView::update_single(
+        DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
             &mut db_cli,
@@ -155,7 +155,7 @@ pub(crate) async fn req(
 
         //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
         //从一开始就记录的话、状态管理太多
-        let record = WalletManageRecordView::new_with_specified(
+        let record = WalletManageRecordEntity::new_with_specified(
             &user_id.to_string(),
             WalletOperateType::NewcomerSwitchMaster,
             &device.hold_pubkey.ok_or("")?,

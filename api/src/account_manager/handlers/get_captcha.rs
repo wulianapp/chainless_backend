@@ -3,11 +3,11 @@ use actix_web::HttpRequest;
 use common::data_structures::KeyRole2;
 //use log::debug;
 use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently};
-use models::account_manager::{UserFilter, UserInfoView};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::PsqlOp;
-use serde::{Serialize,Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
 use crate::utils::captcha::Usage::*;
@@ -101,7 +101,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     match kind {
         ResetLoginPassword => {
             let find_user_res =
-                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
                     .await
                     .map_err(|err| {
                         if err.to_string().contains("DBError::DataNotFound") {
@@ -113,7 +113,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             let user_id = find_user_res.id;
 
             if find_user_res.user_info.secruity_is_seted {
-                let find_device_res = DeviceInfoView::find_single(
+                let find_device_res = DeviceInfoEntity::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
                     &mut db_cli,
                 )
@@ -140,24 +140,27 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
         }
         Register => {
             let find_res =
-                UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await;
+                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+                    .await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
             get(device_id, contact, kind, None)
         }
-        Login => match UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
-            .await
-        {
-            Ok(info) => get(device_id, contact, kind, Some(info.id)),
-            Err(err) => {
-                if err.to_string().contains("DBError::DataNotFound") {
-                    Err(AccountManagerError::PhoneOrEmailNotRegister)?
-                } else {
-                    Err(BackendError::InternalError(err.to_string()))?
+        Login => {
+            match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+                .await
+            {
+                Ok(info) => get(device_id, contact, kind, Some(info.id)),
+                Err(err) => {
+                    if err.to_string().contains("DBError::DataNotFound") {
+                        Err(AccountManagerError::PhoneOrEmailNotRegister)?
+                    } else {
+                        Err(BackendError::InternalError(err.to_string()))?
+                    }
                 }
             }
-        },
+        }
         SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }
@@ -174,8 +177,9 @@ pub async fn with_token_req(
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
-    let device = DeviceInfoView::find_single(
+    let user =
+        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
+    let device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,
     )

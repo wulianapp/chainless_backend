@@ -9,19 +9,19 @@ use blockchain::ContractClient;
 use common::data_structures::bridge::{OrderType, WithdrawStatus};
 use common::error_code::parse_str;
 use common::utils::time::timestamp2utc;
-use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
+use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::PsqlOp;
 use tracing_subscriber::filter;
 
+use crate::utils::token_auth;
 use crate::wallet::handlers::*;
-use crate::{utils::token_auth};
 use anyhow::Result;
 use common::data_structures::bridge::EthOrderStatus;
+use common::data_structures::CoinType;
 use common::error_code::BackendError::ChainError;
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use models::general::get_pg_pool_connect;
 use serde::{Deserialize, Serialize};
-use common::data_structures::CoinType;
 
 use super::paginate_vec;
 
@@ -56,9 +56,9 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
     Ok(orders)
 }
 
-pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderView>> {
+pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderEntity>> {
     let mut db_cli = get_pg_pool_connect().await?;
-    EthBridgeOrderView::find(
+    EthBridgeOrderEntity::find(
         BridgeOrderFilter::ByTypeAndAccountId(OrderType::Withdraw, main_account),
         &mut db_cli,
     )
@@ -88,7 +88,7 @@ pub(crate) async fn req(
             StatusOnNear::Pending => WithdrawStatus::ChainLessSigning,
             StatusOnNear::Default => WithdrawStatus::ChainLessSigning,
             StatusOnNear::Signed | StatusOnNear::Completed => {
-                let external_order: Vec<&EthBridgeOrderView> = orders_on_external
+                let external_order: Vec<&EthBridgeOrderEntity> = orders_on_external
                     .iter()
                     .filter(|x| x.order.id == id.to_string())
                     .collect();

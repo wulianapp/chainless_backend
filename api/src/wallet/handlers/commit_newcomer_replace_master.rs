@@ -3,10 +3,10 @@ use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::device_info::{DeviceInfoFilter, DeviceInfoUpdater, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
-use models::secret_store::{SecretFilter, SecretStoreView, SecretUpdater};
-use models::wallet_manage_record::WalletManageRecordView;
+use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
+use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::token_auth;
@@ -18,7 +18,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
@@ -34,7 +34,6 @@ pub struct CommitNewcomerSwitchMasterRequest {
     newcomer_prikey_encrypted_by_password: String,
     newcomer_prikey_encrypted_by_answer: String,
 }
-
 
 pub(crate) async fn req(
     req: HttpRequest,
@@ -88,9 +87,9 @@ pub(crate) async fn req(
 
         //check if stored already ,if not insert sercret_store or update
         let origin_secret =
-            SecretStoreView::find(SecretFilter::ByPubkey(&newcomer_pubkey), &mut db_cli).await?;
+            SecretStoreEntity::find(SecretFilter::ByPubkey(&newcomer_pubkey), &mut db_cli).await?;
         if origin_secret.is_empty() {
-            let secret_info = SecretStoreView::new_with_specified(
+            let secret_info = SecretStoreEntity::new_with_specified(
                 &newcomer_pubkey,
                 user_id,
                 &newcomer_prikey_encrypted_by_password,
@@ -98,7 +97,7 @@ pub(crate) async fn req(
             );
             secret_info.insert(&mut db_cli).await?;
         } else {
-            SecretStoreView::update_single(
+            SecretStoreEntity::update_single(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
                 &mut db_cli,
@@ -107,7 +106,7 @@ pub(crate) async fn req(
         }
 
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
             &mut db_cli,
@@ -126,7 +125,7 @@ pub(crate) async fn req(
     {
         blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
         //更新设备信息
-        DeviceInfoView::update_single(
+        DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeUndefined(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
             &mut db_cli,
@@ -144,7 +143,7 @@ pub(crate) async fn req(
 
     //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
     //从一开始就记录的话、状态管理太多
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::NewcomerSwitchMaster,
         &newcomer_pubkey,

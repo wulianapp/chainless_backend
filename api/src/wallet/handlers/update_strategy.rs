@@ -7,16 +7,16 @@ use common::{
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordView,
+    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 
 use crate::utils::token_auth;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -30,7 +30,6 @@ pub struct MultiSigRankRequest {
 pub struct UpdateStrategyRequest {
     strategy: Vec<MultiSigRankRequest>,
 }
-
 
 pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -68,7 +67,7 @@ pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> Backe
     let tx_id = cli.update_rank(&main_account, strategy).await?;
 
     //todo: generate txid before call contract
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::UpdateStrategy,
         &device.hold_pubkey.unwrap(),

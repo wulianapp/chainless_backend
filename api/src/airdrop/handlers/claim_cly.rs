@@ -1,22 +1,23 @@
 use actix_web::{web, HttpRequest};
 
 use blockchain::{
-    airdrop::Airdrop, multi_sig::{MultiSig, MultiSigRank}
+    airdrop::Airdrop,
+    multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
 };
+use lettre::transport::smtp::client;
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordView,
+    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
-use tracing::{debug, info};
-use lettre::transport::smtp::client;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, info};
 
 use crate::{utils::token_auth, wallet::handlers::*};
 use blockchain::ContractClient;

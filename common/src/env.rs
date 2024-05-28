@@ -1,6 +1,6 @@
 //use std::sync::{Mutex, MutexGuard};
-use tokio::sync::{Mutex,MutexGuard};
 use std::{env, fmt, fs};
+use tokio::sync::{Mutex, MutexGuard};
 
 use std::fmt::Debug;
 use std::str::FromStr;
@@ -171,12 +171,12 @@ mod tests {
     async fn test_relayer_pool() {
         init_logger();
         let mut handles = vec![];
-        for index in 0..10{
+        for index in 0..10 {
             let handle = tokio::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 100)).await;
                 let relayer = wait_for_idle_relayer().await;
-                error!("relayer {} index {}", relayer.account_id,index);
-                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;                
+                error!("relayer {} index {}", relayer.account_id, index);
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
                 index
             });
             handles.push(handle);

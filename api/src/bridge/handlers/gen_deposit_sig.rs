@@ -4,7 +4,7 @@ use blockchain::ContractClient;
 use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use serde::Deserialize;
 use serde::Serialize;

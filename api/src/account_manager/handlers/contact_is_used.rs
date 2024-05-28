@@ -1,6 +1,6 @@
 use common::error_code::{BackendError, BackendRes};
 
-use models::account_manager::{UserFilter, UserInfoView};
+use models::account_manager::{UserFilter, UserInfoEntity};
 use models::general::get_pg_pool_connect;
 use models::{account_manager, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
@@ -21,7 +21,7 @@ pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserInfoRespo
     let ContactIsUsedRequest { contact } = request_data;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let find_res =
-        UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await;
+        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await;
     match find_res {
         Ok(info) => Ok(Some(UserInfoResponse {
             contact_is_register: true,

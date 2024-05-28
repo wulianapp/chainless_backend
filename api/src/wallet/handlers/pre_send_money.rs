@@ -11,7 +11,7 @@ use common::data_structures::CoinType;
 use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
@@ -22,9 +22,9 @@ use common::error_code::{
     to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
     WalletError::{self, *},
 };
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView};
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
 
-use models::coin_transfer::CoinTxView;
+use models::coin_transfer::CoinTxEntity;
 use models::PsqlOp;
 
 use anyhow::Result;
@@ -64,7 +64,7 @@ pub(crate) async fn req(
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
 
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
-        let receiver = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
+        let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -79,7 +79,7 @@ pub(crate) async fn req(
         }
         (receiver.user_info.main_account, Some(to))
     } else {
-        let _receiver = UserInfoView::find_single(UserFilter::ByMainAccount(&to), &mut db_cli)
+        let _receiver = UserInfoEntity::find_single(UserFilter::ByMainAccount(&to), &mut db_cli)
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -124,10 +124,10 @@ pub(crate) async fn req(
     //todo: 也不能转bridge
 
     //封装根据状态生成转账对象的逻辑
-    let gen_tx_with_status = |stage: CoinSendStage| -> Result<CoinTxView> {
+    let gen_tx_with_status = |stage: CoinSendStage| -> Result<CoinTxEntity> {
         let coin_tx_raw =
             cli.gen_send_money_info(&from, &to_account_id, coin_type.clone(), amount, expire_at)?;
-        Ok(CoinTxView::new_with_specified(
+        Ok(CoinTxEntity::new_with_specified(
             coin_type.clone(),
             from.clone(),
             to_account_id.clone(),

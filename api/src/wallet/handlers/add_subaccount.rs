@@ -4,9 +4,9 @@ use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole2, SecretKeyType};
 use common::utils::math::coin_amount::display2raw;
-use models::device_info::{DeviceInfoFilter, DeviceInfoView};
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
-use models::wallet_manage_record::WalletManageRecordView;
+use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::token_auth;
 use blockchain::multi_sig::{MultiSig, SubAccConf};
@@ -18,11 +18,11 @@ use common::error_code::AccountManagerError::{
 };
 use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendRes, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoView, UserUpdater};
-use models::secret_store::SecretStoreView;
+use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::secret_store::SecretStoreEntity;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+use serde::{Deserialize, Serialize};
 use tracing::info;
-use serde::{Deserialize,Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -60,7 +60,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
     //todo: encrypted_prikey_by_password
-    let secret = SecretStoreView::new_with_specified(
+    let secret = SecretStoreEntity::new_with_specified(
         &subaccount_pubkey,
         user_id,
         &subaccount_prikey_encryped_by_password,
@@ -78,7 +78,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     )]);
     let txid = multi_cli.add_subaccount(&main_account, sub_confs).await?;
 
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::AddSubaccount,
         &device.hold_pubkey.unwrap(),

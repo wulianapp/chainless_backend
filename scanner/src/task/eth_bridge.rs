@@ -9,7 +9,7 @@ use common::constants::ETH_TX_CONFIRM_BLOCK_NUM;
 use common::data_structures::bridge::EthOrderStatus;
 use common::data_structures::bridge::OrderType;
 use models::eth_bridge_order::BridgeOrderUpdater;
-use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderView};
+use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::general::get_pg_pool_connect;
 use models::PgLocalCli;
 use models::PsqlOp;
@@ -17,7 +17,7 @@ use tracing::info;
 
 //如果没历史监控数据，则从固定检查点开始扫,如果有则从历史数据中的最后高度开始扫
 pub async fn get_last_process_height(db_cli: &mut PgLocalCli<'_>) -> Result<u64> {
-    let last_order = EthBridgeOrderView::find(BridgeOrderFilter::Limit(1), db_cli).await?;
+    let last_order = EthBridgeOrderEntity::find(BridgeOrderFilter::Limit(1), db_cli).await?;
     if last_order.is_empty() {
         //Ok(get_current_block().await)
         Ok(1322312)
@@ -46,7 +46,7 @@ pub async fn listen_newest_block(
         );
         //todo: batch insert
         for order in deposit_orders {
-            let order = EthBridgeOrderView::new_with_specified(
+            let order = EthBridgeOrderEntity::new_with_specified(
                 &order.id,
                 &order.chainless_acc,
                 &order.eth_addr,
@@ -70,7 +70,7 @@ pub async fn listen_newest_block(
             withdraw_orders, height
         );
         for order in withdraw_orders {
-            let order = EthBridgeOrderView::new_with_specified(
+            let order = EthBridgeOrderEntity::new_with_specified(
                 &order.id,
                 &order.chainless_acc,
                 &order.eth_addr,
@@ -107,7 +107,7 @@ pub async fn listen_confirmed_block(
         );
         //todo: batch insert
         for order in deposit_orders {
-            EthBridgeOrderView::update_single(
+            EthBridgeOrderEntity::update_single(
                 BridgeOrderUpdater::Status(EthOrderStatus::Confirmed),
                 BridgeOrderFilter::ByTypeAndId(OrderType::Deposit, &order.id),
                 db_cli,
@@ -126,7 +126,7 @@ pub async fn listen_confirmed_block(
             withdraw_orders, height
         );
         for order in withdraw_orders {
-            EthBridgeOrderView::update_single(
+            EthBridgeOrderEntity::update_single(
                 BridgeOrderUpdater::Status(EthOrderStatus::Confirmed),
                 BridgeOrderFilter::ByTypeAndId(OrderType::Withdraw, &order.id),
                 db_cli,

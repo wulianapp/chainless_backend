@@ -7,38 +7,37 @@ use actix_web::{get, post, web, HttpRequest, Responder};
 use common::data_structures::secret_store::SecretStore;
 use common::data_structures::CoinType;
 use common::error_code::LangType;
+use handlers::add_servant::AddServantRequest;
 use handlers::add_subaccount::AddSubaccountRequest;
 use handlers::balance_list::BalanceListRequest;
+use handlers::cancel_send_money::CancelSendMoneyRequest;
+use handlers::commit_newcomer_replace_master::CommitNewcomerSwitchMasterRequest;
+use handlers::commit_servant_switch_master::CommitServantSwitchMasterRequest;
 use handlers::create_main_account::CreateMainAccountRequest;
 use handlers::estimate_transfer_fee::EstimateTransferFeeRequest;
 use handlers::faucet_claim::FaucetClaimRequest;
 use handlers::gen_newcomer_switch_master::GenNewcomerSwitchMasterRequest;
+use handlers::gen_send_money::GenSendMoneyRequest;
+use handlers::gen_servant_switch_master::GenServantSwitchMasterRequest;
+use handlers::get_need_sig_num::GetNeedSigNumRequest;
+use handlers::get_tx::GetTxRequest;
+use handlers::newcommer_switch_servant::NewcommerSwitchServantRequest;
+use handlers::pre_send_money::PreSendMoneyRequest;
+use handlers::pre_send_money_to_sub::PreSendMoneyToSubRequest;
 use handlers::react_pre_send_money::ReactPreSendMoneyRequest;
 use handlers::reconfirm_send_money::ReconfirmSendMoneyRequest;
+use handlers::remove_servant::RemoveServantRequest;
+use handlers::remove_subaccount::RemoveSubaccountRequest;
 use handlers::single_balance::SingleBalanceRequest;
+use handlers::sub_send_to_main::SubSendToMainRequest;
+use handlers::tx_list::TxListRequest;
 use handlers::update_security::UpdateSecurityRequest;
 use handlers::update_strategy::UpdateStrategyRequest;
 use handlers::update_subaccount_hold_limit::UpdateSubaccountHoldLimitRequest;
 use handlers::upload_servant_sig::UploadTxSignatureRequest;
-use handlers::pre_send_money::PreSendMoneyRequest;
-use handlers::pre_send_money_to_sub::PreSendMoneyToSubRequest;
-use handlers::add_servant::AddServantRequest;
-use handlers::newcommer_switch_servant::NewcommerSwitchServantRequest;
-use handlers::remove_servant::RemoveServantRequest;
-use handlers::remove_subaccount::RemoveSubaccountRequest;
-use handlers::cancel_send_money::CancelSendMoneyRequest;
-use handlers::sub_send_to_main::SubSendToMainRequest;
-use handlers::tx_list::TxListRequest;
-use handlers::get_tx::GetTxRequest;
-use handlers::gen_servant_switch_master::GenServantSwitchMasterRequest;
-use handlers::get_need_sig_num::GetNeedSigNumRequest;
-use handlers::gen_send_money::GenSendMoneyRequest;
-use handlers::commit_newcomer_replace_master::CommitNewcomerSwitchMasterRequest;
-use handlers::commit_servant_switch_master::CommitServantSwitchMasterRequest;
 
-
-use serde::{Deserialize, Serialize};
 use handlers::get_secret::GetSecretRequest;
+use serde::{Deserialize, Serialize};
 
 use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
@@ -54,8 +53,8 @@ use common::data_structures::{
     coin_transaction::{CoinSendStage, CoinTransaction, TxType},
     get_support_coin_list, TxStatusOnChain,
 };
-use handlers::set_fees_priority::SetFeesPriorityRequest;
 use common::log::generate_trace_id;
+use handlers::set_fees_priority::SetFeesPriorityRequest;
 use handlers::ServentSigDetail;
 
 /**
@@ -174,7 +173,6 @@ async fn get_strategy(req: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data.balance_enough  是否足以抵消，如果为false则说明所有币种都不足以抵消，      .
 * @apiSampleRequest http://120.232.251.101:8066/wallet/estimateTransferFee
 */
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/estimateTransferFee")]
@@ -631,8 +629,6 @@ async fn add_servant(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/newcommerSwitchServant
 */
 
-
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/newcommerSwitchServant")]
 async fn newcommer_switch_servant(
@@ -668,8 +664,6 @@ async fn newcommer_switch_servant(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
 */
-
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/removeServant")]
@@ -738,7 +732,6 @@ async fn servant_saved_secret(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/addSubaccount")]
 async fn add_subaccount(
@@ -792,8 +785,6 @@ async fn remove_subaccount(
         handlers::remove_subaccount::req(req, request_data.0).await,
     )
 }
-
-
 
 /**
  * @api {post} /wallet/updateStrategy 更新主钱包多签梯度
@@ -934,7 +925,6 @@ async fn update_subaccount_hold_limit(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/updateSecurity")]
 async fn update_security(
@@ -1018,10 +1008,14 @@ async fn create_main_account(
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/faucetClaim")]
-async fn faucet_claim(req: HttpRequest,    
+async fn faucet_claim(
+    req: HttpRequest,
     request_data: web::Json<FaucetClaimRequest>,
 ) -> impl Responder {
-    gen_extra_respond(get_lang(&req), handlers::faucet_claim::req(req,request_data.into_inner()).await)
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::faucet_claim::req(req, request_data.into_inner()).await,
+    )
 }
 
 /**
@@ -1166,8 +1160,6 @@ async fn single_balance(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
 
-
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/txList")]
 async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> impl Responder {
@@ -1238,7 +1230,6 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSuccess {String} data.created_at         交易创建时间戳
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
 */
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/getTx")]
@@ -1348,8 +1339,6 @@ async fn gen_newcomer_switch_master(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
 
-
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/genServantSwitchMaster")]
 async fn gen_servant_switch_master(
@@ -1385,7 +1374,6 @@ async fn gen_servant_switch_master(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getNeedSigNum
 */
 
-
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/getNeedSigNum")]
 async fn get_need_sig_num(
@@ -1419,7 +1407,6 @@ async fn get_need_sig_num(
 * @apiSuccess {String} data                 待签名的交易id.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genSendMoney
 */
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/genSendMoney")]
@@ -1460,7 +1447,6 @@ async fn gen_send_money(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
 */
-
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[post("/wallet/commitNewcomerSwitchMaster")]
@@ -1578,10 +1564,14 @@ mod tests {
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
-    use models::coin_transfer::CoinTxView;
+    use models::coin_transfer::CoinTxEntity;
     use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
     use serde_json::json;
 
+    use super::handlers::balance_list::BalanceListResponse;
+    use super::handlers::estimate_transfer_fee::EstimateTransferFeeResponse;
+    use super::handlers::get_tx::GetTxResponse;
+    use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
     use actix_web::http::header::HeaderName;
     use actix_web::http::header::HeaderValue;
     use actix_web::Error;
@@ -1592,14 +1582,9 @@ mod tests {
     use common::data_structures::secret_store::SecretStore;
     use common::data_structures::AccountMessage;
     use common::encrypt::{ed25519_key_gen, ed25519_verify_hex, ed25519_verify_raw};
-    use super::handlers::balance_list::BalanceListResponse;
-    use super::handlers::get_tx::GetTxResponse;
-    use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
-    use super::handlers::estimate_transfer_fee::EstimateTransferFeeResponse;
-
 
     use common::utils::math;
-    use models::secret_store::SecretStoreView;
+    use models::secret_store::SecretStoreEntity;
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::search_message::SearchMessageResponse;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
@@ -1610,7 +1595,7 @@ mod tests {
     use common::data_structures::CoinType;
     use common::utils::math::*;
     use handlers::get_strategy::StrategyDataTmp;
-    use models::account_manager::UserInfoView;
+    use models::account_manager::UserInfoEntity;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
 
@@ -2632,23 +2617,27 @@ mod tests {
             &tx.coin_tx_raw,
         )
         .unwrap();
-        if !ed25519_verify_hex(&tx.coin_tx_raw,
+        if !ed25519_verify_hex(
+            &tx.coin_tx_raw,
             sender_servant.wallet.pubkey.as_ref().unwrap(),
-            &signature).unwrap() {
+            &signature,
+        )
+        .unwrap()
+        {
             panic!()
         }
-        println!("ed25519_verify__{}_{}_{}",
-        tx.coin_tx_raw,
-        sender_servant.wallet.pubkey.as_ref().unwrap(),
-        signature
-    );
-        
+        println!(
+            "ed25519_verify__{}_{}_{}",
+            tx.coin_tx_raw,
+            sender_servant.wallet.pubkey.as_ref().unwrap(),
+            signature
+        );
+
         let signature = format!(
             "{}{}",
             sender_servant.wallet.pubkey.as_ref().unwrap(),
             signature
         );
-
 
         //upload_servant_sig
         test_upload_servant_sig!(service, sender_servant, tx.order_id, signature);

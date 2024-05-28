@@ -9,9 +9,9 @@ use common::{
     error_code::BackendError,
 };
 use models::{
-    device_info::{DeviceInfoFilter, DeviceInfoView},
+    device_info::{DeviceInfoEntity, DeviceInfoFilter},
     general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordView,
+    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 use tracing::debug;
@@ -19,7 +19,7 @@ use tracing::debug;
 use crate::utils::token_auth;
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
-use serde::{Deserialize,Serialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -27,10 +27,7 @@ pub struct SetFeesPriorityRequest {
     fees_priority: Vec<String>,
 }
 
-pub async fn req(
-    req: HttpRequest,
-    request_data: SetFeesPriorityRequest,
-) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> BackendRes<String> {
     //todo: must be called by main device
 
     let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
@@ -70,7 +67,7 @@ pub async fn req(
     );
 
     //todo: generate txid before call contract
-    let record = WalletManageRecordView::new_with_specified(
+    let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::SetFeesPriority,
         &current_strategy.master_pubkey,
