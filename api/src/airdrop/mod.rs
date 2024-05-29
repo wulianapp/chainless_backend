@@ -205,13 +205,14 @@ async fn claim_dw20(req: HttpRequest) -> impl Responder {
 }
 
 /**
- * @api {post} /airdrop/newBtcDeposit （内部调用）注入新的btc的符合规则的充值
+ * @api {post} /airdrop/newBtcDeposit （内部调用无权限限制）注入新的btc的符合规则的充值
  * @apiVersion 0.0.1
  * @apiName NewBtcDeposit
  * @apiGroup Airdrop
- * @apiHeader {String} Authorization  user's access token
+ * @apiBody {String}     sender                 发送方btc地址
+ * @apiBody {String}     receiver               接收方btc地址
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+ *   curl -X POST http://120.232.251.101:8066
    -d ' {
              "servantPubkey": "123",
            }'

@@ -4,7 +4,7 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
-use anyhow::Result;
+use anyhow::{anyhow,Result};
 use common::env::CONF;
 use common::error_code::BackendRes;
 use common::error_code::{BackendError, ExternalServiceError};
@@ -21,18 +21,12 @@ fn is_valid() -> Result<(), EmailError> {
     unimplemented!()
 }
 
-pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
-    let content = format!(
-        "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
-        code
-    );
-
+pub fn send_email(to_mail: &str,content: &str) -> Result<()> {
     let from = CONF
         .stmp
         .sender
-        .parse::<Mailbox>()
-        .map_err(|e| e.to_string())?;
-    let to = to_mail.parse::<Mailbox>().map_err(|e| e.to_string())?;
+        .parse::<Mailbox>()?;
+    let to = to_mail.parse::<Mailbox>()?;
 
     // 创建电子邮件内容
     let email = Message::builder()
@@ -40,38 +34,23 @@ pub fn send_email(code: &str, to_mail: &str) -> BackendRes<String> {
         .to(to)
         .subject("[ChainLess] Captcha")
         .header(ContentType::TEXT_PLAIN)
-        .body(content)
-        .map_err(|e| {
-            error!("Email parameters error {}", e.to_string());
-            ExternalServiceError::EmailCaptcha(e.to_string())
-        })?;
+        .body(content.to_owned())?;
 
     let creds = Credentials::new(CONF.stmp.sender.clone(), CONF.stmp.password.clone());
 
     let tls = TlsParameters::builder(CONF.stmp.server.clone())
         .dangerous_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| {
-            error!("EmailCaptcha service is crashed {}", e.to_string());
-            ExternalServiceError::EmailCaptcha(e.to_string())
-        })?;
+        .build()?;
 
     let mailer = SmtpTransport::relay(CONF.stmp.server.as_str())
-        .map(|c| c.port(1025)) // 指定 SMTP 服务器端口号
-        .map_err(|e| {
-            error!("EmailCaptcha service is crashed {}", e.to_string());
-            ExternalServiceError::EmailCaptcha(e.to_string())
-        })?
+        .map(|c| c.port(1025))?
         .tls(Tls::Required(tls))
         .credentials(creds)
         .build();
 
-    let send_res = mailer.send(&email).map_err(|e| {
-        error!("Email send message failed {}", e.to_string());
-        ExternalServiceError::EmailCaptcha(e.to_string())
-    })?;
+    let send_res = mailer.send(&email)?;
     debug!("mail send res {:?}", send_res);
-    Ok(None::<String>)
+    Ok(())
 }
 
 #[cfg(test)]

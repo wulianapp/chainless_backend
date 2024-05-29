@@ -3,6 +3,7 @@ use actix_web::HttpRequest;
 use common::data_structures::KeyRole2;
 //use log::debug;
 use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently};
+use common::log::generate_trace_id;
 use models::account_manager::{UserFilter, UserInfoEntity};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
@@ -10,13 +11,18 @@ use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::utils::captcha::Usage::*;
+use crate::utils::captcha::{sms, Usage::*};
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
 use crate::utils::{captcha, token_auth};
 use common::env::CONF;
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::prelude::*;
 use common::utils::time::now_millis;
+
+fn do_stuff<T>(value: &T) {
+    let cloned = value.clone();
+}
+
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -66,21 +72,25 @@ fn get(
     let captcha = Captcha::new(storage_key, device_id, kind);
     captcha.store()?;
 
-    if contract_type == ContactType::PhoneNumber {
-        Err(BackendError::InternalError(
-            "Not support Phone nowadays".to_string(),
-        ))?;
-    } else {
-        //缓存的key可能用的是user_id和contact，所以实际发送的邮箱地址需要额外参数提供
-        //todo: 异步处理
-        tokio::spawn(async move {
-            if let Err(_error) = email::send_email(&captcha.code, &contact) {
-                error!("send code failed {:?}", captcha);
-            } else {
-                debug!("send code successful {:?}", captcha);
-            }
-        });
-    };
+
+    let content = format!(
+        "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
+        captcha.code
+    );
+    tokio::spawn(async move {
+        let send_res = if contract_type == ContactType::PhoneNumber{
+            let reference = generate_trace_id();
+            sms::send_sms(&contact, &content, &reference)
+            .await
+        }else{
+            email::send_email( &contact,&content)
+        };
+        if let Err(e) = send_res {
+            error!("send code({:?}) failed {}:", captcha,e.to_string());
+        } else {
+            debug!("send code successful {:?}", captcha);
+        }
+    });
 
     //todo: delete expired captcha，so as to avoid use too much memory
     Ok(None::<String>)
