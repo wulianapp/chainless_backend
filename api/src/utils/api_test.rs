@@ -1091,10 +1091,10 @@ macro_rules! test_airdrop_status {
 
 #[macro_export]
 macro_rules! test_bind_btc_address {
-    ($service:expr, $app:expr) => {{
+    ($service:expr, $app:expr,$addr:expr,$sig:expr) => {{
         let payload = json!({
-            "btcAddress": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuady5",
-            "sig": "aabbcc"
+            "btcAddress": $addr,
+            "sig": $sig
         });
         let url = format!("/airdrop/bindBtcAddress");
         println!("______{}",payload.to_string());

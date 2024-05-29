@@ -67,9 +67,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
         return Err(BackendError::InternalError("".to_string()))?;
     } else {
         if !ed25519_verify_hex(&sign_data, &key[0], &sub_sig)? {
-            Err(BackendError::RequestParamInvalid(
-                "siganature is illegal".to_string(),
-            ))?;
+            Err(BackendError::SigVerifyFailed)?;
         }
     };
 

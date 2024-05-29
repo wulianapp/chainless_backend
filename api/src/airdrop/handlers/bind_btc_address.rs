@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use common::{
-    btc_crypto::{self, CHAINLESS_AIRDROP},
+    btc_crypto::{self},
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
@@ -40,7 +40,9 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
 
     let BindBtcAddressRequest { btc_address, sig } = request_data;
     //todo: check sig,
-    if !btc_crypto::verify(CHAINLESS_AIRDROP, &sig, &btc_address)? {
+    let sign_data = format!("{}_{}",user_id,CHAINLESS_AIRDROP);
+    let sign_hex = hex::encode(sign_data.as_bytes());
+    if !btc_crypto::verify(&sign_hex, &sig, &btc_address)? {
         Err(BackendError::SigVerifyFailed)?;
     }
 

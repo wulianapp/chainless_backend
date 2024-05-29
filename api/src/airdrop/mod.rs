@@ -263,6 +263,7 @@ mod tests {
     use actix_web::{body::MessageBody as _, test, App};
 
     use blockchain::ContractClient;
+    use common::btc_crypto::{self, calculate_p2tr_address, calculate_p2wpkh_address, new_secret_key};
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxEntity;
@@ -300,13 +301,19 @@ mod tests {
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info1 {:#?}", status_info);
+        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
+        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
+        println!("{btc_prikey},,,,{btc_pubkey}");
+        let btc_p2wpkh_addr = calculate_p2wpkh_address(&btc_pubkey).unwrap();
+        let sign_data = format!("{}_{}",status_info.user_id,"ChainlessAirdrop");
+        let sign_hex = hex::encode(&sign_data);
 
-        test_bind_btc_address!(service, sender_master);
+        let signature = btc_crypto::sign(&btc_prikey, &sign_hex).unwrap();
+        test_bind_btc_address!(service, sender_master,btc_p2wpkh_addr,signature);
+
         test_new_btc_deposit!(service, sender_master);
         test_change_invite_code!(service, sender_master);
-        //test_change_predecessor!(service,sender_master);
 
-        //test_change_invite_code!(service,sender_master);1
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info2 {:#?}", status_info);
 
