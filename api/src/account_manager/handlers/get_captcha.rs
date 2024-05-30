@@ -11,18 +11,13 @@ use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::utils::captcha::{sms, Usage::*};
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
+use crate::utils::captcha::{sms, Usage::*};
 use crate::utils::{captcha, token_auth};
 use common::env::CONF;
 use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
 use common::prelude::*;
 use common::utils::time::now_millis;
-
-fn do_stuff<T>(value: &T) {
-    let cloned = value.clone();
-}
-
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -72,21 +67,19 @@ fn get(
     let captcha = Captcha::new(storage_key, device_id, kind);
     captcha.store()?;
 
-
     let content = format!(
         "[ChainLess] Your captcha is: {}, valid for 10 minutes.",
         captcha.code
     );
     tokio::spawn(async move {
-        let send_res = if contract_type == ContactType::PhoneNumber{
+        let send_res = if contract_type == ContactType::PhoneNumber {
             let reference = generate_trace_id();
-            sms::send_sms(&contact, &content, &reference)
-            .await
-        }else{
-            email::send_email( &contact,&content)
+            sms::send_sms(&contact, &content, &reference).await
+        } else {
+            email::send_email(&contact, &content)
         };
         if let Err(e) = send_res {
-            error!("send code({:?}) failed {}:", captcha,e.to_string());
+            error!("send code({:?}) failed {}:", captcha, e.to_string());
         } else {
             debug!("send code successful {:?}", captcha);
         }

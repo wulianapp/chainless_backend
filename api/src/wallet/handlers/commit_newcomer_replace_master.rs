@@ -83,7 +83,8 @@ pub(crate) async fn req(
 
     //增加之前判断是否有
     if !master_list.contains(&newcomer_pubkey.to_string()) {
-        blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
+        let _ =
+            blockchain::general::broadcast_tx_commit_from_raw2(&add_key_raw, &add_key_sig).await;
 
         //check if stored already ,if not insert sercret_store or update
         let origin_secret =
@@ -123,7 +124,9 @@ pub(crate) async fn req(
         && master_list.contains(&newcomer_pubkey)
         && master_list.contains(&old_master)
     {
-        blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig).await;
+        let _ =
+            blockchain::general::broadcast_tx_commit_from_raw2(&delete_key_raw, &delete_key_sig)
+                .await;
         //更新设备信息
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeUndefined(&old_master),

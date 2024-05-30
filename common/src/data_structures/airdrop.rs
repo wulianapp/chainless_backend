@@ -4,7 +4,7 @@ use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
 use std::str::FromStr;
 use std::{clone, fmt::Display as StdDisplay};
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Airdrop {

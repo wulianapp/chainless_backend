@@ -119,7 +119,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         }
 
         //跨链转出，在无链端按照普通转账处理
-        blockchain::general::broadcast_tx_commit_from_raw2(
+        let _ = blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().ok_or("")?,
             &confirmed_sig,
         )

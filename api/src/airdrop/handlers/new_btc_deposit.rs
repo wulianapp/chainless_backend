@@ -27,7 +27,7 @@ pub struct NewBtcDepositRequest {
     receiver: String,
 }
 
-pub async fn req(req: HttpRequest, request_data: NewBtcDepositRequest) -> BackendRes<String> {
+pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> BackendRes<String> {
     let mut db_cli = get_pg_pool_connect().await?;
 
     //todo: 目前该接口不做限制，后续看怎么收拢权限
@@ -42,7 +42,7 @@ pub async fn req(req: HttpRequest, request_data: NewBtcDepositRequest) -> Backen
     }
 
     //不允许重复评级
-    if airdrop_info.len() == 1 
+    if airdrop_info.len() == 1
         && airdrop_info[0].airdrop.btc_address.is_some()
         && airdrop_info[0].airdrop.btc_address.is_none()
     {
@@ -57,10 +57,9 @@ pub async fn req(req: HttpRequest, request_data: NewBtcDepositRequest) -> Backen
             "check deposit(sender={},receiver={}) sucessfully,and get grade  {}",
             sender, receiver, grade
         );
-    }else {
+    } else {
         warn!("deposit from {} is invaild", sender);
     }
-
 
     Ok(None)
 }

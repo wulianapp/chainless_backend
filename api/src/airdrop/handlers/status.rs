@@ -42,7 +42,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut db_cli).await?;
+    let _main_account = get_main_account(user_id, &mut db_cli).await?;
 
     //todo: check sig,
     //todo: get kyc info

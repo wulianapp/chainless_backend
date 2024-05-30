@@ -24,7 +24,7 @@ pub struct AirdropEntity {
 pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
-    BtcAddressAndLevel(&'a str,u8),
+    BtcAddressAndLevel(&'a str, u8),
     AccountId(&'a str),
     //user_id,account_id
     Predecessor(&'a str, &'a str),
@@ -40,8 +40,8 @@ impl fmt::Display for AirdropUpdater<'_> {
             AirdropUpdater::BtcAddress(addr) => {
                 format!("btc_address='{}'", addr)
             }
-            AirdropUpdater::BtcAddressAndLevel(addr,level) => {
-                format!("btc_address='{}',btc_level={} ", addr,level)
+            AirdropUpdater::BtcAddressAndLevel(addr, level) => {
+                format!("btc_address='{}',btc_level={} ", addr, level)
             }
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)

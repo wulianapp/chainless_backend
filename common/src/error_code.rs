@@ -11,7 +11,7 @@ pub type BackendRes<D, E = BackendError> = Result<Option<D>, E>;
 use anyhow::Error as AnyhowError;
 use serde_json;
 use std::error::Error as StdError;
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 use tracing::{debug, info};
 
 #[derive(Deserialize, Debug, Default)]
@@ -339,6 +339,7 @@ pub trait ErrorCode: ToString {
     }
 }
 
+#[allow(non_camel_case_types)]
 #[derive(EnumString, Display, PartialEq, Default)]
 pub enum LangType {
     #[strum(ascii_case_insensitive)]

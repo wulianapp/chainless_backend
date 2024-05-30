@@ -83,7 +83,7 @@ pub async fn init_system_config() -> Result<(), String> {
         airdrop_reserved_field2,
         airdrop_reserved_field3
         ) values ('10000','10000.local','chainless.hk','0','0.local','btc_address_abc',0,'','','');";
-    let mut cli = crate::PG_POOL.get().await.map_err(|e| e.to_string())?;
+    let cli = crate::PG_POOL.get().await.map_err(|e| e.to_string())?;
 
     cli.execute(insert_root_user, &[])
         .await

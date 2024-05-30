@@ -160,8 +160,8 @@ pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
             match outcome.outcome.status {
                 ExecutionStatusView::Unknown => {
                     unreachable!("");
-                    status = TxStatusOnChain::Failed;
-                    break;
+                    //status = TxStatusOnChain::Failed;
+                    //break;
                 }
                 ExecutionStatusView::Failure(_) => {
                     status = TxStatusOnChain::Failed;

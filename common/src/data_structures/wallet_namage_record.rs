@@ -10,7 +10,7 @@ use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString, ToString};
 
 //const PREDECESSOR_SUBFIX: &str = ".node0";
-#[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash, EnumString, ToString)]
+#[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash, EnumString, Display)]
 pub enum WalletOperateType {
     //两个txid，服务端重试
     CreateAccount,

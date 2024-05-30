@@ -80,7 +80,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_get_sys_info() {
-        let cli = ContractClient::<Airdrop>::new().await.unwrap();
+        let _cli = ContractClient::<Airdrop>::new().await.unwrap();
         //let sys_info = cli.get_sys_info().await.unwrap();
         //println!("sys_info {:?} ", sys_info);
     }

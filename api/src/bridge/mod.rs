@@ -1,4 +1,3 @@
-#![feature(async_closure)]
 //! account manager http service
 pub mod handlers;
 

@@ -2313,7 +2313,7 @@ mod tests {
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
         let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
         let subaccount_id = sub_accoounts.first().unwrap();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_with_type(CoinType::USDT)
+        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_with_type(CoinType::USDC)
             .await
             .unwrap();
         coin_cli
@@ -2325,7 +2325,7 @@ mod tests {
         let coin_tx = SubAccCoinTx {
             amount: 5u128 * BASE_DECIMAL,
             //todo:
-            coin_id: "usdt".to_string(),
+            coin_id: "usdc".to_string(),
         };
         let coin_tx_str = serde_json::to_string(&coin_tx).unwrap();
 
@@ -2356,7 +2356,7 @@ mod tests {
             sender_master,
             subaccount_id,
             signature,
-            "USDT",
+            "USDC",
             "5"
         );
     }

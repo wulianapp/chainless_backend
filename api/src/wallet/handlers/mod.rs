@@ -10,9 +10,7 @@ use blockchain::{
 use common::{
     data_structures::{
         account_manager::UserInfo, coin_transaction::CoinSendStage, device_info::DeviceInfo,
-        CoinType, KeyRole2,
     },
-    error_code::{parse_str, BackendError, BackendRes, WalletError},
     utils::{
         math::{coin_amount::raw2display, generate_random_hex_string},
         time::now_millis,
@@ -30,7 +28,7 @@ use tracing::{error, info, warn};
 use crate::{account_manager::user_info, utils::respond::BackendRespond};
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
-use common::error_code::{AccountManagerError, WalletError::*};
+use common::error_code::WalletError::*;
 pub use common::prelude::*;
 use common::utils::math::*;
 
@@ -206,7 +204,7 @@ pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
     conn: &mut PgLocalCli<'_>,
-) -> Result<(UserInfo, StrategyData, DeviceInfo),BackendError> {
+) -> Result<(UserInfo, StrategyData, DeviceInfo), BackendError> {
     let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn)
         .await
         .map_err(|err| {

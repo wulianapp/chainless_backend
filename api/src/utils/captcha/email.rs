@@ -4,7 +4,7 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
-use anyhow::{anyhow,Result};
+use anyhow::{anyhow, Result};
 use common::env::CONF;
 use common::error_code::BackendRes;
 use common::error_code::{BackendError, ExternalServiceError};
@@ -21,11 +21,8 @@ fn is_valid() -> Result<(), EmailError> {
     unimplemented!()
 }
 
-pub fn send_email(to_mail: &str,content: &str) -> Result<()> {
-    let from = CONF
-        .stmp
-        .sender
-        .parse::<Mailbox>()?;
+pub fn send_email(to_mail: &str, content: &str) -> Result<()> {
+    let from = CONF.stmp.sender.parse::<Mailbox>()?;
     let to = to_mail.parse::<Mailbox>()?;
 
     // 创建电子邮件内容

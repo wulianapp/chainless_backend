@@ -46,7 +46,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
 
     //todo: get kyc info
     let user_airdrop = AirdropEntity::find(AirdropFilter::ByInviteCode(&code), &mut db_cli).await?;
-    if user_airdrop.len() != 0 {
+    if !user_airdrop.is_empty() {
         Err(AirdropError::InviteCodeAlreadyUsed)?;
     }
 

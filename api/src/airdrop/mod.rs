@@ -1,4 +1,3 @@
-#![feature(async_closure)]
 //! account manager http service
 pub mod handlers;
 
@@ -264,7 +263,9 @@ mod tests {
     use actix_web::{body::MessageBody as _, test, App};
 
     use blockchain::ContractClient;
-    use common::btc_crypto::{self, calculate_p2tr_address, calculate_p2wpkh_address, new_secret_key};
+    use common::btc_crypto::{
+        self, calculate_p2tr_address, calculate_p2wpkh_address, new_secret_key,
+    };
     use common::data_structures::device_info::DeviceInfo;
     use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxEntity;
@@ -296,9 +297,9 @@ mod tests {
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
-        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
+        let (btc_prikey, btc_pubkey) = new_secret_key().unwrap();
         let btc_addr = calculate_p2tr_address(&btc_pubkey).unwrap();
-        println!("btc_address_{}",btc_addr);
+        println!("btc_address_{}", btc_addr);
         let btc_addr = "bcrt1ptnmsjes32gz4nelu6m9ghm8lg2qp536w9cs7knn9the7g7rz6gpqm6pjus";
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
@@ -307,9 +308,8 @@ mod tests {
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info1 {:#?}", status_info);
 
-
         let signature = btc_crypto::sign(&btc_prikey, &status_info.user_id.to_string()).unwrap();
-        test_bind_btc_address!(service, sender_master,btc_addr,signature);
+        test_bind_btc_address!(service, sender_master, btc_addr, signature);
 
         //test_new_btc_deposit!(service, sender_master);
         test_change_invite_code!(service, sender_master);

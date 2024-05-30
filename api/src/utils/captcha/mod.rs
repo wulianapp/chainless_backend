@@ -21,7 +21,7 @@ use common::error_code::BackendError::*;
 use common::constants::*;
 use common::utils::time::now_millis;
 use phonenumber::Mode;
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
 lazy_static! {
     static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
@@ -33,7 +33,7 @@ pub enum ContactType {
     Email,
 }
 
-#[derive(PartialEq, Clone, Debug, Eq, Hash, EnumString, ToString)]
+#[derive(PartialEq, Clone, Debug, Eq, Hash, EnumString, Display)]
 pub enum Usage {
     Register,
     Login,

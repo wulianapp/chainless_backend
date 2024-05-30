@@ -17,15 +17,18 @@ use models::{
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-use crate::{utils::{token_auth, wallet_grades::query_wallet_grade}, wallet::handlers::*};
+use crate::{
+    utils::{token_auth, wallet_grades::query_wallet_grade},
+    wallet::handlers::*,
+};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
-#[derive(Deserialize, Serialize, Clone,EnumString,ToString)]
-pub enum BindWay{
+#[derive(Deserialize, Serialize, Clone, EnumString, Display)]
+pub enum BindWay {
     Directly,
-    Indirectly
+    Indirectly,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -46,18 +49,21 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     check_role(current_role, KeyRole2::Master)?;
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
-    let BindBtcAddressRequest { btc_address, sig,way:bind_way } = request_data;
-    
+    let BindBtcAddressRequest {
+        btc_address,
+        sig: _,
+        way: bind_way,
+    } = request_data;
+
     /***
     if !btc_crypto::verify(&user_id.to_string(), &sig, &btc_address)? {
         Err(BackendError::SigVerifyFailed)?;
     }
     ***/
 
-    if AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address), &mut db_cli)
+    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address), &mut db_cli)
         .await?
-        .len()
-        != 0
+        .is_empty()
     {
         Err(AirdropError::BtcAddressAlreadyUsed)?;
     }
@@ -73,12 +79,12 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
         BindWay::Directly => {
             let grade = query_wallet_grade(&btc_address).await?;
             AirdropEntity::update_single(
-                AirdropUpdater::BtcAddressAndLevel(&btc_address,grade),
+                AirdropUpdater::BtcAddressAndLevel(&btc_address, grade),
                 AirdropFilter::ByAccountId(&main_account),
                 &mut db_cli,
             )
             .await?;
-        },
+        }
         BindWay::Indirectly => {
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddress(&btc_address),
@@ -86,9 +92,8 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
                 &mut db_cli,
             )
             .await?;
-        },
+        }
     }
-
 
     Ok(None)
 }

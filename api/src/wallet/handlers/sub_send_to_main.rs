@@ -65,10 +65,8 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
     let key = cli.get_master_pubkey_list(&subaccount_id).await?;
     if key.len() != 1 {
         return Err(BackendError::InternalError("".to_string()))?;
-    } else {
-        if !ed25519_verify_hex(&sign_data, &key[0], &sub_sig)? {
-            Err(BackendError::SigVerifyFailed)?;
-        }
+    } else if !ed25519_verify_hex(&sign_data, &key[0], &sub_sig)? {
+        Err(BackendError::SigVerifyFailed)?;
     };
 
     let available_balance =

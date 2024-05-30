@@ -39,7 +39,7 @@ impl fmt::Display for WalletManageRecordUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             WalletManageRecordUpdater::TxIds(ids) => {
-                format!("tx_ids={} ", vec_str2array_text(ids.deref().to_owned()))
+                format!("tx_ids={} ", vec_str2array_text(ids.to_vec()))
             }
             WalletManageRecordUpdater::Status(key) => {
                 format!("status='{}' ", key)
