@@ -103,7 +103,11 @@ pub async fn req(
     //filter by tx_order_id 、account_id 、phone、mail or eth_addr
     //fixme:
     let find_res = if let Some(data) = counterparty.as_deref() {
-        match get_filter_type(data)? {
+        let filter_type = match get_filter_type(data) {
+            Ok(t) => t,
+            Err(_) => return Ok(Some(vec![])),
+        };
+        match filter_type {
             FilterType::OrderId => {
                 CoinTxEntity::find(CoinTxFilter::ByOrderId(data), &mut db_cli).await
             }
