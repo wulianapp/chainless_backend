@@ -14,6 +14,7 @@ pub struct AccountSummary {
 
 #[derive(Deserialize)]
 struct Data {
+    block: i64,
     time: i64,
     balance: String,
 }
@@ -21,11 +22,12 @@ struct Data {
 #[derive(Deserialize)]
 struct Body {
     status: u8,
-    message: String,
+    message: Option<String>,
     result: Option<Data>,
 }
 
 pub async fn first_tx(account: &str) -> Result<Option<AccountSummary>> {
+    eprintln!("{}/address/first_tx/{}", CONF.btc_aggregated_api_base_uri, account);
     let body = reqwest::get(format!(
         "{}/address/first_tx/{}",
         CONF.btc_aggregated_api_base_uri, account

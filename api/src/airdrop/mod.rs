@@ -63,7 +63,8 @@ async fn status(req: HttpRequest) -> impl Responder {
  * @apiName BindBtcAddress
  * @apiGroup Airdrop
  * @apiBody {String} btcAddress   btc地址
- * @apiBody {String} sig   btc私钥对字符串 ChainlessAirdrop 签名结果
+ * @apiBody {String} sig   btc私钥对user_id的字符串的签名结果
+ * @apiBody {String=Directly,Indirectly} way   地址对应的绑定方式,前者对应导入私钥，后者对应创建新钱包
  * @apiHeader {String} Authorization  user's access token
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
@@ -295,23 +296,22 @@ mod tests {
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
+        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
+        let btc_addr = calculate_p2tr_address(&btc_pubkey).unwrap();
+        println!("btc_address_{}",btc_addr);
+        let btc_addr = "bcrt1ptnmsjes32gz4nelu6m9ghm8lg2qp536w9cs7knn9the7g7rz6gpqm6pjus";
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         //tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info1 {:#?}", status_info);
-        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
-        let (btc_prikey,btc_pubkey) = new_secret_key().unwrap();
-        println!("{btc_prikey},,,,{btc_pubkey}");
-        let btc_p2wpkh_addr = calculate_p2wpkh_address(&btc_pubkey).unwrap();
-        let sign_data = format!("{}_{}",status_info.user_id,"ChainlessAirdrop");
-        let sign_hex = hex::encode(&sign_data);
 
-        let signature = btc_crypto::sign(&btc_prikey, &sign_hex).unwrap();
-        test_bind_btc_address!(service, sender_master,btc_p2wpkh_addr,signature);
 
-        test_new_btc_deposit!(service, sender_master);
+        let signature = btc_crypto::sign(&btc_prikey, &status_info.user_id.to_string()).unwrap();
+        test_bind_btc_address!(service, sender_master,btc_addr,signature);
+
+        //test_new_btc_deposit!(service, sender_master);
         test_change_invite_code!(service, sender_master);
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();

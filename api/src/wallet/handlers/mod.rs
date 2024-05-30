@@ -206,7 +206,7 @@ pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
     conn: &mut PgLocalCli<'_>,
-) -> Result<(UserInfo, StrategyData, DeviceInfo)> {
+) -> Result<(UserInfo, StrategyData, DeviceInfo),BackendError> {
     let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn)
         .await
         .map_err(|err| {

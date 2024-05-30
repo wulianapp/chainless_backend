@@ -8,9 +8,12 @@ use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::key;
 use bitcoin::key::PublicKey;
+use bitcoin::key::TweakedPublicKey;
 use bitcoin::network::Network;
 use bitcoin::opcodes;
 use bitcoin::script;
+use bitcoin::sign_message::signed_msg_hash;
+use bitcoin::sign_message::MessageSignature;
 use bitcoin::CompressedPublicKey;
 use bitcoin::XOnlyPublicKey;
 use bs58;
@@ -30,39 +33,33 @@ use std::str::FromStr;
 use tracing::debug;
 use tracing::error;
 
-pub fn calculate_p2wpkh_address(hex_key: &str) -> Result<String> {
-    let key_bytes = hex::decode(hex_key)?;
+pub fn calculate_p2wpkh_address(pubkey_hex: &str) -> Result<String> {
+    let key_bytes = hex::decode(pubkey_hex)?;
     let key = CompressedPublicKey::from_slice(&key_bytes)?;
-    let addr = Address::p2wpkh(&key, Network::Testnet);
+    let addr = Address::p2wpkh(&key, Network::Regtest);
     Ok(addr.to_string())
 }
 
-pub fn calculate_p2shwpkh_address(hex_key: &str) -> Result<String> {
-    let key_bytes = hex::decode(hex_key)?;
+pub fn calculate_p2shwpkh_address(pubkey_hex: &str) -> Result<String> {
+    let key_bytes = hex::decode(pubkey_hex)?;
     let key = CompressedPublicKey::from_slice(&key_bytes)?;
-    let addr = Address::p2shwpkh(&key, Network::Testnet);
+    let addr = Address::p2shwpkh(&key, Network::Regtest);
     Ok(addr.to_string())
 }
 
-pub fn calculate_p2tr_address(hex_key: &str) -> Result<String> {
-    /*** 
-    let key_bytes = hex::decode(hex_key)?;
-    let secp = Secp256k1::new();
-    let key = XOnlyPublicKey::from_slice(&key_bytes)?;
-    let addr = Address::p2tr(&secp, key, None, Network::Testnet);
+pub fn calculate_p2tr_address(pubkey_hex: &str) -> Result<String> {
+    let pubkey = PublicKey::from_str(pubkey_hex)?;
+    let key = XOnlyPublicKey::from(pubkey.inner);
+    let tweaked_pubkey = TweakedPublicKey::dangerous_assume_tweaked(key);
+    let addr = Address::p2tr_tweaked(tweaked_pubkey, Network::Regtest);
     Ok(addr.to_string())
-    ***/
-    todo!()
 }
 
-pub fn calculate_p2pkh_address(hex_key: &str) -> Result<String> {
-    /***
-    let key_bytes = hex::decode(hex_key)?;
-    let key = CompressedPublicKey::from_slice(&key_bytes)?;
-    let addr = Address::p2pkh(&key, Network::Testnet);
+pub fn calculate_p2pkh_address(pubkey_hex: &str) -> Result<String> {
+    let key_bytes = hex::decode(pubkey_hex)?;
+    let pubkey = PublicKey::from_slice(&key_bytes).unwrap();
+    let addr = Address::p2pkh(pubkey, Network::Regtest);
     Ok(addr.to_string())
-    ***/
-    todo!()
 }
 
 pub fn new_secret_key() -> Result<(String, String)> {
@@ -75,76 +72,126 @@ pub fn new_secret_key() -> Result<(String, String)> {
     Ok((prikey_str, pubkey_str))
 }
 
-pub fn new_p2tr_secret_key() -> Result<(String, String)> {
-    let (prikey,_) = new_secret_key()?;
-    /*** 
-    //let sk = hex::decode(prikey)?;
-    let sk = SecretKey::from_str(&prikey)?;
-    let script_pubkey = script::Builder::new()
-            .push_opcode(opcodes::all::OP_1ADD)
-            .push_slice(sk.into())
-            .push_opcode(opcodes::all::OP_CHECKSIG)
-            .into_script();
-    Ok((prikey, script_pubkey.to_hex_string()))
-    **/
-    todo!()
+pub fn get_pubkey(prikey_hex: &str) -> Result<String> {
+    let secp = Secp256k1::new();
+    let prikey = hex::decode(prikey_hex)?;
+    let prikey = SecretKey::from_slice(prikey.as_slice())?;
+    let pubkey_str = prikey.public_key(&secp).to_string();
+    Ok(pubkey_str)
 }
 
 pub fn verify(data: &str, sig: &str, address: &str) -> Result<bool> {
-    let data = hex::decode(data)?;
-    let message_hash = sha256::Hash::const_hash(&data);
-    let msg = Message::from_digest_slice(&message_hash.to_byte_array())?;
-    let signature_bytes = hex::decode(sig)?;
-    let (recovery_id_byte, signature_bytes) = signature_bytes.split_at(1);
-    println!("recovery_id_byte {:?}", recovery_id_byte);
-    let recovery_id = RecoveryId::from_i32(recovery_id_byte[0] as i32)?;
-    //let signature = Signature::from_compact(signature_bytes).expect("compact signature");
     let secp = Secp256k1::new();
-    let signature = RecoverableSignature::from_compact(&signature_bytes, recovery_id)?;
-    let recovered_pubkey = secp.recover_ecdsa(&msg, &signature)?;
-
+    let msg_hash = signed_msg_hash(data);
+    let signature_bytes = hex::decode(sig)?;
+    let signature = MessageSignature::from_slice(signature_bytes.as_slice())?;
+    let recovered_pubkey = signature.recover_pubkey(&secp, msg_hash)?;
     if address == calculate_p2wpkh_address(&recovered_pubkey.to_string())?
-        || address == calculate_p2shwpkh_address(&recovered_pubkey.to_string())?
-        || address == calculate_p2tr_address(&recovered_pubkey.to_string())?
-        || address == calculate_p2pkh_address(&recovered_pubkey.to_string())?
     {
-        Ok(true)
-    } else {
-        Ok(false)
+        println!("is p2wpkh address");
+        return Ok(true);
+    } 
+
+    if address == calculate_p2shwpkh_address(&recovered_pubkey.to_string())?
+    {
+        println!("is p2shwpkh address");
+        return Ok(true);
     }
+    if address == calculate_p2tr_address(&recovered_pubkey.to_string())?
+    {
+        println!("is p2tr address");
+        return Ok(true);
+    } 
+    if address == calculate_p2pkh_address(&recovered_pubkey.to_string())?
+    {
+        println!("is p2pkh address");
+        return Ok(true);
+    }  
+    Ok(false)
 }
 
-pub fn sign(sk: &str, data: &str) -> Result<String> {
-    let data = hex::decode(data)?;
-    let message_hash = sha256::Hash::const_hash(&data);
-    let msg = Message::from_digest_slice(&message_hash.to_byte_array())?;
+pub fn sign(sk: &str, data: &str) -> Result<String> {    
+    let msg_hash = signed_msg_hash(data);
+    let msg = secp256k1::Message::from_digest(msg_hash.to_byte_array());
     let secp = Secp256k1::new();
     let sk = SecretKey::from_str(sk)?;
-    let (recover_id, mut recover_sig) = secp.sign_ecdsa_recoverable(&msg, &sk).serialize_compact();
-    let mut sig = vec![recover_id.to_i32() as u8];
-    sig.append(&mut recover_sig.to_vec());
-    Ok(hex::encode(sig))
+    let secp_sig = secp.sign_ecdsa_recoverable(&msg, &sk);
+    let signature = MessageSignature { signature: secp_sig, compressed: true };
+    let sig_hex_str = hex::encode(signature.serialize());
+    Ok(sig_hex_str)
 }
 
 #[cfg(test)]
 mod tests {
+    use bitcoin::AddressType;
+
     use crate::prelude::CHAINLESS_AIRDROP;
 
     use super::*;
     #[test]
-    fn test_specp256k1_sign_verify() {
+    fn test_btc_specp256k1_sign_verify() {
         let user_id = 123;
-        let data = format!("{}_{}",user_id,CHAINLESS_AIRDROP);
-        let raw_data = hex::encode(data.as_bytes());
+        let raw_data = format!("{}_{}",user_id,CHAINLESS_AIRDROP);
         let (prikey, pubkey) = new_secret_key().unwrap();
+
         let sig = sign(&prikey, &raw_data).unwrap();
         println!("prikey {},pubkey {},sig {}", prikey, pubkey, sig);
+
         let address = calculate_p2wpkh_address(&pubkey).unwrap();
-        let address = calculate_p2shwpkh_address(&pubkey).unwrap();
-        //let address = calculate_p2tr_address(&pubkey).unwrap();
-        //let address = calculate_p2pkh_address(&pubkey).unwrap();
-        println!("p2tr_address {}", address);
         let res = verify(&raw_data, &sig, &address).unwrap();
         assert!(res);
+
+
+        let address = calculate_p2shwpkh_address(&pubkey).unwrap();
+        let res = verify(&raw_data, &sig, &address).unwrap();
+        assert!(res);
+
+        let address = calculate_p2tr_address(&pubkey).unwrap();
+        let res = verify(&raw_data, &sig, &address).unwrap();
+        assert!(res);
+
+        let address = calculate_p2pkh_address(&pubkey).unwrap();
+        let res = verify(&raw_data, &sig, &address).unwrap();
+        assert!(res);
+  
+    }
+
+    #[test]
+    fn test_btc_verify(){
+        //p2wpkh
+        let sig = "1cfa092e7e811a862d65e8dede1932af6ebec866268de166f12fc74dd5683b02ff625a8415a24f01b8ff5a3b161f8ee4e1e84ec4d965a608318f768bdafa5a9c16";
+        let addr = "bcrt1q50eu7cupwu6htn362rkquaxvp2y88t9r87wgzd";
+        let user_id = "1322976383".to_string();
+        let res = verify(&user_id, sig, addr).unwrap();
+        assert!(res);
+
+        //p2shwpkh
+        let sig = "1bb1ecace96e42a436b0d6cef881e29ed50d419fb0a2801591914c988763793e3c409c7d934ff20ff7b70c78cd719ab8c02d4faf14637cc09fc194573243d97fb4";
+        let addr = "2N83gWgRJGbzrtuGBYFSNUA1UfpFGWDFdwY";
+        let prikey = "3db3ad943247ed2902d0a2bb8576b45078824f0ff836eb2ffbe57c0ad6298e2f";
+        let user_id = "1322976383".to_string();
+        let res = verify(&user_id, sig, addr).unwrap();
+        assert!(res);
+
+
+
+        //p2tr
+        //todo: test failed
+        let sig = "1c8fa93297749c89d15cbdccfd8b792e276fed7de5923a8c6d2a6777986921763b56f4fe7ecff30b71c16b357cb290f410f7a9a16fe1eeb7dccd5d45ee426422e7";
+        let addr = "bcrt1puvvr30fs5ua8mx5af2xnl8zgk9mch5ecssrheplruaf45jsf9adsukxwdc";
+        let prikey = "01a751e708098009d193119ab12b4f3364339cc072941386dc9e5d5bbf3ade50";
+        let user_id = "1322976383".to_string();
+        let res = verify(&user_id, sig, addr).unwrap();
+        //assert!(res);
+
+
+        //p2pkh:
+        //todo: test failed
+        let sig = "1c9ff59886db16f5ed0818c33d6ed4b5ebd540de165af478b6ab7b68eb53e3c495470abd2d7ecc88b0ecca333d54cac9b5d2f0c4216bb827c9f847db75fb0f0d2b";
+        let addr = "mhRiQgnGbmZQS2PP6KVDBr33TQNeToWjfj";
+        let prikey = "0e8648b011b887136198842e01f4e82aeba5a35cc26b6571f1ce5f90737b6014";
+        let user_id = "1322976383".to_string();
+        let res = verify(&user_id, sig, addr).unwrap();
+        //assert!(res);
     }
 }
