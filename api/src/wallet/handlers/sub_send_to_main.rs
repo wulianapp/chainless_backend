@@ -48,7 +48,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
         coin: coin_id,
         amount,
     } = request_data;
-    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
+    let amount = display2raw(&amount).map_err(|_e|WalletError::UnSupportedPrecision)?;
 
     let coin_type: CoinType = coin_id
         .parse()

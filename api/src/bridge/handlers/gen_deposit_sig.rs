@@ -53,7 +53,7 @@ pub async fn req(
     check_role(current_role, KeyRole2::Master)?;
 
     let GenDepositSigRequest { coin, amount } = request_data.clone();
-    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
+    let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
     let coin: CoinType = coin
         .parse()

@@ -55,7 +55,7 @@ pub(crate) async fn req(
         is_forced,
     } = request_data;
     let expire_at = now_millis() + TX_EXPAIRE_TIME;
-    let amount = display2raw(&amount).map_err(BackendError::RequestParamInvalid)?;
+    let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
     }

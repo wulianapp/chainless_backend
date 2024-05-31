@@ -61,7 +61,7 @@ pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> Backe
             Ok(rank)
         })
         .collect::<Result<Vec<_>, String>>()
-        .map_err(BackendError::RequestParamInvalid)?;
+        .map_err(|_e| WalletError::UnSupportedPrecision)?;
     //add wallet info
     let cli = ContractClient::<MultiSig>::new().await?;
     let tx_id = cli.update_rank(&main_account, strategy).await?;

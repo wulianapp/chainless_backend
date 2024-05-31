@@ -47,7 +47,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         hold_value_limit,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let hold_value_limit = display2raw(&hold_value_limit)?;
+    let hold_value_limit = display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
     let (_, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());

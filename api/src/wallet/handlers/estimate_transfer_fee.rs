@@ -57,7 +57,7 @@ pub(crate) async fn req(
 
     let EstimateTransferFeeRequest { coin, amount } = request_data;
     let coin: CoinType = coin.parse().map_err(to_param_invalid_error)?;
-    let amount = display2raw(&amount)?;
+    let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
     let (coin, amount, balance_enough) =
         super::estimate_transfer_fee(&main_account, &coin, amount).await?;
 

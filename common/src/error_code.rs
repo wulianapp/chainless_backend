@@ -220,6 +220,8 @@ pub enum WalletError {
     TxExpired,
     #[error("Forbid Transfer to yourself")]
     ForbideTransferSelf,
+    #[error("UnSupported Precision")]
+    UnSupportedPrecision,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -250,6 +252,7 @@ impl ErrorCode for WalletError {
             Self::ServantNumReachLimit => 3024,
             Self::TxExpired => 3025,
             Self::ForbideTransferSelf => 3026,
+            Self::UnSupportedPrecision => 3027,
         }
     }
 }

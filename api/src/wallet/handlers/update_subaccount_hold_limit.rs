@@ -40,7 +40,7 @@ pub async fn req(
     super::check_role(current_role, KeyRole2::Master)?;
 
     let UpdateSubaccountHoldLimitRequest { subaccount, limit } = request_data;
-    let limit = display2raw(&limit).map_err(BackendError::RequestParamInvalid)?;
+    let limit = display2raw(&limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
     //add wallet info
     let cli = ContractClient::<MultiSig>::new().await?;

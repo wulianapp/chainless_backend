@@ -159,6 +159,11 @@
         "zh_cn": "不能转帐给自己",
         "en_us": "Forbid transfer to yourself"
       },
+      "3027": {
+        "zh_tw": "精度不能超過8位",
+        "zh_cn": "精度不能超过8位",
+        "en_us": "Precision must less than 8"
+      },
       "4000": {
         "zh_tw": "用戶尚未綁定ETH地址",
         "zh_cn": "用户尚未绑定ETH地址",
