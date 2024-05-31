@@ -79,7 +79,7 @@ impl fmt::Display for UserFilter<'_> {
 }
 
 impl UserInfoEntity {
-    pub fn new_with_specified(login_pwd_hash: &str, invite_code: &str) -> Self {
+    pub fn new_with_specified(login_pwd_hash: &str) -> Self {
         let user = UserInfo {
             phone_number: "".to_string(),
             email: "".to_string(),
@@ -88,7 +88,7 @@ impl UserInfoEntity {
             is_frozen: false,
             predecessor: None,
             laste_predecessor_replace_time: 0,
-            invite_code: invite_code.to_owned(),
+            invite_code: "".to_string(),
             kyc_is_verified: false,
             secruity_is_seted: false,
             create_subacc_time: vec![],
@@ -226,7 +226,6 @@ impl PsqlOp for UserInfoEntity {
                 is_frozen,
                 predecessor,
                 laste_predecessor_replace_time,
-                invite_code,
                 kyc_is_verified,
                 secruity_is_seted,
                 create_subacc_time,
@@ -235,7 +234,7 @@ impl PsqlOp for UserInfoEntity {
                 reserved_field1,
                 reserved_field2,
                 reserved_field3
-            ) values ('{}','{}','{}','{}',{},{},'{}','{}',{},{},{},'{}','{}','{}','{}','{}');",
+            ) values ('{}','{}','{}','{}',{},{},'{}',{},{},{},'{}','{}','{}','{}','{}')",
             phone_number,
             email,
             login_pwd_hash,
@@ -243,7 +242,6 @@ impl PsqlOp for UserInfoEntity {
             is_frozen,
             PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
             laste_predecessor_replace_time,
-            invite_code,
             kyc_is_verified,
             secruity_is_seted,
             create_subacc_time_str,
@@ -293,7 +291,7 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-        let user = UserInfoEntity::new_with_specified("0123456789", "1");
+        let user = UserInfoEntity::new_with_specified("0123456789");
         user.insert(&mut db_cli).await.unwrap();
         let user_by_find = UserInfoEntity::find_single(UserFilter::ById(1), &mut db_cli)
             .await
@@ -318,7 +316,7 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();
 
-        let user = UserInfoEntity::new_with_specified("0123456789", "1");
+        let user = UserInfoEntity::new_with_specified("0123456789");
         user.insert(&mut db_cli).await.unwrap();
         let user_by_find = UserInfoEntity::find(UserFilter::ById(1), &mut db_cli)
             .await
@@ -331,7 +329,7 @@ mod tests {
             .await
             .unwrap();
         println!("by_trans3__{:?}", user_by_find);
-        assert_eq!(user_by_find.user_info, user.user_info);
+        assert_eq!(user_by_find.user_info.login_pwd_hash, user.user_info.login_pwd_hash);
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123"),
             UserFilter::ById(1),

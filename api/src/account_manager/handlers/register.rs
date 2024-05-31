@@ -64,15 +64,13 @@ async fn register(
     //todo: register multi_sig_contract account
 
     //store user info
-    let this_user_id = get_next_uid(&mut db_cli).await?;
-    debug!("this_user_id _______{}", this_user_id);
     //todo: hash password  again before store
     //pubkey is equal to account id when register
     //fixme:
     //let pubkey = "";
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
-    let mut view = UserInfoEntity::new_with_specified(&password, &this_user_id.to_string());
+    let mut view = UserInfoEntity::new_with_specified(&password);
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = contact.clone();
@@ -82,6 +80,10 @@ async fn register(
         }
     }
     account_manager::UserInfoEntity::insert(&view, &mut db_cli).await?;
+    let this_user_id = UserInfoEntity::find_single(
+        UserFilter::ByPhoneOrEmail(&contact), 
+        &mut db_cli
+    ).await?.id;
 
     //register airdrop
     //todo: user_id

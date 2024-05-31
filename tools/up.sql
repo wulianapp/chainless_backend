@@ -45,6 +45,7 @@ create index if not exists ix_users_phone
     on users using btree
     (phone_number collate pg_catalog."default" asc nulls last)
     tablespace pg_default;
+ALTER TABLE users ALTER COLUMN invite_code SET DEFAULT currval('users_id_seq');
 
 
 create table coin_transaction(
