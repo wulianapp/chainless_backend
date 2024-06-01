@@ -111,7 +111,7 @@ pub(crate) async fn req(
     }
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new().await?;
+    let cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let strategy = cli
         .get_strategy(&from)
         .await?

@@ -69,7 +69,7 @@ pub struct GetTxResponse {
 
 //todo: txs 放在上层
 async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinType, u128)>> {
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new().await?;
+    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new_query_cli().await?;
     let txs = fees_call_cli.get_user_txs(account_id).await?;
     for (index, (fee_id, amount, tx_id, _memo)) in txs.iter().enumerate() {
         if let Some(id) = tx_id {
@@ -141,7 +141,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .filter(|x| !signed_device.contains(x))
         .collect();
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let strategy = multi_sig_cli
         .get_strategy(&main_account)
         .await?

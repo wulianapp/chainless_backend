@@ -29,7 +29,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
 
     let strategy = multi_cli.get_strategy(&main_account).await?;
     let master_pubkey: String = multi_cli.get_master_pubkey(&main_account).await?;

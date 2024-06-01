@@ -82,7 +82,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     .await?;
 
     //collect enough signatures
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new_update_cli().await?;
 
     let strategy = multi_cli
         .get_strategy(&tx.transaction.from)
@@ -110,7 +110,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
         //给其他主账户转是用户自己签名，需要生成tx_raw
         } else if tx.transaction.tx_type == TxType::Forced {
             //todo: 83~102 line is redundant，txid生成在gen_send_money的时候进行了
-            let cli = ContractClient::<MultiSig>::new().await?;
+            let cli = ContractClient::<MultiSig>::new_update_cli().await?;
             let servant_sigs = tx
                 .transaction
                 .signatures

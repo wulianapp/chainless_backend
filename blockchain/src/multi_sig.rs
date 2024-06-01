@@ -73,18 +73,22 @@ pub struct StrategyData {
 }
 
 impl ContractClient<MultiSig> {
-    pub async fn new() -> Result<Self> {
+    pub async fn new_update_cli() -> Result<Self> {
         let contract = &common::env::CONF.multi_sig_contract;
-        debug!("0001a  {}  {}",file!(),line!());
-        Self::gen_signer(contract).await
+        Self::gen_cli(contract).await
+    }
+
+    pub async fn new_query_cli() -> Result<Self> {
+        let contract = &common::env::CONF.multi_sig_contract;
+        Self::gen_cli_without_relayer(contract).await
     }
 
     pub async fn get_total_value(&self, account_str: &str) -> Result<u128> {
         let coins = get_support_coin_list();
         let mut total_value = 0;
-        let fees_cli = ContractClient::<FeesCall>::new().await?;
+        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await?;
         for coin in coins {
-            let coin_cli = ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+            let coin_cli = ContractClient::<Coin>::new_update_cli(coin.clone()).await?;
             let balance = coin_cli.get_balance(account_str).await?;
             let balance: u128 = balance.unwrap_or("0".to_string()).parse()?;
             //get price from contract
@@ -680,7 +684,7 @@ mod tests {
         let main_account = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
         let master_pubkey = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
         let master_prikey = "331dde3ee69831fd2d8f0505a7f19b06c83bb14e11651debf29b8bf018e7d13ebcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
-        let client = ContractClient::<super::MultiSig>::new().await.unwrap();
+        let client = ContractClient::<super::MultiSig>::new_update_cli().await.unwrap();
         let master_list = client.get_master_pubkey_list(main_account).await.unwrap();
 
         //增加之前判断是否有
@@ -710,7 +714,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_master_keys() {
-        let multi_sig_cli = ContractClient::<MultiSig>::new().await.unwrap();
+        let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await.unwrap();
         let account_id = "test".to_string();
         let res = multi_sig_cli.get_master_pubkey_list(&account_id).await;
         println!("{:?}", res);
@@ -732,7 +736,7 @@ mod tests {
         for index in 0..10 {
             let handle = tokio::spawn(async move {
                 info!("abcd_{}",index);
-                let client = ContractClient::<super::MultiSig>::new().await.unwrap();
+                let client = ContractClient::<super::MultiSig>::new_update_cli().await.unwrap();
                 let account1 = gen_random_account_id();
                 let pubkey1 = common::encrypt::ed25519_key_gen().1;
                 let account2 = gen_random_account_id();

@@ -88,6 +88,7 @@ pub struct EnvConf {
     pub eth_cly_contract: String,
     /// BTC aggregated API service
     pub btc_aggregated_api_base_uri: String,
+    pub error_code_path: String,
 }
 
 lazy_static! {

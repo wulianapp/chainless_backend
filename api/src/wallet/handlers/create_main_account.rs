@@ -71,7 +71,7 @@ pub(crate) async fn req(
         ))?;
     }
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     //todo:
     let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
@@ -107,7 +107,6 @@ pub(crate) async fn req(
         &mut db_cli,
     )
     .await?;
-    debug!("__line_{}", line!());
 
     let txid = multi_sig_cli
         .init_strategy(
@@ -117,8 +116,6 @@ pub(crate) async fn req(
             &subaccount_id,
         )
         .await?;
-
-    debug!("__line_{}", line!());
     let record = WalletManageRecordEntity::new_with_specified(
         &user_id.to_string(),
         WalletOperateType::CreateAccount,
@@ -137,7 +134,7 @@ pub(crate) async fn req(
     .await?;
 
     //注册的时候就把允许跨链的状态设置了
-    let bridge_cli = ContractClient::<Bridge>::new().await?;
+    let bridge_cli = ContractClient::<Bridge>::new_update_cli().await?;
     let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
     debug!("set_user_batch txid {} ,{}", set_res, main_account_id);
 

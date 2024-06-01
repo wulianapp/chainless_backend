@@ -54,7 +54,7 @@ pub(crate) async fn req(
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Undefined)?;
 
-    let client = ContractClient::<MultiSig>::new().await?;
+    let client = ContractClient::<MultiSig>::new_query_cli().await?;
     let master_list = client.get_master_pubkey_list(&main_account).await?;
 
     if master_list.len() != 1 {

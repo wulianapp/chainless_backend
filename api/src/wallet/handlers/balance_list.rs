@@ -55,7 +55,7 @@ pub async fn req(
 
     let main_account = user_info.user_info.main_account;
     let coin_list = get_support_coin_list();
-    let mul_cli = ContractClient::<MultiSig>::new().await?;
+    let mul_cli = ContractClient::<MultiSig>::new_query_cli().await?;
 
     let check_accounts = match request_data.kind {
         AccountType::Main => vec![main_account.clone()],
@@ -90,14 +90,14 @@ pub async fn req(
         AccountType::Single(acc) => vec![acc],
     };
 
-    let multi_cli = blockchain::ContractClient::<MultiSig>::new().await?;
+    let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
     let mut coin_balance_map = vec![];
     for coin in coin_list {
         let mut account_balance = vec![];
 
         for (index, account) in check_accounts.iter().enumerate() {
             let coin_cli: ContractClient<Coin> =
-                ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+                ContractClient::<Coin>::new_query_cli(coin.clone()).await?;
             let (balance_on_chain, hold_limit) = if user_info.user_info.secruity_is_seted {
                 let balance = coin_cli
                     .get_balance(account)

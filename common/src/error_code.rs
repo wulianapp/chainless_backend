@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
 
 use crate::{
     data_structures::{coin_transaction::CoinSendStage, KeyRole2},
@@ -23,9 +23,8 @@ pub struct MultiLangErrMsg {
 
 lazy_static! {
     pub static ref ERR_CONF: HashMap<u16, MultiLangErrMsg> = {
-        let mut json_path = std::env::current_dir().unwrap();
-        json_path.push("tools/err_code.json");
-        let json_str = std::fs::read_to_string(json_path).unwrap();
+        let path = &crate::env::CONF.error_code_path;
+        let json_str = std::fs::read_to_string(path).unwrap();
         let err_code_map: HashMap<u16, MultiLangErrMsg> = serde_json::from_str(&json_str).unwrap();
         err_code_map
     };

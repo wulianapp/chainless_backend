@@ -19,10 +19,13 @@ eth_cly_contract = "0x3E47b625f1491f682A6007a5126f0A6F5Ced4096"
 # BTC aggregated API service
 btc_aggregated_api_base_uri = "https://test3.chainless.top/regtest/wallet-api-v4"
 
+error_code_path = "/root/chainless_backend/tools/err_code.json"
+
 [relayer_pool]
-pri_key = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc"
-base_account_id = "test"
-derive_size = 0
+## 64 size at least
+seed = "xxxx"
+account_id = "test"
+derive_size = 500
 
 # psql connect url
 wallet_api_port = 8069

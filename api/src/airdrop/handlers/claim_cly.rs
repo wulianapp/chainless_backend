@@ -36,7 +36,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     //todo: check if claimed already
-    let cli = ContractClient::<Airdrop>::new().await?;
+    let cli = ContractClient::<Airdrop>::new_update_cli().await?;
     let receive_res = cli.claim_cly(&main_account).await?;
     debug!("successful claim air_reward {:?}", receive_res);
     Ok(None)

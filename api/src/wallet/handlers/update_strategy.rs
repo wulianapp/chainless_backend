@@ -63,7 +63,7 @@ pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> Backe
         .collect::<Result<Vec<_>, String>>()
         .map_err(|_e| WalletError::UnSupportedPrecision)?;
     //add wallet info
-    let cli = ContractClient::<MultiSig>::new().await?;
+    let cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let tx_id = cli.update_rank(&main_account, strategy).await?;
 
     //todo: generate txid before call contract

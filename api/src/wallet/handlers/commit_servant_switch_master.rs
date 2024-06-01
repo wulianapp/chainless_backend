@@ -57,7 +57,7 @@ pub(crate) async fn req(
     super::check_role(current_role, KeyRole2::Servant)?;
     super::check_have_base_fee(&main_account, &mut db_cli).await?;
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     //todo: 检查防止用servantA的token操作servantB进行switch
     //外部注入和token解析结果对比

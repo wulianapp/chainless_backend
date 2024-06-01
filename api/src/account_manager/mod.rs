@@ -416,7 +416,7 @@ mod tests {
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {
-        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new()
+        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new_update_cli()
             .await
             .unwrap();
         cli.clear_all().await.unwrap();

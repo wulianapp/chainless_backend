@@ -48,7 +48,7 @@ pub(crate) async fn req(
     let main_account = user.main_account;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let bridge_cli = ContractClient::<Bridge>::new().await?;
+    let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
     let eth_addr = bridge_cli
         .get_binded_eth_addr(&main_account)
         .await?
@@ -84,7 +84,7 @@ pub(crate) async fn req(
     }
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new()
+    let cli = ContractClient::<MultiSig>::new_query_cli()
         .await
         .map_err(|err| ChainError(err.to_string()))?;
     let strategy = cli

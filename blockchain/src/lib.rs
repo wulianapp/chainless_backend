@@ -78,25 +78,44 @@ where
 
 pub struct ContractClient<T> {
     pub deployed_at: AccountId,
-    pub relayer: MutexGuard<'static,Relayer>,
+    //对于query的访问不需要签名，给none
+    pub relayer: Option<MutexGuard<'static,Relayer>>,
     phantom: PhantomData<T>,
+}
+
+impl<T> AsRef<InMemorySigner> for ContractClient<T> {
+    fn as_ref(&self) -> &InMemorySigner {
+        //query的禁用
+        &self.relayer.as_ref().unwrap().signer
+    }
 }
 
 impl<T> Drop for ContractClient<T> {
     fn drop(&mut self) {
-        debug!("index {} relayer released",self.relayer.derive_index);
+        if let Some(relayer) = self.relayer.as_ref(){
+            debug!("index {} relayer released",relayer.derive_index);
+        }
     }
 }
 
 impl<T> ContractClient<T> {
-    pub async fn gen_signer(contract: &str) -> Result<Self> {
+    //对于复用代码的项目需要手动注入地址
+    pub async fn gen_cli(contract: &str) -> Result<Self> {
         let relayer = wait_for_idle_relayer().await;
         Ok(Self {
             deployed_at: contract.parse()?,
-            relayer,
+            relayer: Some(relayer),
             phantom: Default::default(),
         })
-    }
+    } 
+
+    pub async fn gen_cli_without_relayer(contract: &str) -> Result<Self> {
+        Ok(Self {
+            deployed_at: contract.parse()?,
+            relayer: None,
+            phantom: Default::default(),
+        })
+    }    
 
     async fn gen_tx(
         &self,
@@ -185,8 +204,8 @@ impl<T> ContractClient<T> {
         args: &str,
     ) -> Result<(String, String)> {
         self.gen_raw_with_caller(
-            &self.relayer.as_ref().account_id,
-            &self.relayer.as_ref().public_key(),
+            &self.as_ref().account_id,
+            &self.as_ref().public_key,
             method_name,
             args,
         )
@@ -217,15 +236,14 @@ impl<T> ContractClient<T> {
         debug!("method_name: {},args: {}", method_name, args);
         let transaction = self
             .gen_tx(
-                &self.relayer.as_ref().account_id,
-                &self.relayer.as_ref().public_key,
+                &self.as_ref().account_id,
+                &self.as_ref().public_key,
                 method_name,
                 args,
             )
             .await?;
         //relayer_sign
-        let signature = self
-            .relayer.as_ref().sign(transaction.get_hash_and_size().0.as_ref());
+        let signature = self.as_ref().sign(transaction.get_hash_and_size().0.as_ref());
 
         let tx = SignedTransaction::new(signature, transaction.clone());
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
@@ -236,6 +254,7 @@ impl<T> ContractClient<T> {
 
         let rep = crate::rpc_call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
+            panic!("tmp");
             Err(anyhow!(error.to_string()))?
         }
         let _txid = rep.transaction.hash.to_string();

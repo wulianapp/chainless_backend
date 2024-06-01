@@ -1,15 +1,18 @@
-use std::str::FromStr;
+use std::str::{from_utf8, FromStr};
 use common::env::RelayerPool;
+use ed25519_dalek::Sha512;
+use ethers_core::k256::sha2::Sha256;
 use lazy_static::lazy_static;
 
 
 use common::data_structures::TxStatusOnChain;
 use common::utils::math::hex_to_bs58;
-use near_crypto::{InMemorySigner, KeyType, PublicKey, SecretKey, Signature};
+use near_crypto::{ED25519SecretKey, InMemorySigner, KeyType, PublicKey, SecretKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
+use near_primitives::hash::hash;
 use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
@@ -81,17 +84,18 @@ pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
     }
 }
 
-//自定义派生规则,28个字符基础seed，拼接index
+//自定义派生规则,32字节随机值，拼接2字节index，
 pub fn chainless_sub_signer(account_id:&str, seed: &str,index:u16) -> Result<InMemorySigner>{
-    assert_eq!(seed.len(),28);
-    let seed = format!("{}{}",seed,index);
-    let secret_key = SecretKey::from_seed(KeyType::ED25519, &seed);
+    if seed.len() < 64{
+        return Err(anyhow!("must be more than 64"));
+    }
+    let prikey_hex = format!("{}{:04x}",seed,index);
+    let hash = hash(prikey_hex.as_bytes()).to_string();
+    let secret_key = SecretKey::from_seed(KeyType::ED25519,&hash);
     let account_id = AccountId::from_str(account_id)?;
     let signer = near_crypto::InMemorySigner::from_secret_key(account_id, secret_key);
     Ok(signer)
 }
-
-
 #[cfg(test)]
 mod tests {
     use near_crypto::Signer;
@@ -124,16 +128,18 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_add_many_pubkey() {
-        let seed = "4eeFbz7F1ds17G1HBeUbJXPVYzzV";
-        let account_id = AccountId::from_str("test").unwrap();
-        let used_pubkey = PublicKey::from_str("ed25519:CuAL8qaTLg3nMQ3Jz3B2yq6SYCSygGoR2q5nEACHxVyY").unwrap();
-        let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc".parse().unwrap();
+        //let account_id = AccountId::from_str("test").unwrap();
+        //let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc".parse().unwrap();
+        //let used_pubkey = PublicKey::from_str("ed25519:CuAL8qaTLg3nMQ3Jz3B2yq6SYCSygGoR2q5nEACHxVyY").unwrap();
+        let account_id = AccountId::from_str("local").unwrap();
+        let pri_key: SecretKey = "ed25519:3cBasJZvQutzkCV5qv4rF7aikPH3EWMTQM6mGbJnXJ6i9zAcdsaun82WQgzQbxxKmEVTBvS2NJDBeKk23FFb43kd".parse().unwrap();
+        let used_pubkey = PublicKey::from_str("ed25519:9ruaNCMS1BvXfWT6MySeveTXrn2fLekbVCaWwETL18ZP").unwrap();
+
+        let seed = "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849";
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id.clone(), pri_key);
-        //let account_id = "local";
-        //let used_pubkey = "ed25519:9ruaNCMS1BvXfWT6MySeveTXrn2fLekbVCaWwETL18ZP"
-        let derive_size = 1;
+        let derive_size = 100;
         let mut actions = vec![];
-        for index in 1..=100 {
+        for index in 1..=derive_size {
             let key = chainless_sub_signer(&account_id.to_string(),&seed, index).unwrap();
             println!("key {}",key.public_key.to_string());
             let add_action = Action::AddKey(Box::new(AddKeyAction {

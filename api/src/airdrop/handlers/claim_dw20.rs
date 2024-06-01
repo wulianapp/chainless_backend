@@ -35,7 +35,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id.to_string()), &mut db_cli)
             .await?;
 
-    let cli = ContractClient::<ChainAirdrop>::new().await?;
+    let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli
         .claim_dw20(
             &main_account,

@@ -31,9 +31,14 @@ pub struct U128(pub u128);
 pub struct FeesCall {}
 
 impl ContractClient<FeesCall> {
-    pub async fn new() -> Result<Self> {
+    pub async fn new_update_cli() -> Result<Self> {
         let contract = &common::env::CONF.fees_call_contract;
-        Self::gen_signer(contract).await
+        Self::gen_cli(contract).await
+    }
+
+    pub async fn new_query_cli() -> Result<Self> {
+        let contract = &common::env::CONF.fees_call_contract;
+        Self::gen_cli_without_relayer(contract).await
     }
 
     pub async fn set_fees_priority(
@@ -137,7 +142,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fees_set_get() {
-        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys_1 {:?} ", prioritys);
 
@@ -174,7 +179,7 @@ mod tests {
             CoinType::USDT,
             CoinType::DW20,
         ];
-        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
         for coin in coins {
             let price = fees_cli.get_coin_price_custom(&coin).await.unwrap();
             println!("{}: price {} ", coin, price);
@@ -183,7 +188,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_toos_get_users_tx() {
-        let fees_cli = ContractClient::<FeesCall>::new().await.unwrap();
+        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
         let res = fees_cli.get_user_txs("25f1fd7f.local").await;
         println!("_____{:#?}", res);
     }

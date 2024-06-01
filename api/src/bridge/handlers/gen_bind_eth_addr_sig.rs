@@ -35,7 +35,7 @@ pub async fn req(req: HttpRequest, request_data: GenBindEthAddrSigRequest) -> Ba
 
     let GenBindEthAddrSigRequest { eth_addr } = request_data.clone();
 
-    let bridge_cli = ContractClient::<Bridge>::new().await?;
+    let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
 
     let sig = bridge_cli.sign_bind_info(&main_account, &eth_addr).await?;
     println!("sig {} ", sig);

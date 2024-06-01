@@ -59,7 +59,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
     let coin_list = get_support_coin_list();
     for coin in &coin_list {
         let coin_cli: ContractClient<Coin> =
-            ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+            ContractClient::<Coin>::new_update_cli(coin.clone()).await?;
         if let Some(balance) = coin_cli.get_balance(&account_id).await? {
             //当前不会出现小于1聪的情况，以后和第三方交互可能会有
             if balance != *"0" {
@@ -74,7 +74,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         &mut db_cli,
     )
     .await?;
-    let multi_cli = ContractClient::<MultiSig>::new().await?;
+    let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)
         .await?;

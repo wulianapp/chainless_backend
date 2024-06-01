@@ -27,10 +27,16 @@ use anyhow::Result;
 pub struct Airdrop {}
 impl ContractClient<Airdrop> {
     //todo: config
-    pub async fn new() -> Result<Self> {
+    pub async fn new_update_cli() -> Result<Self> {
         //let contract = &common::env::CONF.fees_call_contract;
         let contract = "airdrop0003.chainless";
-        Self::gen_signer(contract).await
+        Self::gen_cli(contract).await
+    }
+
+    pub async fn new_query_cli() -> Result<Self> {
+        //let contract = &common::env::CONF.multi_sig_contract;
+        let contract = "airdrop0003.chainless";
+        Self::gen_cli_without_relayer(contract).await
     }
 
     //claion after kyc
@@ -80,7 +86,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_get_sys_info() {
-        let _cli = ContractClient::<Airdrop>::new().await.unwrap();
+        let _cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();
         //let sys_info = cli.get_sys_info().await.unwrap();
         //println!("sys_info {:?} ", sys_info);
     }

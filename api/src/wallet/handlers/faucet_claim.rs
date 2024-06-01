@@ -32,7 +32,7 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
         }
     };
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new().await?;
+    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&account).await?;
     if master_list.len() != 1 {
         Err(BackendError::RequestParamInvalid("".to_string()))?;
@@ -40,7 +40,7 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
     let coin_list = get_support_coin_list();
     for coin in coin_list {
         let coin_cli: ContractClient<Coin> =
-            ContractClient::<Coin>::new_with_type(coin.clone()).await?;
+            ContractClient::<Coin>::new_update_cli(coin.clone()).await?;
         let amount = if coin.eq(&CoinType::ETH) {
             10000000000000000
         } else {

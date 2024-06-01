@@ -200,7 +200,7 @@ impl PsqlOp for UserInfoEntity {
             is_frozen,
             predecessor,
             laste_predecessor_replace_time,
-            invite_code,
+            invite_code: _,
             kyc_is_verified,
             secruity_is_seted,
             create_subacc_time,

@@ -98,9 +98,14 @@ async fn get_balance(account: &AccountId) -> Result<u128> {
 }
 
 impl ContractClient<Coin> {
-    pub async fn new_with_type(coin: CoinType) -> Result<Self> {
+    pub async fn new_update_cli(coin: CoinType) -> Result<Self> {
         let contract = coin.to_string();
-        Self::gen_signer(&contract).await
+        Self::gen_cli(&contract).await
+    }
+
+    pub async fn new_query_cli(coin: CoinType) -> Result<Self> {
+        let contract = coin.to_string();
+        Self::gen_cli_without_relayer(&contract).await
     }
 
     pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
@@ -179,7 +184,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new_with_type(CoinType::DW20)
+        let coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::DW20)
             .await
             .unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";

@@ -57,7 +57,7 @@ pub(crate) async fn req(
     if is_agreed {
         //todo:check user_id's main account_id is receiver
 
-        let cli = blockchain::ContractClient::<MultiSig>::new().await?;
+        let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
         let servant_sigs = coin_tx
             .transaction
             .signatures

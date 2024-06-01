@@ -45,7 +45,7 @@ pub struct ListWithdrawOrderRequest {
 }
 
 pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, BridgeOrder)>> {
-    let bridge_cli = ContractClient::<Bridge>::new().await?;
+    let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
     let orders = bridge_cli.list_withdraw_order(main_account).await?;
 
     let orders = orders
