@@ -1,5 +1,6 @@
 use common::constants::BRIDGE_DEPOSIT_EXPIRE_TIME;
 use common::data_structures::bridge::OrderType as BridgeOrderType;
+use common::encrypt::bs58_to_hex;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
@@ -22,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 
 use crate::multi_sig::get_pubkey;
+use crate::relayer::MULTI_SIG_RELAYER_POOL;
 use crate::ContractClient;
 use anyhow::Result;
 
@@ -130,8 +132,11 @@ impl ContractClient<Bridge> {
             contract: Self::eth_contract().parse()?,
         };
 
-        let prikey = self.relayer.secret_key.unwrap_as_ed25519().0;
-        let prikey = &prikey[..32];
+        let bs58_prikey = MULTI_SIG_RELAYER_POOL[0].lock().await.signer.secret_key.to_string();
+        let hex_prikey = bs58_to_hex(&bs58_prikey)?;
+        let bytes_prikey = hex::decode(hex_prikey)?;
+        let prikey = &bytes_prikey[..32];
+
         let wallet = LocalWallet::from_bytes(prikey)?;
         let signature = format!("0x{}", wallet.sign_typed_data(&data).await?);
 
@@ -152,8 +157,11 @@ impl ContractClient<Bridge> {
             owner: eth_addr.parse()?,
             contract: Self::eth_contract().parse()?,
         };
-        let prikey = self.relayer.secret_key.unwrap_as_ed25519().0;
-        let prikey = &prikey[..32];
+        let bs58_prikey = MULTI_SIG_RELAYER_POOL[0].lock().await.signer.secret_key.to_string();
+        let hex_prikey = bs58_to_hex(&bs58_prikey)?;
+        let bytes_prikey = hex::decode(hex_prikey)?;
+        let prikey = &bytes_prikey[..32];
+
         let wallet = LocalWallet::from_bytes(prikey)?;
         let signature = format!("0x{}", wallet.sign_typed_data(&data).await?);
         Ok(signature)

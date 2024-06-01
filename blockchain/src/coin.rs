@@ -1,5 +1,4 @@
 use common::data_structures::coin_transaction::CoinTransaction;
-use common::env::wait_for_idle_relayer;
 use common::error_code::to_internal_error;
 use near_crypto::SecretKey;
 use near_primitives::borsh::BorshDeserialize;

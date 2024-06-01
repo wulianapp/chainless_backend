@@ -75,6 +75,7 @@ pub struct StrategyData {
 impl ContractClient<MultiSig> {
     pub async fn new() -> Result<Self> {
         let contract = &common::env::CONF.multi_sig_contract;
+        debug!("0001a  {}  {}",file!(),line!());
         Self::gen_signer(contract).await
     }
 
@@ -169,7 +170,6 @@ impl ContractClient<MultiSig> {
         subaccount_id: &str,
     ) -> Result<String> {
         //create account by send token
-        println!("0001a");
         let register_main_tx_id = self
             .register_account_with_name(main_account_id, main_account_pubkey)
             .await?;
@@ -185,7 +185,6 @@ impl ContractClient<MultiSig> {
                 hold_value_limit: 100_000 * BASE_DECIMAL,
             },
         )]);
-        println!("0001b");
         self.set_strategy(
             main_account_id,
             main_account_pubkey,
@@ -317,6 +316,7 @@ impl ContractClient<MultiSig> {
 
     async fn register_account_with_name(&self, account_id: &str, pubkey: &str) -> Result<String> {
         let arg_str = format!("{}:{}", account_id, pubkey);
+        debug!("0001a  {}  {}",file!(),line!());
         self.commit_by_relayer("register_account_with_name", &arg_str)
             .await
     }
@@ -632,11 +632,13 @@ mod tests {
     use ed25519_dalek::ed25519::signature::Signature;
 
     use near_crypto::{ED25519SecretKey, PublicKey};
+    use tokio::task;
+    use tracing::info;
 
     use super::*;
     use crate::general::broadcast_tx_commit_from_raw2;
     use crate::ContractClient;
-    use common::utils::time::{now_millis, DAY1};
+    use common::{log::init_logger, utils::time::{now_millis, DAY1}};
 
     fn servant_keys() -> Vec<String> {
         vec![
@@ -713,52 +715,46 @@ mod tests {
         let res = multi_sig_cli.get_master_pubkey_list(&account_id).await;
         println!("{:?}", res);
     }
-    /***
-    #[tokio::test]
-    async fn test_multi_sig_strategy() {
-        let pri_key = "ed25519:cM3cWYumPkSTn56ELfn2mTTYdf9xzJMJjLQnCFq8dgbJ3x97hw7ezkrcnbk4nedPLPMga3dCGZB51TxWaGuPtwE";
-        let secret_key: SecretKey = pri_key.parse().unwrap();
-        let _secret_key_bytes = secret_key.unwrap_as_ed25519().0.as_slice();
-        //6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45
-        let main_device_pubkey = get_pubkey(pri_key).unwrap();
-        let signer_account_id = AccountId::from_str(&main_device_pubkey).unwrap();
-        let _signer = near_crypto::InMemorySigner::from_secret_key(
-            signer_account_id.to_owned(),
-            secret_key.clone(),
-        );
 
-        let client = ContractClient::<super::MultiSig>::new().unwrap();
-        let sender_id = AccountId::from_str(
-            "6a7a4df96a60c\
-        225f25394fd0195eb938eb1162de944d2c331dccef324372f45",
-        )
-        .unwrap();
-        let _receiver_id = AccountId::from_str("test1").unwrap();
 
-        let servant_pubkey = servant_keys().as_slice()[..2]
-            .iter()
-            .map(|x| {
-                let secret_key = near_crypto::SecretKey::from_str(x).unwrap();
-                let pubkey = secret_key.public_key().try_to_vec().unwrap();
-                pubkey.as_slice()[1..].to_vec().encode_hex()
-            })
-            .collect::<Vec<String>>();
-
-        println!("{:?}", servant_pubkey);
-
-        let _ranks = dummy_ranks();
-        let ranks = vec![MultiSigRank::default()];
-        //let ranks = vec![];
-
-        let strategy_str = client.get_strategy(&sender_id).await.unwrap();
-        println!("strategy_str2 {:#?}", strategy_str);
-
-        let set_strategy_res = client
-            .set_strategy(&sender_id,&sender_id,servant_pubkey, HashMap::new(), ranks)
-            .await
-            .unwrap();
-        println!("call set strategy txid {}", set_strategy_res);
+    pub  fn gen_random_account_id(
+    ) -> String {
+            let relayer_name = &common::env::CONF.relayer_pool.account_id;
+            let hex_str = generate_random_hex_string(8);
+            let account_id = format!("{}.{}", hex_str,relayer_name);
+            account_id
     }
+
+    #[tokio::test]
+    async fn test_parallel_init_strategy() {
+        init_logger();
+        let mut handles = vec![];
+        for index in 0..10 {
+            let handle = tokio::spawn(async move {
+                info!("abcd_{}",index);
+                let client = ContractClient::<super::MultiSig>::new().await.unwrap();
+                let account1 = gen_random_account_id();
+                let pubkey1 = common::encrypt::ed25519_key_gen().1;
+                let account2 = gen_random_account_id();
+                let pubkey2 = common::encrypt::ed25519_key_gen().1;
+                client.init_strategy(
+                    &pubkey1, 
+                    &account1, 
+                    &pubkey2,
+                    &account2
+                ).await.unwrap();
+                error!("relayer {} index {}", 1, index);
+                index
+            });
+            handles.push(handle);
+        }
+        let mut results = vec![];
+        for handle in handles {
+            results.push(handle.await.unwrap());
+        }
+        assert_eq!(results, (0..10).collect::<Vec<_>>());
+    }
+    /***
     #[tokio::test]
     async fn test_sig_near_ed25519() {
         let data_json = "{\"from\":\"6a7a4df96a60c225f25394fd0195eb938eb1162de944d2c331dccef324372f45\",\

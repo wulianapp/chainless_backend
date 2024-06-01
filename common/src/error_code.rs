@@ -24,9 +24,7 @@ pub struct MultiLangErrMsg {
 lazy_static! {
     pub static ref ERR_CONF: HashMap<u16, MultiLangErrMsg> = {
         let mut json_path = std::env::current_dir().unwrap();
-        json_path.pop();
-        //todo: relative path
-        json_path.push("/root/chainless_backend/tools/err_code.json");
+        json_path.push("tools/err_code.json");
         let json_str = std::fs::read_to_string(json_path).unwrap();
         let err_code_map: HashMap<u16, MultiLangErrMsg> = serde_json::from_str(&json_str).unwrap();
         err_code_map

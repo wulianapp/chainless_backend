@@ -6,12 +6,12 @@ pub mod bridge_on_near;
 pub mod coin;
 pub mod erc20_on_eth;
 pub mod general;
-mod hello;
 pub mod multi_sig;
 
 pub mod bridge_on_eth;
 pub mod eth_cli;
 pub mod fees_call;
+mod relayer;
 
 use ethers::providers::JsonRpcError;
 use general::{gen_transaction_with_caller, pubkey_from_hex_str};
@@ -21,7 +21,7 @@ use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::Tra
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use anyhow::{anyhow, Result};
 use common::prelude::*;
-use near_crypto::{InMemorySigner, PublicKey, SecretKey, Signer};
+use near_crypto::{InMemorySigner, KeyType, PublicKey, SecretKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
     borsh::{self, BorshSerialize},
@@ -32,12 +32,15 @@ use near_primitives::{
     types::{AccountId, BlockReference, Finality, FunctionArgs},
     views::{FinalExecutionStatus, QueryRequest},
 };
+use relayer::{wait_for_idle_relayer, Relayer};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
+use tokio::sync::MutexGuard;
 use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
 use tracing::{debug, error, field::debug, info};
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
+
 
 lazy_static! {
     //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");
@@ -45,6 +48,8 @@ lazy_static! {
         println!("+++__{}",common::env::CONF.chain_rpc);
         JsonRpcClient::connect(&common::env::CONF.chain_rpc)
     };
+
+    
 
     //static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
 
@@ -71,22 +76,24 @@ where
     unreachable!()
 }
 
-#[derive(Clone)]
 pub struct ContractClient<T> {
     pub deployed_at: AccountId,
-    relayer: InMemorySigner,
+    pub relayer: MutexGuard<'static,Relayer>,
     phantom: PhantomData<T>,
+}
+
+impl<T> Drop for ContractClient<T> {
+    fn drop(&mut self) {
+        debug!("index {} relayer released",self.relayer.derive_index);
+    }
 }
 
 impl<T> ContractClient<T> {
     pub async fn gen_signer(contract: &str) -> Result<Self> {
         let relayer = wait_for_idle_relayer().await;
-        let pri_key: SecretKey = relayer.pri_key.parse()?;
-        let account_id = AccountId::from_str(&relayer.account_id)?;
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
         Ok(Self {
             deployed_at: contract.parse()?,
-            relayer: signer,
+            relayer,
             phantom: Default::default(),
         })
     }
@@ -178,8 +185,8 @@ impl<T> ContractClient<T> {
         args: &str,
     ) -> Result<(String, String)> {
         self.gen_raw_with_caller(
-            &self.relayer.account_id,
-            &self.relayer.public_key(),
+            &self.relayer.as_ref().account_id,
+            &self.relayer.as_ref().public_key(),
             method_name,
             args,
         )
@@ -210,16 +217,15 @@ impl<T> ContractClient<T> {
         debug!("method_name: {},args: {}", method_name, args);
         let transaction = self
             .gen_tx(
-                &self.relayer.account_id,
-                &self.relayer.public_key(),
+                &self.relayer.as_ref().account_id,
+                &self.relayer.as_ref().public_key,
                 method_name,
                 args,
             )
             .await?;
         //relayer_sign
         let signature = self
-            .relayer
-            .sign(transaction.get_hash_and_size().0.as_ref());
+            .relayer.as_ref().sign(transaction.get_hash_and_size().0.as_ref());
 
         let tx = SignedTransaction::new(signature, transaction.clone());
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
@@ -286,14 +292,6 @@ pub async fn test_connect() {
 
     println!("{:?}", tx_status);
 }
-
-/***
-todo:
-1、airdrop interface
-2、newbie awards
-3、mpc combine
-4、transaction broadcast
-*/
 
 #[cfg(test)]
 mod tests {

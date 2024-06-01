@@ -1,28 +1,16 @@
 //use std::sync::{Mutex, MutexGuard};
 use std::{env, fmt, fs};
+use near_primitives::types::Nonce;
 use tokio::sync::{Mutex, MutexGuard};
 
 use std::fmt::Debug;
 use std::str::FromStr;
 
 use serde::Deserialize;
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use tracing_futures::Instrument;
 
 use crate::utils::time::MINUTE30;
-
-#[derive(Debug)]
-pub struct Relayer {
-    pub pri_key: String,
-    pub account_id: String,
-}
-
-#[derive(Clone, Deserialize, Debug, PartialEq)]
-pub struct RelayerPool {
-    pub pri_key: String,
-    pub base_account_id: String,
-    pub derive_size: u16,
-}
 
 #[derive(Deserialize, Debug, PartialEq, EnumString, Display)]
 pub enum ServiceMode {
@@ -64,6 +52,13 @@ pub struct Sms {
     pub smsbao_api_key: String,
 }
 
+#[derive(Clone, Deserialize, Debug, PartialEq)]
+pub struct RelayerPool {
+    pub seed: String,
+    pub account_id: String,
+    pub derive_size: u16,
+}
+
 ///read config data for env
 #[derive(Deserialize, Debug)]
 pub struct EnvConf {
@@ -97,10 +92,10 @@ pub struct EnvConf {
 
 lazy_static! {
     pub static ref CONF: EnvConf = {
-    let content= fs::read_to_string(env::var_os("CONFIG").expect("CONFIG environment variable required"))
-        .expect("Unable to read the `CONFIG` specified file");
-    toml::from_str(content.as_str()).expect("contents of configuration file invalid")
-};
+        let content= fs::read_to_string(env::var_os("CONFIG").expect("CONFIG environment variable required"))
+            .expect("Unable to read the `CONFIG` specified file");
+        toml::from_str(content.as_str()).expect("contents of configuration file invalid")
+    };
 
     pub static ref TOKEN_SECRET_KEY: String = {
         if let Some(value) = env::var_os("TOKEN_SECRET_KEY"){
@@ -109,50 +104,6 @@ lazy_static! {
             "your_secret_key".to_string()
         }
     };
-
-    //use relayer array to avoid nonce conflict
-    pub static ref MULTI_SIG_RELAYER_POOL: Vec<Mutex<Relayer>> = {
-        let RelayerPool { pri_key, base_account_id, derive_size }
-            = CONF.relayer_pool.clone();
-        let mut pool = vec![Mutex::new(Relayer{
-            pri_key: pri_key.clone(),
-            account_id: base_account_id.clone()
-        })];
-        for index in 0..derive_size {
-            pool.push(Mutex::new(Relayer{
-                pri_key: pri_key.clone(),
-                account_id: format!("{}{}",base_account_id,index)
-            }));
-        }
-        pool
-    };
-}
-
-pub fn find_idle_relayer() -> Option<MutexGuard<'static, Relayer>> {
-    for relayer in MULTI_SIG_RELAYER_POOL.iter() {
-        match relayer.try_lock() {
-            Ok(guard) => {
-                return Some(guard);
-            }
-            Err(_) => continue,
-        }
-    }
-    None
-}
-
-pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
-    loop {
-        match find_idle_relayer() {
-            Some(x) => {
-                return x;
-            }
-            None => {
-                warn!("relayer is busy");
-                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                continue;
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -165,26 +116,5 @@ mod tests {
     #[test]
     fn test_get_env() {
         println!("envs {:?}", *super::CONF);
-    }
-
-    #[tokio::test]
-    async fn test_relayer_pool() {
-        init_logger();
-        let mut handles = vec![];
-        for index in 0..10 {
-            let handle = tokio::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 100)).await;
-                let relayer = wait_for_idle_relayer().await;
-                error!("relayer {} index {}", relayer.account_id, index);
-                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                index
-            });
-            handles.push(handle);
-        }
-        let mut results = vec![];
-        for handle in handles {
-            results.push(handle.await.unwrap());
-        }
-        assert_eq!(results, (0..10).collect::<Vec<_>>());
     }
 }

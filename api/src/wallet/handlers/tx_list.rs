@@ -65,7 +65,7 @@ pub enum FilterType {
     Mail,
 }
 pub fn get_filter_type(data: &str) -> Result<FilterType, BackendError> {
-    let wallet_suffix = &common::env::CONF.relayer_pool.base_account_id;
+    let wallet_suffix = &common::env::CONF.relayer_pool.account_id;
     if data.contains('@') {
         Ok(FilterType::Mail)
     } else if data.contains('+') {
