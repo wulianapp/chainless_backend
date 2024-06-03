@@ -30,8 +30,8 @@ pub struct AirdropStatusResponse {
     pub predecessor_account_id: String,
     pub btc_address: Option<String>,
     pub btc_level: Option<u8>,
-    pub cly_claimed: Option<String>,
-    pub du20_claimed: Option<String>,
+    //pub cly_claimed: Option<String>,
+    //pub du20_claimed: Option<String>,
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
@@ -67,7 +67,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         predecessor_account_id,
         btc_address,
         btc_level,
-        cly_claimed: None,
-        du20_claimed: None,
+        //cly_claimed: None,
+        //du20_claimed: None,
     }))
 }

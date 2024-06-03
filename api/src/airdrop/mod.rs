@@ -45,8 +45,6 @@ use common::log::generate_trace_id;
 * @apiSuccess {String} data.predecessor_account_id   上级钱包id
 * @apiSuccess {String} [data.btc_address]       绑定的btc钱包地址
 * @apiSuccess {Number} [data.btc_level]         btc地址对应的等级
-* @apiSuccess {String} [data.cly_claimed]       cly的空投数量
-* @apiSuccess {String} [data.dw20_claimed]      dw20的空投数量
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/status
 */
 

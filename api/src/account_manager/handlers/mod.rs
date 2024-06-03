@@ -7,6 +7,7 @@ pub mod login;
 pub mod register;
 pub mod reset_password;
 pub mod user_info;
+pub mod replenish_contact;
 
 use common::{
     data_structures::account_manager::UserInfo,

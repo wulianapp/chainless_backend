@@ -136,38 +136,8 @@ impl ContractClient<Bridge> {
             owner: eth_addr.parse()?,
             contract: Self::eth_contract().parse()?,
         };
-
-        let bs58_prikey = MULTI_SIG_RELAYER_POOL[0].lock().await.signer.secret_key.to_string();
-        let hex_prikey = bs58_to_hex(&bs58_prikey)?;
-        let bytes_prikey = hex::decode(hex_prikey)?;
-        let prikey = &bytes_prikey[..32];
-
-        let wallet = LocalWallet::from_bytes(prikey)?;
-        let signature = format!("0x{}", wallet.sign_typed_data(&data).await?);
-
-        //let decoded = data.encode_eip712().unwrap();
-        //let sign = Signature::from_str(&signature).unwrap();
-        //let _ad = sign.recover(decoded).unwrap();
-        Ok(signature)
-    }
-
-    pub async fn sign_bind_eth_addr_info(
-        &self,
-        near_account_id: &str,
-        eth_addr: &str,
-    ) -> Result<String> {
-        let data = BindAddress {
-            cid: U256::from(1500),
-            chainless_id: near_account_id.parse()?,
-            owner: eth_addr.parse()?,
-            contract: Self::eth_contract().parse()?,
-        };
-        let bs58_prikey = MULTI_SIG_RELAYER_POOL[0].lock().await.signer.secret_key.to_string();
-        let hex_prikey = bs58_to_hex(&bs58_prikey)?;
-        let bytes_prikey = hex::decode(hex_prikey)?;
-        let prikey = &bytes_prikey[..32];
-
-        let wallet = LocalWallet::from_bytes(prikey)?;
+        let prikey = hex::decode(Self::eth_admin_prikey())?;
+        let wallet = LocalWallet::from_bytes(&prikey)?;
         let signature = format!("0x{}", wallet.sign_typed_data(&data).await?);
         Ok(signature)
     }

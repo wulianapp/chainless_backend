@@ -58,6 +58,8 @@ pub struct CoinTxViewResponse {
     pub updated_at: String,
     pub created_at: String,
 }
+
+//todo:
 pub enum FilterType {
     OrderId,
     AccountId,

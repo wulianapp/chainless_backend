@@ -33,6 +33,20 @@ pub enum ContactType {
     Email,
 }
 
+impl FromStr for ContactType {
+    type Err = BackendError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.contains('@') {
+            Ok(ContactType::Email)
+        } else if s.contains('+') {
+            Ok(ContactType::PhoneNumber)
+        } else {
+            Err(BackendError::RequestParamInvalid(s.to_string()))
+        }
+    }
+}
+
 #[derive(PartialEq, Clone, Debug, Eq, Hash, EnumString, Display)]
 pub enum Usage {
     Register,

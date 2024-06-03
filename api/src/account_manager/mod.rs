@@ -12,6 +12,7 @@ use handlers::login::LoginByCaptchaRequest;
 use handlers::login::LoginRequest;
 use handlers::register::RegisterByEmailRequest;
 use handlers::register::RegisterByPhoneRequest;
+use handlers::replenish_contact::ReplenishContactRequest;
 use handlers::reset_password::ResetPasswordRequest;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, Level};
@@ -360,6 +361,35 @@ async fn reset_password(
     gen_extra_respond(
         get_lang(&req),
         handlers::reset_password::req(req, request_data).await,
+    )
+}
+
+
+/**
+* @api {post} /accountManager/replenishContact  补充联系方式
+* @apiVersion 0.0.1
+* @apiName ReplenishContact
+* @apiGroup AccountManager
+* @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test000001@gmail.com
+* @apiExample {curl} Example usage:
+  curl -X POST http://120.232.251.101:8066/accountManager/ -H "Content-Type: application/json"
+ -d '{"deviceId": "123","contact": "test000001@gmail.com","captcha":"287695","newPassword":"123456788"}'
+* @apiSuccess {String=0,1,2002,2003,2004,2008,3008} status_code         状态码.
+* @apiSuccess {String} msg                 状态详情
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/ReplenishContact
+*/
+
+#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[post("/accountManager/replenishContact")]
+async fn replenish_contact(
+    req: HttpRequest,
+    request_data: web::Json<ReplenishContactRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::replenish_contact::req(req, request_data.into_inner()).await,
     )
 }
 

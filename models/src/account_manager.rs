@@ -40,6 +40,8 @@ pub enum UserUpdater<'a> {
     SecruityInfo(&'a str, bool, &'a str),
     AnwserIndexes(&'a str),
     OpStatus(&'a str),
+    Email(&'a str),
+    PhoneNumber(&'a str),
 }
 
 impl fmt::Display for UserUpdater<'_> {
@@ -56,6 +58,9 @@ impl fmt::Display for UserUpdater<'_> {
             ),
             UserUpdater::OpStatus(status) => format!("op_status='{}'", status),
             UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
+            UserUpdater::Email(email) => format!("email='{}'", email),
+            UserUpdater::PhoneNumber(number) => format!("phone_number='{}'", number),
+
         };
         write!(f, "{}", description)
     }

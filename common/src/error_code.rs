@@ -141,6 +141,8 @@ pub enum AccountManagerError {
     CaptchaUsageNotAllowed,
     #[error("PredecessorNotSetSecurity")]
     PredecessorNotSetSecurity,
+    #[error("ContactAlreadyReplenished")]
+    ContactAlreadyReplenished,
 }
 
 impl ErrorCode for AccountManagerError {
@@ -159,6 +161,7 @@ impl ErrorCode for AccountManagerError {
             Self::UserIdNotExist => 2014,         //todo:interal
             Self::CaptchaUsageNotAllowed => 2015, //todo:params
             Self::PredecessorNotSetSecurity => 2016,
+            Self::ContactAlreadyReplenished => 2017,
         }
     }
 }
