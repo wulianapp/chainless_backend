@@ -40,6 +40,7 @@ fn get(
     kind: Usage,
     user_id: Option<u32>,
 ) -> BackendRes<String> {
+    //todo: 
     let contract_type = captcha::validate(&contact)?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
@@ -164,7 +165,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                 }
             }
         }
-        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster => {
+        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster | ReplenishContact => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }
     }
@@ -181,7 +182,7 @@ pub async fn with_token_req(
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let mut db_cli = get_pg_pool_connect().await?;
     let user =
-        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
+        UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
     let device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
         &mut db_cli,
@@ -192,7 +193,7 @@ pub async fn with_token_req(
         ResetLoginPassword | Register | Login => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }
-        SetSecurity | UpdateSecurity => {
+        SetSecurity | UpdateSecurity | ReplenishContact => {
             if user.user_info.secruity_is_seted {
                 if device.device_info.key_role != KeyRole2::Master {
                     Err(WalletError::UneligiableRole(

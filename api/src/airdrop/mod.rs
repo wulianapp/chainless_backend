@@ -73,7 +73,7 @@ async fn status(req: HttpRequest) -> impl Responder {
     iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
 * @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
 * @apiSuccess {String}    msg              错误信息
-* @apiSuccess {String} data                null
+* @apiSuccess {Number}   [data]            Directly返回等级，Indirectly返回null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/bindBtcAddress
 */
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]

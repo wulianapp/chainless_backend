@@ -39,7 +39,7 @@ pub struct BindBtcAddressRequest {
     way: BindWay,
 }
 
-pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<String> {
+pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<u8> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
@@ -75,7 +75,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
         Err(AirdropError::AlreadyBindedBtcAddress)?;
     }
 
-    match bind_way {
+    let grade = match bind_way {
         BindWay::Directly => {
             let grade = query_wallet_grade(&btc_address).await?;
             AirdropEntity::update_single(
@@ -84,7 +84,8 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
                 &mut db_cli,
             )
             .await?;
-        }
+            Some(grade)
+        },
         BindWay::Indirectly => {
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddress(&btc_address),
@@ -92,8 +93,9 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
                 &mut db_cli,
             )
             .await?;
+            None
         }
-    }
+    };
 
-    Ok(None)
+    Ok(grade)
 }

@@ -22,6 +22,7 @@ use tracing::{debug, info};
 #[serde(rename_all = "camelCase")]
 pub struct ReplenishContactRequest {
     contact: String,
+    captcha: String
 }
 
 
@@ -30,7 +31,6 @@ pub async fn req(
 ) -> BackendRes<String> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
     let (user, mut current_strategy, device) =
     crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
@@ -39,22 +39,24 @@ pub async fn req(
     let current_role =  crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
     crate::wallet::handlers::check_role(current_role, KeyRole2::Master)?;
 
-    let replenish_contact = request_data.contact;
+    let ReplenishContactRequest {contact: replenish_contact,captcha} = request_data;
+    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ReplenishContact)?;
+
     let replenish_contact_type: ContactType = replenish_contact.parse()?;
 
     let find_res = account_manager::UserInfoEntity::find_single(
         UserFilter::ById(user_id), &mut db_cli).await?;
     let UserInfo{email,phone_number,..} = find_res.user_info;
 
-    if  replenish_contact_type == ContactType::Email && phone_number == "".to_string() {
+    if  replenish_contact_type == ContactType::Email && email == "".to_string() {
             UserInfoEntity::update_single(
-                UserUpdater::PhoneNumber(&replenish_contact), 
+                UserUpdater::Email(&replenish_contact), 
                 UserFilter::ById(user_id), 
                 &mut db_cli
             ).await?;
-    }else if replenish_contact_type == ContactType::PhoneNumber && email == "".to_string() {
+    }else if replenish_contact_type == ContactType::PhoneNumber && phone_number == "".to_string() {
         UserInfoEntity::update_single(
-            UserUpdater::Email(&replenish_contact), 
+            UserUpdater::PhoneNumber(&replenish_contact), 
             UserFilter::ById(user_id), 
             &mut db_cli
         ).await?;

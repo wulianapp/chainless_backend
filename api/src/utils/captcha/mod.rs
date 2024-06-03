@@ -54,6 +54,7 @@ pub enum Usage {
     ResetLoginPassword,
     SetSecurity,
     UpdateSecurity,
+    ReplenishContact,
     //验证码有效期内只能发起一次转账
     //PreSendMoney,
     //PreSendMoneyToSub,
