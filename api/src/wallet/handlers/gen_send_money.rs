@@ -60,7 +60,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
         coin_tx.transaction.to.as_str()
     };
 
-    let cli = blockchain::ContractClient::<MultiSig>::new_update_cli().await?;
+    let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
     let (tx_id, chain_raw_tx) = cli
         .gen_send_money_raw(
             servant_sigs,

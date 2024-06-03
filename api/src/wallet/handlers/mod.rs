@@ -185,7 +185,7 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
             KeyRole2::Servant
         } else {
             /***
-            //如果从设备被删之后，就变成了新设备
+            //如果从设备被删之后，就变成了新设备，但此时设备表仍留存之前该从设备的信息
             error!(
                 "unnormal device: key {} is not belong to current account",key
             );
