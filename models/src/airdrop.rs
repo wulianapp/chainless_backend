@@ -3,7 +3,7 @@ extern crate rustc_serialize;
 use async_trait::async_trait;
 use common::data_structures::airdrop::Airdrop;
 use common::data_structures::SecretKeyState;
-use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use common::data_structures::{secret_store::SecretStore};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use std::fmt;

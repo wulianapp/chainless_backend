@@ -3,8 +3,6 @@ pub mod airdrop;
 pub mod bridge;
 pub mod coin_transaction;
 pub mod device_info;
-pub mod general;
-pub mod newbie_reward;
 pub mod secret_store;
 pub mod wallet_namage_record;
 
@@ -17,48 +15,24 @@ use strum_macros::{Display, EnumString, ToString};
 
 use self::{coin_transaction::CoinTransaction, secret_store::SecretStore};
 
-//only Main have key role
-#[derive(Deserialize, Serialize, Debug, EnumString, Display)]
-pub enum AccountKey {
-    Main(KeyRole),
-    Sub(String),
-}
-
-#[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq)]
-pub enum KeyRole {
-    Master(String),
-    Servant(String),
-    Newcommer(String),
-}
-
 #[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum KeyRole2 {
+    /// 主设备
     Master,
+    /// 从设备
     Servant,
+    /// 新设备
     Undefined,
 }
 
-//never use it
-impl Default for KeyRole {
-    fn default() -> Self {
-        unreachable!("never use it")
-    }
-}
-
-#[derive(Deserialize, Serialize, Debug, EnumString, Display)]
-pub enum SecretKeyType {
-    SubaccountKey,
-    MasterKey,
-    ServantKey,
-}
 
 #[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum SecretKeyState {
+    /// 使用中
     Incumbent,
+    /// 当一个设备被替换后，更新为此状态
     Abandoned,
 }
-
-type DeviceType = Option<KeyRole>;
 
 #[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum DeviceState {
@@ -160,9 +134,13 @@ impl CoinType {
 
 #[derive(Deserialize, Serialize, PartialEq, Display, Clone, Debug, Eq, Hash, EnumString)]
 pub enum TxStatusOnChain {
+    /// 创建好未广播
     NotLaunch,
+    /// 已上链待确认
     Pending,
+    /// 已上链但失败
     Failed,
+    /// 已上链且成功
     Successful,
 }
 

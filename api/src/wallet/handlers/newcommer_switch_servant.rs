@@ -6,7 +6,7 @@ use models::general::get_pg_pool_connect;
 use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::utils::token_auth;
-use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
+use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole2, SecretKeyType};
+use common::data_structures::{KeyRole2};
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};

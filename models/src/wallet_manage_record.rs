@@ -13,7 +13,7 @@ use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::SecretKeyState;
 use common::data_structures::TxStatusOnChain;
 use common::data_structures::*;
-use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use common::data_structures::{secret_store::SecretStore};
 use derive_more::{AsRef, Deref};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;

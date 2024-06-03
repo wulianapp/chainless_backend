@@ -1563,7 +1563,6 @@ mod tests {
 
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
-    use common::data_structures::KeyRole;
     use models::coin_transfer::CoinTxEntity;
     use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
     use serde_json::json;

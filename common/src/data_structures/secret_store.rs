@@ -1,4 +1,4 @@
-use super::{KeyRole, SecretKeyState, SecretKeyType};
+use super::{SecretKeyState};
 use serde_derive::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]

@@ -4,7 +4,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::coin::Coin;
 use common::data_structures::get_support_coin_list;
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
+use common::data_structures::{KeyRole2, SecretKeyState};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::wallet_manage_record::WalletManageRecordEntity;

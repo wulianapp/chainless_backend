@@ -7,7 +7,7 @@ use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::account_manager::user_info;
 use crate::utils::token_auth;
-use common::data_structures::{KeyRole2, SecretKeyState, SecretKeyType};
+use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};

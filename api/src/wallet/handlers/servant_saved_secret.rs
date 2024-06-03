@@ -4,7 +4,7 @@ use blockchain::multi_sig::MultiSig;
 use models::general::get_pg_pool_connect;
 
 use crate::utils::token_auth;
-use common::data_structures::{KeyRole2, SecretKeyType};
+use common::data_structures::{KeyRole2};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};

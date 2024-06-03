@@ -12,27 +12,27 @@ use strum_macros::{Display, EnumString, ToString};
 //const PREDECESSOR_SUBFIX: &str = ".node0";
 #[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash, EnumString, Display)]
 pub enum WalletOperateType {
-    //两个txid，服务端重试
+    /// 创建储蓄账户，五个txid
     CreateAccount,
-    //一个txid，服务端重试
+    /// 添加从设备
     AddServant,
-    //一个txid，服务端重试
+    /// 新设备变成从设备
     NewcomerSwitchServant,
-    //一个txid，服务端重试
+    /// 添加子账户
     AddSubaccount,
-    //一个txid，服务端重试
+    /// 删除从设备
     RemoveServant,
-    //一个txid，服务端重试
+    /// 删除子账户
     RemoveSubaccount,
-    //一个txid，服务端重试
+    /// 设置手续费
     SetFeesPriority,
-    //一个txid，服务端重试
+    /// 更新多签策略
     UpdateStrategy,
-    //一个txid，服务端重试
+    /// 更新子设备持仓限制
     UpdateSubaccountHoldLimit,
-    //三个txid、用户重试
+    /// 从设备替换主设备，三个txid
     ServantSwitchMaster,
-    //三个txid、用户重试
+    /// 新设备替换主设备，三个txid
     NewcomerSwitchMaster,
 }
 

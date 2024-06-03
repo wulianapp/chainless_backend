@@ -8,7 +8,7 @@ use tokio_postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::SecretKeyState;
 use common::data_structures::*;
-use common::data_structures::{secret_store::SecretStore, SecretKeyType};
+use common::data_structures::{secret_store::SecretStore};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 

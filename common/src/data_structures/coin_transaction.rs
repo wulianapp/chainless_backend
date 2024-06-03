@@ -18,10 +18,15 @@ pub enum TxRole {
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum TxType {
+    /// 普通交易
     Normal,
+    /// 强制交易
     Forced,
+    /// 储蓄账户给合约账户转账
     MainToSub,
+    /// 合约账户给储蓄账户转账
     SubToMain,
+    /// 跨链提现（储蓄账户给跨链桥转账）
     MainToBridge,
 }
 
@@ -36,21 +41,20 @@ impl TxRole {
 
 #[derive(Deserialize, Debug, PartialEq, PartialOrd, Serialize, Clone, EnumString, Display, Eq)]
 pub enum CoinSendStage {
+    /// 订单创建
     Created = 1,
+    /// 从设备签名收集完毕
     SenderSigCompleted = 2,
-    //子账户是接收者需要特殊对待
-    //SenderSigCompletedAndReceiverIsSub,
-    //SenderSigCompletedAndReceiverIsBridge,
-    ReceiverApproved = 3, //只有nomarl类型的交易有该状态
-    ReceiverRejected = 4, //只有nomarl类型的交易有该状态
+    /// 接收方同意收款，只有nomarl类型的交易有该状态
+    ReceiverApproved = 3, 
+    /// 接收方拒绝收款，只有nomarl类型的交易有该状态
+    ReceiverRejected = 4,
+    /// 发起方主设备取消转账
     SenderCanceled = 5,
+    /// 发起方二次确认转账
     SenderReconfirmed = 6,
-    MultiSigExpired = 7, //从订单创建到上链结算的时间超时
-                         //上链后，由于合约复杂度没有立即finalize
-                         //ChainPending,
-                         //如果commit之后没有finalize，更正Fail和Success的逻辑放在tx_list里面进行检查更新
-                         //FinalizeAndFailed,
-                         //FinalizeAndSuccessful,
+    /// 交易过期
+    MultiSigExpired = 7, 
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]

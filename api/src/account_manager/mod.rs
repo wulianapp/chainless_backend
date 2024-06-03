@@ -371,13 +371,14 @@ async fn reset_password(
 * @apiName ReplenishContact
 * @apiGroup AccountManager
 * @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test000001@gmail.com
+* @apiHeader {String} Authorization  user's access token
 * @apiExample {curl} Example usage:
   curl -X POST http://120.232.251.101:8066/accountManager/ -H "Content-Type: application/json"
  -d '{"deviceId": "123","contact": "test000001@gmail.com","captcha":"287695","newPassword":"123456788"}'
 * @apiSuccess {String=0,1,2002,2003,2004,2008,3008} status_code         状态码.
 * @apiSuccess {String} msg                 状态详情
 * @apiSuccess {String} data                null
-* @apiSampleRequest http://120.232.251.101:8066/accountManager/ReplenishContact
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/replenishContact
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]

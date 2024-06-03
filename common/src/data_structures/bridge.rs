@@ -6,21 +6,6 @@ use std::fmt::Display as StdDisplay;
 use std::str::FromStr;
 use strum_macros::{Display, EnumString, ToString};
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
-pub enum ChainLessStatus {
-    Default,
-    Pending,
-    Signed,
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
-pub struct SignedOrder {
-    #[serde(alias = "num")]
-    pub eth_block_height: u64,
-    pub signer: String,
-    pub signature: Option<String>,
-}
-
 #[derive(Deserialize, Serialize, Debug, PartialEq, EnumString, Display, Clone)]
 pub enum OrderType {
     Withdraw,
@@ -29,13 +14,18 @@ pub enum OrderType {
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum WithdrawStatus {
-    ChainLessSigning, //无链确认中
-    //ChainLessPending,    //无链确认中
-    //ChainLessFailed,     //无链端失败
-    ChainLessSuccessful,    //无链端成功
-    ExternalChainPending,   //用户在外部链提现
-    ExternalChainFailed,    //用户在外部链提现确认失败(回滚)
-    ExternalChainConfirmed, //用户在外部链提现确认完毕
+    /// 无链确认中
+    ChainLessSigning, 
+    //ChainLessPending,    
+    //ChainLessFailed,
+    /// 无链端成功   
+    ChainLessSuccessful,   
+    /// 用户在外部链提现
+    ExternalChainPending,   
+    /// 用户在外部链提现确认失败(回滚)
+    ExternalChainFailed,    
+    /// 用户在外部链提现确认完毕
+    ExternalChainConfirmed, 
 }
 
 impl From<EthOrderStatus> for WithdrawStatus {
@@ -50,13 +40,17 @@ impl From<EthOrderStatus> for WithdrawStatus {
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum DepositStatus {
-    ExternalChainPending,   //用户在外部链提现
-    ExternalChainFailed,    //用户在外部链提现确认失败(回滚)
-    ExternalChainConfirmed, //用户在外部链提现确认完毕
+    /// 用户在外部链提现
+    ExternalChainPending,   
+    /// 用户在外部链提现确认失败(回滚)
+    ExternalChainFailed,   
+    /// 用户在外部链提现确认完毕
+    ExternalChainConfirmed, 
     //后台直接查合约状态，不会有pending和failed
-    //ChainLessPending,    //无链确认中
-    //ChainLessFailed,     //无链端失败
-    ChainLessSuccessful, //无链端成功
+    //ChainLessPending,    /// 无链确认中
+    //ChainLessFailed,     /// 无链端失败
+     /// 无链端成功
+    ChainLessSuccessful,
 }
 
 impl From<EthOrderStatus> for DepositStatus {

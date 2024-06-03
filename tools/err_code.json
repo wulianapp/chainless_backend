@@ -59,6 +59,12 @@
         "zh_cn": "上级未设置安全措施",
         "en_us": "Superior has not set security measures"
       },
+      "2017": {
+        "zh_tw": "聯系方式已經完整",
+        "zh_cn": "联系方式已经完整",
+        "en_us": "Contacts are already complete"
+      },
+ 
       "3006": {
         "zh_tw": "錢包ID不存在",
         "zh_cn": "钱包ID不存在",
