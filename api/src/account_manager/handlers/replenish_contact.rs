@@ -32,21 +32,23 @@ pub async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user, mut current_strategy, device) =
-    crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
-    crate::wallet::handlers::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let current_role =  crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    crate::wallet::handlers::check_role(current_role, KeyRole2::Master)?;
+    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli)
+    .await?;
+    //todo:
+    //新设备或者主设备
+    if res.user_info.main_account.ne("") {
+        let (_, current_strategy, device) =
+        crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
+        let current_role =  crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
+        crate::wallet::handlers::check_role(current_role, KeyRole2::Master)?;
+    };
 
     let ReplenishContactRequest {contact: replenish_contact,captcha} = request_data;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ReplenishContact)?;
 
     let replenish_contact_type: ContactType = replenish_contact.parse()?;
 
-    let find_res = account_manager::UserInfoEntity::find_single(
-        UserFilter::ById(user_id), &mut db_cli).await?;
-    let UserInfo{email,phone_number,..} = find_res.user_info;
+    let UserInfo{email,phone_number,..} = res.user_info;
 
     if  replenish_contact_type == ContactType::Email && email == "".to_string() {
             UserInfoEntity::update_single(
