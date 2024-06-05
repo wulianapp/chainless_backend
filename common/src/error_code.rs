@@ -276,8 +276,8 @@ impl ErrorCode for BridgeError {
 
 #[derive(Error, Debug)]
 pub enum AirdropError {
-    #[error("Have bond a btc address")]
-    AlreadyBindedBtcAddress,
+    #[error("Have already claimed")]
+    AlreadyClaimedDw20,
     #[error("this address is already used")]
     BtcAddressAlreadyUsed,
     #[error("this invite code  is already used")]
@@ -293,7 +293,7 @@ pub enum AirdropError {
 impl ErrorCode for AirdropError {
     fn code(&self) -> u16 {
         match self {
-            Self::AlreadyBindedBtcAddress => 5000,
+            Self::AlreadyClaimedDw20 => 5000,
             Self::BtcAddressAlreadyUsed => 5001,
             Self::InviteCodeAlreadyUsed => 5002,
             Self::InviteCodeIllegal => 5003,

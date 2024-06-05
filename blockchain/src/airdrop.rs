@@ -23,7 +23,20 @@ use crate::multi_sig::get_pubkey;
 use crate::ContractClient;
 use anyhow::Result;
 
-//air100010
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+pub struct User {
+    pub account_id: String, //用户id
+    pub btc_address: String,   //btc地址
+    pub btc_level: u8,         //btc等级
+    pub dw20: u128,
+    pub cly: u128,
+    pub is_real_name: bool,        //是否实名
+    pub ref_account_id: String, // 上级
+    pub last_change_ref_time: u64, //上一次更新上级时间
+    pub create_dw20: u64,          // 创建时间
+    pub create_cly: u64,    
+}
+
 pub struct Airdrop {}
 impl ContractClient<Airdrop> {
     //todo: config
@@ -78,6 +91,17 @@ impl ContractClient<Airdrop> {
         .to_string();
         self.commit_by_relayer("change_ref", &args_str).await
     }
+
+    pub async fn get_user(
+        &self,
+        account_id: &str
+    ) -> Result<Option<User>> {
+        let args_str = json!({
+            "account_id":  account_id
+        })
+        .to_string();
+        self.query_call("get_user", &args_str).await
+    }
 }
 
 #[cfg(test)]
@@ -85,9 +109,9 @@ mod tests {
 
     use super::*;
     #[tokio::test]
-    async fn test_get_sys_info() {
-        let _cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();
-        //let sys_info = cli.get_sys_info().await.unwrap();
-        //println!("sys_info {:?} ", sys_info);
+    async fn test_ca_airdrop_get_user() {
+        let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();
+        let user_info = cli.get_user("faa80e44.local2").await.unwrap();
+        println!("sys_info {:?} ", user_info);
     }
 }

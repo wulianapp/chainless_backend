@@ -41,10 +41,10 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
         return Ok(None);
     }
 
-    //不允许重复评级
+    //directly的方式不允许重复评级，防止被覆盖
     if airdrop_info.len() == 1
         && airdrop_info[0].airdrop.btc_address.is_some()
-        && airdrop_info[0].airdrop.btc_address.is_none()
+        && airdrop_info[0].airdrop.btc_level.is_none()
     {
         let grade = query_wallet_grade(&sender).await?;
         AirdropEntity::update_single(

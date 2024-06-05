@@ -1,6 +1,6 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
+use blockchain::{airdrop::Airdrop, multi_sig::{MultiSig, MultiSigRank}};
 use common::{
     btc_crypto::{self},
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
@@ -69,10 +69,10 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
 
     //todo: get kyc info
-    let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByAccountId(&main_account), &mut db_cli).await?;
-    if user_airdrop.airdrop.btc_address.is_some() {
-        Err(AirdropError::AlreadyBindedBtcAddress)?;
+    let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();
+    let user_info = cli.get_user(&main_account).await?;
+    if user_info.is_some(){
+        Err(AirdropError::AlreadyClaimedDw20)?;
     }
 
     let grade = match bind_way {
