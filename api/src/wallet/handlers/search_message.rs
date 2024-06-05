@@ -46,10 +46,10 @@ pub struct SearchMessageResponse {
 }
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?;
-    if user.user_info.main_account.is_none(){
+    if user.user_info.main_account.is_none() {
         return Ok(None);
     }
     let mut messages = SearchMessageResponse::default();

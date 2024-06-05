@@ -29,7 +29,7 @@ pub async fn req(
     req: HttpRequest,
     request_data: UpdateSubaccountHoldLimitRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =

@@ -1,7 +1,7 @@
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, StrategyData};
-use common::data_structures::{KeyRole2};
+use common::data_structures::KeyRole2;
 use models::general::get_pg_pool_connect;
 
 use crate::utils::token_auth;
@@ -14,7 +14,7 @@ use models::PsqlOp;
 use std::cmp::Ordering;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceInfo>> {
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let devices: Vec<DeviceInfoEntity> =
         DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id), &mut db_cli).await?;

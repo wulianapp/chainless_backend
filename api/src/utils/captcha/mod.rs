@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use common::error_code::{AccountManagerError, BackendError};
-use common::utils::math::{random_num};
+use common::utils::math::random_num;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 use tracing::debug;

@@ -38,7 +38,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     data: GenServantSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let GenServantSwitchMasterRequest { captcha } = data;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 

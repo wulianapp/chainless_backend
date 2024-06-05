@@ -20,17 +20,16 @@ pub struct ContactIsUsedRequest {
 pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserInfoResponse> {
     let ContactIsUsedRequest { contact } = request_data;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let find_res =
-        UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
-    if find_res.is_empty(){
+    let find_res = UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
+    if find_res.is_empty() {
         Ok(Some(UserInfoResponse {
             contact_is_register: false,
             secruity_is_seted: false,
         }))
-    }else {
-        let secruity_is_seted = if find_res[0].user_info.main_account.is_some(){
+    } else {
+        let secruity_is_seted = if find_res[0].user_info.main_account.is_some() {
             true
-        }else{
+        } else {
             false
         };
         Ok(Some(UserInfoResponse {

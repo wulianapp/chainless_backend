@@ -41,13 +41,17 @@ pub struct RegisterByEmailRequest {
 }
 
 //生成十位随机数作为user_id
-async fn gen_user_id(db_cli: &mut PgLocalCli<'_>) -> Result<u32,BackendError> {
-    for _ in 0..10 {
+const MAX_RETRY_TIMES: u8 = 10;
+async fn gen_user_id(db_cli: &mut PgLocalCli<'_>) -> Result<u32, BackendError> {
+    for _ in 0..MAX_RETRY_TIMES {
         let num = (random_num() % 9_000_000_000 + 1_000_000_000) as u32;
-        if UserInfoEntity::find(UserFilter::ById(&num),db_cli).await?.is_empty(){
+        if UserInfoEntity::find(UserFilter::ById(&num), db_cli)
+            .await?
+            .is_empty()
+        {
             return Ok(num);
-        }else {
-            warn!("user_id {} already exist",num);
+        } else {
+            warn!("user_id {} already exist", num);
             continue;
         }
     }
@@ -86,7 +90,7 @@ async fn register(
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
     let this_user_id = gen_user_id(&mut db_cli).await?;
-    let mut view = UserInfoEntity::new_with_specified(this_user_id,&password);
+    let mut view = UserInfoEntity::new_with_specified(this_user_id, &password);
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = Some(contact.clone());
@@ -107,22 +111,17 @@ async fn register(
 
     let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id;
     let predecessor_info =
-        UserInfoEntity::find_single(
-            UserFilter::ById(&predecessor_userinfo_id), 
-            &mut db_cli
-        ).await?.into_inner();
+        UserInfoEntity::find_single(UserFilter::ById(&predecessor_userinfo_id), &mut db_cli)
+            .await?
+            .into_inner();
 
-    if let Some(main_account) =  predecessor_info.main_account{
-        let user_airdrop = AirdropEntity::new_with_specified(
-            this_user_id,
-            predecessor_info.id,
-            &main_account,
-        );
+    if let Some(main_account) = predecessor_info.main_account {
+        let user_airdrop =
+            AirdropEntity::new_with_specified(this_user_id, predecessor_info.id, &main_account);
         user_airdrop.insert(&mut db_cli).await?;
-    }else{
+    } else {
         Err(PredecessorNotSetSecurity)?;
     }
-
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, this_user_id);
     device.insert(&mut db_cli).await?;

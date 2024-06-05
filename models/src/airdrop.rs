@@ -2,8 +2,8 @@ extern crate rustc_serialize;
 
 use async_trait::async_trait;
 use common::data_structures::airdrop::Airdrop;
+use common::data_structures::secret_store::SecretStore;
 use common::data_structures::SecretKeyState;
-use common::data_structures::{secret_store::SecretStore};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use std::fmt;
@@ -21,7 +21,7 @@ pub struct AirdropEntity {
 }
 
 impl AirdropEntity {
-    pub fn into_inner(self) -> Airdrop{
+    pub fn into_inner(self) -> Airdrop {
         self.airdrop
     }
 }
@@ -100,7 +100,7 @@ impl AirdropEntity {
                 predecessor_user_id,
                 predecessor_account_id: predecessor_account_id.to_string(),
                 btc_address: None,
-                btc_level: None
+                btc_level: None,
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -173,7 +173,7 @@ impl PsqlOp for AirdropEntity {
             predecessor_user_id,
             predecessor_account_id,
             btc_address,
-            btc_level
+            btc_level,
         } = self.into_inner();
         let account_id: PsqlType = account_id.into();
         let btc_address: PsqlType = btc_address.into();

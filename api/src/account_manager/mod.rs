@@ -365,7 +365,6 @@ async fn reset_password(
     )
 }
 
-
 /**
 * @api {post} /accountManager/replenishContact  补充联系方式
 * @apiVersion 0.0.1

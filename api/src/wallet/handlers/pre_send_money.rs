@@ -45,7 +45,7 @@ pub(crate) async fn req(
     request_data: PreSendMoneyRequest,
 ) -> BackendRes<(String, Option<String>)> {
     //todo: allow master only
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let PreSendMoneyRequest {
         to,
         coin,
@@ -63,7 +63,7 @@ pub(crate) async fn req(
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
 
-    //todo:    
+    //todo:
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
         let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
             .await
@@ -73,7 +73,8 @@ pub(crate) async fn req(
                 } else {
                     BackendError::InternalError(err.to_string())
                 }
-            })?.into_inner();
+            })?
+            .into_inner();
 
         if receiver.main_account.is_none() {
             Err(WalletError::ReceiverNotSetSecurity)?;

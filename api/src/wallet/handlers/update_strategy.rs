@@ -34,7 +34,7 @@ pub struct UpdateStrategyRequest {
 pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> BackendRes<String> {
     //todo: must be called by main device
 
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =

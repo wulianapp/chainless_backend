@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole2};
+use common::data_structures::KeyRole2;
 use common::utils::math::coin_amount::display2raw;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
@@ -34,7 +34,7 @@ pub struct AddSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
@@ -47,7 +47,8 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         hold_value_limit,
     } = request_data;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let hold_value_limit = display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
+    let hold_value_limit =
+        display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
     let (_, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());

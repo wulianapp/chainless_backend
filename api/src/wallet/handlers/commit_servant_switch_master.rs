@@ -37,7 +37,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitServantSwitchMasterRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let CommitServantSwitchMasterRequest {
         add_key_raw,
         delete_key_raw,

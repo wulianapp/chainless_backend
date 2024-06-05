@@ -15,17 +15,17 @@ pub enum OrderType {
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum WithdrawStatus {
     /// 无链确认中
-    ChainLessSigning, 
-    //ChainLessPending,    
+    ChainLessSigning,
+    //ChainLessPending,
     //ChainLessFailed,
     /// 无链端成功   
-    ChainLessSuccessful,   
+    ChainLessSuccessful,
     /// 用户在外部链提现
-    ExternalChainPending,   
+    ExternalChainPending,
     /// 用户在外部链提现确认失败(回滚)
-    ExternalChainFailed,    
+    ExternalChainFailed,
     /// 用户在外部链提现确认完毕
-    ExternalChainConfirmed, 
+    ExternalChainConfirmed,
 }
 
 impl From<EthOrderStatus> for WithdrawStatus {
@@ -41,15 +41,15 @@ impl From<EthOrderStatus> for WithdrawStatus {
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum DepositStatus {
     /// 用户在外部链提现
-    ExternalChainPending,   
+    ExternalChainPending,
     /// 用户在外部链提现确认失败(回滚)
-    ExternalChainFailed,   
+    ExternalChainFailed,
     /// 用户在外部链提现确认完毕
-    ExternalChainConfirmed, 
+    ExternalChainConfirmed,
     //后台直接查合约状态，不会有pending和failed
     //ChainLessPending,    /// 无链确认中
     //ChainLessFailed,     /// 无链端失败
-     /// 无链端成功
+    /// 无链端成功
     ChainLessSuccessful,
 }
 
@@ -80,5 +80,5 @@ pub struct EthBridgeOrder {
     pub amount: u128,          //转账数量
     //pub status: String,            //订单状态
     pub status: EthOrderStatus, //WithdrawStatus,DepositStatus
-    pub height: u64
+    pub height: u64,
 }

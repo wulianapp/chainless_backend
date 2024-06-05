@@ -25,7 +25,6 @@ pub enum KeyRole2 {
     Undefined,
 }
 
-
 #[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
 pub enum SecretKeyState {
     /// 使用中

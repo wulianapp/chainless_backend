@@ -1,8 +1,8 @@
 extern crate rustc_serialize;
 
 use async_trait::async_trait;
+use common::data_structures::secret_store::SecretStore;
 use common::data_structures::SecretKeyState;
-use common::data_structures::{secret_store::SecretStore};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 use std::fmt;
@@ -20,7 +20,7 @@ pub struct SecretStoreEntity {
 }
 
 impl SecretStoreEntity {
-    pub fn into_inner(self) -> SecretStore{
+    pub fn into_inner(self) -> SecretStore {
         self.secret_store
     }
 }
@@ -59,7 +59,9 @@ impl fmt::Display for SecretFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             SecretFilter::ByPubkey(key) => format!("pubkey='{}' ", key),
-            SecretFilter::ByIncumbentPubkey(key) => format!("state='Incumbent' and pubkey='{}' ", key),
+            SecretFilter::ByIncumbentPubkey(key) => {
+                format!("state='Incumbent' and pubkey='{}' ", key)
+            }
         };
         write!(f, "{}", description)
     }
@@ -184,7 +186,7 @@ mod tests {
     use common::log::init_logger;
     use std::env;
     use tokio_postgres::types::ToSql;
-    
+
     #[tokio::test]
     async fn test_db_secret_store() {
         env::set_var("SERVICE_MODE", "test");
@@ -195,16 +197,21 @@ mod tests {
         let secret =
             SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
         secret.insert(&mut db_cli).await.unwrap();
-        let secret_by_find =
-        SecretStoreEntity::find_single(SecretFilter::ByIncumbentPubkey("0123456789"),&mut db_cli).await.unwrap();
+        let secret_by_find = SecretStoreEntity::find_single(
+            SecretFilter::ByIncumbentPubkey("0123456789"),
+            &mut db_cli,
+        )
+        .await
+        .unwrap();
         println!("{:?}", secret_by_find);
         //assert_eq!(secret_by_find.secret_store, secret.secret_store);
 
         SecretStoreEntity::update(
             SecretUpdater::State(SecretKeyState::Abandoned),
             SecretFilter::ByIncumbentPubkey("01"),
-            &mut db_cli
-        ).await
+            &mut db_cli,
+        )
+        .await
         .unwrap();
     }
 }

@@ -44,7 +44,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials(&req)?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,
@@ -63,7 +63,8 @@ pub(crate) async fn req(
     //store user info
     let user_info =
         account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
-            .await?.into_inner();
+            .await?
+            .into_inner();
 
     if user_info.main_account.is_some() {
         Err(WalletError::MainAccountAlreadyExist(

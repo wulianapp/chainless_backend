@@ -32,7 +32,7 @@ pub struct RemoveSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 

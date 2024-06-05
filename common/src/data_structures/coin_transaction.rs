@@ -46,7 +46,7 @@ pub enum CoinSendStage {
     /// 从设备签名收集完毕
     SenderSigCompleted = 2,
     /// 接收方同意收款，只有nomarl类型的交易有该状态
-    ReceiverApproved = 3, 
+    ReceiverApproved = 3,
     /// 接收方拒绝收款，只有nomarl类型的交易有该状态
     ReceiverRejected = 4,
     /// 发起方主设备取消转账
@@ -54,7 +54,7 @@ pub enum CoinSendStage {
     /// 发起方二次确认转账
     SenderReconfirmed = 6,
     /// 交易过期
-    MultiSigExpired = 7, 
+    MultiSigExpired = 7,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
@@ -62,7 +62,7 @@ pub struct CoinTransaction {
     pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
-    pub sender: String, //uid
+    pub sender: String,   //uid
     pub receiver: String, //uid
     pub amount: u128,
     pub expire_at: u64,
@@ -73,7 +73,7 @@ pub struct CoinTransaction {
     pub signatures: Vec<String>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
-    pub receiver_contact: Option<String>
+    pub receiver_contact: Option<String>,
 }
 
 //sub to main

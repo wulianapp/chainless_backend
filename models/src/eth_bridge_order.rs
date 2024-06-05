@@ -22,7 +22,7 @@ pub struct EthBridgeOrderEntity {
 }
 
 impl EthBridgeOrderEntity {
-    pub fn into_inner(self) -> EthBridgeOrder{
+    pub fn into_inner(self) -> EthBridgeOrder {
         self.order
     }
 }
@@ -171,7 +171,7 @@ impl PsqlOp for EthBridgeOrderEntity {
             amount,
             coin,
             status,
-            height
+            height,
         } = self.into_inner();
         let sql = format!(
             "insert into ethereum_bridge_order (\
@@ -224,10 +224,11 @@ mod tests {
             0u64,
         );
         secret.insert(&mut db_cli).await.unwrap();
-        let find_res = EthBridgeOrderEntity::find_single(BridgeOrderFilter::ByTypeAndId(
-            BridgeOrderType::Withdraw,
-            "0123456789",
-        ),&mut db_cli).await
+        let find_res = EthBridgeOrderEntity::find_single(
+            BridgeOrderFilter::ByTypeAndId(BridgeOrderType::Withdraw, "0123456789"),
+            &mut db_cli,
+        )
+        .await
         .unwrap();
         println!("{:?}", find_res);
         assert_eq!(find_res.order.amount, 10000);

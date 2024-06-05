@@ -1,6 +1,6 @@
 //use std::sync::{Mutex, MutexGuard};
-use std::{env, fmt, fs};
 use near_primitives::types::Nonce;
+use std::{env, fmt, fs};
 use tokio::sync::{Mutex, MutexGuard};
 
 use std::fmt::Debug;
@@ -56,7 +56,7 @@ pub struct Sms {
 pub struct RelayerPool {
     pub seed: String,
     pub account_id: String,
-    pub derive_size: u16,
+    pub derive_size: u32,
 }
 
 ///read config data for env
@@ -93,15 +93,16 @@ pub struct EnvConf {
 
 lazy_static! {
     pub static ref CONF: EnvConf = {
-        let content= fs::read_to_string(env::var_os("CONFIG").expect("CONFIG environment variable required"))
-            .expect("Unable to read the `CONFIG` specified file");
+        let content = fs::read_to_string(
+            env::var_os("CONFIG").expect("CONFIG environment variable required"),
+        )
+        .expect("Unable to read the `CONFIG` specified file");
         toml::from_str(content.as_str()).expect("contents of configuration file invalid")
     };
-
     pub static ref TOKEN_SECRET_KEY: String = {
-        if let Some(value) = env::var_os("TOKEN_SECRET_KEY"){
+        if let Some(value) = env::var_os("TOKEN_SECRET_KEY") {
             value.to_str().unwrap().parse().unwrap()
-        }else{
+        } else {
             "your_secret_key".to_string()
         }
     };

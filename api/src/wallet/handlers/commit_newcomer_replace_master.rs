@@ -39,7 +39,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitNewcomerSwitchMasterRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let CommitNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         add_key_raw,

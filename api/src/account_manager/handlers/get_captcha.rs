@@ -40,7 +40,7 @@ fn get(
     kind: Usage,
     user_id: Option<u32>,
 ) -> BackendRes<String> {
-    //todo: 
+    //todo:
     let contract_type = captcha::validate(&contact)?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
@@ -113,7 +113,8 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                         } else {
                             BackendError::InternalError(err.to_string())
                         }
-                    })?.into_inner();
+                    })?
+                    .into_inner();
             let user_id = user_info.id;
 
             if user_info.main_account.is_some() {
@@ -165,9 +166,8 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                 }
             }
         }
-        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster | ReplenishContact => {
-            Err(BackendError::RequestParamInvalid("".to_string()))?
-        }
+        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster
+        | ReplenishContact => Err(BackendError::RequestParamInvalid("".to_string()))?,
     }
 }
 
@@ -175,14 +175,15 @@ pub async fn with_token_req(
     req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user =
-        UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?.into_inner();
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+        .await?
+        .into_inner();
     let device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,

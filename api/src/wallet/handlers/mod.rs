@@ -220,13 +220,12 @@ pub async fn get_session_state(
         Err(WalletError::NotSetSecurity)?
     }
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let current_strategy =
-        multi_sig_cli
-            .get_strategy(main_account.unwrap())
-            .await?
-            .ok_or(BackendError::InternalError(
-                "main_account not found".to_string(),
-            ))?;
+    let current_strategy = multi_sig_cli
+        .get_strategy(main_account.unwrap())
+        .await?
+        .ok_or(BackendError::InternalError(
+            "main_account not found".to_string(),
+        ))?;
 
     //注册过的一定有设备信息
     let mut device =

@@ -5,9 +5,9 @@ pub mod get_captcha;
 pub mod get_user_device_role;
 pub mod login;
 pub mod register;
+pub mod replenish_contact;
 pub mod reset_password;
 pub mod user_info;
-pub mod replenish_contact;
 
 use common::{
     data_structures::account_manager::UserInfo,

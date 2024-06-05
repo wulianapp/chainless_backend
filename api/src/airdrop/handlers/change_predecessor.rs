@@ -33,7 +33,7 @@ pub struct ChangePredecessorRequest {
 pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> BackendRes<String> {
     //todo: must be called by main device
 
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
@@ -79,11 +79,11 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let user_info = cli.get_user(&main_account).await?;
-    if user_info.is_some(){
+    if user_info.is_some() {
         cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
             .await?;
     }
-    
+
     db_cli.commit().await?;
     //todo: change ref
     Ok(None)

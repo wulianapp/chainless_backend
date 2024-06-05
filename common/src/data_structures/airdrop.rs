@@ -14,5 +14,5 @@ pub struct Airdrop {
     pub predecessor_user_id: u32,
     pub predecessor_account_id: String,
     pub btc_address: Option<String>,
-    pub btc_level: Option<u8>
+    pub btc_level: Option<u8>,
 }

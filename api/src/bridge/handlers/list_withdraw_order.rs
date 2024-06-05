@@ -69,7 +69,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 

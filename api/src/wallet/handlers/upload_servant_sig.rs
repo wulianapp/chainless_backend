@@ -27,7 +27,7 @@ pub struct UploadTxSignatureRequest {
 pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 

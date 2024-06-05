@@ -25,16 +25,16 @@ use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
 pub struct User {
-    pub account_id: String, //用户id
-    pub btc_address: String,   //btc地址
-    pub btc_level: u8,         //btc等级
+    pub account_id: String,  //用户id
+    pub btc_address: String, //btc地址
+    pub btc_level: u8,       //btc等级
     pub dw20: u128,
     pub cly: u128,
     pub is_real_name: bool,        //是否实名
-    pub ref_account_id: String, // 上级
+    pub ref_account_id: String,    // 上级
     pub last_change_ref_time: u64, //上一次更新上级时间
     pub create_dw20: u64,          // 创建时间
-    pub create_cly: u64,    
+    pub create_cly: u64,
 }
 
 pub struct Airdrop {}
@@ -92,10 +92,7 @@ impl ContractClient<Airdrop> {
         self.commit_by_relayer("change_ref", &args_str).await
     }
 
-    pub async fn get_user(
-        &self,
-        account_id: &str
-    ) -> Result<Option<User>> {
+    pub async fn get_user(&self, account_id: &str) -> Result<Option<User>> {
         let args_str = json!({
             "account_id":  account_id
         })

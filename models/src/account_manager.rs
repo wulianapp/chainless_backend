@@ -19,7 +19,7 @@ pub struct UserInfoEntity {
     pub created_at: String,
 }
 impl UserInfoEntity {
-    pub fn into_inner(self) -> UserInfo{
+    pub fn into_inner(self) -> UserInfo {
         self.user_info
     }
 }
@@ -64,7 +64,6 @@ impl fmt::Display for UserUpdater<'_> {
             UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
             UserUpdater::Email(email) => format!("email='{}'", email),
             UserUpdater::PhoneNumber(number) => format!("phone_number='{}'", number),
-
         };
         write!(f, "{}", description)
     }
@@ -88,7 +87,7 @@ impl fmt::Display for UserFilter<'_> {
 }
 
 impl UserInfoEntity {
-    pub fn new_with_specified(user_id:u32,login_pwd_hash: &str) -> Self {
+    pub fn new_with_specified(user_id: u32, login_pwd_hash: &str) -> Self {
         let user = UserInfo {
             id: user_id,
             phone_number: None,
@@ -144,9 +143,7 @@ impl PsqlOp for UserInfoEntity {
                     create_subacc_time: row
                         .get::<usize, Vec<i64>>(7)
                         .into_iter()
-                        .map(|t| {
-                            t as u64
-                        })
+                        .map(|t| t as u64)
                         .collect::<Vec<u64>>(),
                     main_account: row.get(8),
                 },
@@ -189,9 +186,9 @@ impl PsqlOp for UserInfoEntity {
 
         //assembly string array to sql string
         let create_subacc_time: PsqlType = create_subacc_time.into();
-        let main_account:PsqlType = main_account.into();
-        let phone_number:PsqlType = phone_number.into();
-        let email:PsqlType = email.into();
+        let main_account: PsqlType = main_account.into();
+        let phone_number: PsqlType = phone_number.into();
+        let email: PsqlType = email.into();
 
         let sql = format!(
             "insert into users (
@@ -255,7 +252,7 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-        let user = UserInfoEntity::new_with_specified(123245,"0123456789");
+        let user = UserInfoEntity::new_with_specified(123245, "0123456789");
         user.insert(&mut db_cli).await.unwrap();
         let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245), &mut db_cli)
             .await
@@ -280,7 +277,7 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();
 
-        let user = UserInfoEntity::new_with_specified(12345,"0123456789");
+        let user = UserInfoEntity::new_with_specified(12345, "0123456789");
         user.insert(&mut db_cli).await.unwrap();
         let user_by_find = UserInfoEntity::find(UserFilter::ById(&1), &mut db_cli)
             .await

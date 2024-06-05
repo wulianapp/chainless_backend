@@ -35,7 +35,7 @@ pub struct AirdropStatusResponse {
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
@@ -47,8 +47,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
     //todo: check sig,
     //todo: get kyc info
     let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
-            .await?;
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli).await?;
     let Airdrop {
         user_id,
         account_id,

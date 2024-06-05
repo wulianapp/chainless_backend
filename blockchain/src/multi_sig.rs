@@ -320,7 +320,7 @@ impl ContractClient<MultiSig> {
 
     async fn register_account_with_name(&self, account_id: &str, pubkey: &str) -> Result<String> {
         let arg_str = format!("{}:{}", account_id, pubkey);
-        debug!("0001a  {}  {}",file!(),line!());
+        debug!("0001a  {}  {}", file!(), line!());
         self.commit_by_relayer("register_account_with_name", &arg_str)
             .await
     }
@@ -642,7 +642,10 @@ mod tests {
     use super::*;
     use crate::general::broadcast_tx_commit_from_raw2;
     use crate::ContractClient;
-    use common::{log::init_logger, utils::time::{now_millis, DAY1}};
+    use common::{
+        log::init_logger,
+        utils::time::{now_millis, DAY1},
+    };
 
     fn servant_keys() -> Vec<String> {
         vec![
@@ -684,7 +687,9 @@ mod tests {
         let main_account = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
         let master_pubkey = "bcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
         let master_prikey = "331dde3ee69831fd2d8f0505a7f19b06c83bb14e11651debf29b8bf018e7d13ebcfffa8f19a9fe133510cf769702ad8bfdff4723f595c82c640ec048a225db4a";
-        let client = ContractClient::<super::MultiSig>::new_update_cli().await.unwrap();
+        let client = ContractClient::<super::MultiSig>::new_update_cli()
+            .await
+            .unwrap();
         let master_list = client.get_master_pubkey_list(main_account).await.unwrap();
 
         //增加之前判断是否有
@@ -720,13 +725,11 @@ mod tests {
         println!("{:?}", res);
     }
 
-
-    pub  fn gen_random_account_id(
-    ) -> String {
-            let relayer_name = &common::env::CONF.relayer_pool.account_id;
-            let hex_str = generate_random_hex_string(8);
-            let account_id = format!("{}.{}", hex_str,relayer_name);
-            account_id
+    pub fn gen_random_account_id() -> String {
+        let relayer_name = &common::env::CONF.relayer_pool.account_id;
+        let hex_str = generate_random_hex_string(8);
+        let account_id = format!("{}.{}", hex_str, relayer_name);
+        account_id
     }
 
     #[tokio::test]
@@ -735,18 +738,18 @@ mod tests {
         let mut handles = vec![];
         for index in 0..10 {
             let handle = tokio::spawn(async move {
-                info!("abcd_{}",index);
-                let client = ContractClient::<super::MultiSig>::new_update_cli().await.unwrap();
+                info!("abcd_{}", index);
+                let client = ContractClient::<super::MultiSig>::new_update_cli()
+                    .await
+                    .unwrap();
                 let account1 = gen_random_account_id();
                 let pubkey1 = common::encrypt::ed25519_key_gen().1;
                 let account2 = gen_random_account_id();
                 let pubkey2 = common::encrypt::ed25519_key_gen().1;
-                client.init_strategy(
-                    &pubkey1, 
-                    &account1, 
-                    &pubkey2,
-                    &account2
-                ).await.unwrap();
+                client
+                    .init_strategy(&pubkey1, &account1, &pubkey2, &account2)
+                    .await
+                    .unwrap();
                 error!("relayer {} index {}", 1, index);
                 index
             });

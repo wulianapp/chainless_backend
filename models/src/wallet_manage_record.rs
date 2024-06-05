@@ -10,10 +10,10 @@ use std::ops::Deref;
 use tokio_postgres::Row;
 //#[derive(Serialize)]
 use common::data_structures::coin_transaction::CoinSendStage;
+use common::data_structures::secret_store::SecretStore;
 use common::data_structures::SecretKeyState;
 use common::data_structures::TxStatusOnChain;
 use common::data_structures::*;
-use common::data_structures::{secret_store::SecretStore};
 use derive_more::{AsRef, Deref};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
@@ -30,7 +30,7 @@ pub struct WalletManageRecordEntity {
 }
 
 impl WalletManageRecordEntity {
-    pub fn into_inner(self) -> WalletManageRecord{
+    pub fn into_inner(self) -> WalletManageRecord {
         self.record
     }
 }
@@ -199,13 +199,12 @@ impl PsqlOp for WalletManageRecordEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
     use super::*;
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
     use common::log::init_logger;
     use std::env;
     use tokio_postgres::types::ToSql;
 
-    
     #[tokio::test]
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");
@@ -231,8 +230,9 @@ mod tests {
 
         let record_by_find = WalletManageRecordEntity::find_single(
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli
-        ).await
+            &mut db_cli,
+        )
+        .await
         .unwrap();
         println!("{:?}", record_by_find);
 
@@ -241,8 +241,9 @@ mod tests {
         WalletManageRecordEntity::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli
-        ).await
+            &mut db_cli,
+        )
+        .await
         .unwrap();
     }
 }

@@ -6,9 +6,9 @@ use std::fmt;
 use std::fmt::Display;
 use tokio_postgres::Row;
 //#[derive(Serialize)]
+use common::data_structures::secret_store::SecretStore;
 use common::data_structures::SecretKeyState;
 use common::data_structures::*;
-use common::data_structures::{secret_store::SecretStore};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
@@ -23,7 +23,7 @@ pub struct DeviceInfoEntity {
 }
 
 impl DeviceInfoEntity {
-    pub fn into_inner(self) -> DeviceInfo{
+    pub fn into_inner(self) -> DeviceInfo {
         self.device_info
     }
 }
@@ -221,7 +221,6 @@ impl PsqlOp for DeviceInfoEntity {
 #[cfg(test)]
 mod tests {
 
-
     use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 
     use super::*;
@@ -237,11 +236,12 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
-
         let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
         device.insert(&mut db_cli).await.unwrap();
         let mut device_by_find =
-        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1),&mut db_cli).await.unwrap();
+            DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1), &mut db_cli)
+                .await
+                .unwrap();
         println!("{:?}", device_by_find);
         //assert_eq!(device.device_info, device_by_find.device_info);
 
@@ -249,7 +249,9 @@ mod tests {
         DeviceInfoEntity::update(
             DeviceInfoUpdater::State(SecretKeyState::Abandoned),
             DeviceInfoFilter::ByDeviceUser("123", &1),
-            &mut db_cli
-        ).await.unwrap();
+            &mut db_cli,
+        )
+        .await
+        .unwrap();
     }
 }

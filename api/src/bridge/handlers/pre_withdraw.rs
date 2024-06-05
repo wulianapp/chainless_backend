@@ -40,7 +40,7 @@ pub(crate) async fn req(
     request_data: PreWithdrawRequest,
 ) -> BackendRes<(String, String)> {
     println!("__0001_start preWithdraw ");
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (user, current_strategy, device) =
@@ -120,22 +120,22 @@ pub(crate) async fn req(
             .gen_send_money_raw(vec![], &from, &bridge_ca, coin_type, amount, expire_at)
             .await?;
         let order_id = coin_info.transaction.order_id.clone();
-        let coin_tx_raw =  coin_info.transaction.coin_tx_raw.clone();
+        let coin_tx_raw = coin_info.transaction.coin_tx_raw.clone();
 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.receiver = eth_addr;
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((order_id,coin_tx_raw)))
+        Ok(Some((order_id, coin_tx_raw)))
     } else {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         let order_id = coin_info.transaction.order_id.clone();
-        let coin_tx_raw =  coin_info.transaction.coin_tx_raw.clone();
+        let coin_tx_raw = coin_info.transaction.coin_tx_raw.clone();
 
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.receiver = eth_addr;
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((order_id,coin_tx_raw)))
+        Ok(Some((order_id, coin_tx_raw)))
     }
 }

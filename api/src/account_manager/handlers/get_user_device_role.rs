@@ -34,7 +34,8 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?.into_inner();
+    })?
+    .into_inner();
 
     if user.main_account.is_none() {
         return Ok(Some(KeyRole2::Undefined));

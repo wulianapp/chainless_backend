@@ -49,9 +49,11 @@ pub async fn req(
     req: HttpRequest,
     request_data: BalanceListRequest,
 ) -> BackendRes<BalanceListResponse> {
-    let user_id = token_auth::validate_credentials(&req)?;
+    let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?.into_inner();
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+        .await?
+        .into_inner();
 
     let main_account = user_info.main_account.clone();
     let coin_list = get_support_coin_list();
@@ -62,18 +64,17 @@ pub async fn req(
         AccountType::AllSub => {
             if main_account.is_some() {
                 let strategy = mul_cli
-                .get_strategy(&main_account.unwrap())
-                .await?
-                .ok_or(InternalError("11".to_string()))?;
-            strategy
-                .sub_confs
-                .iter()
-                .map(|x| Some(x.0.to_string()))
-                .collect::<Vec<Option<String>>>()
-            }else{
+                    .get_strategy(&main_account.unwrap())
+                    .await?
+                    .ok_or(InternalError("11".to_string()))?;
+                strategy
+                    .sub_confs
+                    .iter()
+                    .map(|x| Some(x.0.to_string()))
+                    .collect::<Vec<Option<String>>>()
+            } else {
                 vec![]
             }
-           
         }
         AccountType::All => {
             let mut all = vec![main_account.clone()];
@@ -112,9 +113,15 @@ pub async fn req(
                 let hold_limit = if index == 0 {
                     None
                 } else {
-                    let strategy = multi_cli.get_strategy(user_info.main_account.as_ref().unwrap()).await?.ok_or("")?;
+                    let strategy = multi_cli
+                        .get_strategy(user_info.main_account.as_ref().unwrap())
+                        .await?
+                        .ok_or("")?;
                     let sub_confs = strategy.sub_confs;
-                    let hold_limit = sub_confs.get(account.as_ref().unwrap()).ok_or("")?.hold_value_limit;
+                    let hold_limit = sub_confs
+                        .get(account.as_ref().unwrap())
+                        .ok_or("")?
+                        .hold_value_limit;
                     Some(raw2display(hold_limit))
                 };
 
@@ -124,7 +131,7 @@ pub async fn req(
             };
             let freezn_amount = if account.is_none() {
                 0
-            }else{
+            } else {
                 super::get_freezn_amount(account.as_ref().unwrap(), &coin, &mut db_cli).await
             };
             let total_balance = parse_str(balance_on_chain)?;

@@ -28,7 +28,7 @@ pub struct ChangeInviteCodeRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?;

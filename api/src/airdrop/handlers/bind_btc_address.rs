@@ -1,6 +1,9 @@
 use actix_web::{web, HttpRequest};
 
-use blockchain::{airdrop::Airdrop, multi_sig::{MultiSig, MultiSigRank}};
+use blockchain::{
+    airdrop::Airdrop,
+    multi_sig::{MultiSig, MultiSigRank},
+};
 use common::{
     btc_crypto::{self},
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
@@ -40,7 +43,7 @@ pub struct BindBtcAddressRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<u8> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
@@ -71,7 +74,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     //todo: get kyc info
     let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();
     let user_info = cli.get_user(&main_account).await?;
-    if user_info.is_some(){
+    if user_info.is_some() {
         Err(AirdropError::AlreadyClaimedDw20)?;
     }
 
@@ -85,7 +88,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
             )
             .await?;
             Some(grade)
-        },
+        }
         BindWay::Indirectly => {
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddress(&btc_address),

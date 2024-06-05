@@ -210,7 +210,7 @@ pub fn gen_some_accounts_with_new_key() -> (
     let receiver_sub_secret = ed25519_key_gen();
 
     let mut sender_master = simulate_sender_master();
-    let random_suffix =     random_num() % 900000 + 100000;
+    let random_suffix = random_num() % 900000 + 100000;
     let sender_account = format!("test{}@gmail.com", random_suffix);
     sender_master.user.contact = sender_account.clone();
     sender_master.wallet = TestWallet {
@@ -222,7 +222,7 @@ pub fn gen_some_accounts_with_new_key() -> (
     };
 
     let mut receiver = simulate_receiver();
-    let random_suffix =     random_num() % 900000 + 100000;
+    let random_suffix = random_num() % 900000 + 100000;
     receiver.user.contact = format!("test{}@gmail.com", random_suffix);
     receiver.wallet = TestWallet {
         main_account: receiver_master_secret.1.clone(),
@@ -257,14 +257,18 @@ pub fn gen_some_accounts_with_new_key() -> (
 }
 
 pub async fn clear_contract() {
-    let cli = blockchain::ContractClient::<MultiSig>::new_update_cli().await.unwrap();
+    let cli = blockchain::ContractClient::<MultiSig>::new_update_cli()
+        .await
+        .unwrap();
     cli.clear_all().await.unwrap();
     //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
     //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
 }
 
 pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
-    let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await.unwrap();
+    let cli = blockchain::ContractClient::<MultiSig>::new_query_cli()
+        .await
+        .unwrap();
     cli.get_tx_state(txs_index).await.unwrap().unwrap()
 }
 

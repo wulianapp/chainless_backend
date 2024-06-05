@@ -36,7 +36,7 @@ pub struct AddServantRequest {
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let AddServantRequest {
         servant_pubkey,
         servant_prikey_encryped_by_password,

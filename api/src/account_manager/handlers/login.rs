@@ -92,14 +92,16 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
-    ).await
+    )
+    .await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?.into_inner();
+    })?
+    .into_inner();
 
     let (is_lock, remain_chance, unlock_time) =
         is_locked(user_info.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
@@ -153,7 +155,8 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?.into_inner();
+    })?
+    .into_inner();
 
     Captcha::check_user_code(&user_info.id.to_string(), &captcha, Usage::Login)?;
 

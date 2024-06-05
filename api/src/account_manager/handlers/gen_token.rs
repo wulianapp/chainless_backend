@@ -11,7 +11,7 @@ use tokio::time::error::Elapsed;
 use crate::utils::token_auth;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials(&req)?;
     let token = crate::utils::token_auth::create_jwt(user_id, &device_id, &device_brand)?;
     Ok(Some(token))
 }

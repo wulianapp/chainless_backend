@@ -1,24 +1,23 @@
-use std::str::{from_utf8, FromStr};
 use common::env::RelayerPool;
 use ed25519_dalek::Sha512;
 use ethers_core::k256::sha2::Sha256;
 use lazy_static::lazy_static;
-
+use std::str::{from_utf8, FromStr};
 
 use common::data_structures::TxStatusOnChain;
 use common::utils::math::hex_to_bs58;
 use near_crypto::{ED25519SecretKey, InMemorySigner, KeyType, PublicKey, SecretKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
 use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
+use near_jsonrpc_client::JsonRpcClient;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::hash::hash;
-use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
+use near_jsonrpc_primitives::types::transactions::TransactionInfo;
 use near_primitives::borsh::BorshDeserialize;
+use near_primitives::hash::hash;
 use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
-use near_jsonrpc_client::JsonRpcClient;
-use near_jsonrpc_primitives::types::transactions::TransactionInfo;
+use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
 
 use hex;
 //use log::debug;
@@ -27,7 +26,7 @@ use tokio::sync::{Mutex, MutexGuard};
 use tracing::{debug, error, warn};
 
 pub struct Relayer {
-    pub derive_index: u16,
+    pub derive_index: u32,
     pub signer: InMemorySigner,
     //pub nonce: u64,
 }
@@ -46,8 +45,8 @@ lazy_static! {
         let mut pool = vec![];
         for derive_index in 1..=derive_size {
             let signer = chainless_sub_signer(&account_id,&seed,derive_index).unwrap();
-            pool.push(Mutex::new(Relayer{ 
-                derive_index, 
+            pool.push(Mutex::new(Relayer{
+                derive_index,
                 signer,
             }));
         }
@@ -72,7 +71,7 @@ pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
     loop {
         match find_idle_relayer() {
             Some(x) => {
-                debug!("find idle relayer {}",x.derive_index);
+                debug!("find idle relayer {}", x.derive_index);
                 return x;
             }
             None => {
@@ -85,25 +84,28 @@ pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
 }
 
 //自定义派生规则,32字节随机值，拼接2字节index，
-pub fn chainless_sub_signer(account_id:&str, seed: &str,index:u16) -> Result<InMemorySigner>{
-    if seed.len() < 64{
+pub fn chainless_sub_signer(account_id: &str, seed: &str, index: u32) -> Result<InMemorySigner> {
+    if seed.len() < 64 {
         return Err(anyhow!("must be more than 64"));
     }
-    let prikey_hex = format!("{}{:04x}",seed,index);
+    let prikey_hex = format!("{}{:04x}", seed, index);
     let hash = hash(prikey_hex.as_bytes()).to_string();
-    let secret_key = SecretKey::from_seed(KeyType::ED25519,&hash);
+    let secret_key = SecretKey::from_seed(KeyType::ED25519, &hash);
     let account_id = AccountId::from_str(account_id)?;
     let signer = near_crypto::InMemorySigner::from_secret_key(account_id, secret_key);
     Ok(signer)
 }
 #[cfg(test)]
 mod tests {
-    use near_crypto::Signer;
-    use near_primitives::{account::{AccessKey, AccessKeyPermission}, action::{Action, AddKeyAction}};
-    use tracing::error;
-    use common::log::init_logger;
-    use crate::relayer::wait_for_idle_relayer;
     use super::*;
+    use crate::relayer::wait_for_idle_relayer;
+    use common::log::init_logger;
+    use near_crypto::Signer;
+    use near_primitives::{
+        account::{AccessKey, AccessKeyPermission},
+        action::{Action, AddKeyAction},
+    };
+    use tracing::error;
 
     #[tokio::test]
     async fn test_relayer_pool() {
@@ -113,7 +115,11 @@ mod tests {
             let handle = tokio::spawn(async move {
                 //tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 1000)).await;
                 let relayer = wait_for_idle_relayer().await;
-                error!("relayer {} index {}", relayer.signer.public_key.to_string(), index);
+                error!(
+                    "relayer {} index {}",
+                    relayer.signer.public_key.to_string(),
+                    index
+                );
                 //tokio::time::sleep(std::time::Duration::from_millis(10000)).await;
                 index
             });
@@ -133,15 +139,15 @@ mod tests {
         //let used_pubkey = PublicKey::from_str("ed25519:CuAL8qaTLg3nMQ3Jz3B2yq6SYCSygGoR2q5nEACHxVyY").unwrap();
         let account_id = AccountId::from_str("local").unwrap();
         let pri_key: SecretKey = "ed25519:3cBasJZvQutzkCV5qv4rF7aikPH3EWMTQM6mGbJnXJ6i9zAcdsaun82WQgzQbxxKmEVTBvS2NJDBeKk23FFb43kd".parse().unwrap();
-        let used_pubkey = PublicKey::from_str("ed25519:9ruaNCMS1BvXfWT6MySeveTXrn2fLekbVCaWwETL18ZP").unwrap();
+        let used_pubkey =
+            PublicKey::from_str("ed25519:9ruaNCMS1BvXfWT6MySeveTXrn2fLekbVCaWwETL18ZP").unwrap();
 
         let seed = "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849";
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id.clone(), pri_key);
-        let derive_size = 100;
         let mut actions = vec![];
-        for index in 1..=derive_size {
-            let key = chainless_sub_signer(&account_id.to_string(),&seed, index).unwrap();
-            println!("key {}",key.public_key.to_string());
+        for index in 10001u32..=100000u32 {
+            let key = chainless_sub_signer(&account_id.to_string(), &seed, index).unwrap();
+            println!("key {}", key.public_key.to_string());
             let add_action = Action::AddKey(Box::new(AddKeyAction {
                 public_key: key.public_key,
                 access_key: AccessKey {
@@ -159,7 +165,8 @@ mod tests {
                 public_key: used_pubkey.clone(),
             },
         })
-        .await.unwrap();    
+        .await
+        .unwrap();
         let current_nonce = match access_key_query_response.kind {
             QueryResponseKind::AccessKey(access_key) => access_key.nonce,
             _ => panic!(),
@@ -176,11 +183,11 @@ mod tests {
         let hash = tx.get_hash_and_size().0.as_bytes().to_owned();
         let _txid = hex::encode(hash);
 
-        let signature = signer.sign(hash.as_slice());//sign(&hash);
+        let signature = signer.sign(hash.as_slice()); //sign(&hash);
 
         let tx = SignedTransaction::new(signature, tx);
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
-                signed_transaction: tx.clone(),
+            signed_transaction: tx.clone(),
         };
         let req = crate::rpc_call(request).await.unwrap();
         let txid2 = req.transaction.hash.to_string();

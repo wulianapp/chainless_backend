@@ -35,12 +35,11 @@ use near_primitives::{
 use relayer::{wait_for_idle_relayer, Relayer};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::json;
-use tokio::sync::MutexGuard;
 use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
+use tokio::sync::MutexGuard;
 use tracing::{debug, error, field::debug, info};
 
 use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
-
 
 lazy_static! {
     //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");
@@ -49,7 +48,7 @@ lazy_static! {
         JsonRpcClient::connect(&common::env::CONF.chain_rpc)
     };
 
-    
+
 
     //static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
 
@@ -79,7 +78,7 @@ where
 pub struct ContractClient<T> {
     pub deployed_at: AccountId,
     //对于query的访问不需要签名，给none
-    pub relayer: Option<MutexGuard<'static,Relayer>>,
+    pub relayer: Option<MutexGuard<'static, Relayer>>,
     phantom: PhantomData<T>,
 }
 
@@ -92,8 +91,8 @@ impl<T> AsRef<InMemorySigner> for ContractClient<T> {
 
 impl<T> Drop for ContractClient<T> {
     fn drop(&mut self) {
-        if let Some(relayer) = self.relayer.as_ref(){
-            debug!("index {} relayer released",relayer.derive_index);
+        if let Some(relayer) = self.relayer.as_ref() {
+            debug!("index {} relayer released", relayer.derive_index);
         }
     }
 }
@@ -107,7 +106,7 @@ impl<T> ContractClient<T> {
             relayer: Some(relayer),
             phantom: Default::default(),
         })
-    } 
+    }
 
     pub async fn gen_cli_without_relayer(contract: &str) -> Result<Self> {
         Ok(Self {
@@ -115,7 +114,7 @@ impl<T> ContractClient<T> {
             relayer: None,
             phantom: Default::default(),
         })
-    }    
+    }
 
     async fn gen_tx(
         &self,
@@ -243,7 +242,9 @@ impl<T> ContractClient<T> {
             )
             .await?;
         //relayer_sign
-        let signature = self.as_ref().sign(transaction.get_hash_and_size().0.as_ref());
+        let signature = self
+            .as_ref()
+            .sign(transaction.get_hash_and_size().0.as_ref());
 
         let tx = SignedTransaction::new(signature, transaction.clone());
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {

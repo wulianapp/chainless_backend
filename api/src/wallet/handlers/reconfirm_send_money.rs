@@ -24,7 +24,7 @@ pub struct ReconfirmSendMoneyRequest {
 
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let ReconfirmSendMoneyRequest {
         order_id,
         confirmed_sig,
@@ -62,7 +62,11 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         ))?;
     }
 
-    if strategy.sub_confs.get(&coin_tx.transaction.receiver).is_some() {
+    if strategy
+        .sub_confs
+        .get(&coin_tx.transaction.receiver)
+        .is_some()
+    {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);
 
         //提前进行签名校验

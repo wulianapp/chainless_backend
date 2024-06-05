@@ -18,7 +18,7 @@ pub fn hex_to_bs58(hex_private_key: &str) -> Result<String, hex::FromHexError> {
     Ok(bs58_string)
 }
 
-pub fn random_num() -> u128{
+pub fn random_num() -> u128 {
     rand::random::<u128>()
 }
 

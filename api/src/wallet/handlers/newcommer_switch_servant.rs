@@ -36,7 +36,7 @@ pub(crate) async fn req(
     request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 

@@ -22,7 +22,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
     //todo: sync tx records after claim
 
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
@@ -32,8 +32,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
-            .await?;
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli).await?;
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli

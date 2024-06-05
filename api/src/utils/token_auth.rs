@@ -58,30 +58,7 @@ fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     .map(|data| data.claims)
 }
 
-pub fn validate_credentials(req: &HttpRequest) -> Result<u32, BackendError> {
-    let auth_header = req
-        .headers()
-        .get(header::AUTHORIZATION)
-        .ok_or(Authorization("No Authorization header".to_string()))?;
-
-    let auth_str = auth_header
-        .to_str()
-        .map_err(|_err| Authorization("Token is invalid".to_string()))?;
-    if auth_str.starts_with("bearer ") || auth_str.starts_with("Bearer ") {
-        let token = &auth_str["bearer ".len()..];
-        let claim_dat = validate_jwt(token)
-            .map_err(|_err| Authorization("Invalid token signature".to_string()))?;
-        if now_millis() > claim_dat.exp {
-            Err(Authorization("Token has expired.".to_string()))?
-        } else {
-            Ok(claim_dat.user_id)
-        }
-    } else {
-        Err(Authorization("Token is invalid or malformed".to_string()))?
-    }
-}
-
-pub fn validate_credentials2(req: &HttpRequest) -> Result<(u32, String, String), BackendError> {
+pub fn validate_credentials(req: &HttpRequest) -> Result<(u32, String, String), BackendError> {
     let auth_header = req
         .headers()
         .get(header::AUTHORIZATION)

@@ -33,7 +33,7 @@ pub struct SubSendToMainRequest {
 
 pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
@@ -48,7 +48,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
         coin: coin_id,
         amount,
     } = request_data;
-    let amount = display2raw(&amount).map_err(|_e|WalletError::UnSupportedPrecision)?;
+    let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
     let coin_type: CoinType = coin_id
         .parse()

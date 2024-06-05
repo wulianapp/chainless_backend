@@ -39,7 +39,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let GenNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         captcha,

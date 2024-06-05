@@ -24,7 +24,7 @@ pub struct CoinTxEntity {
 }
 
 impl CoinTxEntity {
-    pub fn into_inner(self) -> CoinTransaction{
+    pub fn into_inner(self) -> CoinTransaction {
         self.transaction
     }
 }
@@ -320,30 +320,31 @@ mod tests {
             "2.test".to_string(),
             1,
             "".to_string(),
-             None,
-             1715740449000,
-             CoinSendStage::Created);
+            None,
+            1715740449000,
+            CoinSendStage::Created,
+        );
 
-        let order_id =   coin_tx.transaction.order_id.clone();
+        let order_id = coin_tx.transaction.order_id.clone();
         println!("start insert");
         coin_tx.insert(&mut db_cli).await.unwrap();
         println!("start query");
 
-        let _res = CoinTxEntity::find_single(
-            CoinTxFilter::BySenderUncompleted("1.test"),
-            &mut db_cli
-        ).await.unwrap();
+        let _res =
+            CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"), &mut db_cli)
+                .await
+                .unwrap();
         println!("start update");
         CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli
-        ).await.unwrap();
-        let res = CoinTxEntity::find_single(
-            CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli
-        ).await.unwrap();
+            &mut db_cli,
+        )
+        .await
+        .unwrap();
+        let res = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
+            .await
+            .unwrap();
         println!("after update {:?}", res);
-
     }
 }

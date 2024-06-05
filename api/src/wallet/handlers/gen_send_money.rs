@@ -30,7 +30,7 @@ pub struct GenSendMoneyRequest {
 }
 
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
+    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let (_user, current_strategy, device) =
