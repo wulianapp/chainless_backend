@@ -29,11 +29,14 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (_user, current_strategy, device) =
+    let (user, current_strategy, device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
-    let main_account = get_main_account(user_id, &mut db_cli).await?;
+    if !user.kyc_is_verified {
+        Err(AccountManagerError::KYCNotRegister)?;
+    }
+    let main_account = user.main_account.unwrap();
 
     //todo: check if claimed already
     let cli = ContractClient::<Airdrop>::new_update_cli().await?;

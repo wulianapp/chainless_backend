@@ -143,6 +143,8 @@ pub enum AccountManagerError {
     PredecessorNotSetSecurity,
     #[error("ContactAlreadyReplenished")]
     ContactAlreadyReplenished,
+    #[error("KYCNotRegister")]
+    KYCNotRegister,
 }
 
 impl ErrorCode for AccountManagerError {
@@ -162,6 +164,7 @@ impl ErrorCode for AccountManagerError {
             Self::CaptchaUsageNotAllowed => 2015, //todo:params
             Self::PredecessorNotSetSecurity => 2016,
             Self::ContactAlreadyReplenished => 2017,
+            Self::KYCNotRegister => 2018,
         }
     }
 }

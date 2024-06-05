@@ -64,6 +64,12 @@
         "zh_cn": "联系方式已经完整",
         "en_us": "Contacts are already complete"
       },
+	 "2017": {
+        "zh_tw": "尚未進行實名認證",
+        "zh_cn": "尚未进行实名认证",
+        "en_us": "KYC not register"
+      },
+
  
       "3006": {
         "zh_tw": "錢包ID不存在",
@@ -176,9 +182,9 @@
         "en_us": "User has not bound ETH address"
       },
       "5000": {
-        "zh_tw": "不能重复绑定BTC地址",
-        "zh_cn": "不能重復綁定BTC地址",
-        "en_us": "Forbid bind btc address repeatedly"
+        "zh_tw": "進行了申領的賬戶不能重新綁定btc地址",
+        "zh_cn": "进行了申领的账户不能重新绑定btc地址",
+        "en_us": "An account that has been applied for cannot be rebound to a btc address"
       },
       "5001": {
         "zh_tw": "BTC地址已被使用",
