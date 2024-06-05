@@ -56,33 +56,26 @@ pub async fn table_clear(table_name: &str) -> Result<(), String> {
 }
 
 pub async fn init_system_config() -> Result<(), String> {
-    let insert_root_user = "insert into users (id,phone_number,
+    let insert_root_user = "insert into users (
+        id,
+        phone_number,
         email,
-        login_pwd_hash,anwser_indexes,
+        login_pwd_hash,
+        anwser_indexes,
         is_frozen,
-        predecessor,
-        laste_predecessor_replace_time,
-        invite_code,
         kyc_is_verified,
-        secruity_is_seted,
         create_subacc_time,
-        main_account,
-        op_status,
-        reserved_field1,
-        reserved_field2,
-        reserved_field3
-    ) values (10000,'','1@gmail.com','a6666666','',false,NULL,'0','chainless.hk',true,true,ARRAY[]::text[],'10000.local','Idle','','','');";
-    let insert_root_airdrop = "insert into airdrop (user_id,
+        main_account
+    ) values (66,NULL,'1@gmail.com','a6666666','answer123',false,true,ARRAY[]::int[],'66.local');";
+    let insert_root_airdrop = "insert into airdrop (
+        user_id,
         account_id,
         invite_code,
         predecessor_user_id,
         predecessor_account_id,
         btc_address,
-        btc_level,
-        airdrop_reserved_field1,
-        airdrop_reserved_field2,
-        airdrop_reserved_field3
-        ) values ('10000','10000.local','chainless.hk','0','0.local','btc_address_abc',0,'','','');";
+        btc_level
+        ) values (66,'66.local','chainless.hk','0','0.local','btc_address_abc',0);";
     let cli = crate::PG_POOL.get().await.map_err(|e| e.to_string())?;
 
     cli.execute(insert_root_user, &[])

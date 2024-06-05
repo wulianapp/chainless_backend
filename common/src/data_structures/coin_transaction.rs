@@ -62,8 +62,8 @@ pub struct CoinTransaction {
     pub order_id: String,
     pub tx_id: Option<String>,
     pub coin_type: CoinType,
-    pub from: String, //uid
-    pub to: String,   //uid
+    pub sender: String, //uid
+    pub receiver: String, //uid
     pub amount: u128,
     pub expire_at: u64,
     pub memo: Option<String>,
@@ -73,8 +73,7 @@ pub struct CoinTransaction {
     pub signatures: Vec<String>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
-    pub receiver_contact: Option<String>,
-    pub reserved_field3: String,
+    pub receiver_contact: Option<String>
 }
 
 //sub to main

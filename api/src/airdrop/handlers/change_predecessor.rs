@@ -72,7 +72,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
             &predecessor_user_id,
             predecessor_account_id.as_ref().unwrap(),
         ),
-        AirdropFilter::ByUserId(&user_id.to_string()),
+        AirdropFilter::ByUserId(&user_id),
         &mut db_cli,
     )
     .await?;

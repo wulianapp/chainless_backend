@@ -150,11 +150,11 @@ pub async fn get_main_account(
     user_id: u32,
     conn: &mut PgLocalCli<'_>,
 ) -> Result<String, BackendError> {
-    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn).await?;
-    if user.user_info.main_account.eq("") {
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), conn).await?;
+    if user.user_info.main_account.is_none() {
         Err(WalletError::NotSetSecurity)?
     }
-    Ok(user.user_info.main_account)
+    Ok(user.user_info.main_account.unwrap())
 }
 
 //calculate total value for dollar
@@ -205,7 +205,7 @@ pub async fn get_session_state(
     device_id: &str,
     conn: &mut PgLocalCli<'_>,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo), BackendError> {
-    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), conn)
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), conn)
         .await
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
@@ -215,14 +215,14 @@ pub async fn get_session_state(
             }
         })?;
 
-    let main_account = &user.user_info.main_account;
-    if user.user_info.main_account.eq("") {
+    let main_account = user.user_info.main_account.as_ref();
+    if user.user_info.main_account.is_none() {
         Err(WalletError::NotSetSecurity)?
     }
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let current_strategy =
         multi_sig_cli
-            .get_strategy(main_account)
+            .get_strategy(main_account.unwrap())
             .await?
             .ok_or(BackendError::InternalError(
                 "main_account not found".to_string(),
@@ -230,7 +230,7 @@ pub async fn get_session_state(
 
     //注册过的一定有设备信息
     let mut device =
-        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id), conn)
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id), conn)
             .await?;
     device.device_info.key_role =
         get_role(&current_strategy, device.device_info.hold_pubkey.as_deref());

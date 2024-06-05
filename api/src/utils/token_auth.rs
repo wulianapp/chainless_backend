@@ -7,7 +7,6 @@ use common::env::ServiceMode;
 use common::error_code::BackendError::Authorization;
 use common::error_code::{BackendError, BackendRes};
 use common::prelude::*;
-use common::utils::math::gen_random_verify_code;
 use common::utils::time::{now_millis, DAY15, YEAR100};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]

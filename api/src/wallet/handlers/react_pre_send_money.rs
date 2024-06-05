@@ -69,8 +69,8 @@ pub(crate) async fn req(
         let (tx_id, chain_raw_tx) = cli
             .gen_send_money_raw(
                 servant_sigs,
-                &coin_tx.transaction.from,
-                &coin_tx.transaction.to,
+                &coin_tx.transaction.sender,
+                &coin_tx.transaction.receiver,
                 coin_tx.transaction.coin_type,
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,

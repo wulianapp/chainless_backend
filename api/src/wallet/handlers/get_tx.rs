@@ -123,7 +123,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     }
 
     //不从数据库去读
-    let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(user_id), &mut db_cli)
+    let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id), &mut db_cli)
         .await?
         .into_iter()
         .filter(|x| {
@@ -160,7 +160,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         vec![]
     } else if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
-        get_actual_fee(&tx.transaction.from, tx_id)
+        get_actual_fee(&tx.transaction.sender, tx_id)
             .await?
             .into_iter()
             .map(|(fee_coin, amount)| FeesDetailResponse {
@@ -170,7 +170,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             .collect()
     } else {
         let (fee_coin, fee_amount, _balance_enough) = super::estimate_transfer_fee(
-            &tx.transaction.from,
+            &tx.transaction.sender,
             &tx.transaction.coin_type,
             tx.transaction.amount,
         )
@@ -190,15 +190,15 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let to = if let Some(contact) = tx.transaction.receiver_contact {
         contact
     } else {
-        tx.transaction.to.clone()
+        tx.transaction.receiver.clone()
     };
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,
         coin_type: tx.transaction.coin_type,
-        from: tx.transaction.from,
+        from: tx.transaction.sender,
         to,
-        to_account_id: tx.transaction.to,
+        to_account_id: tx.transaction.receiver,
         amount: raw2display(tx.transaction.amount),
         expire_at: tx.transaction.expire_at,
         memo: tx.transaction.memo,

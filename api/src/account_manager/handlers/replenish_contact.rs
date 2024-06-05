@@ -32,11 +32,11 @@ pub async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli)
+    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
     .await?;
     //todo:
     //新设备或者主设备
-    if res.user_info.main_account.ne("") {
+    if res.user_info.main_account.is_some() {
         let (_, current_strategy, device) =
         crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
         let current_role =  crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -50,16 +50,16 @@ pub async fn req(
 
     let UserInfo{email,phone_number,..} = res.user_info;
 
-    if  replenish_contact_type == ContactType::Email && email == "".to_string() {
+    if  replenish_contact_type == ContactType::Email && email.is_none() {
             UserInfoEntity::update_single(
                 UserUpdater::Email(&replenish_contact), 
-                UserFilter::ById(user_id), 
+                UserFilter::ById(&user_id), 
                 &mut db_cli
             ).await?;
-    }else if replenish_contact_type == ContactType::PhoneNumber && phone_number == "".to_string() {
+    }else if replenish_contact_type == ContactType::PhoneNumber && phone_number.is_none() {
         UserInfoEntity::update_single(
             UserUpdater::PhoneNumber(&replenish_contact), 
-            UserFilter::ById(user_id), 
+            UserFilter::ById(&user_id), 
             &mut db_cli
         ).await?;
     }else{

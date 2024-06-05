@@ -47,7 +47,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
     //todo: check sig,
     //todo: get kyc info
     let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id.to_string()), &mut db_cli)
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
             .await?;
     let Airdrop {
         user_id,
@@ -60,10 +60,10 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         ..
     } = user_airdrop.airdrop.clone();
     Ok(Some(AirdropStatusResponse {
-        user_id,
+        user_id: user_id.to_string(),
         account_id,
         invite_code,
-        predecessor_user_id,
+        predecessor_user_id: predecessor_user_id.to_string(),
         predecessor_account_id,
         btc_address,
         btc_level,

@@ -31,8 +31,8 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
-    if user.user_info.main_account.ne("") {
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?;
+    if user.user_info.main_account.is_some() {
         let (_user, current_strategy, device) =
             get_session_state(user_id, &device_id, &mut db_cli).await?;
         let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -52,7 +52,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
 
     AirdropEntity::update_single(
         AirdropUpdater::InviteCode(&code),
-        AirdropFilter::ByUserId(&user_id.to_string()),
+        AirdropFilter::ByUserId(&user_id),
         &mut db_cli,
     )
     .await?;

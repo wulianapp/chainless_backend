@@ -46,7 +46,7 @@ pub(crate) async fn req(
 
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.clone().unwrap();
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
@@ -119,16 +119,17 @@ pub(crate) async fn req(
 
     let need_sig_num = super::get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
 
+
     //转子账户不需要is_forced标志位，本身就是强制的
     let mut coin_info = if need_sig_num == 0 {
         gen_tx_with_status(CoinSendStage::ReceiverApproved)?
     } else {
         gen_tx_with_status(CoinSendStage::Created)?
     };
+    let order_id =   coin_info.transaction.order_id.clone();
+    let coin_tx_raw =   coin_info.transaction.order_id.clone();
+
     coin_info.transaction.tx_type = TxType::MainToSub;
     coin_info.insert(&mut db_cli).await?;
-    Ok(Some((
-        coin_info.transaction.order_id,
-        coin_info.transaction.coin_tx_raw,
-    )))
+    Ok(Some((order_id,coin_tx_raw)))
 }

@@ -24,10 +24,16 @@ pub struct CoinTxEntity {
 }
 
 impl CoinTxEntity {
+    pub fn into_inner(self) -> CoinTransaction{
+        self.transaction
+    }
+}
+
+impl CoinTxEntity {
     pub fn new_with_specified(
         coin_type: CoinType,
-        from: String,
-        to: String,
+        sender: String,
+        receiver: String,
         amount: u128,
         coin_tx_raw: String,
         memo: Option<String>,
@@ -38,8 +44,8 @@ impl CoinTxEntity {
             order_id: generate_random_hex_string(32),
             tx_id: None,
             coin_type,
-            from,
-            to,
+            sender,
+            receiver,
             amount,
             stage,
             coin_tx_raw,
@@ -50,7 +56,6 @@ impl CoinTxEntity {
             tx_type: TxType::Normal,
             chain_status: TxStatusOnChain::NotLaunch,
             receiver_contact: None,
-            reserved_field3: "".to_string(),
         };
         CoinTxEntity {
             transaction: coin_tx,
@@ -178,7 +183,6 @@ impl PsqlOp for CoinTxEntity {
          tx_type,\
          chain_status,\
          receiver_contact,\
-         reserved_field3,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from coin_transaction where {}",
@@ -193,8 +197,8 @@ impl PsqlOp for CoinTxEntity {
                     order_id: row.get(0),
                     tx_id: row.get(1),
                     coin_type: CoinType::from_str(row.get::<usize, &str>(2))?,
-                    from: row.get(3),
-                    to: row.get(4),
+                    sender: row.get(3),
+                    receiver: row.get(4),
                     amount: u128::from_str(row.get::<usize, &str>(5))?,
                     expire_at: row.get::<usize, String>(6).parse()?,
                     memo: row.get(7),
@@ -205,10 +209,9 @@ impl PsqlOp for CoinTxEntity {
                     tx_type: row.get::<usize, &str>(12).parse()?,
                     chain_status: row.get::<usize, &str>(13).parse()?,
                     receiver_contact: row.get::<usize, Option<String>>(14),
-                    reserved_field3: row.get(15),
                 },
-                updated_at: row.get(16),
-                created_at: row.get(17),
+                updated_at: row.get(15),
+                created_at: row.get(16),
             })
         };
         execute_res.iter().map(gen_view).collect()
@@ -230,13 +233,13 @@ impl PsqlOp for CoinTxEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let CoinTransaction {
             order_id,
             tx_id,
             coin_type,
-            from: sender,
-            to: receiver,
+            sender,
+            receiver,
             amount,
             expire_at,
             memo,
@@ -247,8 +250,7 @@ impl PsqlOp for CoinTxEntity {
             tx_type,
             chain_status,
             receiver_contact,
-            reserved_field3,
-        } = self.transaction.clone();
+        } = self.into_inner();
         let tx_id: PsqlType = tx_id.into();
         let chain_raw_data: PsqlType = chain_tx_raw.into();
         let memo: PsqlType = memo.into();
@@ -270,9 +272,8 @@ impl PsqlOp for CoinTxEntity {
          signatures,\
          tx_type,\
          chain_status,\
-         receiver_contact,\
-         reserved_field3\
-         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}',{},'{}');",
+         receiver_contact
+         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}',{});",
             order_id,
             tx_id.to_psql_str(),
             coin_type,
@@ -288,7 +289,6 @@ impl PsqlOp for CoinTxEntity {
             tx_type,
             chain_status,
             receiver_contact.to_psql_str(),
-            reserved_field3,
         );
         println!("row sql {} rows", sql);
 
@@ -301,19 +301,20 @@ impl PsqlOp for CoinTxEntity {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 
     use super::*;
-    use common::data_structures::coin_transaction::CoinTransaction;
+    use common::log::init_logger;
+    use std::env;
+    use tokio_postgres::types::ToSql;
 
-    /***
     #[tokio::test]
-    async fn test_braced_models_coin_tx() {
-
+    async fn test_db_coin_transfer() {
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear().await;
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
-        let coin_tx = CoinTxView::new_with_specified(
+        let coin_tx = CoinTxEntity::new_with_specified(
             CoinType::BTC,
             "1.test".to_string(),
             "2.test".to_string(),
@@ -323,19 +324,26 @@ mod tests {
              1715740449000,
              CoinSendStage::Created);
 
+        let order_id =   coin_tx.transaction.order_id.clone();
         println!("start insert");
-        coin_tx.insert().await.unwrap();
+        coin_tx.insert(&mut db_cli).await.unwrap();
         println!("start query");
 
-        let _res = CoinTxView::find_single(CoinTxFilter::BySenderUncompleted("1.test")).await.unwrap();
-        println!("start update");
-        CoinTxView::update_single(
-            CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
-            CoinTxFilter::ByOrderId(&coin_tx.transaction.order_id),
+        let _res = CoinTxEntity::find_single(
+            CoinTxFilter::BySenderUncompleted("1.test"),
+            &mut db_cli
         ).await.unwrap();
-        let res = CoinTxView::find_single(CoinTxFilter::ByOrderId(&coin_tx.transaction.order_id)).await.unwrap();
+        println!("start update");
+        CoinTxEntity::update_single(
+            CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
+            CoinTxFilter::ByOrderId(&order_id),
+            &mut db_cli
+        ).await.unwrap();
+        let res = CoinTxEntity::find_single(
+            CoinTxFilter::ByOrderId(&order_id),
+            &mut db_cli
+        ).await.unwrap();
         println!("after update {:?}", res);
 
     }
-    **/
 }

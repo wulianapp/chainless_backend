@@ -22,6 +22,12 @@ pub struct DeviceInfoEntity {
     pub created_at: String,
 }
 
+impl DeviceInfoEntity {
+    pub fn into_inner(self) -> DeviceInfo{
+        self.device_info
+    }
+}
+
 #[derive(Debug)]
 pub enum DeviceInfoUpdater<'a> {
     State(SecretKeyState),
@@ -69,8 +75,9 @@ impl fmt::Display for DeviceInfoUpdater<'_> {
 
 #[derive(Clone, Debug)]
 pub enum DeviceInfoFilter<'b> {
-    ByUser(u32),
-    ByDeviceUser(&'b str, u32),
+    ByUser(&'b u32),
+    /// device_id,user_id
+    ByDeviceUser(&'b str, &'b u32),
     ByUserDeviceHoldSecret(u32, &'b str, bool),
     ByHoldKey(&'b str),
     ByDeviceContact(&'b str, &'b str),
@@ -145,7 +152,7 @@ impl PsqlOp for DeviceInfoEntity {
             Ok(DeviceInfoEntity {
                 device_info: DeviceInfo {
                     id: row.get(0),
-                    user_id: row.get::<usize, i32>(1) as u32,
+                    user_id: row.get::<usize, i64>(1) as u32,
                     state: row.get::<usize, String>(2).parse()?,
                     hold_pubkey: row.get(3),
                     brand: row.get(4),
@@ -175,7 +182,7 @@ impl PsqlOp for DeviceInfoEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let DeviceInfo {
             id,
             user_id,
@@ -184,7 +191,7 @@ impl PsqlOp for DeviceInfoEntity {
             brand: device_type,
             holder_confirm_saved,
             key_role,
-        } = &self.device_info;
+        } = self.into_inner();
         let hold_pubkey: PsqlType = hold_pubkey.to_owned().into();
 
         let sql = format!(
@@ -214,30 +221,35 @@ impl PsqlOp for DeviceInfoEntity {
 #[cfg(test)]
 mod tests {
 
+
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+
     use super::*;
     use common::log::init_logger;
     use std::env;
+    use tokio_postgres::types::ToSql;
 
-    /***
     #[tokio::test]
     async fn test_db_device_info() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
 
-        crate::general::table_all_clear();
+        crate::general::table_all_clear().await;
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
-        let device = DeviceInfoView::new_with_specified("123", "Huawei", 1);
-        device.insert().await.unwrap();
+
+        let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
+        device.insert(&mut db_cli).await.unwrap();
         let mut device_by_find =
-            DeviceInfoView::find_single(DeviceInfoFilter::ByDeviceUser("123", 1)).await.unwrap();
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1),&mut db_cli).await.unwrap();
         println!("{:?}", device_by_find);
-        assert_eq!(device.device_info, device_by_find.device_info);
+        //assert_eq!(device.device_info, device_by_find.device_info);
 
         device_by_find.device_info.user_id = 2;
-        DeviceInfoView::update(
+        DeviceInfoEntity::update(
             DeviceInfoUpdater::State(SecretKeyState::Abandoned),
-            DeviceInfoFilter::ByDeviceUser("123", 1),
+            DeviceInfoFilter::ByDeviceUser("123", &1),
+            &mut db_cli
         ).await.unwrap();
     }
-    **/
 }

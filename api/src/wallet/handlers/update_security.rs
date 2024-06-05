@@ -45,7 +45,7 @@ pub(crate) async fn req(
 
     let (user_info, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user_info.main_account;
+    let main_account = user_info.main_account.clone().unwrap();
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -59,7 +59,7 @@ pub(crate) async fn req(
 
     UserInfoEntity::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),
-        UserFilter::ById(user_id),
+        UserFilter::ById(&user_id),
         &mut db_cli,
     )
     .await?;

@@ -2,51 +2,25 @@
 create table if not exists users
 (
     --用户id,目前是直接自增
-    id serial  primary key, 
-    phone_number text collate pg_catalog."default" not null,
-    email text collate pg_catalog."default" not null,
+    id bigserial  primary key, 
+    phone_number text,
+    email text,
     --登陆密码
-    login_pwd_hash text collate pg_catalog."default" not null,
+    login_pwd_hash text not null,
     -- 安全问答序列号
-    anwser_indexes text collate pg_catalog."default" not null,
+    anwser_indexes text not null,
     -- 是否冻结，暂时没有对应的详细需求
     is_frozen bool,
-    -- 不关注，待废弃
-    predecessor int,
-    -- 不关注，待废弃
-    laste_predecessor_replace_time text,
-    -- 不关注，待废弃
-    invite_code text collate pg_catalog."default" not null,
     -- kyc的预留字段，不确定是否需要
     kyc_is_verified bool,
-    -- 不关注，待废弃
-    secruity_is_seted bool,
     -- 最近三次创建子账户的时间戳，对应每天只能创建三个子账户的需求
-    create_subacc_time text[],
+    create_subacc_time bigint[],
     -- 无链钱包id
-    main_account text not null,
-    -- 不关注，待废弃 
-    op_status text not null,
-    -- 不关注，待废弃
-    reserved_field1 text not null,
-    reserved_field2 text not null,
-    reserved_field3 text not null,
-    constraint users_invite_code_key unique (invite_code),
+    main_account text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );
 
---tablespace pg_default;
---comment on table users is '用户';
-comment on column users.id is '用户 id';
-comment on column users.phone_number is '手机号';
-comment on column users.email is '邮箱';
-comment on column users.pwd_hash is '密码 hash';
-comment on column users.created_at is '创建时间';
-comment on column users.status is '状态，0=正常，1=已冻结';
-comment on column users.predecessor is '邀请人';
-comment on column users.verified is 'true=已实名';
-comment on column users.invite_code is '邀请码';
 
 -- index: ix_users_email
 create index if not exists ix_users_email
@@ -58,7 +32,7 @@ create index if not exists ix_users_phone
     on users using btree
     (phone_number collate pg_catalog."default" asc nulls last)
     tablespace pg_default;
-ALTER TABLE users ALTER COLUMN invite_code SET DEFAULT currval('users_id_seq');
+--ALTER TABLE users ALTER COLUMN invite_code SET DEFAULT currval('users_id_seq');
 
 
 create table coin_transaction(
@@ -92,7 +66,6 @@ create table coin_transaction(
      chain_status text not null,
      -- 接收者的联系方式，对应要显示用户是通过哪个联系方式发起的需求
      receiver_contact text,
-     reserved_field3 text not null,
      updated_at  timestamp with time zone default current_timestamp,
      created_at  timestamp with time zone default current_timestamp
 );
@@ -107,7 +80,7 @@ create table secret_store
     -- 密钥的使用状态，Sitting,Deprecated,
     state text,
     -- 用户id
-    user_id int,
+    user_id bigserial,
     -- 被安全密码加密的密钥
     encrypted_prikey_by_password text,
     -- 被安全问答加密的密钥
@@ -122,7 +95,7 @@ create table device_info
     -- 设备id
     id text,
     -- 用户id
-    user_id int,
+    user_id bigserial,
     -- 待废弃
     state text,
     -- 用户+设备对应持有的公钥
@@ -145,7 +118,7 @@ create table wallet_manage_record
     --记录id
     record_id text primary key,
     --用户id
-    user_id text,
+    user_id bigserial,
     --操作类型
     operation_type text,
     --使用了哪个key操作的
@@ -180,7 +153,6 @@ create table ethereum_bridge_order
     status text,
     -- 相应业务的eth高度
     height bigint,
-    reserved_field3 text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp,
     --考虑到回滚的情况，唯一限制的时候加上状态
@@ -191,22 +163,19 @@ create table ethereum_bridge_order
 create table airdrop
 (
     -- 用户id
-    user_id text primary key,
+    user_id bigserial primary key,
     -- 用户钱包id
     account_id text unique,
     -- 用户邀请码
     invite_code text not null unique,
     -- 上级用户id
-    predecessor_user_id text not null,
+    predecessor_user_id bigserial not null,
     -- 上级钱包id
-    predecessor_account_id text,
+    predecessor_account_id text not null,
     -- btc地址
     btc_address text unique,
     -- btc登记
     btc_level smallint,
-    airdrop_reserved_field1 text,
-    airdrop_reserved_field2 text,
-    airdrop_reserved_field3 text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );

@@ -23,7 +23,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let mut db_cli = get_pg_pool_connect().await?;
     let (user, _current_strategy, _device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.unwrap();
 
     let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
 

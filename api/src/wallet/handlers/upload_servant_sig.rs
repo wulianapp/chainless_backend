@@ -85,7 +85,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_update_cli().await?;
 
     let strategy = multi_cli
-        .get_strategy(&tx.transaction.from)
+        .get_strategy(&tx.transaction.sender)
         .await?
         .ok_or("from not found")?;
 
@@ -123,8 +123,8 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
             let (tx_id, chain_tx_raw) = cli
                 .gen_send_money_raw(
                     servant_sigs,
-                    &tx.transaction.from,
-                    &tx.transaction.to,
+                    &tx.transaction.sender,
+                    &tx.transaction.receiver,
                     tx.transaction.coin_type,
                     tx.transaction.amount,
                     tx.transaction.expire_at,

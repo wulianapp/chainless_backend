@@ -32,7 +32,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let main_account = get_main_account(user_id, &mut db_cli).await?;
 
     let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id.to_string()), &mut db_cli)
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
             .await?;
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;

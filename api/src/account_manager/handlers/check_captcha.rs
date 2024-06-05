@@ -40,7 +40,7 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
                 } else {
                     BackendError::InternalError(e.to_string())
                 }
-            })?;
+            })?.into_inner();
             Captcha::check_user_code2(&user.id.to_string(), &captcha, kind)
         }
     };

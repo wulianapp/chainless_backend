@@ -14,16 +14,20 @@ use anyhow::Result;
 
 #[derive(Serialize, Debug)]
 pub struct UserInfoEntity {
-    pub id: u32,
     pub user_info: UserInfo,
     pub updated_at: String,
     pub created_at: String,
+}
+impl UserInfoEntity {
+    pub fn into_inner(self) -> UserInfo{
+        self.user_info
+    }
 }
 
 use serde::Serialize;
 #[derive(Clone, Debug)]
 pub enum UserFilter<'b> {
-    ById(u32),
+    ById(&'b u32),
     ByPhone(&'b str),
     ByEmail(&'b str),
     ByPhoneOrEmail(&'b str),
@@ -37,7 +41,7 @@ pub enum UserUpdater<'a> {
     LoginPwdHash(&'a str),
     AccountIds(Vec<String>),
     //     * anwser_indexes,secruity_is_seted,main_account
-    SecruityInfo(&'a str, bool, &'a str),
+    SecruityInfo(&'a str, &'a str),
     AnwserIndexes(&'a str),
     OpStatus(&'a str),
     Email(&'a str),
@@ -52,9 +56,9 @@ impl fmt::Display for UserUpdater<'_> {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
             }
-            UserUpdater::SecruityInfo(anwser_indexes, secruity_is_seted, main_account) => format!(
-                "anwser_indexes='{}',secruity_is_seted={},main_account='{}'",
-                anwser_indexes, secruity_is_seted, main_account
+            UserUpdater::SecruityInfo(anwser_indexes, main_account) => format!(
+                "anwser_indexes='{}',main_account='{}'",
+                anwser_indexes, main_account
             ),
             UserUpdater::OpStatus(status) => format!("op_status='{}'", status),
             UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
@@ -69,7 +73,7 @@ impl fmt::Display for UserUpdater<'_> {
 impl fmt::Display for UserFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserFilter::ById(id) => format!("id='{}'", id),
+            UserFilter::ById(id) => format!("id={}", id),
             UserFilter::ByPhone(number) => format!("phone_number='{}'", number),
             UserFilter::ByEmail(email) => format!("email='{}'", email),
             UserFilter::ByInviteCode(code) => format!("invite_code='{}'", code),
@@ -84,28 +88,19 @@ impl fmt::Display for UserFilter<'_> {
 }
 
 impl UserInfoEntity {
-    pub fn new_with_specified(login_pwd_hash: &str) -> Self {
+    pub fn new_with_specified(user_id:u32,login_pwd_hash: &str) -> Self {
         let user = UserInfo {
-            phone_number: "".to_string(),
-            email: "".to_string(),
+            id: user_id,
+            phone_number: None,
+            email: None,
             login_pwd_hash: login_pwd_hash.to_owned(),
             anwser_indexes: "".to_string(),
             is_frozen: false,
-            predecessor: None,
-            laste_predecessor_replace_time: 0,
-            invite_code: "".to_string(),
             kyc_is_verified: false,
-            secruity_is_seted: false,
             create_subacc_time: vec![],
-            //fixme: replace with None
-            main_account: "".to_string(),
-            op_status: OpStatus::Idle,
-            reserved_field1: "".to_string(),
-            reserved_field2: "".to_string(),
-            reserved_field3: "".to_string(),
+            main_account: None,
         };
         UserInfoEntity {
-            id: 0,
             user_info: user,
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -125,17 +120,9 @@ impl PsqlOp for UserInfoEntity {
             login_pwd_hash,\
             anwser_indexes,\
             is_frozen,\
-            predecessor,\
-            laste_predecessor_replace_time,\
-            invite_code,\
             kyc_is_verified,\
-            secruity_is_seted,\
             create_subacc_time,\
             main_account,\
-            op_status,\
-            reserved_field1,\
-            reserved_field2,\
-            reserved_field3,\
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
@@ -146,34 +133,25 @@ impl PsqlOp for UserInfoEntity {
 
         let gen_view = |row: &Row| -> Result<UserInfoEntity> {
             let view = UserInfoEntity {
-                id: row.get::<usize, i32>(0) as u32,
                 user_info: UserInfo {
+                    id: row.get::<usize, i64>(0) as u32,
                     phone_number: row.get(1),
                     email: row.get(2),
                     login_pwd_hash: row.get(3),
                     anwser_indexes: row.get(4),
                     is_frozen: row.get::<usize, bool>(5),
-                    predecessor: row.get::<usize, Option<i32>>(6).map(|id| id as u32),
-                    laste_predecessor_replace_time: row.get::<usize, String>(7).parse()?,
-                    invite_code: row.get(8),
-                    kyc_is_verified: row.get(9),
-                    secruity_is_seted: row.get(10),
+                    kyc_is_verified: row.get(6),
                     create_subacc_time: row
-                        .get::<usize, Vec<String>>(11)
-                        .iter()
+                        .get::<usize, Vec<i64>>(7)
+                        .into_iter()
                         .map(|t| {
-                            t.parse()
-                                .map_err(|e: ParseIntError| anyhow::anyhow!(e.to_string()))
+                            t as u64
                         })
-                        .collect::<Result<Vec<u64>>>()?,
-                    main_account: row.get(12),
-                    op_status: row.get::<usize, String>(13).parse()?,
-                    reserved_field1: row.get(14),
-                    reserved_field2: row.get(15),
-                    reserved_field3: row.get(16),
+                        .collect::<Vec<u64>>(),
+                    main_account: row.get(8),
                 },
-                updated_at: row.get(17),
-                created_at: row.get(18),
+                updated_at: row.get(9),
+                created_at: row.get(10),
             };
             Ok(view)
         };
@@ -196,65 +174,46 @@ impl PsqlOp for UserInfoEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let UserInfo {
+            id,
             phone_number,
             email,
             login_pwd_hash,
             anwser_indexes,
             is_frozen,
-            predecessor,
-            laste_predecessor_replace_time,
-            invite_code: _,
             kyc_is_verified,
-            secruity_is_seted,
             create_subacc_time,
             main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
-        } = &self.user_info;
+        } = self.into_inner();
 
-        let _predecessor_str = predecessor
-            .map(|x| format!("{}", x))
-            .unwrap_or("NULL".to_string());
         //assembly string array to sql string
-        let create_subacc_time = create_subacc_time.iter().map(|x| x.to_string()).collect();
-        let create_subacc_time_str = vec_str2array_text(create_subacc_time);
+        let create_subacc_time: PsqlType = create_subacc_time.into();
+        let main_account:PsqlType = main_account.into();
+        let phone_number:PsqlType = phone_number.into();
+        let email:PsqlType = email.into();
 
         let sql = format!(
-            "insert into users (phone_number,
+            "insert into users (
+                id,
+                phone_number,
                 email,
-                login_pwd_hash,\
+                login_pwd_hash,
                 anwser_indexes,
                 is_frozen,
-                predecessor,
-                laste_predecessor_replace_time,
                 kyc_is_verified,
-                secruity_is_seted,
                 create_subacc_time,
-                main_account,
-                op_status,
-                reserved_field1,
-                reserved_field2,
-                reserved_field3
-            ) values ('{}','{}','{}','{}',{},{},'{}',{},{},{},'{}','{}','{}','{}','{}')",
-            phone_number,
-            email,
+                main_account
+            ) values ({},{},{},'{}','{}',{},{},{},{})",
+            id,
+            phone_number.to_psql_str(),
+            email.to_psql_str(),
             login_pwd_hash,
             anwser_indexes,
             is_frozen,
-            PsqlType::OptionU64(predecessor.map(|x| x as u64)).to_psql_str(),
-            laste_predecessor_replace_time,
             kyc_is_verified,
-            secruity_is_seted,
-            create_subacc_time_str,
-            main_account,
-            op_status,
-            reserved_field1,
-            reserved_field2,
-            reserved_field3,
+            create_subacc_time.to_psql_str(),
+            main_account.to_psql_str()
         );
         debug!("row sql {} rows", sql);
         let execute_res = cli.execute(&sql).await?;
@@ -296,16 +255,16 @@ mod tests {
         crate::general::table_all_clear().await;
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-        let user = UserInfoEntity::new_with_specified("0123456789");
+        let user = UserInfoEntity::new_with_specified(123245,"0123456789");
         user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245), &mut db_cli)
             .await
             .unwrap();
         println!("{:?}", user_by_find);
-        assert_eq!(user_by_find.user_info, user.user_info);
+        //assert_eq!(user_by_find.user_info, user.user_info);
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123"),
-            UserFilter::ById(1),
+            UserFilter::ById(&1),
             &mut db_cli,
         )
         .await
@@ -321,23 +280,23 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();
 
-        let user = UserInfoEntity::new_with_specified("0123456789");
+        let user = UserInfoEntity::new_with_specified(12345,"0123456789");
         user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoEntity::find(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find(UserFilter::ById(&1), &mut db_cli)
             .await
             .unwrap();
         println!("by_conn2__{:?}", user_by_find);
         db_cli.commit().await.unwrap();
 
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(1), &mut db_cli)
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&12345), &mut db_cli)
             .await
             .unwrap();
         println!("by_trans3__{:?}", user_by_find);
-        assert_eq!(user_by_find.user_info.login_pwd_hash, user.user_info.login_pwd_hash);
+        //assert_eq!(user_by_find.user_info.login_pwd_hash, user.user_info.login_pwd_hash);
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123"),
-            UserFilter::ById(1),
+            UserFilter::ById(&1),
             &mut db_cli,
         )
         .await

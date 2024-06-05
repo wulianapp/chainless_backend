@@ -62,7 +62,7 @@ pub(crate) async fn req(
     //todo: 检查防止用servantA的token操作servantB进行switch
     //外部注入和token解析结果对比
     let servant_pubkey = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?
@@ -96,7 +96,7 @@ pub(crate) async fn req(
         //更新设备信息
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
-            DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+            DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
             &mut db_cli,
         )
         .await?;
@@ -159,7 +159,7 @@ pub(crate) async fn req(
         //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
         //从一开始就记录的话、状态管理太多
         let record = WalletManageRecordEntity::new_with_specified(
-            &user_id.to_string(),
+            user_id,
             WalletOperateType::NewcomerSwitchMaster,
             &device.hold_pubkey.ok_or("")?,
             &device.id,

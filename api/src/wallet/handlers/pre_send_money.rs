@@ -63,6 +63,7 @@ pub(crate) async fn req(
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
 
+    //todo:    
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
         let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
             .await
@@ -72,12 +73,12 @@ pub(crate) async fn req(
                 } else {
                     BackendError::InternalError(err.to_string())
                 }
-            })?;
+            })?.into_inner();
 
-        if !receiver.user_info.secruity_is_seted {
+        if receiver.main_account.is_none() {
             Err(WalletError::ReceiverNotSetSecurity)?;
         }
-        (receiver.user_info.main_account, Some(to))
+        (receiver.main_account.unwrap(), Some(to))
     } else {
         let _receiver = UserInfoEntity::find_single(UserFilter::ByMainAccount(&to), &mut db_cli)
             .await
@@ -90,14 +91,14 @@ pub(crate) async fn req(
             })?;
         (to, None)
     };
-    if to_account_id == user.main_account {
+    if to_account_id == user.main_account.clone().unwrap() {
         Err(WalletError::ForbideTransferSelf)?
     }
 
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
 
-    let from = user.main_account.clone();
+    let from = user.main_account.clone().unwrap();
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
     let available_balance = super::get_available_amount(&from, &coin_type, &mut db_cli).await?;
@@ -162,31 +163,34 @@ pub(crate) async fn req(
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
-
+        let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((coin_info.transaction.order_id, Some(tx_id))))
+        Ok(Some((order_id, Some(tx_id))))
     } else if need_sig_num == 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
+        let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((coin_info.transaction.order_id, None)))
+        Ok(Some((order_id, None)))
     } else if need_sig_num != 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
+        let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((coin_info.transaction.order_id, None)))
+        Ok(Some((order_id, None)))
     } else if need_sig_num != 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         if to_contact.is_some() {
             coin_info.transaction.receiver_contact = to_contact;
         }
+        let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((coin_info.transaction.order_id, None)))
+        Ok(Some((order_id, None)))
     } else {
         unreachable!("all case is considered")
     }

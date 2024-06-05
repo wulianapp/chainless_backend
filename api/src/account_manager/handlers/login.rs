@@ -89,46 +89,45 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoEntity::find_single(
+    let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
-    )
-    .await
+    ).await
     .map_err(|e| {
         if e.to_string().contains("DBError::DataNotFound") {
             AccountManagerError::PhoneOrEmailNotRegister.into()
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?;
+    })?.into_inner();
 
     let (is_lock, remain_chance, unlock_time) =
-        is_locked(user_at_stored.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
+        is_locked(user_info.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
     if is_lock {
         Err(AccountLocked(unlock_time))?;
     }
 
-    if password != user_at_stored.user_info.login_pwd_hash {
-        record_once_retry(user_at_stored.id)?;
+    if password != user_info.login_pwd_hash {
+        record_once_retry(user_info.id)?;
         Err(PasswordIncorrect(remain_chance))?;
     } else {
         let retry_storage = &mut LOGIN_RETRY
             .lock()
             .map_err(|e| BackendError::InternalError(e.to_string()))?;
 
-        let _ = retry_storage.remove(&user_at_stored.id);
+        let _ = retry_storage.remove(&user_info.id);
     }
 
-    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
     device
         .safe_insert(
-            DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
             &mut db_cli,
         )
         .await?;
 
     //generate auth token
-    let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
+    let token = token_auth::create_jwt(user_info.id, &device_id, &device_brand)?;
     Ok(Some(token))
 }
 
@@ -143,7 +142,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoEntity::find_single(
+    let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
     )
@@ -154,25 +153,25 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?;
+    })?.into_inner();
 
-    Captcha::check_user_code(&user_at_stored.id.to_string(), &captcha, Usage::Login)?;
+    Captcha::check_user_code(&user_info.id.to_string(), &captcha, Usage::Login)?;
 
-    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_at_stored.id);
+    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
     device
         .safe_insert(
-            DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
             &mut db_cli,
         )
         .await?;
 
     //generate auth token
-    let token = token_auth::create_jwt(user_at_stored.id, &device_id, &device_brand)?;
+    let token = token_auth::create_jwt(user_info.id, &device_id, &device_brand)?;
     //成功登陆删掉错误密码的限制
     let retry_storage = &mut LOGIN_RETRY
         .lock()
         .map_err(|e| BackendError::InternalError(e.to_string()))?;
 
-    let _ = retry_storage.remove(&user_at_stored.id);
+    let _ = retry_storage.remove(&user_info.id);
     Ok(Some(token))
 }

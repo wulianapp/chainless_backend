@@ -1,12 +1,11 @@
 pub mod email;
-pub mod phone;
 pub mod sms;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 
 use common::error_code::{AccountManagerError, BackendError};
-use common::utils::math::gen_random_verify_code;
+use common::utils::math::{random_num};
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 use tracing::debug;
@@ -128,6 +127,10 @@ pub fn get_captcha(user: &str, kind: &Usage) -> Result<Option<Captcha>, BackendE
     Ok(value)
 }
 
+pub fn gen_random_verify_code() -> String {
+    (random_num() % 900000 + 100000).to_string()
+}
+
 #[derive(Debug, Clone)]
 pub struct Captcha {
     //email address or phone number
@@ -164,7 +167,7 @@ pub fn distill_code_from_contact(contact: &str) -> String {
 
 impl Captcha {
     pub fn new(user: String, device_id: String, kind: Usage) -> Self {
-        let code = gen_random_verify_code().to_string();
+        let code = gen_random_verify_code();
         let now = now_millis();
         Captcha {
             owner: user,

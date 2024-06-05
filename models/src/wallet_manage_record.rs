@@ -29,6 +29,12 @@ pub struct WalletManageRecordEntity {
     pub created_at: String,
 }
 
+impl WalletManageRecordEntity {
+    pub fn into_inner(self) -> WalletManageRecord{
+        self.record
+    }
+}
+
 #[derive(Debug)]
 pub enum WalletManageRecordUpdater<'a> {
     TxIds(&'a Vec<String>),
@@ -70,7 +76,7 @@ impl fmt::Display for WalletManageRecordFilter<'_> {
 
 impl WalletManageRecordEntity {
     pub fn new_with_specified(
-        user_id: &str,
+        user_id: u32,
         operation_type: WalletOperateType,
         operator_pubkey: &str,
         operator_device_id: &str,
@@ -80,7 +86,7 @@ impl WalletManageRecordEntity {
         WalletManageRecordEntity {
             record: WalletManageRecord {
                 record_id: generate_random_hex_string(64),
-                user_id: user_id.to_string(),
+                user_id,
                 operation_type,
                 operator_pubkey: operator_pubkey.to_string(),
                 operator_device_id: operator_device_id.to_string(),
@@ -122,7 +128,7 @@ impl PsqlOp for WalletManageRecordEntity {
             Ok(WalletManageRecordEntity {
                 record: WalletManageRecord {
                     record_id: row.get(0),
-                    user_id: row.get(1),
+                    user_id: row.get::<usize, i64>(1) as u32,
                     operation_type: row.get::<usize, String>(2).parse()?,
                     operator_pubkey: row.get(3),
                     operator_device_id: row.get(4),
@@ -153,7 +159,7 @@ impl PsqlOp for WalletManageRecordEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let WalletManageRecord {
             record_id,
             user_id,
@@ -163,7 +169,7 @@ impl PsqlOp for WalletManageRecordEntity {
             operator_device_brand,
             tx_ids,
             status,
-        } = self.record.clone();
+        } = self.into_inner();
         let sql = format!(
             "insert into wallet_manage_record (\
                 record_id,\
@@ -193,19 +199,24 @@ impl PsqlOp for WalletManageRecordEntity {
 #[cfg(test)]
 mod tests {
 
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
     use super::*;
-    use common::{data_structures::wallet_namage_record::WalletOperateType, log::init_logger};
+    use common::log::init_logger;
     use std::env;
+    use tokio_postgres::types::ToSql;
 
-    /***
+    
     #[tokio::test]
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
-        crate::general::table_all_clear();
+        crate::general::table_all_clear().await;
 
-        let record = WalletManageRecordView::new_with_specified(
-            "123",
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut db_cli = db_cli.begin().await.unwrap();
+
+        let record = WalletManageRecordEntity::new_with_specified(
+            123,
             WalletOperateType::AddServant,
             "11111",
             "apple_device_id",
@@ -215,21 +226,23 @@ mod tests {
                 "6sXahQSvCNkj7Y3uRhVcGHD1BPZcAHVtircBUj7L9NhY".to_string(),
             ],
         );
-        record.insert().await.unwrap();
+        let record_id = record.record.record_id.clone();
+        record.insert(&mut db_cli).await.unwrap();
 
-        let record_by_find = WalletManageRecordView::find_single(
-            WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id),
+        let record_by_find = WalletManageRecordEntity::find_single(
+            WalletManageRecordFilter::ByRecordId(&record_id),
+            &mut db_cli
         ).await
         .unwrap();
         println!("{:?}", record_by_find);
 
         // assert_eq!(record..record_id device_by_find.record);
 
-        WalletManageRecordView::update(
+        WalletManageRecordEntity::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
-            WalletManageRecordFilter::ByRecordId(&record.as_ref().record_id),
+            WalletManageRecordFilter::ByRecordId(&record_id),
+            &mut db_cli
         ).await
         .unwrap();
     }
-    **/
 }

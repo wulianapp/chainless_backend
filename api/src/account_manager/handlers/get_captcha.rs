@@ -104,7 +104,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let find_user_res =
+            let user_info =
                 UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
                     .await
                     .map_err(|err| {
@@ -113,12 +113,12 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                         } else {
                             BackendError::InternalError(err.to_string())
                         }
-                    })?;
-            let user_id = find_user_res.id;
+                    })?.into_inner();
+            let user_id = user_info.id;
 
-            if find_user_res.user_info.secruity_is_seted {
+            if user_info.main_account.is_some() {
                 let find_device_res = DeviceInfoEntity::find_single(
-                    DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+                    DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
                     &mut db_cli,
                 )
                 .await;
@@ -140,7 +140,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                 }
             }
 
-            get(device_id, contact, kind, Some(find_user_res.id))
+            get(device_id, contact, kind, Some(user_info.id))
         }
         Register => {
             let find_res =
@@ -155,7 +155,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
                 .await
             {
-                Ok(info) => get(device_id, contact, kind, Some(info.id)),
+                Ok(info) => get(device_id, contact, kind, Some(info.into_inner().id)),
                 Err(err) => {
                     if err.to_string().contains("DBError::DataNotFound") {
                         Err(AccountManagerError::PhoneOrEmailNotRegister)?
@@ -182,47 +182,48 @@ pub async fn with_token_req(
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let mut db_cli = get_pg_pool_connect().await?;
     let user =
-        UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
+        UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?.into_inner();
     let device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
-    .await?;
+    .await?
+    .into_inner();
 
     match kind {
         ResetLoginPassword | Register | Login => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }
         SetSecurity | UpdateSecurity | ReplenishContact => {
-            if user.user_info.secruity_is_seted {
-                if device.device_info.key_role != KeyRole2::Master {
+            if user.main_account.is_some() {
+                if device.key_role != KeyRole2::Master {
                     Err(WalletError::UneligiableRole(
-                        device.device_info.key_role,
+                        device.key_role,
                         KeyRole2::Master,
                     ))?;
                 }
             } else {
                 //may be unnecessary
-                if device.device_info.key_role != KeyRole2::Undefined {
+                if device.key_role != KeyRole2::Undefined {
                     Err(WalletError::UneligiableRole(
-                        device.device_info.key_role,
+                        device.key_role,
                         KeyRole2::Undefined,
                     ))?;
                 }
             }
         }
         NewcomerSwitchMaster => {
-            if device.device_info.key_role != KeyRole2::Undefined {
+            if device.key_role != KeyRole2::Undefined {
                 Err(WalletError::UneligiableRole(
-                    device.device_info.key_role,
+                    device.key_role,
                     KeyRole2::Undefined,
                 ))?;
             }
         }
         ServantSwitchMaster => {
-            if device.device_info.key_role != KeyRole2::Servant {
+            if device.key_role != KeyRole2::Servant {
                 Err(WalletError::UneligiableRole(
-                    device.device_info.key_role,
+                    device.key_role,
                     KeyRole2::Servant,
                 ))?;
             }

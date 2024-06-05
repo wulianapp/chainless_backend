@@ -43,11 +43,11 @@ pub async fn req(
     let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
 
-    if main_account.eq("") {
-        Err(WalletError::NotSetSecurity)?
-    }
+    let main_account = match user.main_account {
+        Some(ref account) => account,
+        None => Err(WalletError::NotSetSecurity)?,
+    };
 
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;

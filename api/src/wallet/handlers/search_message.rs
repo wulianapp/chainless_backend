@@ -48,12 +48,12 @@ pub struct SearchMessageResponse {
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user = UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?;
 
     let mut messages = SearchMessageResponse::default();
     //if newcomer device not save,notify it to do
     let device_info = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?
@@ -68,7 +68,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     }
 
     let coin_txs = CoinTxEntity::find(
-        CoinTxFilter::ByAccountPending(&user.user_info.main_account),
+        CoinTxFilter::ByAccountPending(user.user_info.main_account.as_ref().unwrap()),
         &mut db_cli,
     )
     .await?;
@@ -79,8 +79,8 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
             order_id: tx.transaction.order_id,
             tx_id: tx.transaction.tx_id,
             coin_type: tx.transaction.coin_type,
-            from: tx.transaction.from,
-            to: tx.transaction.to,
+            from: tx.transaction.sender,
+            to: tx.transaction.receiver,
             amount: raw2display(tx.transaction.amount),
             expire_at: tx.transaction.expire_at,
             memo: tx.transaction.memo,
@@ -95,7 +95,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
 
     messages.coin_tx.append(&mut tx_msg);
 
-    if have_no_uncompleted_tx(&user.user_info.main_account, &mut db_cli)
+    if have_no_uncompleted_tx(&user.user_info.main_account.unwrap(), &mut db_cli)
         .await
         .is_err()
     {

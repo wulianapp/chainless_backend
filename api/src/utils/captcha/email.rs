@@ -1,4 +1,3 @@
-use common::utils::math::gen_random_verify_code;
 use lettre::message::header::ContentType;
 use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;

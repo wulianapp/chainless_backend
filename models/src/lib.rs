@@ -8,8 +8,6 @@ pub mod account_manager;
 pub mod airdrop;
 #[macro_use]
 pub mod general;
-pub mod newbie_reward;
-
 pub mod coin_transfer;
 pub mod device_info;
 pub mod eth_bridge_order;
@@ -121,6 +119,7 @@ struct DBCli<'a,T: PsqlOp>{
 
 impl PgLocalCli<'_> {
     pub async fn execute(&mut self, sql: &str) -> Result<u64> {
+        debug!(sql);
         let line = match self {
             PgLocalCli::Conn(c) => c.execute(sql, &[]).await?,
             PgLocalCli::Trans(t) => t.execute(sql, &[]).await?,
@@ -128,6 +127,7 @@ impl PgLocalCli<'_> {
         Ok(line)
     }
     pub async fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
+        debug!(sql);
         let row = match self {
             PgLocalCli::Conn(c) => c.query(sql, &[]).await?,
             PgLocalCli::Trans(t) => t.query(sql, &[]).await?,
@@ -308,11 +308,11 @@ pub trait PsqlOp {
         }
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()>;
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()>;
 
     //insert after check key
     async fn safe_insert(
-        &self,
+        self,
         filter: Self::FilterContent<'_>,
         cli: &mut PgLocalCli<'_>,
     ) -> Result<()>

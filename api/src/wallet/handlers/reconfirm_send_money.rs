@@ -49,7 +49,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     //区分receiver是否是子账户
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_update_cli().await?;
     let strategy = multi_cli
-        .get_strategy(&coin_tx.transaction.from)
+        .get_strategy(&coin_tx.transaction.sender)
         .await?
         .ok_or(BackendError::InternalError(
             "main_account not found".to_string(),
@@ -62,7 +62,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         ))?;
     }
 
-    if strategy.sub_confs.get(&coin_tx.transaction.to).is_some() {
+    if strategy.sub_confs.get(&coin_tx.transaction.receiver).is_some() {
         info!("coin_tx {:?} is a tx which send money to sub", coin_tx);
 
         //提前进行签名校验
@@ -86,8 +86,8 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             .internal_transfer_main_to_sub(
                 master_sign,
                 servant_sigs,
-                &coin_tx.transaction.from,
-                &coin_tx.transaction.to,
+                &coin_tx.transaction.sender,
+                &coin_tx.transaction.receiver,
                 coin_tx.transaction.coin_type,
                 coin_tx.transaction.amount,
                 coin_tx.transaction.expire_at,

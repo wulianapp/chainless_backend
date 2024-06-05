@@ -50,7 +50,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     let (user, mut current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.unwrap();
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     if current_strategy.servant_pubkeys.len() >= 11 {
         Err(WalletError::ServantNumReachLimit)?;
@@ -93,14 +93,14 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     //待添加的设备一定是已经登陆的设备，如果是绕过前端直接调用则就直接报错
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::AddServant(&servant_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&holder_device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&holder_device_id, &user_id),
         &mut db_cli,
     )
     .await?;
 
     //WalletManageRecordView
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::AddServant,
         &device.hold_pubkey.unwrap(),
         &device.id,

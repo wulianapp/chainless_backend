@@ -28,7 +28,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
 
     DeviceInfoEntity::update(
         DeviceInfoUpdater::HolderSaved(true),
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?;

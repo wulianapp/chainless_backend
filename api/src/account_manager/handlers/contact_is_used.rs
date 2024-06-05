@@ -21,21 +21,21 @@ pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserInfoRespo
     let ContactIsUsedRequest { contact } = request_data;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let find_res =
-        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await;
-    match find_res {
-        Ok(info) => Ok(Some(UserInfoResponse {
+        UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli).await?;
+    if find_res.is_empty(){
+        Ok(Some(UserInfoResponse {
+            contact_is_register: false,
+            secruity_is_seted: false,
+        }))
+    }else {
+        let secruity_is_seted = if find_res[0].user_info.main_account.is_some(){
+            true
+        }else{
+            false
+        };
+        Ok(Some(UserInfoResponse {
             contact_is_register: true,
-            secruity_is_seted: info.user_info.secruity_is_seted,
-        })),
-        Err(err) => {
-            if err.to_string().contains("DataNotFound") {
-                Ok(Some(UserInfoResponse {
-                    contact_is_register: false,
-                    secruity_is_seted: false,
-                }))
-            } else {
-                Err(BackendError::InternalError(err.to_string()))
-            }
-        }
+            secruity_is_seted,
+        }))
     }
 }

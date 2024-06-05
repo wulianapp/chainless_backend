@@ -49,7 +49,7 @@ pub(crate) async fn req(
                 Ok(Some(vec![secret.secret_store]))
             } else {
                 let device = DeviceInfoEntity::find_single(
-                    DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+                    DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
                     &mut db_cli,
                 )
                 .await?;

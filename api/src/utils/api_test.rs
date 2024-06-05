@@ -28,7 +28,7 @@ use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::encrypt::ed25519_key_gen;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
-use common::utils::math::{self, gen_random_verify_code};
+use common::utils::math::{self, random_num};
 use models::secret_store::SecretStoreEntity;
 // use log::{info, LevelFilter,debug,error};
 use crate::account_manager::handlers::user_info::UserInfoResponse;
@@ -210,7 +210,8 @@ pub fn gen_some_accounts_with_new_key() -> (
     let receiver_sub_secret = ed25519_key_gen();
 
     let mut sender_master = simulate_sender_master();
-    let sender_account = format!("test{}@gmail.com", gen_random_verify_code());
+    let random_suffix =     random_num() % 900000 + 100000;
+    let sender_account = format!("test{}@gmail.com", random_suffix);
     sender_master.user.contact = sender_account.clone();
     sender_master.wallet = TestWallet {
         main_account: sender_master_secret.1.clone(),
@@ -221,7 +222,8 @@ pub fn gen_some_accounts_with_new_key() -> (
     };
 
     let mut receiver = simulate_receiver();
-    receiver.user.contact = format!("test{}@gmail.com", gen_random_verify_code());
+    let random_suffix =     random_num() % 900000 + 100000;
+    receiver.user.contact = format!("test{}@gmail.com", random_suffix);
     receiver.wallet = TestWallet {
         main_account: receiver_master_secret.1.clone(),
         pubkey: Some(receiver_master_secret.1),

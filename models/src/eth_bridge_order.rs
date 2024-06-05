@@ -21,6 +21,12 @@ pub struct EthBridgeOrderEntity {
     pub created_at: String,
 }
 
+impl EthBridgeOrderEntity {
+    pub fn into_inner(self) -> EthBridgeOrder{
+        self.order
+    }
+}
+
 #[derive(Debug)]
 pub enum BridgeOrderUpdater<'a> {
     EncrypedPrikey(&'a str, &'a str),
@@ -88,7 +94,6 @@ impl EthBridgeOrderEntity {
                 amount,
                 status,
                 height,
-                reserved_field3: "".to_string(),
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -114,7 +119,6 @@ impl PsqlOp for EthBridgeOrderEntity {
             amount,\
             status,\
             height,\
-            reserved_field3,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from ethereum_bridge_order {}",
@@ -133,10 +137,9 @@ impl PsqlOp for EthBridgeOrderEntity {
                     amount: row.get::<usize, String>(5).parse()?,
                     status: row.get::<usize, String>(6).parse()?,
                     height: row.get::<usize, i64>(7) as u64,
-                    reserved_field3: row.get(8),
                 },
-                updated_at: row.get(9),
-                created_at: row.get(10),
+                updated_at: row.get(8),
+                created_at: row.get(9),
             })
         };
 
@@ -159,7 +162,7 @@ impl PsqlOp for EthBridgeOrderEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let EthBridgeOrder {
             id,
             order_type,
@@ -168,9 +171,8 @@ impl PsqlOp for EthBridgeOrderEntity {
             amount,
             coin,
             status,
-            height,
-            reserved_field3,
-        } = &self.order;
+            height
+        } = self.into_inner();
         let sql = format!(
             "insert into ethereum_bridge_order (\
                 id,\
@@ -180,10 +182,9 @@ impl PsqlOp for EthBridgeOrderEntity {
                 coin,\
                 amount,\
                 status,\
-                height,\
-                reserved_field3\
-         ) values ('{}','{}','{}','{}','{}','{}','{}',{},'{}');",
-            id, order_type, chainless_acc, eth_addr, coin, amount, status, height, reserved_field3
+                height
+         ) values ('{}','{}','{}','{}','{}','{}','{}',{});",
+            id, order_type, chainless_acc, eth_addr, coin, amount, status, height
         );
         debug!("row sql {} rows", sql);
         let _execute_res = cli.execute(sql.as_str()).await?;
@@ -198,18 +199,21 @@ impl PsqlOp for EthBridgeOrderEntity {
 #[cfg(test)]
 mod tests {
 
-    use super::*;
-    use common::{data_structures::bridge::EthOrderStatus, log::init_logger};
-    use std::env;
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 
-    /***
+    use super::*;
+    use common::log::init_logger;
+    use std::env;
+    use tokio_postgres::types::ToSql;
+
     #[tokio::test]
     async fn test_db_bridge_order() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
         crate::general::table_all_clear().await;
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
-        let secret = EthBridgeOrderView::new_with_specified(
+        let secret = EthBridgeOrderEntity::new_with_specified(
             "0123456789",
             "test.node0",
             "0x123",
@@ -219,14 +223,13 @@ mod tests {
             EthOrderStatus::Pending,
             0u64,
         );
-        secret.insert().await.unwrap();
-        let find_res = EthBridgeOrderView::find_single(BridgeOrderFilter::ByTypeAndId(
+        secret.insert(&mut db_cli).await.unwrap();
+        let find_res = EthBridgeOrderEntity::find_single(BridgeOrderFilter::ByTypeAndId(
             BridgeOrderType::Withdraw,
             "0123456789",
-        )).await
+        ),&mut db_cli).await
         .unwrap();
         println!("{:?}", find_res);
         assert_eq!(find_res.order.amount, 10000);
     }
-    ***/
 }

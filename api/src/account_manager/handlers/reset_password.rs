@@ -38,19 +38,20 @@ pub async fn req(
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let user_at_stored = account_manager::UserInfoEntity::find_single(
+    let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
         &mut db_cli,
     )
     .await
-    .map_err(|_e| PhoneOrEmailNotRegister)?;
+    .map_err(|_e| PhoneOrEmailNotRegister)?
+    .into_inner();
     let device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_at_stored.id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
         &mut db_cli,
     )
     .await?;
 
-    if user_at_stored.user_info.secruity_is_seted {
+    if user_info.main_account.is_some() {
         //目前没有需要必须登陆才能改密码的需求
         /***
         let (token_user_id, token_device_id, _) = token_auth::validate_credentials2(&req)?;
@@ -70,7 +71,7 @@ pub async fn req(
 
     //check captcha
     Captcha::check_user_code(
-        &user_at_stored.id.to_string(),
+        &user_info.id.to_string(),
         &captcha,
         Usage::ResetLoginPassword,
     )?;
@@ -78,7 +79,7 @@ pub async fn req(
     //modify user's password  at db
     account_manager::UserInfoEntity::update_single(
         UserUpdater::LoginPwdHash(&new_password),
-        UserFilter::ById(user_at_stored.id),
+        UserFilter::ById(&user_info.id),
         &mut db_cli,
     )
     .await?;
@@ -87,7 +88,7 @@ pub async fn req(
     let retry_storage = &mut super::login::LOGIN_RETRY
         .lock()
         .map_err(|e| BackendError::InternalError(e.to_string()))?;
-    retry_storage.remove(&user_at_stored.id);
+    retry_storage.remove(&user_info.id);
 
     Ok(None::<String>)
 }

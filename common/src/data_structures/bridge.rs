@@ -80,6 +80,5 @@ pub struct EthBridgeOrder {
     pub amount: u128,          //转账数量
     //pub status: String,            //订单状态
     pub status: EthOrderStatus, //WithdrawStatus,DepositStatus
-    pub height: u64,
-    pub reserved_field3: String,
+    pub height: u64
 }

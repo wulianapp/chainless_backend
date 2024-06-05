@@ -39,7 +39,7 @@ pub enum WalletOperateType {
 #[derive(Deserialize, Serialize, PartialEq, Clone, Debug, Eq, Hash)]
 pub struct WalletManageRecord {
     pub record_id: String,
-    pub user_id: String,
+    pub user_id: u32,
     pub operation_type: WalletOperateType,
     pub operator_pubkey: String,
     pub operator_device_id: String,

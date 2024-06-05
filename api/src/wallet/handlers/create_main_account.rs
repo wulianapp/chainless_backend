@@ -62,12 +62,12 @@ pub(crate) async fn req(
     let mut db_cli = db_cli.begin().await?;
     //store user info
     let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli)
-            .await?;
+        account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+            .await?.into_inner();
 
-    if !user_info.user_info.main_account.eq("") {
+    if user_info.main_account.is_some() {
         Err(WalletError::MainAccountAlreadyExist(
-            user_info.user_info.main_account.clone(),
+            user_info.main_account.clone().unwrap(),
         ))?;
     }
 
@@ -77,8 +77,8 @@ pub(crate) async fn req(
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
     account_manager::UserInfoEntity::update_single(
-        UserUpdater::SecruityInfo(&anwser_indexes, true, &main_account_id),
-        UserFilter::ById(user_id),
+        UserUpdater::SecruityInfo(&anwser_indexes, &main_account_id),
+        UserFilter::ById(&user_id),
         &mut db_cli,
     )
     .await?;
@@ -103,7 +103,7 @@ pub(crate) async fn req(
     debug!("__line_{}", line!());
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?;
@@ -117,7 +117,7 @@ pub(crate) async fn req(
         )
         .await?;
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::CreateAccount,
         &master_pubkey,
         &device_id,
@@ -128,7 +128,7 @@ pub(crate) async fn req(
 
     AirdropEntity::update_single(
         AirdropUpdater::AccountId(&main_account_id),
-        AirdropFilter::ByUserId(&user_id.to_string()),
+        AirdropFilter::ByUserId(&user_id),
         &mut db_cli,
     )
     .await?;

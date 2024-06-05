@@ -19,6 +19,12 @@ pub struct SecretStoreEntity {
     pub created_at: String,
 }
 
+impl SecretStoreEntity {
+    pub fn into_inner(self) -> SecretStore{
+        self.secret_store
+    }
+}
+
 #[derive(Debug)]
 pub enum SecretUpdater<'a> {
     //todo:
@@ -46,14 +52,14 @@ impl fmt::Display for SecretUpdater<'_> {
 #[derive(Clone, Debug)]
 pub enum SecretFilter<'b> {
     ByPubkey(&'b str),
-    BySittingPubkey(&'b str),
+    ByIncumbentPubkey(&'b str),
 }
 
 impl fmt::Display for SecretFilter<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
             SecretFilter::ByPubkey(key) => format!("pubkey='{}' ", key),
-            SecretFilter::BySittingPubkey(key) => format!("state='Sitting' and pubkey='{}' ", key),
+            SecretFilter::ByIncumbentPubkey(key) => format!("state='Incumbent' and pubkey='{}' ", key),
         };
         write!(f, "{}", description)
     }
@@ -106,7 +112,7 @@ impl PsqlOp for SecretStoreEntity {
                 secret_store: SecretStore {
                     pubkey: row.get(0),
                     state: row.get::<usize, String>(1).parse()?,
-                    user_id: row.get::<usize, i32>(2) as u32,
+                    user_id: row.get::<usize, i64>(2) as u32,
                     encrypted_prikey_by_password: row.get(3),
                     encrypted_prikey_by_answer: row.get(4),
                 },
@@ -133,14 +139,14 @@ impl PsqlOp for SecretStoreEntity {
         Ok(execute_res)
     }
 
-    async fn insert(&self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
         let SecretStore {
             pubkey,
             state,
             user_id,
             encrypted_prikey_by_password,
             encrypted_prikey_by_answer,
-        } = &self.secret_store;
+        } = self.into_inner();
 
         let sql = format!(
             "insert into secret_store (\
@@ -172,30 +178,33 @@ pub struct SecretView {
 #[cfg(test)]
 mod tests {
 
+    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+
     use super::*;
     use common::log::init_logger;
     use std::env;
-
-    /***
+    use tokio_postgres::types::ToSql;
+    
     #[tokio::test]
     async fn test_db_secret_store() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
-        crate::general::table_all_clear();
+        crate::general::table_all_clear().await;
+        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
         let secret =
-            SecretStoreView::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
-        secret.insert().await.unwrap();
+            SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
+        secret.insert(&mut db_cli).await.unwrap();
         let secret_by_find =
-            SecretStoreView::find_single(SecretFilter::BySittingPubkey("0123456789")).await.unwrap();
+        SecretStoreEntity::find_single(SecretFilter::ByIncumbentPubkey("0123456789"),&mut db_cli).await.unwrap();
         println!("{:?}", secret_by_find);
-        assert_eq!(secret_by_find.secret_store, secret.secret_store);
+        //assert_eq!(secret_by_find.secret_store, secret.secret_store);
 
-        SecretStoreView::update(
+        SecretStoreEntity::update(
             SecretUpdater::State(SecretKeyState::Abandoned),
-            SecretFilter::BySittingPubkey("01"),
+            SecretFilter::ByIncumbentPubkey("01"),
+            &mut db_cli
         ).await
         .unwrap();
     }
-    **/
 }

@@ -45,7 +45,8 @@ pub(crate) async fn req(
 
     let (user, current_strategy, device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.unwrap();
+
     let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
     check_role(current_role, KeyRole2::Master)?;
     let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
@@ -118,24 +119,23 @@ pub(crate) async fn req(
         let (tx_id, chain_tx_raw) = cli
             .gen_send_money_raw(vec![], &from, &bridge_ca, coin_type, amount, expire_at)
             .await?;
+        let order_id = coin_info.transaction.order_id.clone();
+        let coin_tx_raw =  coin_info.transaction.coin_tx_raw.clone();
 
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
-        coin_info.transaction.to = eth_addr;
+        coin_info.transaction.receiver = eth_addr;
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((
-            coin_info.transaction.order_id,
-            coin_info.transaction.coin_tx_raw,
-        )))
+        Ok(Some((order_id,coin_tx_raw)))
     } else {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
+        let order_id = coin_info.transaction.order_id.clone();
+        let coin_tx_raw =  coin_info.transaction.coin_tx_raw.clone();
+
         coin_info.transaction.tx_type = TxType::MainToBridge;
-        coin_info.transaction.to = eth_addr;
+        coin_info.transaction.receiver = eth_addr;
         coin_info.insert(&mut db_cli).await?;
-        Ok(Some((
-            coin_info.transaction.order_id,
-            coin_info.transaction.coin_tx_raw,
-        )))
+        Ok(Some((order_id,coin_tx_raw)))
     }
 }

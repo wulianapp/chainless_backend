@@ -51,43 +51,48 @@ pub async fn req(
 ) -> BackendRes<BalanceListResponse> {
     let user_id = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli).await?;
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?.into_inner();
 
-    let main_account = user_info.user_info.main_account;
+    let main_account = user_info.main_account.clone();
     let coin_list = get_support_coin_list();
     let mul_cli = ContractClient::<MultiSig>::new_query_cli().await?;
 
     let check_accounts = match request_data.kind {
         AccountType::Main => vec![main_account.clone()],
         AccountType::AllSub => {
-            let strategy = mul_cli
-                .get_strategy(&main_account)
+            if main_account.is_some() {
+                let strategy = mul_cli
+                .get_strategy(&main_account.unwrap())
                 .await?
                 .ok_or(InternalError("11".to_string()))?;
             strategy
                 .sub_confs
                 .iter()
-                .map(|x| x.0.to_string())
-                .collect::<Vec<String>>()
+                .map(|x| Some(x.0.to_string()))
+                .collect::<Vec<Option<String>>>()
+            }else{
+                vec![]
+            }
+           
         }
         AccountType::All => {
             let mut all = vec![main_account.clone()];
-            if main_account.ne("") {
+            if main_account.is_some() {
                 let strategy = mul_cli
-                    .get_strategy(&main_account)
+                    .get_strategy(&main_account.unwrap())
                     .await?
                     .ok_or(InternalError("11".to_string()))?;
 
                 let mut sub = strategy
                     .sub_confs
                     .iter()
-                    .map(|x| x.0.to_string())
-                    .collect::<Vec<String>>();
+                    .map(|x| Some(x.0.to_string()))
+                    .collect::<Vec<Option<String>>>();
                 all.append(&mut sub);
             }
             all
         }
-        AccountType::Single(acc) => vec![acc],
+        AccountType::Single(acc) => vec![Some(acc)],
     };
 
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
@@ -98,24 +103,30 @@ pub async fn req(
         for (index, account) in check_accounts.iter().enumerate() {
             let coin_cli: ContractClient<Coin> =
                 ContractClient::<Coin>::new_query_cli(coin.clone()).await?;
-            let (balance_on_chain, hold_limit) = if user_info.user_info.secruity_is_seted {
+            let (balance_on_chain, hold_limit) = if user_info.main_account.is_some() {
                 let balance = coin_cli
-                    .get_balance(account)
+                    .get_balance(account.as_ref().unwrap())
                     .await?
                     .unwrap_or("0".to_string());
+
                 let hold_limit = if index == 0 {
                     None
                 } else {
-                    let strategy = multi_cli.get_strategy(&main_account).await?.ok_or("")?;
+                    let strategy = multi_cli.get_strategy(user_info.main_account.as_ref().unwrap()).await?.ok_or("")?;
                     let sub_confs = strategy.sub_confs;
-                    let hold_limit = sub_confs.get(account.as_str()).ok_or("")?.hold_value_limit;
+                    let hold_limit = sub_confs.get(account.as_ref().unwrap()).ok_or("")?.hold_value_limit;
                     Some(raw2display(hold_limit))
                 };
+
                 (balance, hold_limit)
             } else {
                 ("0".to_string(), Some("0.0".to_string()))
             };
-            let freezn_amount = super::get_freezn_amount(account, &coin, &mut db_cli).await;
+            let freezn_amount = if account.is_none() {
+                0
+            }else{
+                super::get_freezn_amount(account.as_ref().unwrap(), &coin, &mut db_cli).await
+            };
             let total_balance = parse_str(balance_on_chain)?;
             debug!(
                 "coin:{},total_balance:{},freezn_amount:{}",
@@ -125,7 +136,7 @@ pub async fn req(
             let total_dollar_value = super::get_value(&coin, total_balance).await;
             let total_rmb_value = total_dollar_value / 7;
             let balance = BalanceDetail {
-                account_id: account.clone(),
+                account_id: account.clone().unwrap_or("".to_string()),
                 coin: coin.clone(),
                 total_balance: raw2display(total_balance),
                 available_balance: raw2display(available_balance),

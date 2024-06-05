@@ -34,14 +34,14 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
         } else {
             BackendError::InternalError(e.to_string())
         }
-    })?;
+    })?.into_inner();
 
-    if user.user_info.main_account.eq("") {
+    if user.main_account.is_none() {
         return Ok(Some(KeyRole2::Undefined));
     }
     //todo:
     let find_res = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user.id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user.id),
         &mut db_cli,
     )
     .await;

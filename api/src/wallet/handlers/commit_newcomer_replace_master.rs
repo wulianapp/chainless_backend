@@ -55,7 +55,7 @@ pub(crate) async fn req(
 
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.clone().unwrap();
 
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
@@ -109,7 +109,7 @@ pub(crate) async fn req(
         //更新设备信息
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
-            DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+            DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
             &mut db_cli,
         )
         .await?;
@@ -147,7 +147,7 @@ pub(crate) async fn req(
     //前边两个用户管理的交互，可以无风险重试，暂时只有前两步完成，才能开始记录操作历史
     //从一开始就记录的话、状态管理太多
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::NewcomerSwitchMaster,
         &newcomer_pubkey,
         &device.id,

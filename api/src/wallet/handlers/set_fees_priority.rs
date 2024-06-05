@@ -34,7 +34,7 @@ pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> Back
     let mut db_cli = get_pg_pool_connect().await?;
     let (user, current_strategy, device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account;
+    let main_account = user.main_account.clone().unwrap();
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
     super::check_role(current_role, KeyRole2::Master)?;
@@ -68,7 +68,7 @@ pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> Back
 
     //todo: generate txid before call contract
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::SetFeesPriority,
         &current_strategy.master_pubkey,
         &device_id,

@@ -3,6 +3,7 @@ use common::data_structures::{KeyRole2, OpStatus};
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoEntity};
+use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use models::{account_manager, PgLocalCli, PsqlOp};
@@ -33,15 +34,15 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let _devices = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?;
-    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(user_id), &mut db_cli)
-        .await?;
+    let user_info = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+        .await?.into_inner();
 
     //todo:
-    let role = if res.user_info.main_account.eq("") {
+    let role = if user_info.main_account.is_none(){
         KeyRole2::Undefined
     } else {
         let (_, current_strategy, device) =
@@ -51,18 +52,21 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         current_role
     };
 
+    let airdrop_info = AirdropEntity::find_single(
+        AirdropFilter::ByUserId(&user_id), &mut db_cli).await?.into_inner();
+    
     let info = UserInfoResponse {
-        id: res.id,
-        phone_number: res.user_info.phone_number,
-        email: res.user_info.email,
-        anwser_indexes: res.user_info.anwser_indexes,
-        is_frozen: res.user_info.is_frozen,
-        predecessor: res.user_info.predecessor,
-        laste_predecessor_replace_time: res.user_info.laste_predecessor_replace_time,
-        invite_code: res.user_info.invite_code,
-        kyc_is_verified: res.user_info.kyc_is_verified,
-        secruity_is_seted: res.user_info.secruity_is_seted,
-        main_account: res.user_info.main_account,
+        id: user_info.id,
+        phone_number: user_info.phone_number.unwrap_or("".to_string()),
+        email: user_info.email.unwrap_or("".to_string()),
+        anwser_indexes: user_info.anwser_indexes,
+        is_frozen: user_info.is_frozen,
+        predecessor: None,
+        laste_predecessor_replace_time: 0,
+        invite_code: airdrop_info.invite_code,
+        kyc_is_verified: user_info.kyc_is_verified,
+        secruity_is_seted: matches!(user_info.main_account,Some(_)),
+        main_account: user_info.main_account.unwrap_or("".to_string()),
         role: role.to_string(),
         name: Some("Bob".to_string()),
         birth: Some("1993-04-01".to_string()),

@@ -24,7 +24,7 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
     let (user_id, device_id, _) = token_auth::validate_credentials2(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let _device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, user_id),
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
     )
     .await?;

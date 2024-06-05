@@ -81,7 +81,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
 
     //todo: generate txid before call contract
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::RemoveSubaccount,
         &current_strategy.master_pubkey,
         &device_id,

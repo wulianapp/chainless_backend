@@ -55,7 +55,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
 
     //todo: 24小时内只能三次增加的限制
 
-    //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(user_id))?;
+    //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(&user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
@@ -79,7 +79,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let txid = multi_cli.add_subaccount(&main_account, sub_confs).await?;
 
     let record = WalletManageRecordEntity::new_with_specified(
-        &user_id.to_string(),
+        user_id,
         WalletOperateType::AddSubaccount,
         &device.hold_pubkey.unwrap(),
         &device.id,

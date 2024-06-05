@@ -1,7 +1,8 @@
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::data_structures::KeyRole2;
-use common::error_code::AccountManagerError::*;
+use common::error_code::{AccountManagerError::*, BackendError};
+use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
 //use log::{debug, info};
@@ -14,7 +15,7 @@ use models::general::*;
 use models::secret_store::SecretStoreEntity;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,6 +38,20 @@ pub struct RegisterByEmailRequest {
     password: String,
     //第一个账户肯定没有predecessor
     predecessor_invite_code: String,
+}
+
+//生成十位随机数作为user_id
+async fn gen_user_id(db_cli: &mut PgLocalCli<'_>) -> Result<u32,BackendError> {
+    for _ in 0..10 {
+        let num = (random_num() % 9_000_000_000 + 1_000_000_000) as u32;
+        if UserInfoEntity::find(UserFilter::ById(&num),db_cli).await?.is_empty(){
+            return Ok(num);
+        }else {
+            warn!("user_id {} already exist",num);
+            continue;
+        }
+    }
+    Err(BackendError::InternalError("".to_string()))
 }
 
 async fn register(
@@ -70,42 +85,44 @@ async fn register(
     //let pubkey = "";
     Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
 
-    let mut view = UserInfoEntity::new_with_specified(&password);
+    let this_user_id = gen_user_id(&mut db_cli).await?;
+    let mut view = UserInfoEntity::new_with_specified(this_user_id,&password);
     match contact_type {
         ContactType::PhoneNumber => {
-            view.user_info.phone_number = contact.clone();
+            view.user_info.phone_number = Some(contact.clone());
         }
         ContactType::Email => {
-            view.user_info.email = contact.clone();
+            view.user_info.email = Some(contact.clone());
         }
     }
-    account_manager::UserInfoEntity::insert(&view, &mut db_cli).await?;
-    let this_user_id = UserInfoEntity::find_single(
-        UserFilter::ByPhoneOrEmail(&contact), 
-        &mut db_cli
-    ).await?.id;
+    view.insert(&mut db_cli).await?;
 
     //register airdrop
-    //todo: user_id
     let predecessor_airdrop = AirdropEntity::find_single(
         AirdropFilter::ByInviteCode(&predecessor_invite_code),
         &mut db_cli,
     )
     .await
     .map_err(|_e| InviteCodeNotExist)?;
-    let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id.parse().unwrap();
+
+    let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id;
     let predecessor_info =
-        UserInfoEntity::find_single(UserFilter::ById(predecessor_userinfo_id), &mut db_cli).await?;
-    if !predecessor_info.user_info.secruity_is_seted {
-        Err(PredecessorNotSetSecurity)?;
-    } else {
+        UserInfoEntity::find_single(
+            UserFilter::ById(&predecessor_userinfo_id), 
+            &mut db_cli
+        ).await?.into_inner();
+
+    if let Some(main_account) =  predecessor_info.main_account{
         let user_airdrop = AirdropEntity::new_with_specified(
-            &this_user_id.to_string(),
-            &predecessor_info.id.to_string(),
-            &predecessor_info.user_info.main_account,
+            this_user_id,
+            predecessor_info.id,
+            &main_account,
         );
         user_airdrop.insert(&mut db_cli).await?;
+    }else{
+        Err(PredecessorNotSetSecurity)?;
     }
+
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, this_user_id);
     device.insert(&mut db_cli).await?;
@@ -113,7 +130,7 @@ async fn register(
     db_cli.commit().await?;
 
     let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
-    info!("user {:?} register successfully", view.user_info);
+    info!("user {} register successfully", contact);
     Ok(Some(token))
 }
 

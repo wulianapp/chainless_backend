@@ -18,8 +18,8 @@ pub fn hex_to_bs58(hex_private_key: &str) -> Result<String, hex::FromHexError> {
     Ok(bs58_string)
 }
 
-pub fn gen_random_verify_code() -> u32 {
-    rand::random::<u32>() % 900000 + 100000
+pub fn random_num() -> u128{
+    rand::random::<u128>()
 }
 
 pub mod coin_amount {

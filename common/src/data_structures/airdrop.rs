@@ -8,14 +8,11 @@ use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Airdrop {
-    pub user_id: String,
+    pub user_id: u32,
     pub account_id: Option<String>,
     pub invite_code: String,
-    pub predecessor_user_id: String,
+    pub predecessor_user_id: u32,
     pub predecessor_account_id: String,
     pub btc_address: Option<String>,
-    pub btc_level: Option<u8>,
-    pub airdrop_reserved_field1: String,
-    pub airdrop_reserved_field2: String,
-    pub airdrop_reserved_field3: String,
+    pub btc_level: Option<u8>
 }
