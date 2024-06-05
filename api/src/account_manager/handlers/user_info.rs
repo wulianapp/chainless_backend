@@ -21,7 +21,7 @@ pub struct UserInfoResponse {
     pub email: String,
     pub anwser_indexes: String,
     pub is_frozen: bool,
-    pub predecessor: Option<u32>,
+    pub predecessor: u32,
     pub laste_predecessor_replace_time: u64,
     pub invite_code: String,
     pub kyc_is_verified: bool,
@@ -64,7 +64,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         email: user_info.email.unwrap_or("".to_string()),
         anwser_indexes: user_info.anwser_indexes,
         is_frozen: user_info.is_frozen,
-        predecessor: None,
+        predecessor: airdrop_info.predecessor_user_id,
         laste_predecessor_replace_time: 0,
         invite_code: airdrop_info.invite_code.clone(),
         kyc_is_verified: user_info.kyc_is_verified,
@@ -73,7 +73,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         role: role.to_string(),
         name: Some("Bob".to_string()),
         birth: Some("1993-04-01".to_string()),
-        invite_url: format!("{},{}",INVITE_URL,airdrop_info.invite_code),
+        invite_url: format!("{}{}",INVITE_URL,airdrop_info.invite_code),
     };
     Ok(Some(info))
 }

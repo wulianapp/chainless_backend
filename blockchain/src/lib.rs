@@ -254,7 +254,6 @@ impl<T> ContractClient<T> {
 
         let rep = crate::rpc_call(request).await.unwrap();
         if let FinalExecutionStatus::Failure(error) = rep.status {
-            panic!("tmp");
             Err(anyhow!(error.to_string()))?
         }
         let _txid = rep.transaction.hash.to_string();

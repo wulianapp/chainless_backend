@@ -78,9 +78,12 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     .await?;
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
-    cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
-        .await?;
-
+    let user_info = cli.get_user(&main_account).await?;
+    if user_info.is_some(){
+        cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
+            .await?;
+    }
+    
     db_cli.commit().await?;
     //todo: change ref
     Ok(None)
