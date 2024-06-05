@@ -20,7 +20,7 @@ pub async fn get_last_process_height(db_cli: &mut PgLocalCli<'_>) -> Result<u64>
     let last_order = EthBridgeOrderEntity::find(BridgeOrderFilter::Limit(1), db_cli).await?;
     if last_order.is_empty() {
         //Ok(get_current_block().await)
-        Ok(1322312)
+        Ok(1446063)
     } else {
         //Ok(1322262)
         Ok(last_order[0].order.height)

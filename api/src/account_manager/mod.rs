@@ -166,6 +166,7 @@ async fn check_captcha(
  * @apiSuccess {String=Master,Servant,Undefined} data.role                   当前的角色
  * @apiSuccess {String} [data.name]                       kyc实名名字
  * @apiSuccess {String} [data.birthday]                   出生日期
+ * @apiSuccess {String} data.invite_url                   邀请链接
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 

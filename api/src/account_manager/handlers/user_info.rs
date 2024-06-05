@@ -12,6 +12,8 @@ use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
 use crate::utils::token_auth;
 
+const INVITE_URL:&str = "https://test1.chainless.top/download?code=";
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfoResponse {
     pub id: u32,
@@ -28,6 +30,7 @@ pub struct UserInfoResponse {
     pub role: String,
     pub name: Option<String>,
     pub birth: Option<String>,
+    pub invite_url: String
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
@@ -63,13 +66,14 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         is_frozen: user_info.is_frozen,
         predecessor: None,
         laste_predecessor_replace_time: 0,
-        invite_code: airdrop_info.invite_code,
+        invite_code: airdrop_info.invite_code.clone(),
         kyc_is_verified: user_info.kyc_is_verified,
         secruity_is_seted: matches!(user_info.main_account,Some(_)),
         main_account: user_info.main_account.unwrap_or("".to_string()),
         role: role.to_string(),
         name: Some("Bob".to_string()),
         birth: Some("1993-04-01".to_string()),
+        invite_url: format!("{},{}",INVITE_URL,airdrop_info.invite_code),
     };
     Ok(Some(info))
 }
