@@ -9,7 +9,7 @@ use models::general::get_pg_pool_connect;
 use models::secret_store::SecretStoreEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -32,11 +32,11 @@ pub struct GenSendMoneyRequest {
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let role = context.role()?;
 
-    let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole2::Master)?;
 
     let GenSendMoneyRequest { order_id } = request_data;
 

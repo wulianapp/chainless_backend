@@ -183,7 +183,7 @@ impl PsqlOp for WalletManageRecordEntity {
          ) values ('{}','{}','{}','{}','{}','{}',{},'{}');",
             record_id,
             user_id,
-            operation_type.to_string(),
+            operation_type,
             operator_pubkey,
             operator_device_id,
             operator_device_brand,

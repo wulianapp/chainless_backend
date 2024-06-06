@@ -7,7 +7,7 @@ use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendRes, WalletError};
 use models::coin_transfer::{CoinTxEntity, CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
@@ -28,20 +28,15 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
         &mut db_cli,
     )
     .await?;
-    let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
 
-    //todo: check must be main device
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let _ = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
+
     let CancelSendMoneyRequest { order_id } = request_data;
     let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli).await?;
-    //todo: chain status
-    /***
-    if now_millis() > tx.transaction.expire_at {
-        Err(WalletError::TxExpired)?;
-    }
-    **/
 
     //cann't cancle when status is ReceiverRejected、SenderCanceled、SenderReconfirmed and MultiSigExpired
     if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected {
@@ -50,6 +45,11 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
             CoinSendStage::ReceiverRejected,
         ))?;
     } else {
+
+        if now_millis() > tx.transaction.expire_at {
+            Err(WalletError::TxExpired)?;
+        }
+
         models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
             CoinTxFilter::ByOrderId(&order_id),

@@ -10,7 +10,7 @@ use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::warn;
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
@@ -31,10 +31,11 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Servant)?;
+    
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Servant)?;
 
     let UploadTxSignatureRequest {
         order_id,
@@ -43,7 +44,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
 
     //check signature's signer is  equal to device_holdkey
     let sign_info: PubkeySignInfo = signature.as_str().parse()?;
-    if sign_info.pubkey != device.hold_pubkey.unwrap() {
+    if sign_info.pubkey != context.device.hold_pubkey.unwrap() {
         Err(BackendError::RequestParamInvalid(signature.clone()))?;
     }
 

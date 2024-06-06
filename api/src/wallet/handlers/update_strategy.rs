@@ -13,7 +13,7 @@ use models::{
     PsqlOp,
 };
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 use serde::{Deserialize, Serialize};
@@ -37,12 +37,14 @@ pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> Backe
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account.clone().unwrap();
+
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,current_strategy) = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+
 
     let UpdateStrategyRequest { strategy } = request_data;
     if strategy.len() > current_strategy.servant_pubkeys.len() + 1 {
@@ -70,9 +72,9 @@ pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> Backe
     let record = WalletManageRecordEntity::new_with_specified(
         user_id,
         WalletOperateType::UpdateStrategy,
-        &device.hold_pubkey.unwrap(),
-        &device.id,
-        &device.brand,
+        &context.device.hold_pubkey.unwrap(),
+        &context.device.id,
+        &context.device.brand,
         vec![tx_id],
     );
     record.insert(&mut db_cli).await?;

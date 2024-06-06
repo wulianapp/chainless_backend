@@ -27,11 +27,7 @@ pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserInfoRespo
             secruity_is_seted: false,
         }))
     } else {
-        let secruity_is_seted = if find_res[0].user_info.main_account.is_some() {
-            true
-        } else {
-            false
-        };
+        let secruity_is_seted = find_res[0].user_info.main_account.is_some();
         Ok(Some(UserInfoResponse {
             contact_is_register: true,
             secruity_is_seted,

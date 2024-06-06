@@ -177,6 +177,7 @@ pub async fn get_servant_need(strategy: &Vec<MultiSigRank>, coin: &CoinType, amo
         .unwrap_or(0)
 }
 
+/***
 pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
     if let Some(key) = hold_key {
         if strategy.master_pubkey == key {
@@ -197,6 +198,7 @@ pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
         KeyRole2::Undefined
     }
 }
+***/
 
 //获取当前会话的用户信息、多签配置、设备信息的属性数据
 //且已经进行过了多签
@@ -228,12 +230,10 @@ pub async fn get_session_state(
         ))?;
 
     //注册过的一定有设备信息
-    let mut device =
+    let device =
         DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id), conn)
-            .await?;
-    device.device_info.key_role =
-        get_role(&current_strategy, device.device_info.hold_pubkey.as_deref());
-    Ok((user.user_info, current_strategy, device.device_info))
+            .await?.into_inner();
+    Ok((user.user_info, current_strategy, device))
 }
 
 pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {

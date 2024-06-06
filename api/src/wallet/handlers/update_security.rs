@@ -10,8 +10,7 @@ use models::{
 };
 
 use crate::utils::{
-    captcha::{Captcha, Usage},
-    token_auth,
+    captcha::{Captcha, Usage}, get_user_context, token_auth
 };
 use common::{
     data_structures::{secret_store::SecretStore, KeyRole2},
@@ -43,12 +42,13 @@ pub(crate) async fn req(
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user_info, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user_info.main_account.clone().unwrap();
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,current_strategy) = context.account_strategy()?;
+    let role = context.role()?;
+    
+    super::check_role(role, KeyRole2::Master)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+
 
     let UpdateSecurityRequest {
         anwser_indexes,

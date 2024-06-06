@@ -1,4 +1,4 @@
-use crate::utils::token_auth;
+use crate::utils::{judge_role_by_strategy, token_auth};
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Result};
 use blockchain::coin::Coin;
@@ -97,6 +97,12 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+
+    let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
+    let current_strategy = multi_sig_cli
+        .get_strategy(&main_account)
+        .await?;
+
     let GetTxRequest { order_id } = request_data;
     let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
         .await
@@ -108,26 +114,28 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             }
         })?;
 
+    //获取已签名设备    
     let mut signed_device = vec![];
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
         let device =
             DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
-                .await?;
+                .await?.into_inner();
         let sig = ServentSigDetail {
             pubkey,
-            device_id: device.device_info.id,
-            device_brand: device.device_info.brand,
+            device_id: device.id,
+            device_brand: device.brand,
         };
         signed_device.push(sig);
     }
 
-    //不从数据库去读
+    //获取所有设备信息
     let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id), &mut db_cli)
         .await?
         .into_iter()
         .filter(|x| {
-            x.device_info.hold_pubkey.is_some() && x.device_info.key_role == KeyRole2::Servant
+            let role = judge_role_by_strategy(current_strategy.as_ref(),x.device_info.hold_pubkey.as_deref()).unwrap();
+            role == KeyRole2::Servant
         })
         .map(|d| ServentSigDetail {
             pubkey: d.device_info.hold_pubkey.unwrap(),
@@ -136,6 +144,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         })
         .collect::<Vec<ServentSigDetail>>();
 
+    //获取未签名信息    
     let unsigned_device = all_device
         .into_iter()
         .filter(|x| !signed_device.contains(x))
@@ -180,6 +189,8 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             fee_amount: raw2display(fee_amount),
         }]
     };
+
+    //如果接收方拒绝了，则该订单的最终状态位ReceiverRejected，而不是过期
     let stage = if tx.transaction.stage <= CoinSendStage::ReceiverApproved
         && now_millis() > tx.transaction.expire_at
     {
@@ -187,11 +198,14 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     } else {
         tx.transaction.stage
     };
+
+    //对应需求，发起订单如果是通过联系方式，则展示联系方式
     let to = if let Some(contact) = tx.transaction.receiver_contact {
         contact
     } else {
         tx.transaction.receiver.clone()
     };
+
     let tx = GetTxResponse {
         order_id: tx.transaction.order_id,
         tx_id: tx.transaction.tx_id,

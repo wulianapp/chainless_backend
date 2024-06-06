@@ -12,6 +12,7 @@ use serde::Serialize;
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
+use crate::utils::get_user_context;
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 use common::error_code::{AccountManagerError::*, WalletError};
@@ -41,16 +42,12 @@ pub async fn req(
     debug!("start reset_password");
     let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut db_cli).await?;
+    
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
 
-    let main_account = match user.main_account {
-        Some(ref account) => account,
-        None => Err(WalletError::NotSetSecurity)?,
-    };
-
-    let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    check_role(current_role, KeyRole2::Master)?;
+    check_role(role, KeyRole2::Master)?;
 
     let GenDepositSigRequest { coin, amount } = request_data.clone();
     let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;

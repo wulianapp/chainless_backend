@@ -7,7 +7,7 @@ use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
@@ -34,11 +34,8 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
     //todo:
     //新设备或者主设备
     if res.user_info.main_account.is_some() {
-        let (_, current_strategy, device) =
-            crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
-        let current_role =
-            crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
-        crate::wallet::handlers::check_role(current_role, KeyRole2::Master)?;
+        let role = get_user_context(&user_id,&device_id,&mut db_cli).await?.role()?;
+        crate::wallet::handlers::check_role(role, KeyRole2::Master)?;
     };
 
     let ReplenishContactRequest {

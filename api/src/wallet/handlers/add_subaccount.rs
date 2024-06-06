@@ -8,7 +8,7 @@ use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -39,20 +39,21 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let AddSubaccountRequest {
         subaccount_pubkey,
         subaccount_prikey_encryped_by_password,
         subaccount_prikey_encryped_by_answer,
         hold_value_limit,
     } = request_data;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
     let hold_value_limit =
         display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
-    let (_, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+   
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
+    
+    super::check_role(role, KeyRole2::Master)?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     //todo: 24小时内只能三次增加的限制
 
@@ -82,9 +83,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let record = WalletManageRecordEntity::new_with_specified(
         user_id,
         WalletOperateType::AddSubaccount,
-        &device.hold_pubkey.unwrap(),
-        &device.id,
-        &device.brand,
+        &context.device.hold_pubkey.unwrap(),
+        &context.device.id,
+        &context.device.brand,
         vec![txid],
     );
     record.insert(&mut db_cli).await?;

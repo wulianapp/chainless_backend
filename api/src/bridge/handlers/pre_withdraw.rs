@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
 
 use crate::utils::captcha::{Captcha, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
 use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
 
@@ -43,12 +43,12 @@ pub(crate) async fn req(
     let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account.unwrap();
 
-    let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    check_role(current_role, KeyRole2::Master)?;
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
+
+    check_role(role, KeyRole2::Master)?;
     let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
     let eth_addr = bridge_cli
         .get_binded_eth_addr(&main_account)

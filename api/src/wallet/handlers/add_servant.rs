@@ -6,7 +6,7 @@ use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit
 use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::account_manager::user_info;
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
@@ -21,7 +21,6 @@ use models::secret_store::SecretStoreEntity;
 use models::{PgLocalCli, PsqlOp};
 use tracing::error;
 
-use super::get_role;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -48,16 +47,21 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account.unwrap();
+
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,mut current_strategy) = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
+
+
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+
     if current_strategy.servant_pubkeys.len() >= 11 {
         Err(WalletError::ServantNumReachLimit)?;
     }
 
-    let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+
 
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret =
@@ -102,13 +106,13 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     let record = WalletManageRecordEntity::new_with_specified(
         user_id,
         WalletOperateType::AddServant,
-        &device.hold_pubkey.unwrap(),
-        &device.id,
-        &device.brand,
+        &context.device.hold_pubkey.unwrap(),
+        &context.device.id,
+        &context.device.brand,
         vec![txid],
     );
     record.insert(&mut db_cli).await?;
 
     db_cli.commit().await?;
-    Ok(None::<String>)
+    Ok(None)
 }

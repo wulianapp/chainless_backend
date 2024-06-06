@@ -19,7 +19,7 @@ use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
 use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
 
-use hex;
+
 //use log::debug;
 use anyhow::{anyhow, Result};
 use tokio::sync::{Mutex, MutexGuard};
@@ -146,8 +146,8 @@ mod tests {
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id.clone(), pri_key);
         let mut actions = vec![];
         for index in 10001u32..=100000u32 {
-            let key = chainless_sub_signer(&account_id.to_string(), &seed, index).unwrap();
-            println!("key {}", key.public_key.to_string());
+            let key = chainless_sub_signer(account_id.as_ref(), seed, index).unwrap();
+            println!("key {}", key.public_key);
             let add_action = Action::AddKey(Box::new(AddKeyAction {
                 public_key: key.public_key,
                 access_key: AccessKey {
@@ -177,7 +177,7 @@ mod tests {
             nonce: current_nonce + 1,
             receiver_id: account_id,
             block_hash: access_key_query_response.block_hash,
-            actions: actions,
+            actions,
         };
 
         let hash = tx.get_hash_and_size().0.as_bytes().to_owned();

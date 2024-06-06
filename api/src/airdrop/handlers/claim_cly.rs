@@ -19,7 +19,7 @@ use models::{
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-use crate::{utils::token_auth, wallet::handlers::*};
+use crate::{utils::{get_user_context, token_auth}, wallet::handlers::*};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
@@ -29,14 +29,14 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user, current_strategy, device) =
-        get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = get_role(&current_strategy, device.hold_pubkey.as_deref());
-    check_role(current_role, KeyRole2::Master)?;
-    if !user.kyc_is_verified {
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
+
+    check_role(role, KeyRole2::Master)?;
+    if !context.user_info.kyc_is_verified {
         Err(AccountManagerError::KYCNotRegister)?;
     }
-    let main_account = user.main_account.unwrap();
 
     //todo: check if claimed already
     let cli = ContractClient::<Airdrop>::new_update_cli().await?;

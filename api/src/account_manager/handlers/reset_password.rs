@@ -1,4 +1,6 @@
 use actix_web::{web, HttpRequest};
+use blockchain::multi_sig::MultiSig;
+use blockchain::ContractClient;
 use common::data_structures::KeyRole2;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
@@ -8,7 +10,7 @@ use tokio::time::error::Elapsed;
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
-use crate::utils::token_auth;
+use crate::utils::{judge_role_by_strategy, token_auth};
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
@@ -49,23 +51,15 @@ pub async fn req(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
         &mut db_cli,
     )
-    .await?;
+    .await?.into_inner();
 
-    if user_info.main_account.is_some() {
-        //目前没有需要必须登陆才能改密码的需求
-        /***
-        let (token_user_id, token_device_id, _) = token_auth::validate_credentials2(&req)?;
-        if user_at_stored.id != token_user_id || device_id != token_device_id {
-            Err(BackendError::RequestParamInvalid("".to_string()))?;
-        }
-        ***/
-
-        //看是否设置了安全措施，之前是都可以，之后是只有主设备可以
-        if device.device_info.key_role != KeyRole2::Master {
-            Err(WalletError::UneligiableRole(
-                device.device_info.key_role,
-                KeyRole2::Master,
-            ))?;
+    if let Some(account) = user_info.main_account{
+        //设置安全问答之前或者之后的主设备 才有权限改登录密码
+        let cli = ContractClient::<MultiSig>::new_query_cli().await?;
+        let strategy = cli.get_strategy(&account).await?;
+        let role = judge_role_by_strategy(strategy.as_ref(),device.hold_pubkey.as_deref())?;
+        if role != KeyRole2::Master {
+            Err(WalletError::UneligiableRole(role,KeyRole2::Master))?;
         }
     }
 

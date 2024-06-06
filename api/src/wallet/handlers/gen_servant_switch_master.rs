@@ -7,7 +7,7 @@ use models::general::get_pg_pool_connect;
 use models::secret_store::SecretStoreEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -54,12 +54,13 @@ pub(crate) async fn req(
         "this haven't be servant yet".to_string(),
     ))?;
 
-    let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account.clone().unwrap();
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
+    
+    super::check_role(role, KeyRole2::Servant)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Servant)?;
+
 
     let client = ContractClient::<MultiSig>::new_query_cli().await?;
     let master_pubkey = client.get_master_pubkey(&main_account).await?;

@@ -9,5 +9,4 @@ pub struct DeviceInfo {
     pub hold_pubkey: Option<String>,
     pub brand: String,
     pub holder_confirm_saved: bool,
-    pub key_role: KeyRole2,
 }

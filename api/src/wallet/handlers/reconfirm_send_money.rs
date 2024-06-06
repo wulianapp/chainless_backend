@@ -9,7 +9,7 @@ use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use tracing::{debug, info};
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{to_internal_error, BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::{PgLocalCli, PsqlOp};
@@ -33,10 +33,11 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (_main_account,current_strategy) = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
 
     let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
         CoinTxFilter::ByOrderId(&order_id),
@@ -123,7 +124,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
         }
 
         //跨链转出，在无链端按照普通转账处理
-        let _ = blockchain::general::broadcast_tx_commit_from_raw2(
+        blockchain::general::broadcast_tx_commit_from_raw2(
             coin_tx.transaction.chain_tx_raw.as_ref().ok_or("")?,
             &confirmed_sig,
         )

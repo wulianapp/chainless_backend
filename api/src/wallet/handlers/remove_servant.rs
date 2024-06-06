@@ -5,7 +5,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use models::general::{get_pg_pool_connect, transaction_begin};
 use models::wallet_manage_record::WalletManageRecordEntity;
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::data_structures::{KeyRole2, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
@@ -36,12 +36,13 @@ pub(crate) async fn req(
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user, mut current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let main_account = user.main_account.clone().unwrap();
+    
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,mut current_strategy) = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
 
     //old key_store set abandoned
     SecretStoreEntity::update_single(

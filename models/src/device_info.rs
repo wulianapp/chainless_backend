@@ -117,8 +117,7 @@ impl DeviceInfoEntity {
                 state: common::data_structures::DeviceState::Active,
                 hold_pubkey: None,
                 brand: brand.to_owned(),
-                holder_confirm_saved: false,
-                key_role: KeyRole2::Undefined,
+                holder_confirm_saved: false
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -140,7 +139,6 @@ impl PsqlOp for DeviceInfoEntity {
             hold_pubkey,\
             brand,\
             holder_confirm_saved,\
-            key_role,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from device_info where {}",
@@ -157,10 +155,9 @@ impl PsqlOp for DeviceInfoEntity {
                     hold_pubkey: row.get(3),
                     brand: row.get(4),
                     holder_confirm_saved: row.get::<usize, bool>(5),
-                    key_role: row.get::<usize, String>(6).parse()?,
                 },
-                updated_at: row.get(7),
-                created_at: row.get(8),
+                updated_at: row.get(6),
+                created_at: row.get(7),
             })
         };
 
@@ -189,8 +186,7 @@ impl PsqlOp for DeviceInfoEntity {
             state,
             hold_pubkey,
             brand: device_type,
-            holder_confirm_saved,
-            key_role,
+            holder_confirm_saved
         } = self.into_inner();
         let hold_pubkey: PsqlType = hold_pubkey.to_owned().into();
 
@@ -201,16 +197,14 @@ impl PsqlOp for DeviceInfoEntity {
                 state,\
                 hold_pubkey,\
                 brand,\
-                holder_confirm_saved,\
-                key_role\
-         ) values ('{}',{},'{}',{},'{}',{},'{}');",
+                holder_confirm_saved
+        ) values ('{}',{},'{}',{},'{}',{});",
             id,
             user_id,
             state,
             hold_pubkey.to_psql_str(),
             device_type,
-            holder_confirm_saved,
-            key_role
+            holder_confirm_saved
         );
         debug!("row sql {} rows", sql);
         let _execute_res = cli.execute(sql.as_str()).await?;

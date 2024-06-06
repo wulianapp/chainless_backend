@@ -9,7 +9,7 @@ use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
@@ -48,14 +48,14 @@ pub(crate) async fn req(
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    //get user's main_account 、mater_key、current servant_key
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-    let (_user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Servant)?;
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account,_) = context.account_strategy()?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Servant)?;
     super::check_have_base_fee(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
@@ -161,9 +161,9 @@ pub(crate) async fn req(
         let record = WalletManageRecordEntity::new_with_specified(
             user_id,
             WalletOperateType::NewcomerSwitchMaster,
-            &device.hold_pubkey.ok_or("")?,
-            &device.id,
-            &device.brand,
+            &context.device.hold_pubkey.ok_or("")?,
+            &context.device.id,
+            &context.device.brand,
             vec![txid],
         );
         record.insert(&mut db_cli).await?;

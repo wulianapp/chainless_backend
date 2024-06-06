@@ -11,7 +11,7 @@ use models::{account_manager, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tokio::time::error::Elapsed;
 //use super::super::ContactIsUsedRequest;
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserInfoResponse {
@@ -35,26 +35,10 @@ pub struct UserInfoResponse {
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let _devices = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
-    )
-    .await?;
-    let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
-            .await?
-            .into_inner();
 
-    //todo:
-    let role = if user_info.main_account.is_none() {
-        KeyRole2::Undefined
-    } else {
-        let (_, current_strategy, device) =
-            crate::wallet::handlers::get_session_state(user_id, &device_id, &mut db_cli).await?;
-        let current_role =
-            crate::wallet::handlers::get_role(&current_strategy, device.hold_pubkey.as_deref());
-        current_role
-    };
+    let user_context = get_user_context(&user_id,&device_id,&mut db_cli).await?;
+    let role = user_context.role()?;
+    let user_info = user_context.user_info;
 
     let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
         .await?
@@ -70,7 +54,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         laste_predecessor_replace_time: 0,
         invite_code: airdrop_info.invite_code.clone(),
         kyc_is_verified: user_info.kyc_is_verified,
-        secruity_is_seted: matches!(user_info.main_account, Some(_)),
+        secruity_is_seted: user_info.main_account.is_some(),
         main_account: user_info.main_account.unwrap_or("".to_string()),
         role: role.to_string(),
         name: Some("Bob".to_string()),

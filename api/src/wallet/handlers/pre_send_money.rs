@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
 use crate::utils::captcha::{Captcha, Usage};
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{
     to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
     WalletError::{self, *},
@@ -60,8 +60,12 @@ pub(crate) async fn req(
         Err(WalletError::FobidTransferZero)?;
     }
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
+  
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let (main_account, strategy) = context.account_strategy()?;
+    let role = context.role()?;
+    
+    super::check_role(role, KeyRole2::Master)?;
 
     //todo:
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
@@ -92,17 +96,12 @@ pub(crate) async fn req(
             })?;
         (to, None)
     };
-    if to_account_id == user.main_account.clone().unwrap() {
+    if to_account_id == main_account {
         Err(WalletError::ForbideTransferSelf)?
     }
-
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
-
-    let from = user.main_account.clone().unwrap();
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
-    let available_balance = super::get_available_amount(&from, &coin_type, &mut db_cli).await?;
+    let available_balance = super::get_available_amount(&main_account, &coin_type, &mut db_cli).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -113,25 +112,19 @@ pub(crate) async fn req(
     }
 
     //如果本身是单签，则状态直接变成SenderSigCompleted
-    let cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let strategy = cli
-        .get_strategy(&from)
-        .await?
-        .ok_or(BackendError::InternalError(
-            "main_account not found".to_string(),
-        ))?;
     if strategy.sub_confs.get(&to_account_id).is_some() {
         Err(WalletError::ReceiverIsSubaccount)?;
     }
     //todo: 也不能转bridge
 
     //封装根据状态生成转账对象的逻辑
+    let cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let gen_tx_with_status = |stage: CoinSendStage| -> Result<CoinTxEntity> {
         let coin_tx_raw =
-            cli.gen_send_money_info(&from, &to_account_id, coin_type.clone(), amount, expire_at)?;
+            cli.gen_send_money_info(&main_account, &to_account_id, coin_type.clone(), amount, expire_at)?;
         Ok(CoinTxEntity::new_with_specified(
             coin_type.clone(),
-            from.clone(),
+            main_account.clone(),
             to_account_id.clone(),
             amount,
             coin_tx_raw,
@@ -152,11 +145,12 @@ pub(crate) async fn req(
     );
     //没有从公钥且强制转账的话，直接返回待签名数据
     info!("need_sig_num: {},is_forced {} ", need_sig_num, is_forced);
+    //单签 + 强制
     if need_sig_num == 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::ReceiverApproved)?;
 
         let (tx_id, chain_tx_raw) = cli
-            .gen_send_money_raw(vec![], &from, &to_account_id, coin_type, amount, expire_at)
+            .gen_send_money_raw(vec![], &main_account, &to_account_id, coin_type, amount, expire_at)
             .await?;
         coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id.clone());
@@ -167,6 +161,7 @@ pub(crate) async fn req(
         let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
         Ok(Some((order_id, Some(tx_id))))
+    //单签 + 非强制    
     } else if need_sig_num == 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::SenderSigCompleted)?;
         if to_contact.is_some() {
@@ -175,6 +170,7 @@ pub(crate) async fn req(
         let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
         Ok(Some((order_id, None)))
+    //多签 + 强制    
     } else if need_sig_num != 0 && is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         coin_info.transaction.tx_type = TxType::Forced;
@@ -184,6 +180,7 @@ pub(crate) async fn req(
         let order_id = coin_info.transaction.order_id.clone();
         coin_info.insert(&mut db_cli).await?;
         Ok(Some((order_id, None)))
+    //多签 + 非强制    
     } else if need_sig_num != 0 && !is_forced {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
         if to_contact.is_some() {

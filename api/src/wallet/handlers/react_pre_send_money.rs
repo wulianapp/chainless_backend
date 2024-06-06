@@ -7,7 +7,7 @@ use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 
-use crate::utils::token_auth;
+use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
@@ -27,11 +27,11 @@ pub(crate) async fn req(
     //todo:check user_id if valid
     let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user, current_strategy, device) =
-        super::get_session_state(user_id, &device_id, &mut db_cli).await?;
-    let _main_account = user.main_account;
-    let current_role = super::get_role(&current_strategy, device.hold_pubkey.as_deref());
-    super::check_role(current_role, KeyRole2::Master)?;
+   
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let role = context.role()?;
+
+    super::check_role(role, KeyRole2::Master)?;
 
     let ReactPreSendMoneyRequest {
         order_id,
