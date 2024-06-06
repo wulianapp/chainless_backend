@@ -236,7 +236,7 @@ pub async fn get_session_state(
     Ok((user.user_info, current_strategy, device))
 }
 
-pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<()> {
+pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<(),WalletError> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }
