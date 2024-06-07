@@ -39,7 +39,10 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitNewcomerSwitchMasterRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
+
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let CommitNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         add_key_raw,
@@ -49,10 +52,6 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_password,
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
-
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
-
   
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let (main_account,_) = context.account_strategy()?;

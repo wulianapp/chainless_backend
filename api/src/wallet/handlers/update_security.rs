@@ -38,9 +38,10 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: UpdateSecurityRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
+
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let (main_account,current_strategy) = context.account_strategy()?;

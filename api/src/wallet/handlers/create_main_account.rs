@@ -44,7 +44,10 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, device_brand) = token_auth::validate_credentials(&req)?;
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
+    
+    let (user_id, token_version,device_id, device_brand) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,
@@ -58,8 +61,7 @@ pub(crate) async fn req(
 
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
+
     //store user info
     let user_info =
         account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)

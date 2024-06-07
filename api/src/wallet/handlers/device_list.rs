@@ -27,9 +27,9 @@ pub struct DeviceListResponse {
  
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceListResponse>> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
-
     let mut db_cli = get_pg_pool_connect().await?;
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+
     let devices: Vec<DeviceInfo> = DeviceInfoEntity::find(
             DeviceInfoFilter::ByUser(&user_id),
              &mut db_cli

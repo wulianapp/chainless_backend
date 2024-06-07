@@ -17,6 +17,8 @@ create table if not exists users
     create_subacc_time bigint[],
     -- 无链钱包id
     main_account text,
+    -- 令牌版本
+    token_version bigint not null,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );

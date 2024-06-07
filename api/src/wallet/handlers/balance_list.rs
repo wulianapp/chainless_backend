@@ -49,8 +49,9 @@ pub async fn req(
     req: HttpRequest,
     request_data: BalanceListRequest,
 ) -> BackendRes<BalanceListResponse> {
-    let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,_, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
         .await?
         .into_inner();

@@ -34,10 +34,12 @@ pub struct AddSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
-
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
+    
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+
+
 
     let AddSubaccountRequest {
         subaccount_pubkey,

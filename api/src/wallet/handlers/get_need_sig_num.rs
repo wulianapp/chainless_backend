@@ -22,9 +22,10 @@ pub struct GetNeedSigNumRequest {
 }
 
 pub(crate) async fn req(req: HttpRequest, request_data: GetNeedSigNumRequest) -> BackendRes<u8> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
-    let GetNeedSigNumRequest { coin, amount } = request_data;
     let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let GetNeedSigNumRequest { coin, amount } = request_data;
 
     let (_user, strategy, _device) =
         super::get_session_state(user_id, &device_id, &mut db_cli).await?;

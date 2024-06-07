@@ -21,9 +21,9 @@ use common::error_code::{BackendRes, WalletError};
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
     //todo: sync tx records after claim
-
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let (main_account,_) = context.account_strategy()?;

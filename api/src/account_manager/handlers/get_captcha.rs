@@ -169,12 +169,13 @@ pub async fn with_token_req(
     req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
+    let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let mut db_cli = get_pg_pool_connect().await?;
     let context = get_user_context(&user_id,&device_id,&mut db_cli).await?;
     let role = context.role()?;
     match kind {

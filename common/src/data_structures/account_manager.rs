@@ -15,4 +15,5 @@ pub struct UserInfo {
     //last three time subaccounts creation
     pub create_subacc_time: Vec<u64>,
     pub main_account: Option<String>,
+    pub token_version: u32,
 }

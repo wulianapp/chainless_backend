@@ -94,8 +94,9 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 }
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
-    let (user_id, _, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id,_, _, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;

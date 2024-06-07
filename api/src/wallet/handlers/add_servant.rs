@@ -35,7 +35,11 @@ pub struct AddServantRequest {
 
 pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
+
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
+    
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let AddServantRequest {
         servant_pubkey,
         servant_prikey_encryped_by_password,
@@ -44,8 +48,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_brand: _,
     } = request_data;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;

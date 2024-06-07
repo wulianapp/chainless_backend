@@ -39,12 +39,13 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    let (user_id, device_id, _device_brand) = token_auth::validate_credentials(&req)?;
+    
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let GenNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         captcha,
     } = request_data;
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;

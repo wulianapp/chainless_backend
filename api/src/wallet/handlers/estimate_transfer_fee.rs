@@ -50,8 +50,9 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: EstimateTransferFeeRequest,
 ) -> BackendRes<EstimateTransferFeeResponse> {
-    let (user_id, _device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
 
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
 

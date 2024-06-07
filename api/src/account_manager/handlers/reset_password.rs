@@ -76,7 +76,7 @@ pub async fn req(
 
     //modify user's password  at db
     account_manager::UserInfoEntity::update_single(
-        UserUpdater::LoginPwdHash(&new_password),
+        UserUpdater::LoginPwdHash(&new_password,user_info.token_version+1),
         UserFilter::ById(&user_info.id),
         &mut db_cli,
     )

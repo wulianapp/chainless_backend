@@ -19,8 +19,8 @@ use models::{account_manager, PsqlOp};
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli = get_pg_pool_connect().await?;
+    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let (user, _current_strategy, _device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account.unwrap();

@@ -24,14 +24,16 @@ pub struct ReconfirmSendMoneyRequest {
 
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
+
+    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let mut db_cli = db_cli.begin().await?;
+    
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let ReconfirmSendMoneyRequest {
         order_id,
         confirmed_sig,
     } = request_data;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let (_main_account,current_strategy) = context.account_strategy()?;

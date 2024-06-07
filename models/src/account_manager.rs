@@ -38,7 +38,8 @@ pub enum UserFilter<'b> {
 
 #[derive(Clone, Debug)]
 pub enum UserUpdater<'a> {
-    LoginPwdHash(&'a str),
+    //pwd,token version
+    LoginPwdHash(&'a str,u32),
     AccountIds(Vec<String>),
     //     * anwser_indexes,secruity_is_seted,main_account
     SecruityInfo(&'a str, &'a str),
@@ -46,12 +47,13 @@ pub enum UserUpdater<'a> {
     OpStatus(&'a str),
     Email(&'a str),
     PhoneNumber(&'a str),
+    TokenVersion(u32),
 }
 
 impl fmt::Display for UserUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserUpdater::LoginPwdHash(pwd) => format!("login_pwd_hash='{}'", pwd),
+            UserUpdater::LoginPwdHash(pwd,version) => format!("login_pwd_hash='{}',token_version={}", pwd,version),
             UserUpdater::AccountIds(ids) => {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
@@ -64,6 +66,7 @@ impl fmt::Display for UserUpdater<'_> {
             UserUpdater::AnwserIndexes(anwser) => format!("anwser_indexes='{}' ", anwser),
             UserUpdater::Email(email) => format!("email='{}'", email),
             UserUpdater::PhoneNumber(number) => format!("phone_number='{}'", number),
+            UserUpdater::TokenVersion(version) => format!("token_version={}", version),
         };
         write!(f, "{}", description)
     }
@@ -98,6 +101,7 @@ impl UserInfoEntity {
             kyc_is_verified: false,
             create_subacc_time: vec![],
             main_account: None,
+            token_version: 1,
         };
         UserInfoEntity {
             user_info: user,
@@ -122,6 +126,7 @@ impl PsqlOp for UserInfoEntity {
             kyc_is_verified,\
             create_subacc_time,\
             main_account,\
+            token_version,\
             cast(updated_at as text),\
             cast(created_at as text) \
             from users where {}",
@@ -146,9 +151,10 @@ impl PsqlOp for UserInfoEntity {
                         .map(|t| t as u64)
                         .collect::<Vec<u64>>(),
                     main_account: row.get(8),
+                    token_version: row.get::<usize, i64>(9) as u32,
                 },
-                updated_at: row.get(9),
-                created_at: row.get(10),
+                updated_at: row.get(10),
+                created_at: row.get(11),
             };
             Ok(view)
         };
@@ -182,6 +188,7 @@ impl PsqlOp for UserInfoEntity {
             kyc_is_verified,
             create_subacc_time,
             main_account,
+            token_version
         } = self.into_inner();
 
         //assembly string array to sql string
@@ -200,8 +207,9 @@ impl PsqlOp for UserInfoEntity {
                 is_frozen,\
                 kyc_is_verified,\
                 create_subacc_time,\
-                main_account\
-            ) values ({},{},{},'{}','{}',{},{},{},{})",
+                main_account,\
+                token_version\
+            ) values ({},{},{},'{}','{}',{},{},{},{},{})",
             id,
             phone_number.to_psql_str(),
             email.to_psql_str(),
@@ -210,7 +218,8 @@ impl PsqlOp for UserInfoEntity {
             is_frozen,
             kyc_is_verified,
             create_subacc_time.to_psql_str(),
-            main_account.to_psql_str()
+            main_account.to_psql_str(),
+            token_version
         );
         debug!("row sql {} rows", sql);
         let execute_res = cli.execute(&sql).await?;
@@ -260,7 +269,7 @@ mod tests {
         println!("{:?}", user_by_find);
         //assert_eq!(user_by_find.user_info, user.user_info);
         UserInfoEntity::update(
-            UserUpdater::LoginPwdHash("0123"),
+            UserUpdater::LoginPwdHash("0123",2),
             UserFilter::ById(&1),
             &mut db_cli,
         )
@@ -292,7 +301,7 @@ mod tests {
         println!("by_trans3__{:?}", user_by_find);
         //assert_eq!(user_by_find.user_info.login_pwd_hash, user.user_info.login_pwd_hash);
         UserInfoEntity::update(
-            UserUpdater::LoginPwdHash("0123"),
+            UserUpdater::LoginPwdHash("0123",2),
             UserFilter::ById(&1),
             &mut db_cli,
         )

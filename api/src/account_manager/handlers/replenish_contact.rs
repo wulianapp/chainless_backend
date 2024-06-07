@@ -26,8 +26,9 @@ pub struct ReplenishContactRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> BackendRes<String> {
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
 
     let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
         .await?;

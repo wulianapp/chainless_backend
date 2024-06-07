@@ -99,6 +99,7 @@ async fn register(
             view.user_info.email = Some(contact.clone());
         }
     }
+    let token_version = view.user_info.token_version;
     view.insert(&mut db_cli).await?;
 
     //register airdrop
@@ -128,7 +129,7 @@ async fn register(
 
     db_cli.commit().await?;
 
-    let token = crate::utils::token_auth::create_jwt(this_user_id, &device_id, &device_brand)?;
+    let token = crate::utils::token_auth::create_jwt(this_user_id, token_version,&device_id, &device_brand)?;
     info!("user {} register successfully", contact);
     Ok(Some(token))
 }

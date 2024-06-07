@@ -45,7 +45,9 @@ pub(crate) async fn req(
     request_data: PreSendMoneyRequest,
 ) -> BackendRes<(String, Option<String>)> {
     //todo: allow master only
-    let (user_id, device_id, _) = token_auth::validate_credentials(&req)?;
+    let mut db_cli = get_pg_pool_connect().await?;
+
+    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
     let PreSendMoneyRequest {
         to,
         coin,
@@ -59,7 +61,6 @@ pub(crate) async fn req(
     if amount == 0 {
         Err(WalletError::FobidTransferZero)?;
     }
-    let mut db_cli = get_pg_pool_connect().await?;
   
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let (main_account, strategy) = context.account_strategy()?;
