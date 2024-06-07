@@ -37,6 +37,14 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     })?
     .into_inner();
 
-    let role = get_user_context(&user.id,&device_id,&mut db_cli).await?.role()?;
+    //针对用新设备查询
+    let role = if  DeviceInfoEntity::find(
+        DeviceInfoFilter::ByDeviceUser(&device_id, &user.id),
+         &mut db_cli).await?.is_empty(){
+        KeyRole2::Undefined
+    }else{
+        get_user_context(&user.id,&device_id,&mut db_cli).await?.role()?
+    };
+
     Ok(Some(role))
 }

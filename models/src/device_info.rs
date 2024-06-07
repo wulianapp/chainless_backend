@@ -80,7 +80,6 @@ pub enum DeviceInfoFilter<'b> {
     ByDeviceUser(&'b str, &'b u32),
     ByUserDeviceHoldSecret(u32, &'b str, bool),
     ByHoldKey(&'b str),
-    ByDeviceContact(&'b str, &'b str),
 }
 
 impl fmt::Display for DeviceInfoFilter<'_> {
@@ -89,12 +88,6 @@ impl fmt::Display for DeviceInfoFilter<'_> {
             DeviceInfoFilter::ByUser(user_id) => format!("user_id={} order by created_at", user_id),
             DeviceInfoFilter::ByDeviceUser(device_id, user_id) => {
                 format!("id='{}' and user_id={} ", device_id, user_id)
-            }
-            DeviceInfoFilter::ByDeviceContact(device_id, contact) => {
-                format!(
-                    "id='{}' and (email='{}' or phone_numbe='{}') ",
-                    device_id, contact, contact
-                )
             }
             DeviceInfoFilter::ByUserDeviceHoldSecret(user_id, device_id, saved) => format!(
                 "user_id={} and id='{}' and holder_confirm_saved={} ",
@@ -132,7 +125,7 @@ impl PsqlOp for DeviceInfoEntity {
 
     async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
         let sql = format!(
-            "select 
+            "select \
             id,\
             user_id,\
             state,\

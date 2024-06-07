@@ -47,17 +47,21 @@ pub async fn req(
     .await
     .map_err(|_e| PhoneOrEmailNotRegister)?
     .into_inner();
-    let device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-        &mut db_cli,
-    )
-    .await?.into_inner();
 
     if let Some(account) = user_info.main_account{
-        //设置安全问答之前或者之后的主设备 才有权限改登录密码
-        let cli = ContractClient::<MultiSig>::new_query_cli().await?;
-        let strategy = cli.get_strategy(&account).await?;
-        let role = judge_role_by_strategy(strategy.as_ref(),device.hold_pubkey.as_deref())?;
+        let devices = DeviceInfoEntity::find(
+            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
+             &mut db_cli).await?;
+        //针对用新设备修改
+        let role = if  devices.is_empty(){
+            KeyRole2::Undefined
+        }else{
+            //设置安全问答之前或者之后的主设备 才有权限改登录密码
+            let cli = ContractClient::<MultiSig>::new_query_cli().await?;
+            let strategy = cli.get_strategy(&account).await?;
+            judge_role_by_strategy(strategy.as_ref(),devices[0].device_info.hold_pubkey.as_deref())?
+        };
+        
         if role != KeyRole2::Master {
             Err(WalletError::UneligiableRole(role,KeyRole2::Master))?;
         }

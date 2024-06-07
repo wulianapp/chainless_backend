@@ -27,10 +27,6 @@ struct Body {
 }
 
 pub async fn first_tx(account: &str) -> Result<Option<AccountSummary>> {
-    eprintln!(
-        "{}/address/first_tx/{}",
-        CONF.btc_aggregated_api_base_uri, account
-    );
     let body = reqwest::get(format!(
         "{}/address/first_tx/{}",
         CONF.btc_aggregated_api_base_uri, account

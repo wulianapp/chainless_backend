@@ -191,16 +191,16 @@ impl PsqlOp for UserInfoEntity {
         let email: PsqlType = email.into();
 
         let sql = format!(
-            "insert into users (
-                id,
-                phone_number,
-                email,
-                login_pwd_hash,
-                anwser_indexes,
-                is_frozen,
-                kyc_is_verified,
-                create_subacc_time,
-                main_account
+            "insert into users (\
+                id,\
+                phone_number,\
+                email,\
+                login_pwd_hash,\
+                anwser_indexes,\
+                is_frozen,\
+                kyc_is_verified,\
+                create_subacc_time,\
+                main_account\
             ) values ({},{},{},'{}','{}',{},{},{},{})",
             id,
             phone_number.to_psql_str(),

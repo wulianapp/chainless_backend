@@ -52,6 +52,14 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
         ..
     } = res.user_info;
 
+    if !UserInfoEntity::find(
+        UserFilter::ByPhoneOrEmail(&replenish_contact),
+         &mut db_cli
+        ).await?.is_empty(){
+        Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;    
+    }
+    
+
     if replenish_contact_type == ContactType::Email && email.is_none() {
         UserInfoEntity::update_single(
             UserUpdater::Email(&replenish_contact),

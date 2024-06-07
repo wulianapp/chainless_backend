@@ -85,12 +85,13 @@ impl UserContext{
 }
 
 //获取当前会话的已进行安全问答的用户信息、多签配置、设备信息的属性数据
+//针对未登录过的新设备，device_info为空，不在context的考虑之列
 pub async fn get_user_context(
   user_id: &u32,
   device_id: &str,
-  conn: &mut PgLocalCli<'_>,
+  db_cli: &mut PgLocalCli<'_>,
 ) -> Result<UserContext, BackendError> {
-  let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), conn)
+  let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), db_cli)
       .await
       .map_err(|err| {
           if err.to_string().contains("DBError::DataNotFound") {
@@ -103,7 +104,7 @@ pub async fn get_user_context(
     //注册过的一定有设备信息
   let device = DeviceInfoEntity::find_single(
     DeviceInfoFilter::ByDeviceUser(device_id, &user_id),
-     conn)
+      db_cli)
         .await?.into_inner();
 
   let strategy = match user_info.main_account {
