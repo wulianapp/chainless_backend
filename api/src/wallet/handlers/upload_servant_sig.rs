@@ -3,7 +3,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::{KeyRole2, PubkeySignInfo};
+use common::data_structures::{KeyRole, PubkeySignInfo};
 use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
@@ -30,12 +30,12 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
-    
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Servant)?;
+    super::check_role(role, KeyRole::Servant)?;
 
     let UploadTxSignatureRequest {
         order_id,

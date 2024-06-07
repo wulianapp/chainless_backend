@@ -1,5 +1,5 @@
 use actix_web::HttpRequest;
-use common::data_structures::{KeyRole2, OpStatus};
+use common::data_structures::{KeyRole, OpStatus};
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -18,7 +18,7 @@ pub struct GetUserDeviceRoleRequest {
     contact: String,
 }
 
-pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2> {
+pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
@@ -38,12 +38,18 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole2>
     .into_inner();
 
     //针对用新设备查询
-    let role = if  DeviceInfoEntity::find(
+    let role = if DeviceInfoEntity::find(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user.id),
-         &mut db_cli).await?.is_empty(){
-        KeyRole2::Undefined
-    }else{
-        get_user_context(&user.id,&device_id,&mut db_cli).await?.role()?
+        &mut db_cli,
+    )
+    .await?
+    .is_empty()
+    {
+        KeyRole::Undefined
+    } else {
+        get_user_context(&user.id, &device_id, &mut db_cli)
+            .await?
+            .role()?
     };
 
     Ok(Some(role))

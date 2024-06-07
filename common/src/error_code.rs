@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
 
 use crate::{
-    data_structures::{coin_transaction::CoinSendStage, KeyRole2},
+    data_structures::{coin_transaction::CoinSendStage, KeyRole},
     prelude::CoinType,
 };
 use serde::Deserialize;
@@ -186,7 +186,7 @@ pub enum WalletError {
     #[error("have uncomplete transaction,cann't excute operate device")]
     HaveUncompleteTx,
     #[error("Current role is {0},but only {1} is allowed")]
-    UneligiableRole(KeyRole2, KeyRole2),
+    UneligiableRole(KeyRole, KeyRole),
     #[error("receiver is subaccount and trasfer value add balance value will exceed limit")]
     ExceedSubAccountHoldLimit,
     #[error("transfer amount big than available balance")]

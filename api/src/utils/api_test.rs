@@ -32,7 +32,8 @@ use common::utils::math::{self, random_num};
 use models::secret_store::SecretStoreEntity;
 // use log::{info, LevelFilter,debug,error};
 use crate::account_manager::handlers::user_info::UserInfoResponse;
-use crate::wallet::handlers::get_strategy::StrategyDataTmp;
+use crate::wallet::handlers::get_strategy::StrategyDataResponse;
+use crate::wallet::handlers::get_secret::GetSecretResponse;
 use crate::wallet::*;
 use actix_web::http::header::HeaderName;
 use actix_web::http::header::HeaderValue;
@@ -424,7 +425,7 @@ macro_rules! test_search_message {
 macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getStrategy");
-        let res: BackendRespond<StrategyDataTmp> = test_service_call!(
+        let res: BackendRespond<GetSecretResponse> = test_service_call!(
             $service,
             "get",
             &url,

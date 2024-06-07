@@ -110,7 +110,7 @@ impl DeviceInfoEntity {
                 state: common::data_structures::DeviceState::Active,
                 hold_pubkey: None,
                 brand: brand.to_owned(),
-                holder_confirm_saved: false
+                holder_confirm_saved: false,
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -179,7 +179,7 @@ impl PsqlOp for DeviceInfoEntity {
             state,
             hold_pubkey,
             brand: device_type,
-            holder_confirm_saved
+            holder_confirm_saved,
         } = self.into_inner();
         let hold_pubkey: PsqlType = hold_pubkey.to_owned().into();
 

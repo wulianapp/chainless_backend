@@ -6,7 +6,7 @@ use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::{CoinType, KeyRole2};
+use common::data_structures::{CoinType, KeyRole};
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
@@ -17,7 +17,7 @@ use tracing::{debug, error};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
+use models::account_manager::{UserFilter, UserInfoEntity};
 
 use models::coin_transfer::CoinTxEntity;
 use models::PsqlOp;
@@ -41,14 +41,13 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, String)> {
     println!("__0001_start preWithdraw ");
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
-
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
-    check_role(role, KeyRole2::Master)?;
+    check_role(role, KeyRole::Master)?;
     let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
     let eth_addr = bridge_cli
         .get_binded_eth_addr(&main_account)

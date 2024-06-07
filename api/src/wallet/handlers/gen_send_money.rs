@@ -1,7 +1,7 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::{KeyRole2, PubkeySignInfo};
+use common::data_structures::{KeyRole, PubkeySignInfo};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
@@ -18,7 +18,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -32,12 +32,12 @@ pub struct GenSendMoneyRequest {
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
-    
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
 
     let GenSendMoneyRequest { order_id } = request_data;
 

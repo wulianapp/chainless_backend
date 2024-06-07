@@ -4,7 +4,7 @@ use blockchain::multi_sig::MultiSig;
 use models::general::get_pg_pool_connect;
 
 use crate::utils::{get_user_context, token_auth};
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -21,12 +21,12 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = context.role()?;
-    
-    super::check_role(role, KeyRole2::Servant)?;
+
+    super::check_role(role, KeyRole::Servant)?;
 
     DeviceInfoEntity::update(
         DeviceInfoUpdater::HolderSaved(true),

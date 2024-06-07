@@ -29,13 +29,15 @@ pub struct GetSecretRequest {
     pub account_id: Option<String>,
 }
 
+pub type GetSecretResponse = Vec<SecretStore>;
+
 pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
-) -> BackendRes<Vec<SecretStore>> {
+) -> BackendRes<GetSecretResponse> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let GetSecretRequest { r#type, account_id } = request_data;

@@ -1,6 +1,6 @@
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::error_code::{AccountManagerError::*, BackendError};
 use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
@@ -10,7 +10,7 @@ use crate::utils::captcha::{Captcha, ContactType, Usage};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
+use models::account_manager::{UserFilter, UserInfoEntity};
 use models::general::*;
 use models::secret_store::SecretStoreEntity;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
@@ -80,14 +80,9 @@ async fn register(
         Err(PhoneOrEmailAlreadyRegister)?;
     }
 
-    //todo: register multi_sig_contract account
-
     //store user info
     //todo: hash password  again before store
-    //pubkey is equal to account id when register
-    //fixme:
-    //let pubkey = "";
-    Captcha::check_user_code(&contact, &captcha, Usage::Register)?;
+    Captcha::check_and_delete(&contact, &captcha, Usage::Register)?;
 
     let this_user_id = gen_user_id(&mut db_cli).await?;
     let mut view = UserInfoEntity::new_with_specified(this_user_id, &password);
@@ -129,7 +124,12 @@ async fn register(
 
     db_cli.commit().await?;
 
-    let token = crate::utils::token_auth::create_jwt(this_user_id, token_version,&device_id, &device_brand)?;
+    let token = crate::utils::token_auth::create_jwt(
+        this_user_id,
+        token_version,
+        &device_id,
+        &device_brand,
+    )?;
     info!("user {} register successfully", contact);
     Ok(Some(token))
 }

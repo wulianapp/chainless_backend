@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
@@ -26,12 +26,12 @@ pub(crate) async fn req(
 ) -> BackendRes<String> {
     //todo:check user_id if valid
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
-   
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
 
     let ReactPreSendMoneyRequest {
         order_id,

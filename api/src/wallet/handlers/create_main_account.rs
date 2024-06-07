@@ -9,14 +9,14 @@ use blockchain::ContractClient;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use common::utils::math::generate_random_hex_string;
-use models::account_manager::{get_next_uid, UserFilter, UserUpdater};
+use models::account_manager::{UserFilter, UserUpdater};
 use models::airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::general::{get_pg_pool_connect, transaction_begin};
@@ -46,8 +46,9 @@ pub(crate) async fn req(
 ) -> BackendRes<String> {
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
-    
-    let (user_id, token_version,device_id, device_brand) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+
+    let (user_id, _, device_id, device_brand) =
+        token_auth::validate_credentials(&req, &mut db_cli).await?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,
@@ -59,8 +60,7 @@ pub(crate) async fn req(
         captcha,
     } = request_data;
 
-    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
-
+    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //store user info
     let user_info =
@@ -102,8 +102,6 @@ pub(crate) async fn req(
     );
     sub_account_secret.insert(&mut db_cli).await?;
 
-    //fixme: 这里遇到过一次没有commit，db事务，但是update_single成功的情况
-    debug!("__line_{}", line!());
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),

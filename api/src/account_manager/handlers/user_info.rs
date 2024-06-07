@@ -1,6 +1,6 @@
 use actix_web::HttpRequest;
 use common::constants::INVITE_URL;
-use common::data_structures::{KeyRole2, OpStatus};
+use common::data_structures::{KeyRole, OpStatus};
 use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -35,9 +35,9 @@ pub struct UserInfoResponse {
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
-    let user_context = get_user_context(&user_id,&device_id,&mut db_cli).await?;
+    let user_context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = user_context.role()?;
     let user_info = user_context.user_info;
 

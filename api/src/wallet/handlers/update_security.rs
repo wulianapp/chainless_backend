@@ -10,10 +10,11 @@ use models::{
 };
 
 use crate::utils::{
-    captcha::{Captcha, Usage}, get_user_context, token_auth
+    captcha::{Captcha, Usage},
+    get_user_context, token_auth,
 };
 use common::{
-    data_structures::{secret_store::SecretStore, KeyRole2},
+    data_structures::{secret_store::SecretStore, KeyRole},
     error_code::{BackendError, BackendRes, WalletError},
 };
 use serde::{Deserialize, Serialize};
@@ -41,22 +42,21 @@ pub(crate) async fn req(
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,current_strategy) = context.account_strategy()?;
+    let (main_account, current_strategy) = context.account_strategy()?;
     let role = context.role()?;
-    
-    super::check_role(role, KeyRole2::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
+    super::check_role(role, KeyRole::Master)?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     let UpdateSecurityRequest {
         anwser_indexes,
         secrets,
         captcha,
     } = request_data;
-    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
+    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     UserInfoEntity::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),

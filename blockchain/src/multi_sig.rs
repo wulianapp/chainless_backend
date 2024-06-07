@@ -57,7 +57,6 @@ impl Default for MultiSigRank {
     fn default() -> Self {
         MultiSigRank {
             min: 0,
-            //fixme: number out of range when u128::MAX
             max_eq: 1_000_000u128 * BASE_DECIMAL, //one million
             sig_num: 0,
         }
@@ -210,7 +209,7 @@ impl ContractClient<MultiSig> {
         subacc: BTreeMap<&str, SubAccConf>,
     ) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
-        assert_eq!(subacc.len(), 1, "tmp limit");
+        assert_eq!(subacc.len(), 1);
         for (account_id, conf) in subacc.clone().into_iter() {
             let _register_tx_id = self
                 .register_account_with_name(account_id, &conf.pubkey)

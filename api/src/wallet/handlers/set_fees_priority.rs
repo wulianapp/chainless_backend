@@ -5,7 +5,7 @@ use blockchain::{
     multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, CoinType, KeyRole2},
+    data_structures::{wallet_namage_record::WalletOperateType, CoinType, KeyRole},
     error_code::BackendError,
 };
 use models::{
@@ -31,13 +31,14 @@ pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> Back
     //todo: must be called by main device
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, token_version,device_id, device_brand) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, device_brand) =
+        token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,current_strategy) = context.account_strategy()?;
+    let (main_account, current_strategy) = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     let SetFeesPriorityRequest { fees_priority } = request_data;

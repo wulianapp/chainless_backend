@@ -1593,10 +1593,12 @@ mod tests {
     use blockchain::eth_cli::EthContractClient;
     use common::data_structures::CoinType;
     use common::utils::math::*;
-    use handlers::get_strategy::StrategyDataTmp;
+    use handlers::get_strategy::StrategyDataResponse;
     use models::account_manager::UserInfoEntity;
     use std::collections::HashMap;
     use tracing::{debug, error, info};
+    use crate::wallet::handlers::get_secret::GetSecretResponse;
+
 
     /***
 

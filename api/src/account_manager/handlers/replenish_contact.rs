@@ -1,7 +1,7 @@
 use actix_web::HttpRequest;
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::secret_store::SecretStore;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::error_code::AccountManagerError::{self, *};
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
@@ -11,7 +11,7 @@ use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::general::*;
 use models::secret_store::SecretStoreEntity;
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
@@ -27,23 +27,25 @@ pub struct ReplenishContactRequest {
 
 pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> BackendRes<String> {
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
         .await?;
     //todo:
     //新设备或者主设备
     if res.user_info.main_account.is_some() {
-        let role = get_user_context(&user_id,&device_id,&mut db_cli).await?.role()?;
-        crate::wallet::handlers::check_role(role, KeyRole2::Master)?;
+        let role = get_user_context(&user_id, &device_id, &mut db_cli)
+            .await?
+            .role()?;
+        crate::wallet::handlers::check_role(role, KeyRole::Master)?;
     };
 
     let ReplenishContactRequest {
         contact: replenish_contact,
         captcha,
     } = request_data;
-    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::ReplenishContact)?;
+    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::ReplenishContact)?;
 
     let replenish_contact_type: ContactType = replenish_contact.parse()?;
 
@@ -53,13 +55,12 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
         ..
     } = res.user_info;
 
-    if !UserInfoEntity::find(
-        UserFilter::ByPhoneOrEmail(&replenish_contact),
-         &mut db_cli
-        ).await?.is_empty(){
-        Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;    
+    if !UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&replenish_contact), &mut db_cli)
+        .await?
+        .is_empty()
+    {
+        Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
     }
-    
 
     if replenish_contact_type == ContactType::Email && email.is_none() {
         UserInfoEntity::update_single(

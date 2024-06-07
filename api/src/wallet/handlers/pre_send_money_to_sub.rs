@@ -8,7 +8,7 @@ use common::constants::TX_EXPAIRE_TIME;
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxType};
 use common::data_structures::CoinType;
 
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis, DAY1};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
@@ -18,7 +18,7 @@ use tracing::{debug, error};
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{parse_str, AccountManagerError, BackendError, BackendRes, WalletError};
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity};
+use models::account_manager::{UserFilter, UserInfoEntity};
 
 use common::error_code::BackendError::ChainError;
 use models::coin_transfer::CoinTxEntity;
@@ -42,12 +42,12 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, String)> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
 
     let PreSendMoneyToSubRequest {
         to,

@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
 };

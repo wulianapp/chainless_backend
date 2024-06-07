@@ -39,7 +39,7 @@ pub enum UserFilter<'b> {
 #[derive(Clone, Debug)]
 pub enum UserUpdater<'a> {
     //pwd,token version
-    LoginPwdHash(&'a str,u32),
+    LoginPwdHash(&'a str, u32),
     AccountIds(Vec<String>),
     //     * anwser_indexes,secruity_is_seted,main_account
     SecruityInfo(&'a str, &'a str),
@@ -53,7 +53,9 @@ pub enum UserUpdater<'a> {
 impl fmt::Display for UserUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
-            UserUpdater::LoginPwdHash(pwd,version) => format!("login_pwd_hash='{}',token_version={}", pwd,version),
+            UserUpdater::LoginPwdHash(pwd, version) => {
+                format!("login_pwd_hash='{}',token_version={}", pwd, version)
+            }
             UserUpdater::AccountIds(ids) => {
                 let new_servant_str = super::vec_str2array_text(ids.to_owned());
                 format!("account_ids={} ", new_servant_str)
@@ -188,7 +190,7 @@ impl PsqlOp for UserInfoEntity {
             kyc_is_verified,
             create_subacc_time,
             main_account,
-            token_version
+            token_version,
         } = self.into_inner();
 
         //assembly string array to sql string
@@ -228,22 +230,6 @@ impl PsqlOp for UserInfoEntity {
     }
 }
 
-pub async fn get_next_uid(cli: &mut PgLocalCli<'_>) -> Result<u32> {
-    let execute_res = cli
-        .query("select last_value,is_called from users_id_seq order by last_value desc limit 1")
-        .await?;
-    //todo:
-    let row = execute_res.first().unwrap();
-    let current_user_id = row.get::<usize, i64>(0) as u32;
-    let is_called = row.get::<usize, bool>(1);
-    //auto index is always 1 when no user or insert one
-    if is_called {
-        Ok(current_user_id + 1)
-    } else {
-        Ok(1)
-    }
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -269,7 +255,7 @@ mod tests {
         println!("{:?}", user_by_find);
         //assert_eq!(user_by_find.user_info, user.user_info);
         UserInfoEntity::update(
-            UserUpdater::LoginPwdHash("0123",2),
+            UserUpdater::LoginPwdHash("0123", 2),
             UserFilter::ById(&1),
             &mut db_cli,
         )
@@ -301,7 +287,7 @@ mod tests {
         println!("by_trans3__{:?}", user_by_find);
         //assert_eq!(user_by_find.user_info.login_pwd_hash, user.user_info.login_pwd_hash);
         UserInfoEntity::update(
-            UserUpdater::LoginPwdHash("0123",2),
+            UserUpdater::LoginPwdHash("0123", 2),
             UserFilter::ById(&1),
             &mut db_cli,
         )

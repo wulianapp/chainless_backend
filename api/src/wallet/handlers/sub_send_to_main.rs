@@ -7,7 +7,7 @@ use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, SubToMainTx, TxType};
 use common::data_structures::CoinType;
 
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::encrypt::{bs58_to_hex, ed25519_verify_hex, ed25519_verify_raw};
 use common::utils::math::coin_amount::display2raw;
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -35,13 +35,13 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
     //todo:check user_id if valid
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
 
     //todo: check must be main device
     let SubSendToMainRequest {

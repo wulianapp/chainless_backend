@@ -5,7 +5,7 @@ use blockchain::{
     multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{airdrop::Airdrop, wallet_namage_record::WalletOperateType, KeyRole2},
+    data_structures::{airdrop::Airdrop, wallet_namage_record::WalletOperateType, KeyRole},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
 };
@@ -20,7 +20,10 @@ use models::{
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
-use crate::{utils::{get_user_context, token_auth}, wallet::handlers::*};
+use crate::{
+    utils::{get_user_context, token_auth},
+    wallet::handlers::*,
+};
 use blockchain::ContractClient;
 use common::error_code::{BackendRes, WalletError};
 
@@ -34,15 +37,13 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     //todo: must be called by main device
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
-    
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
 
-
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
-    check_role(role, KeyRole2::Master)?;
+    check_role(role, KeyRole::Master)?;
 
     let ChangePredecessorRequest {
         predecessor_invite_code,

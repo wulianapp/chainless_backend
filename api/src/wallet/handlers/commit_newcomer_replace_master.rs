@@ -1,7 +1,7 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole2, SecretKeyState};
+use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
@@ -18,7 +18,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
@@ -42,7 +42,7 @@ pub(crate) async fn req(
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let CommitNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         add_key_raw,
@@ -52,12 +52,12 @@ pub(crate) async fn req(
         newcomer_prikey_encrypted_by_password,
         newcomer_prikey_encrypted_by_answer,
     } = request_data;
-  
+
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Undefined)?;
+    super::check_role(role, KeyRole::Undefined)?;
     super::check_have_base_fee(&main_account, &mut db_cli).await?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 

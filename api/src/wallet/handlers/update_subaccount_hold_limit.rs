@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
     error_code::BackendError,
     utils::math::coin_amount::display2raw,
 };
@@ -31,15 +31,14 @@ pub async fn req(
 ) -> BackendRes<String> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
-    
-    super::check_role(role, KeyRole2::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
+    super::check_role(role, KeyRole::Master)?;
+    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     let UpdateSubaccountHoldLimitRequest { subaccount, limit } = request_data;
     let limit = display2raw(&limit).map_err(|_e| WalletError::UnSupportedPrecision)?;

@@ -6,7 +6,7 @@ use models::general::get_pg_pool_connect;
 use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::utils::{get_user_context, judge_role_by_account, token_auth};
-use common::data_structures::{KeyRole2, SecretKeyState};
+use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -35,17 +35,17 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
-    //todo: must be called by main device
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, token_version,device_id, device_brand) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, device_brand) =
+        token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,mut current_strategy) = context.account_strategy()?;
+    let (main_account, mut current_strategy) = context.account_strategy()?;
     let role = context.role()?;
-    
-    super::check_role(role, KeyRole2::Master)?;
+
+    super::check_role(role, KeyRole::Master)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     let NewcommerSwitchServantRequest {
@@ -60,9 +60,11 @@ pub(crate) async fn req(
         DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id),
         &mut db_cli,
     )
-    .await?.into_inner();
-    let newcommer_device_role = judge_role_by_account(newcommer_device.hold_pubkey.as_deref(),&main_account).await?;
-    if newcommer_device_role != KeyRole2::Undefined {
+    .await?
+    .into_inner();
+    let newcommer_device_role =
+        judge_role_by_account(newcommer_device.hold_pubkey.as_deref(), &main_account).await?;
+    if newcommer_device_role != KeyRole::Undefined {
         Err(format!(
             "your new_device_id's role  is {},and should be Undefined",
             newcommer_device_role

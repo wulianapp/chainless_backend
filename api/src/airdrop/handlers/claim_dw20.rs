@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole2},
+    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
     error_code::{AccountManagerError, BackendError},
     utils::math::coin_amount::display2raw,
 };
@@ -23,13 +23,13 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: sync tx records after claim
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
-    
-    check_role(role, KeyRole2::Master)?;
+
+    check_role(role, KeyRole::Master)?;
 
     let user_airdrop =
         AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli).await?;

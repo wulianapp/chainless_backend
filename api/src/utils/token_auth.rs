@@ -22,7 +22,14 @@ struct Claims {
 }
 
 impl Claims {
-    pub fn new(user_id: u32, version: u32, device_id: &str, device_brand: &str, iat: u64, exp: u64) -> Self {
+    pub fn new(
+        user_id: u32,
+        version: u32,
+        device_id: &str,
+        device_brand: &str,
+        iat: u64,
+        exp: u64,
+    ) -> Self {
         Self {
             user_id,
             version,
@@ -44,7 +51,7 @@ pub fn create_jwt(
 
     let exp = iat + TOKEN_EXPAIRE_TIME;
 
-    let claims = Claims::new(user_id, version,device_id, device_brand,iat, exp);
+    let claims = Claims::new(user_id, version, device_id, device_brand, iat, exp);
 
     jsonwebtoken::encode(
         &Header::new(Algorithm::HS256),
@@ -63,7 +70,10 @@ fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
     .map(|data| data.claims)
 }
 
-pub async fn validate_credentials(req: &HttpRequest,db_cli:&mut PgLocalCli<'_>) -> Result<(u32, u32,String, String), BackendError> {
+pub async fn validate_credentials(
+    req: &HttpRequest,
+    db_cli: &mut PgLocalCli<'_>,
+) -> Result<(u32, u32, String, String), BackendError> {
     let auth_header = req
         .headers()
         .get(header::AUTHORIZATION)
@@ -78,17 +88,18 @@ pub async fn validate_credentials(req: &HttpRequest,db_cli:&mut PgLocalCli<'_>) 
             .map_err(|_err| Authorization("Invalid token signature".to_string()))?;
         if now_millis() > claim_dat.exp {
             Err(Authorization("Token has expired.".to_string()))?
-
         } else {
-            let user_info = UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id), db_cli)
-            .await
-            .map_err(|err| {
-                if err.to_string().contains("DBError::DataNotFound") {
-                    WalletError::MainAccountNotExist(err.to_string()).into()
-                } else {
-                    BackendError::InternalError(err.to_string())
-                }
-            })?.into_inner();
+            let user_info =
+                UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id), db_cli)
+                    .await
+                    .map_err(|err| {
+                        if err.to_string().contains("DBError::DataNotFound") {
+                            WalletError::MainAccountNotExist(err.to_string()).into()
+                        } else {
+                            BackendError::InternalError(err.to_string())
+                        }
+                    })?
+                    .into_inner();
 
             if claim_dat.version != user_info.token_version {
                 Err(Authorization("TokenVersionInvalid".to_string()))?
@@ -112,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_account_login_auth() {
-        let token = create_jwt(1, 1,"", "huawei").unwrap();
+        let token = create_jwt(1, 1, "", "huawei").unwrap();
         println!("res {}", token);
     }
 }

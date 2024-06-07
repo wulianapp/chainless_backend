@@ -103,7 +103,6 @@ pub async fn get_uncompleted_tx(
     Ok(txs)
 }
 
-//todo: return bool
 pub async fn have_no_uncompleted_tx(
     account: &str,
     conn: &mut PgLocalCli<'_>,
@@ -177,29 +176,6 @@ pub async fn get_servant_need(strategy: &Vec<MultiSigRank>, coin: &CoinType, amo
         .unwrap_or(0)
 }
 
-/***
-pub fn get_role(strategy: &StrategyData, hold_key: Option<&str>) -> KeyRole2 {
-    if let Some(key) = hold_key {
-        if strategy.master_pubkey == key {
-            KeyRole2::Master
-        } else if strategy.servant_pubkeys.contains(&key.to_string()) {
-            KeyRole2::Servant
-        } else {
-            /***
-            //如果从设备被删之后，就变成了新设备，但此时设备表仍留存之前该从设备的信息
-            error!(
-                "unnormal device: key {} is not belong to current account",key
-            );
-            unreachable!("unnormal device");
-            */
-            KeyRole2::Undefined
-        }
-    } else {
-        KeyRole2::Undefined
-    }
-}
-***/
-
 //获取当前会话的用户信息、多签配置、设备信息的属性数据
 //且已经进行过了多签
 pub async fn get_session_state(
@@ -232,11 +208,12 @@ pub async fn get_session_state(
     //注册过的一定有设备信息
     let device =
         DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id), conn)
-            .await?.into_inner();
+            .await?
+            .into_inner();
     Ok((user.user_info, current_strategy, device))
 }
 
-pub fn check_role(current: KeyRole2, require: KeyRole2) -> Result<(),WalletError> {
+pub fn check_role(current: KeyRole, require: KeyRole) -> Result<(), WalletError> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }
@@ -292,7 +269,7 @@ pub async fn estimate_transfer_fee(
             "not set fees priority".to_string(),
         ))?;
     let transfer_value = get_value(coin, amount).await;
-    //todo: config max_value
+
     let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
         transfer_value * 9 / 10000 + MIN_BASE_FEE
     } else {
@@ -354,7 +331,7 @@ pub async fn estimate_transfer_fee(
 }
 
 // 1/1000
-pub async fn check_protocal_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {
+pub async fn check_protocal_fee(current: KeyRole, require: KeyRole) -> Result<()> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }
@@ -362,7 +339,7 @@ pub async fn check_protocal_fee(current: KeyRole2, require: KeyRole2) -> Result<
 }
 
 //base_fee + protocal_fee
-pub fn check_fee(current: KeyRole2, require: KeyRole2) -> Result<()> {
+pub fn check_fee(current: KeyRole, require: KeyRole) -> Result<()> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }

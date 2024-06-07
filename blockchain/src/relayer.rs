@@ -19,7 +19,6 @@ use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
 use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
 
-
 //use log::debug;
 use anyhow::{anyhow, Result};
 use tokio::sync::{Mutex, MutexGuard};

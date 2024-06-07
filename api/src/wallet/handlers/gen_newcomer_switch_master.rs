@@ -1,6 +1,6 @@
 use actix_web::error::InternalError;
 use actix_web::{web, HttpRequest};
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
@@ -16,7 +16,7 @@ use common::error_code::AccountManagerError::{
     InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
 };
 use common::error_code::BackendError::ChainError;
-use models::account_manager::{get_next_uid, UserFilter, UserInfoEntity, UserUpdater};
+use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{error, info};
@@ -39,22 +39,20 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let GenNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         captcha,
     } = request_data;
-    Captcha::check_user_code(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
+    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Undefined)?;
+    super::check_role(role, KeyRole::Undefined)?;
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
-
 
     let client = ContractClient::<MultiSig>::new_query_cli().await?;
     let master_list = client.get_master_pubkey_list(&main_account).await?;

@@ -201,7 +201,7 @@ impl Captcha {
         Ok(())
     }
 
-    pub fn check_user_code(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+    pub fn check(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
         if common::env::CONF.service_mode != ServiceMode::Product
             && common::env::CONF.service_mode != ServiceMode::Dev
             && code.eq("000000")
@@ -215,11 +215,6 @@ impl Captcha {
             } else if data.code == code && data.is_expired() {
                 Err(CaptchaExpired)?
             } else {
-                //delete worn captcha
-                let code_storage = &mut CODE_STORAGE
-                    .lock()
-                    .map_err(|e| InternalError(e.to_string()))?;
-                code_storage.remove(&(user.to_string(), kind.clone()));
                 Ok(())
             }
         } else {
@@ -227,26 +222,13 @@ impl Captcha {
         }
     }
 
-    //todo: 验证验证码的时候不能进行验证码删除
-    pub fn check_user_code2(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
-        if common::env::CONF.service_mode != ServiceMode::Product
-            && common::env::CONF.service_mode != ServiceMode::Dev
-            && code.eq("000000")
-        {
-            return Ok(());
-        }
-
-        if let Some(data) = get_captcha(user, &kind)? {
-            if data.code != code {
-                Err(CaptchaIncorrect)?
-            } else if data.code == code && data.is_expired() {
-                Err(CaptchaExpired)?
-            } else {
-                Ok(())
-            }
-        } else {
-            Err(CaptchaNotFound)?
-        }
+    pub fn check_and_delete(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
+        Self::check(user,code,kind.clone())?;
+        let code_storage = &mut CODE_STORAGE
+            .lock()
+            .map_err(|e| InternalError(e.to_string()))?;
+        code_storage.remove(&(user.to_string(), kind));
+        Ok(())
     }
 }
 

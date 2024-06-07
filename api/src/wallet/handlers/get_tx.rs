@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::data_structures::{
     coin_transaction::{CoinSendStage, CoinTransaction, TxType},
     get_support_coin_list, CoinType, TxStatusOnChain,
@@ -96,13 +96,11 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id,_, _, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let current_strategy = multi_sig_cli
-        .get_strategy(&main_account)
-        .await?;
+    let current_strategy = multi_sig_cli.get_strategy(&main_account).await?;
 
     let GetTxRequest { order_id } = request_data;
     let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
@@ -115,13 +113,14 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
             }
         })?;
 
-    //获取已签名设备    
+    //获取已签名设备
     let mut signed_device = vec![];
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
         let device =
             DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
-                .await?.into_inner();
+                .await?
+                .into_inner();
         let sig = ServentSigDetail {
             pubkey,
             device_id: device.id,
@@ -135,8 +134,12 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         .await?
         .into_iter()
         .filter(|x| {
-            let role = judge_role_by_strategy(current_strategy.as_ref(),x.device_info.hold_pubkey.as_deref()).unwrap();
-            role == KeyRole2::Servant
+            let role = judge_role_by_strategy(
+                current_strategy.as_ref(),
+                x.device_info.hold_pubkey.as_deref(),
+            )
+            .unwrap();
+            role == KeyRole::Servant
         })
         .map(|d| ServentSigDetail {
             pubkey: d.device_info.hold_pubkey.unwrap(),
@@ -145,7 +148,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         })
         .collect::<Vec<ServentSigDetail>>();
 
-    //获取未签名信息    
+    //获取未签名信息
     let unsigned_device = all_device
         .into_iter()
         .filter(|x| !signed_device.contains(x))

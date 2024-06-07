@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use common::utils::time::now_millis;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
@@ -22,7 +22,7 @@ pub struct CancelSendMoneyRequest {
 pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let _device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
         &mut db_cli,
@@ -33,7 +33,7 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
     let _ = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
+    super::check_role(role, KeyRole::Master)?;
 
     let CancelSendMoneyRequest { order_id } = request_data;
     let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli).await?;
@@ -45,7 +45,6 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
             CoinSendStage::ReceiverRejected,
         ))?;
     } else {
-
         if now_millis() > tx.transaction.expire_at {
             Err(WalletError::TxExpired)?;
         }

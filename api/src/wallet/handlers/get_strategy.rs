@@ -11,24 +11,24 @@ use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct StrategyDataTmp {
-    pub multi_sig_ranks: Vec<MultiSigRankTmp>,
+pub struct StrategyDataResponse {
+    pub multi_sig_ranks: Vec<MultiSigRankResponse>,
     pub master_pubkey: String,
     pub servant_pubkeys: Vec<String>,
     pub subaccounts: BTreeMap<String, SubAccConf>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
-pub struct MultiSigRankTmp {
+pub struct MultiSigRankResponse {
     min: String,
     max_eq: String,
     sig_num: u8,
 }
 
-pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
+pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataResponse> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,_, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let main_account = super::get_main_account(user_id, &mut db_cli).await?;
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
 
@@ -40,14 +40,14 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataTmp> {
         let rank_external = data
             .multi_sig_ranks
             .iter()
-            .map(|rank| MultiSigRankTmp {
+            .map(|rank| MultiSigRankResponse {
                 min: raw2display(rank.min),
                 max_eq: raw2display(rank.max_eq),
                 sig_num: rank.sig_num,
             })
             .collect();
 
-        StrategyDataTmp {
+        StrategyDataResponse {
             multi_sig_ranks: rank_external,
             master_pubkey,
             servant_pubkeys: data.servant_pubkeys,

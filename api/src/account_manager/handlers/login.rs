@@ -129,7 +129,12 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         .await?;
 
     //generate auth token
-    let token = token_auth::create_jwt(user_info.id, user_info.token_version, &device_id, &device_brand)?;
+    let token = token_auth::create_jwt(
+        user_info.id,
+        user_info.token_version,
+        &device_id,
+        &device_brand,
+    )?;
     Ok(Some(token))
 }
 
@@ -158,7 +163,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     })?
     .into_inner();
 
-    Captcha::check_user_code(&user_info.id.to_string(), &captcha, Usage::Login)?;
+    Captcha::check_and_delete(&user_info.id.to_string(), &captcha, Usage::Login)?;
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
     device
@@ -169,7 +174,12 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         .await?;
 
     //generate auth token
-    let token = token_auth::create_jwt(user_info.id, user_info.token_version, &device_id, &device_brand)?;
+    let token = token_auth::create_jwt(
+        user_info.id,
+        user_info.token_version,
+        &device_id,
+        &device_brand,
+    )?;
     //成功登陆删掉错误密码的限制
     let retry_storage = &mut LOGIN_RETRY
         .lock()

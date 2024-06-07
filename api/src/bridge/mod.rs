@@ -346,8 +346,7 @@ mod tests {
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
                 &sig,
             )
-            .await
-            .unwrap();
+            .await.unwrap();
         println!("bind_res {} ", bind_res);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let current_bind_eth_addr = bridge_cli

@@ -1,7 +1,7 @@
 use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 use serde::{Deserialize, Serialize};
@@ -26,13 +26,13 @@ pub async fn req(req: HttpRequest, request_data: GenBindEthAddrSigRequest) -> Ba
     //todo: check jwt token
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
 
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,_) = context.account_strategy()?;
+    let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
-    
-    check_role(role, KeyRole2::Master)?;
+
+    check_role(role, KeyRole::Master)?;
 
     let GenBindEthAddrSigRequest { eth_addr } = request_data.clone();
 

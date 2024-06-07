@@ -1,6 +1,6 @@
 use actix_web::error::InternalError;
 use actix_web::HttpRequest;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 //use log::debug;
 use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently};
 use common::log::generate_trace_id;
@@ -48,7 +48,6 @@ fn get(
         None => contact.clone(),
     };
 
-    //todo: only master device can reset password
     if let Some(data) = captcha::get_captcha(&storage_key, &kind)? {
         let past_time = now_millis() - data.created_at;
         //todo:env
@@ -123,15 +122,16 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                     DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
                     &mut db_cli,
                 )
-                .await?.into_inner();
+                .await?
+                .into_inner();
                 let role = judge_role_by_user_id(
                     find_device_res.hold_pubkey.as_deref(),
                     &user_id,
-                    &mut db_cli
-                ).await?;
-                if role != KeyRole2::Master
-                {
-                    Err(WalletError::UneligiableRole(role,KeyRole2::Master))?;
+                    &mut db_cli,
+                )
+                .await?;
+                if role != KeyRole::Master {
+                    Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
                 }
             }
 
@@ -171,12 +171,12 @@ pub async fn with_token_req(
 ) -> BackendRes<String> {
     let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let context = get_user_context(&user_id,&device_id,&mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
     let role = context.role()?;
     match kind {
         ResetLoginPassword | Register | Login => {
@@ -185,22 +185,19 @@ pub async fn with_token_req(
         SetSecurity | UpdateSecurity | ReplenishContact => {
             //要么为进行安全问答，否则就只能主设备
             if context.user_info.main_account.is_some() {
-                if role != KeyRole2::Master {
-                    Err(WalletError::UneligiableRole(
-                        role,
-                        KeyRole2::Master,
-                    ))?;
+                if role != KeyRole::Master {
+                    Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
                 }
             }
         }
         NewcomerSwitchMaster => {
-            if role != KeyRole2::Undefined {
-                Err(WalletError::UneligiableRole(role,KeyRole2::Undefined))?;
+            if role != KeyRole::Undefined {
+                Err(WalletError::UneligiableRole(role, KeyRole::Undefined))?;
             }
         }
         ServantSwitchMaster => {
-            if role != KeyRole2::Servant {
-                Err(WalletError::UneligiableRole(role,KeyRole2::Servant))?;
+            if role != KeyRole::Servant {
+                Err(WalletError::UneligiableRole(role, KeyRole::Servant))?;
             }
         }
     }

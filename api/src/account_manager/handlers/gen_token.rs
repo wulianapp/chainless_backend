@@ -1,5 +1,5 @@
 use actix_web::HttpRequest;
-use common::data_structures::{KeyRole2, OpStatus};
+use common::data_structures::{KeyRole, OpStatus};
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
@@ -13,11 +13,9 @@ use crate::utils::token_auth;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let (user_id, token_version,device_id, device_brand) = token_auth::validate_credentials(&req,&mut db_cli).await?;
-    UserInfoEntity::update_single(
-        UserUpdater::TokenVersion(token_version), 
-        UserFilter::ById(&user_id), 
-    &mut db_cli).await?;
-    let token = crate::utils::token_auth::create_jwt(user_id, token_version,&device_id, &device_brand)?;
+    let (user_id, token_version, device_id, device_brand) =
+        token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let token =
+        crate::utils::token_auth::create_jwt(user_id, token_version, &device_id, &device_brand)?;
     Ok(Some(token))
 }

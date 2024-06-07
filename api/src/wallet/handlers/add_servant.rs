@@ -7,7 +7,7 @@ use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::account_manager::user_info;
 use crate::utils::{get_user_context, token_auth};
-use common::data_structures::{KeyRole2, SecretKeyState};
+use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
 use common::error_code::{AccountManagerError, WalletError};
 use models::account_manager::{UserFilter, UserInfoEntity};
@@ -38,8 +38,8 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let mut db_cli = db_cli.begin().await?;
-    
-    let (user_id, _,device_id,_) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let AddServantRequest {
         servant_pubkey,
         servant_prikey_encryped_by_password,
@@ -48,22 +48,17 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
         holder_device_brand: _,
     } = request_data;
 
-
-
     let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
-    let (main_account,mut current_strategy) = context.account_strategy()?;
+    let (main_account, mut current_strategy) = context.account_strategy()?;
     let role = context.role()?;
 
-    super::check_role(role, KeyRole2::Master)?;
-
+    super::check_role(role, KeyRole::Master)?;
 
     super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
 
     if current_strategy.servant_pubkeys.len() >= 11 {
         Err(WalletError::ServantNumReachLimit)?;
     }
-
-
 
     //如果之前就有了，说明之前曾经被赋予过master或者servant的身份
     let origin_secret =

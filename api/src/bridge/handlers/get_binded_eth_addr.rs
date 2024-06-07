@@ -2,7 +2,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::CoinType;
-use common::data_structures::KeyRole2;
+use common::data_structures::KeyRole;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::general::get_pg_pool_connect;
 //use log::debug;
@@ -20,7 +20,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
     let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _,device_id, _) = token_auth::validate_credentials(&req,&mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
     let (user, _current_strategy, _device) =
         get_session_state(user_id, &device_id, &mut db_cli).await?;
     let main_account = user.main_account.unwrap();

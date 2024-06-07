@@ -69,7 +69,7 @@ pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std
     let transaction = Transaction::try_from_slice(&tx_hex)?;
     let (_hash, _) = transaction.get_hash_and_size();
     let _act = decode_action(&transaction.actions)?;
-    Err("tmp".to_string())?
+    Err("".to_string())?
 }
 
 async fn get_balance(account: &AccountId) -> Result<u128> {

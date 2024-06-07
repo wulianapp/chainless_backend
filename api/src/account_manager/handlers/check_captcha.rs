@@ -27,7 +27,7 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
 
     let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let check_res = match kind {
-        Usage::Register => Captcha::check_user_code2(&contact, &captcha, kind),
+        Usage::Register => Captcha::check(&contact, &captcha, kind),
         _ => {
             let user = account_manager::UserInfoEntity::find_single(
                 UserFilter::ByPhoneOrEmail(&contact),
@@ -42,7 +42,7 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
                 }
             })?
             .into_inner();
-            Captcha::check_user_code2(&user.id.to_string(), &captcha, kind)
+            Captcha::check(&user.id.to_string(), &captcha, kind)
         }
     };
 
