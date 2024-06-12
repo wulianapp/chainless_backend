@@ -225,6 +225,8 @@ pub enum WalletError {
     ForbideTransferSelf,
     #[error("UnSupported Precision")]
     UnSupportedPrecision,
+    #[error("Subaccount Create too frequently")]
+    SubaccountCreateTooFrequently,
 }
 impl ErrorCode for WalletError {
     fn code(&self) -> u16 {
@@ -256,6 +258,7 @@ impl ErrorCode for WalletError {
             Self::TxExpired => 3025,
             Self::ForbideTransferSelf => 3026,
             Self::UnSupportedPrecision => 3027,
+            Self::SubaccountCreateTooFrequently => 3028,
         }
     }
 }

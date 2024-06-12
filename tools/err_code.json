@@ -176,6 +176,12 @@
         "zh_cn": "精度不能超过8位",
         "en_us": "Precision must less than 8"
       },
+	  "3028": {
+        "zh_tw": "合约账户创建太频繁",
+        "zh_cn": "合约账户创建太频繁",
+        "en_us": "Subaccount create too frequently"
+      },
+
       "4000": {
         "zh_tw": "用戶尚未綁定ETH地址",
         "zh_cn": "用户尚未绑定ETH地址",

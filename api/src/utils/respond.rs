@@ -40,8 +40,6 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
     lang: LangType,
     inner_res: BackendRes<D, E>,
 ) -> impl Responder {
-    //        get_lang(&req),
-
     match inner_res {
         Ok(data) => generate_ok_respond(data),
         Err(error) => {

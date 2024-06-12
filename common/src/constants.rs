@@ -55,5 +55,14 @@ pub const CHAINLESS_AIRDROP: &str = "ChainlessAirdrop";
 
 pub const INVITE_URL: &str = "https://test1.chainless.top/download?code=";
 
+//数据库连接池大小
 pub const PG_POOL_SIZE: usize = 90;
+
+//子账户创建限制(每天多少个)
+pub const SUBACCOUNT_AMOUNT_LIMIT: u16 = 3;
+//pub const SUBACCOUNT_TIME_LIMIT: u64 = DAY1;
+pub const SUBACCOUNT_TIME_LIMIT: u64 = MINUTE10;
+
+
+
 

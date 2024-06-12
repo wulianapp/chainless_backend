@@ -1,10 +1,14 @@
 use std::collections::BTreeMap;
 
 use actix_web::{HttpRequest};
+use common::constants::{SUBACCOUNT_AMOUNT_LIMIT, SUBACCOUNT_TIME_LIMIT};
+use common::data_structures::account_manager::UserInfo;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
+use common::utils::time::{now_millis, DAY1};
+use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::{get_user_context, token_auth};
@@ -14,7 +18,7 @@ use blockchain::ContractClient;
 
 
 
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 
 use models::secret_store::SecretStoreEntity;
 use models::{PsqlOp};
@@ -28,6 +32,31 @@ pub struct AddSubaccountRequest {
     subaccount_prikey_encryped_by_password: String,
     subaccount_prikey_encryped_by_answer: String,
     hold_value_limit: String,
+}
+
+//24小时内只能创建三次子账户
+async fn update_add_record(user_info: &UserInfo) -> Result<(),BackendError>{
+    let now = now_millis();
+    let records_len = user_info.create_subacc_time.len() as u16;
+    assert!(records_len <= SUBACCOUNT_AMOUNT_LIMIT);
+
+    let mut times =  user_info.create_subacc_time.clone();
+    if records_len == SUBACCOUNT_AMOUNT_LIMIT 
+        && user_info.create_subacc_time[2] - now >= SUBACCOUNT_TIME_LIMIT{
+       Err(WalletError::SubaccountCreateTooFrequently)?;
+    }else if records_len == SUBACCOUNT_AMOUNT_LIMIT
+        && user_info.create_subacc_time[2] - now < SUBACCOUNT_TIME_LIMIT{
+        times.remove(0);
+        times.push(now);  
+    }else{
+        times.push(now);
+    }
+    UserInfoEntity::update_single(
+        UserUpdater::SubCreateRecords(times), 
+    UserFilter::ById(&user_info.id)
+    ).await?;
+
+    Ok(())
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
@@ -49,13 +78,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     super::check_role(role, KeyRole::Master)?;
     super::have_no_uncompleted_tx(&main_account).await?;
 
-    //todo: 24小时内只能三次增加的限制
-
-    //account_manager::UserInfoView::update_single(UserUpdater::AccountIds(user_info.user_info.account_ids.clone()),UserFilter::ById(&user_id))?;
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
-    //todo: encrypted_prikey_by_password
     let secret = SecretStoreEntity::new_with_specified(
         &subaccount_pubkey,
         user_id,
@@ -63,6 +88,8 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_answer,
     );
     secret.insert().await?;
+
+    update_add_record(&context.user_info).await?;
 
     let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let sub_confs = BTreeMap::from([(
@@ -84,7 +111,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     );
     record.insert().await?;
 
-    //multi_cli.add_subaccount(user_info.user_info., subacc)1
+
+    
+
     //info!("new wallet {:?}  successfully", user_info);
-    Ok(None::<String>)
+    Ok(None)
 }

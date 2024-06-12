@@ -50,6 +50,7 @@ pub enum UserUpdater<'a> {
     Email(&'a str),
     PhoneNumber(&'a str),
     TokenVersion(u32),
+    SubCreateRecords(Vec<u64>),
 }
 
 impl fmt::Display for UserUpdater<'_> {
@@ -59,8 +60,12 @@ impl fmt::Display for UserUpdater<'_> {
                 format!("login_pwd_hash='{}',token_version={}", pwd, version)
             }
             UserUpdater::AccountIds(ids) => {
-                let new_servant_str = super::vec_str2array_text(ids.to_owned());
-                format!("account_ids={} ", new_servant_str)
+                let new_servant_str: PsqlType = ids.to_owned().into();
+                format!("account_ids={} ", new_servant_str.to_psql_str())
+            }
+            UserUpdater::SubCreateRecords(times) => {
+                let times: PsqlType = times.to_owned().into();
+                format!("create_subacc_time={} ", times.to_psql_str())
             }
             UserUpdater::SecruityInfo(anwser_indexes, main_account) => format!(
                 "anwser_indexes='{}',main_account='{}'",
