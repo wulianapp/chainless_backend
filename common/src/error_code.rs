@@ -291,6 +291,10 @@ pub enum AirdropError {
     PredecessorInviteCodeNotExist,
     #[error("this predecessor cann't be your self")]
     ForbidSetSelfAsPredecessor,
+    #[error("user haven't claim airdrop")]
+    HaveNotClaimAirdrop,
+    #[error("predecessor haven't claim airdrop")]
+    PredecessorHaveNotClaimAirdrop,
 }
 
 impl ErrorCode for AirdropError {
@@ -302,6 +306,8 @@ impl ErrorCode for AirdropError {
             Self::InviteCodeIllegal => 5003,
             Self::PredecessorInviteCodeNotExist => 5004,
             Self::ForbidSetSelfAsPredecessor => 5005,
+            Self::HaveNotClaimAirdrop => 5006,
+            Self::PredecessorHaveNotClaimAirdrop => 5007,
         }
     }
 }

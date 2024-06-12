@@ -65,7 +65,7 @@ pub async fn req(
                 let strategy = mul_cli
                     .get_strategy(&main_account.unwrap())
                     .await?
-                    .ok_or(InternalError("11".to_string()))?;
+                    .ok_or(InternalError("".to_string()))?;
                 strategy
                     .sub_confs
                     .iter()
@@ -81,7 +81,7 @@ pub async fn req(
                 let strategy = mul_cli
                     .get_strategy(&main_account.unwrap())
                     .await?
-                    .ok_or(InternalError("11".to_string()))?;
+                    .ok_or(InternalError("".to_string()))?;
 
                 let mut sub = strategy
                     .sub_confs

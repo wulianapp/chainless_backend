@@ -202,14 +202,25 @@
         "en_us": "Invite code is illegal"
       },
       "5004": {
-        "zh_tw": "上级邀请码不存在",
-        "zh_cn": "上級邀請碼不存在",
+        "zh_cn": "上级邀请码不存在",
+        "zh_tw": "上級邀請碼不存在",
         "en_us": "Invite code of predecessor is nonexistent"
       },
       "5005": {
-        "zh_tw": "禁止绑定自己为上级",
-        "zh_cn": "禁止綁定自己為上級",
+        "zh_cn": "禁止绑定自己为上级",
+        "zh_tw": "禁止綁定自己為上級",
         "en_us": "Forbid bind yourself as predecessor"
+      },
+	 "5006": {
+        "zh_tw": "尚未申领空投",
+        "zh_cn": "尚未申领空投",
+        "en_us": "haven't claim airdrop"
+      },
+	 "5007": {
+        "zh_tw": "上级尚未申领空投",
+        "zh_cn": "上级尚未申领空投",
+        "en_us": "predecessor haven't claim airdrop"
       }
+
       
 }

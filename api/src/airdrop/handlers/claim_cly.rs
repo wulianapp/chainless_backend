@@ -27,6 +27,16 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let role = context.role()?;
 
     check_role(role, KeyRole::Master)?;
+
+    //领cly之前肯定已经领了dw20
+    let cli = ContractClient::<Airdrop>::new_query_cli().await?;
+    let user_airdrop_on_chain = cli.get_user(
+        context.user_info.main_account.as_ref().unwrap()
+    ).await?;
+    if user_airdrop_on_chain.is_none(){
+        Err(AirdropError::HaveNotClaimAirdrop)?;
+    }
+
     if !context.user_info.kyc_is_verified {
         Err(AccountManagerError::KYCNotRegister)?;
     }

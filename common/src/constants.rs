@@ -54,3 +54,6 @@ pub const INVITE_CODE_MAX_LEN: u8 = 20;
 pub const CHAINLESS_AIRDROP: &str = "ChainlessAirdrop";
 
 pub const INVITE_URL: &str = "https://test1.chainless.top/download?code=";
+
+pub const PG_POOL_SIZE: usize = 90;
+

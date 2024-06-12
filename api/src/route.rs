@@ -111,10 +111,6 @@ where
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    std::panic::set_hook(Box::new(|_| {
-        println!("Custom panic hook");
-    }));
-
     common::log::init_logger();
     let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();

@@ -1,5 +1,6 @@
 use actix_web::{HttpRequest};
 
+use airdrop::Airdrop;
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::{
     data_structures::{KeyRole},
@@ -28,6 +29,15 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     check_role(role, KeyRole::Master)?;
 
     let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
+
+    //上级必须也领过空投
+    let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
+    let predecessor_airdrop_on_chain = cli.get_user(
+        &user_airdrop.airdrop.predecessor_account_id,
+    ).await?;
+    if predecessor_airdrop_on_chain.is_none(){
+        Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
+    }
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli

@@ -29,6 +29,7 @@ extern crate tokio_postgres;
 use anyhow::anyhow;
 use anyhow::Ok;
 use anyhow::Result;
+use common::constants::PG_POOL_SIZE;
 use deadpool::managed::Object;
 use serde::Deserialize;
 use serde::Serialize;
@@ -145,7 +146,7 @@ fn connect_pool() -> Result<Pool> {
     });
 
     cfg.pool = Some(deadpool_postgres::PoolConfig {
-        max_size: 90,
+        max_size: PG_POOL_SIZE,
         timeouts: Default::default(),
         queue_mode: Default::default(),
     });

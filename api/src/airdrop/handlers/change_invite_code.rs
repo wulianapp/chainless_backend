@@ -1,6 +1,7 @@
 use actix_web::{HttpRequest};
 
 
+use blockchain::{airdrop::Airdrop, ContractClient};
 use common::{
     data_structures::{KeyRole},
 };
@@ -30,6 +31,17 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
     check_role(role, KeyRole::Master)?;
+
+    let cli = ContractClient::<Airdrop>::new_query_cli().await?;
+    let user_airdrop_on_chain = cli.get_user(
+        context.user_info.main_account.as_ref().unwrap()
+    ).await?;
+    
+    if user_airdrop_on_chain.is_none(){
+        Err(AirdropError::HaveNotClaimAirdrop)?;
+    }
+
+
     let ChangeInviteCodeRequest { code } = request_data;
 
     if code.len() < 4 || code.len() > 20 {
