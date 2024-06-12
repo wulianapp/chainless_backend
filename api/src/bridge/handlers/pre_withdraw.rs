@@ -40,10 +40,9 @@ pub(crate) async fn req(
     request_data: PreWithdrawRequest,
 ) -> BackendRes<(String, String)> {
     println!("__0001_start preWithdraw ");
-    let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
@@ -73,7 +72,7 @@ pub(crate) async fn req(
         CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
-    let available_balance = get_available_amount(&from, &coin_type, &mut db_cli).await?;
+    let available_balance = get_available_amount(&from, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -125,7 +124,7 @@ pub(crate) async fn req(
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.receiver = eth_addr;
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, coin_tx_raw)))
     } else {
         let mut coin_info = gen_tx_with_status(CoinSendStage::Created)?;
@@ -134,7 +133,7 @@ pub(crate) async fn req(
 
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.receiver = eth_addr;
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, coin_tx_raw)))
     }
 }

@@ -26,16 +26,15 @@ pub struct ReplenishContactRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await?;
     //todo:
     //新设备或者主设备
     if res.user_info.main_account.is_some() {
-        let role = get_user_context(&user_id, &device_id, &mut db_cli)
+        let role = get_user_context(&user_id, &device_id)
             .await?
             .role()?;
         crate::wallet::handlers::check_role(role, KeyRole::Master)?;
@@ -55,7 +54,7 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
         ..
     } = res.user_info;
 
-    if !UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&replenish_contact), &mut db_cli)
+    if !UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&replenish_contact))
         .await?
         .is_empty()
     {
@@ -66,14 +65,14 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
         UserInfoEntity::update_single(
             UserUpdater::Email(&replenish_contact),
             UserFilter::ById(&user_id),
-            &mut db_cli,
+           
         )
         .await?;
     } else if replenish_contact_type == ContactType::PhoneNumber && phone_number.is_none() {
         UserInfoEntity::update_single(
             UserUpdater::PhoneNumber(&replenish_contact),
             UserFilter::ById(&user_id),
-            &mut db_cli,
+           
         )
         .await?;
     } else {

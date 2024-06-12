@@ -27,12 +27,10 @@ pub struct UploadTxSignatureRequest {
 pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
     //todo:check user_id if valid
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Servant)?;
@@ -51,7 +49,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     //todo: two update action is unnecessary
     let mut tx = models::coin_transfer::CoinTxEntity::find_single(
         CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
+       
     )
     .await?;
 
@@ -78,7 +76,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     models::coin_transfer::CoinTxEntity::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
+       
     )
     .await?;
 
@@ -105,7 +103,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
             models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
-                &mut db_cli,
+               
             )
             .await?;
         //给其他主账户转是用户自己签名，需要生成tx_raw
@@ -135,7 +133,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
             models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
-                &mut db_cli,
+               
             )
             .await?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认
@@ -143,11 +141,10 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
             models::coin_transfer::CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
-                &mut db_cli,
+               
             )
             .await?;
         }
     }
-    db_cli.commit().await?;
     Ok(None)
 }

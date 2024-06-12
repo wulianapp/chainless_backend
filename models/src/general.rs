@@ -5,6 +5,7 @@ use std::ops::DerefMut;
 use std::sync::Arc;
 
 use anyhow::Result;
+use futures::Future;
 //use r2d2::ManageConnection;
 //use r2d2::PooledConnection;
 //use r2d2_postgres::postgres::Transaction;
@@ -62,10 +63,10 @@ pub async fn get_pg_pool_connect5() -> Result<LocalConn> {
 
 pub async fn gen_db_cli(method:&str) -> Result<(PgLocalCli2,*mut LocalConn)> {
     let status = PG_POOL.status();
-    info!("pool_status_abc {:?}",status);
+    info!("pool_status_abc1 {:?}",status);
     let conn = PG_POOL.get().await?;
     let status = PG_POOL.status();
-    info!("pool_status_abc {:?}",status);
+    info!("pool_status_abc2 {:?}",status);
     let conn = Box::new(conn);
     let conn: &'static mut LocalConn = Box::leak(conn);
     let conn_ptr = conn as *mut LocalConn;
@@ -91,28 +92,28 @@ pub async fn clean_db_cli(conn_ptr: *mut LocalConn) -> Result<()> {
     })?;
 
     db_cli.commit().await?;
-
     unsafe { 
+        error!("conn_ptr1 {}",conn_ptr as u128);
         let _ = Box::from_raw(conn_ptr);
+        error!("conn_ptr2 {}",conn_ptr as u128);
+
     };
     Ok(())
 }
 
-
-/*** 
-pub async fn transaction_commit2() -> Result<()> {
-    LOCAL_CLI.with(|tx| async {
-        let test1: PgLocalCli<'static> = tx.take().unwrap();
-        let test2 = test1.commit().await.unwrap();
-
-    });
-    Ok(())
-} 
-**/
-
-pub fn transaction_rollback() -> Result<u64> {
-    todo!()
+pub async fn run_api_call<Fut,R>(method:&str,task: Fut) -> Result<R>
+    where 
+        Fut: Future<Output = R> + 'static,
+{
+    let (db_cli,conn_ptr) = gen_db_cli(method).await?;
+    crate::LOCAL_CLI9.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
+        let res = task.await;
+        clean_db_cli(conn_ptr).await?;
+        Ok(res)
+    }).await
 }
+
+
 
 pub async fn table_clear(table_name: &str) -> Result<(), String> {
     let sql = format!("truncate table {} restart identity", table_name);

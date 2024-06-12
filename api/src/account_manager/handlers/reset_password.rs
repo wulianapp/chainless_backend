@@ -37,11 +37,10 @@ pub async fn req(
         device_id,
     } = request_data.clone();
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut db_cli,
+       
     )
     .await
     .map_err(|_e| PhoneOrEmailNotRegister)?
@@ -50,7 +49,7 @@ pub async fn req(
     if let Some(account) = user_info.main_account {
         let devices = DeviceInfoEntity::find(
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-            &mut db_cli,
+           
         )
         .await?;
         //针对用新设备修改
@@ -82,7 +81,7 @@ pub async fn req(
     account_manager::UserInfoEntity::update_single(
         UserUpdater::LoginPwdHash(&new_password, user_info.token_version + 1),
         UserFilter::ById(&user_info.id),
-        &mut db_cli,
+       
     )
     .await?;
 

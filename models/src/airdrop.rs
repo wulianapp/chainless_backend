@@ -113,7 +113,7 @@ impl PsqlOp for AirdropEntity {
     type FilterContent<'b> = AirdropFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<Vec<AirdropEntity>> {
         let sql = format!(
             "select 
@@ -152,7 +152,7 @@ impl PsqlOp for AirdropEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "update airdrop set {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -165,7 +165,7 @@ impl PsqlOp for AirdropEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let Airdrop {
             user_id,
             account_id,
@@ -202,7 +202,7 @@ impl PsqlOp for AirdropEntity {
         Ok(())
     }
 
-    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -224,9 +224,9 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
         let airdrop = AirdropEntity::new_with_specified(1, 2, "3.local");
-        airdrop.insert(&mut db_cli).await.unwrap();
+        airdrop.insert().await.unwrap();
         let airdrop_by_find =
-            AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"), &mut db_cli)
+            AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"))
                 .await
                 .unwrap();
         println!("{:?}", airdrop_by_find);
@@ -235,7 +235,7 @@ mod tests {
         AirdropEntity::update_single(
             AirdropUpdater::InviteCode("3"),
             AirdropFilter::ByInviteCode("1"),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

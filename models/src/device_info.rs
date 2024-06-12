@@ -123,7 +123,7 @@ impl PsqlOp for DeviceInfoEntity {
     type UpdaterContent<'a> = DeviceInfoUpdater<'a>;
     type FilterContent<'b> = DeviceInfoFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select \
             id,\
@@ -159,7 +159,7 @@ impl PsqlOp for DeviceInfoEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -172,7 +172,7 @@ impl PsqlOp for DeviceInfoEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let DeviceInfo {
             id,
             user_id,
@@ -224,9 +224,9 @@ mod tests {
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
 
         let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
-        device.insert(&mut db_cli).await.unwrap();
+        device.insert().await.unwrap();
         let mut device_by_find =
-            DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1), &mut db_cli)
+            DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1))
                 .await
                 .unwrap();
         println!("{:?}", device_by_find);
@@ -236,7 +236,7 @@ mod tests {
         DeviceInfoEntity::update(
             DeviceInfoUpdater::State(SecretKeyState::Abandoned),
             DeviceInfoFilter::ByDeviceUser("123", &1),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

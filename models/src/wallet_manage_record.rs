@@ -106,7 +106,7 @@ impl PsqlOp for WalletManageRecordEntity {
     type UpdaterContent<'a> = WalletManageRecordUpdater<'a>;
     type FilterContent<'b> = WalletManageRecordFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select 
             record_id,\
@@ -146,7 +146,7 @@ impl PsqlOp for WalletManageRecordEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -159,7 +159,7 @@ impl PsqlOp for WalletManageRecordEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let WalletManageRecord {
             record_id,
             user_id,
@@ -227,11 +227,11 @@ mod tests {
             ],
         );
         let record_id = record.record.record_id.clone();
-        record.insert(&mut db_cli).await.unwrap();
+        record.insert().await.unwrap();
 
         let record_by_find = WalletManageRecordEntity::find_single(
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();
@@ -242,7 +242,7 @@ mod tests {
         WalletManageRecordEntity::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

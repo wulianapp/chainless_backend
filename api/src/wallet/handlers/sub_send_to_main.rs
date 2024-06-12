@@ -33,11 +33,10 @@ pub struct SubSendToMainRequest {
 
 pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
@@ -72,7 +71,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
     };
 
     let available_balance =
-        super::get_available_amount(&subaccount_id, &coin_type, &mut db_cli).await?;
+        super::get_available_amount(&subaccount_id, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
 
     if amount > available_balance {
@@ -102,6 +101,6 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
     );
     coin_info.transaction.tx_type = TxType::SubToMain;
     coin_info.transaction.tx_id = Some(tx_id.clone());
-    coin_info.insert(&mut db_cli).await?;
+    coin_info.insert().await?;
     Ok(Some(tx_id))
 }

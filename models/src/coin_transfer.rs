@@ -165,7 +165,7 @@ impl PsqlOp for CoinTxEntity {
 
     async fn find(
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<Vec<CoinTxEntity>> {
         let sql = format!(
             "select order_id,\
@@ -220,7 +220,7 @@ impl PsqlOp for CoinTxEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -233,7 +233,7 @@ impl PsqlOp for CoinTxEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let CoinTransaction {
             order_id,
             tx_id,
@@ -327,22 +327,22 @@ mod tests {
 
         let order_id = coin_tx.transaction.order_id.clone();
         println!("start insert");
-        coin_tx.insert(&mut db_cli).await.unwrap();
+        coin_tx.insert().await.unwrap();
         println!("start query");
 
         let _res =
-            CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"), &mut db_cli)
+            CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"))
                 .await
                 .unwrap();
         println!("start update");
         CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();
-        let res = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
+        let res = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
             .await
             .unwrap();
         println!("after update {:?}", res);

@@ -33,15 +33,14 @@ pub struct UserInfoResponse {
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let user_context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let user_context = get_user_context(&user_id, &device_id).await?;
     let role = user_context.role()?;
     let user_info = user_context.user_info;
 
-    let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
+    let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id))
         .await?
         .into_inner();
 

@@ -49,10 +49,9 @@ pub async fn req(
     req: HttpRequest,
     request_data: BalanceListRequest,
 ) -> BackendRes<BalanceListResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await?
         .into_inner();
 
@@ -133,7 +132,7 @@ pub async fn req(
             let freezn_amount = if account.is_none() {
                 0
             } else {
-                super::get_freezn_amount(account.as_ref().unwrap(), &coin, &mut db_cli).await
+                super::get_freezn_amount(account.as_ref().unwrap(), &coin).await
             };
             let total_balance = parse_str(balance_on_chain)?;
             debug!(

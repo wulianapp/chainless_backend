@@ -37,10 +37,9 @@ pub async fn req(
     req: HttpRequest,
     request_data: SingleBalanceRequest,
 ) -> BackendRes<SingleBalanceResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await?
         .into_inner();
     let main_account = user_info.main_account.clone().unwrap();

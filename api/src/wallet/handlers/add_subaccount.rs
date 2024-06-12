@@ -34,10 +34,8 @@ pub struct AddSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let AddSubaccountRequest {
         subaccount_pubkey,
@@ -48,12 +46,12 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let hold_value_limit =
         display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     //todo: 24小时内只能三次增加的限制
 
@@ -68,7 +66,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
-    secret.insert(&mut db_cli).await?;
+    secret.insert().await?;
 
     let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let sub_confs = BTreeMap::from([(
@@ -88,10 +86,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &context.device.brand,
         vec![txid],
     );
-    record.insert(&mut db_cli).await?;
+    record.insert().await?;
 
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
-    db_cli.commit().await?;
     //info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)
 }

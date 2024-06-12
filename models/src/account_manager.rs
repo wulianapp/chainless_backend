@@ -117,7 +117,7 @@ impl UserInfoEntity {
 impl PsqlOp for UserInfoEntity {
     type UpdaterContent<'a> = UserUpdater<'a>;
     type FilterContent<'b> = UserFilter<'b>;
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select id,\
             phone_number,\
@@ -167,7 +167,7 @@ impl PsqlOp for UserInfoEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -180,7 +180,7 @@ impl PsqlOp for UserInfoEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let UserInfo {
             id,
             phone_number,
@@ -246,11 +246,10 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-
+    
         let user = UserInfoEntity::new_with_specified(123245, "0123456789");
-        user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245), &mut db_cli)
+        user.insert().await.unwrap();
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245))
             .await
             .unwrap();
         println!("{:?}", user_by_find);
@@ -258,7 +257,7 @@ mod tests {
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123", 2),
             UserFilter::ById(&1),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();
@@ -275,15 +274,15 @@ mod tests {
         let mut db_cli = db_cli.begin().await.unwrap();
 
         let user = UserInfoEntity::new_with_specified(12345, "0123456789");
-        user.insert(&mut db_cli).await.unwrap();
-        let user_by_find = UserInfoEntity::find(UserFilter::ById(&1), &mut db_cli)
+        user.insert().await.unwrap();
+        let user_by_find = UserInfoEntity::find(UserFilter::ById(&1))
             .await
             .unwrap();
         println!("by_conn2__{:?}", user_by_find);
         db_cli.commit().await.unwrap();
 
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&12345), &mut db_cli)
+        let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&12345))
             .await
             .unwrap();
         println!("by_trans3__{:?}", user_by_find);
@@ -291,7 +290,7 @@ mod tests {
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123", 2),
             UserFilter::ById(&1),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

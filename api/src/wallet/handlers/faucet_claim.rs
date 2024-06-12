@@ -26,9 +26,8 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
     let account = match req_data.account_id {
         Some(id) => id,
         None => {
-            let mut db_cli = get_pg_pool_connect().await?;
-            let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-            super::get_main_account(user_id, &mut db_cli).await?
+                    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+            super::get_main_account(user_id).await?
         }
     };
 

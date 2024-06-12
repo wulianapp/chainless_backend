@@ -233,7 +233,7 @@ fn connect_pool() -> Result<Pool> {
     });
 
     cfg.pool = Some(deadpool_postgres::PoolConfig {
-        max_size: 64,
+        max_size: 90,
         timeouts: Default::default(),
         queue_mode: Default::default(),
     });
@@ -311,14 +311,14 @@ pub trait PsqlOp {
     type UpdaterContent<'a>: Display + Send;
     type FilterContent<'b>: Display + Send;
 
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>>
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>>
     where
         Self: Sized + Send;
-    async fn find_single(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Self>
+    async fn find_single(filter: Self::FilterContent<'_>) -> Result<Self>
     where
         Self: Sized + Send,
     {
-        let mut get_res: Vec<Self> = Self::find(filter, cli).await?;
+        let mut get_res: Vec<Self> = Self::find(filter).await?;
         let data_len = get_res.len();
         if data_len == 0 {
             //todo:return db error type
@@ -333,25 +333,25 @@ pub trait PsqlOp {
             Ok(get_res.pop().unwrap())
         }
     }
-    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>) -> Result<()> {
         todo!()
     }
 
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64>;
 
     async fn update_single(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<()>
     where
         Self: Sized + Send,
     {
-        let row_num = Self::update(new_value, filter, cli).await?;
+        let row_num = Self::update(new_value, filter).await?;
         if row_num == 0 {
             //todo:return db error type
             let error_info = "DBError::DataNotFound: data isn't existed";
@@ -366,21 +366,21 @@ pub trait PsqlOp {
         }
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()>;
+    async fn insert(self) -> Result<()>;
 
     //insert after check key
     async fn safe_insert(
         self,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<()>
     where
         Self: Sized + Send,
     {
         let filter_str = filter.to_string();
-        let find_res: Vec<Self> = Self::find(filter, cli).await?;
+        let find_res: Vec<Self> = Self::find(filter).await?;
         if find_res.is_empty() {
-            self.insert(cli).await
+            self.insert().await
         } else {
             //let error_info = "DBError::KeyAlreadyExsit: key already existed";
             //error!("{}", error_info);

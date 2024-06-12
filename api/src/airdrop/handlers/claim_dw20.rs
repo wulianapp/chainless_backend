@@ -21,18 +21,17 @@ use common::error_code::{BackendRes, WalletError};
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
     //todo: sync tx records after claim
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     check_role(role, KeyRole::Master)?;
 
     let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli).await?;
+        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli

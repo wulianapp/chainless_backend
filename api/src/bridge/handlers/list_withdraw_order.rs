@@ -57,10 +57,9 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
 }
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderEntity>> {
-    let mut db_cli = get_pg_pool_connect().await?;
     EthBridgeOrderEntity::find(
         BridgeOrderFilter::ByTypeAndAccountId(OrderType::Withdraw, main_account),
-        &mut db_cli,
+       
     )
     .await
 }
@@ -69,10 +68,9 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let main_account = get_main_account(user_id, &mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let main_account = get_main_account(user_id).await?;
 
     let ListWithdrawOrderRequest {
         page,

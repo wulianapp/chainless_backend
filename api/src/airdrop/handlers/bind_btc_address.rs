@@ -43,11 +43,10 @@ pub struct BindBtcAddressRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<u8> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
     check_role(role, KeyRole::Master)?;
@@ -63,7 +62,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
     ***/
 
-    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address), &mut db_cli)
+    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address))
         .await?
         .is_empty()
     {
@@ -83,7 +82,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddressAndLevel(&btc_address, grade),
                 AirdropFilter::ByAccountId(&main_account),
-                &mut db_cli,
+               
             )
             .await?;
             Some(grade)
@@ -92,7 +91,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddress(&btc_address),
                 AirdropFilter::ByAccountId(&main_account),
-                &mut db_cli,
+               
             )
             .await?;
             None

@@ -26,11 +26,10 @@ pub struct BindEthAddrRequest {
 pub async fn req(req: HttpRequest, request_data: BindEthAddrRequest) -> BackendRes<String> {
     //todo: check jwt token
     debug!("start reset_password");
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 

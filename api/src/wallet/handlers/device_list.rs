@@ -26,17 +26,16 @@ pub struct DeviceListResponse {
 }
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceListResponse>> {
-    let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let devices: Vec<DeviceInfo> =
-        DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id), &mut db_cli)
+        DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id))
             .await?
             .into_iter()
             .map(|d| d.into_inner())
             .collect();
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
 
     let mut devices_res: Vec<DeviceListResponse> = devices
         .into_iter()

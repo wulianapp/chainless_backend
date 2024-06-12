@@ -21,11 +21,10 @@ pub struct GetUserDeviceRoleRequest {
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut db_cli,
+       
     )
     .await
     .map_err(|e| {
@@ -40,14 +39,14 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> 
     //针对用新设备查询
     let role = if DeviceInfoEntity::find(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user.id),
-        &mut db_cli,
+       
     )
     .await?
     .is_empty()
     {
         KeyRole::Undefined
     } else {
-        get_user_context(&user.id, &device_id, &mut db_cli)
+        get_user_context(&user.id, &device_id)
             .await?
             .role()?
     };

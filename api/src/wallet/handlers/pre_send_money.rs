@@ -44,9 +44,8 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: PreSendMoneyRequest,
 ) -> BackendRes<(String, Option<String>)> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let PreSendMoneyRequest {
         to,
         coin,
@@ -61,7 +60,7 @@ pub(crate) async fn req(
         Err(WalletError::FobidTransferZero)?;
     }
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, strategy) = context.account_strategy()?;
     let role = context.role()?;
 
@@ -69,7 +68,7 @@ pub(crate) async fn req(
 
     //todo:
     let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
-        let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to), &mut db_cli)
+        let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to))
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -85,7 +84,7 @@ pub(crate) async fn req(
         }
         (receiver.main_account.unwrap(), Some(to))
     } else {
-        let _receiver = UserInfoEntity::find_single(UserFilter::ByMainAccount(&to), &mut db_cli)
+        let _receiver = UserInfoEntity::find_single(UserFilter::ByMainAccount(&to))
             .await
             .map_err(|err| {
                 if err.to_string().contains("DBError::DataNotFound") {
@@ -102,7 +101,7 @@ pub(crate) async fn req(
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
     let available_balance =
-        super::get_available_amount(&main_account, &coin_type, &mut db_cli).await?;
+        super::get_available_amount(&main_account, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(
@@ -170,7 +169,7 @@ pub(crate) async fn req(
             coin_info.transaction.receiver_contact = to_contact;
         }
         let order_id = coin_info.transaction.order_id.clone();
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, Some(tx_id))))
     //单签 + 非强制
     } else if need_sig_num == 0 && !is_forced {
@@ -179,7 +178,7 @@ pub(crate) async fn req(
             coin_info.transaction.receiver_contact = to_contact;
         }
         let order_id = coin_info.transaction.order_id.clone();
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, None)))
     //多签 + 强制
     } else if need_sig_num != 0 && is_forced {
@@ -189,7 +188,7 @@ pub(crate) async fn req(
             coin_info.transaction.receiver_contact = to_contact;
         }
         let order_id = coin_info.transaction.order_id.clone();
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, None)))
     //多签 + 非强制
     } else if need_sig_num != 0 && !is_forced {
@@ -198,7 +197,7 @@ pub(crate) async fn req(
             coin_info.transaction.receiver_contact = to_contact;
         }
         let order_id = coin_info.transaction.order_id.clone();
-        coin_info.insert(&mut db_cli).await?;
+        coin_info.insert().await?;
         Ok(Some((order_id, None)))
     } else {
         unreachable!("all case is considered")

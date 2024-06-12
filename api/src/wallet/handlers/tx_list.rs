@@ -85,11 +85,10 @@ pub async fn req(
     req: HttpRequest,
     request_data: TxListRequest,
 ) -> BackendRes<Vec<CoinTxViewResponse>> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
 
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+    let main_account = super::get_main_account(user_id).await?;
     let TxListRequest {
         tx_role,
         counterparty,
@@ -112,18 +111,18 @@ pub async fn req(
         };
         match filter_type {
             FilterType::OrderId => {
-                CoinTxEntity::find(CoinTxFilter::ByOrderId(data), &mut db_cli).await
+                CoinTxEntity::find(CoinTxFilter::ByOrderId(data)).await
             }
             FilterType::AccountId => {
                 CoinTxEntity::find(
                     CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
-                    &mut db_cli,
+                   
                 )
                 .await
             }
             FilterType::Phone | FilterType::Mail => {
                 if let Ok(counterparty_main_account) =
-                    UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(data), &mut db_cli).await
+                    UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(data)).await
                 {
                     CoinTxEntity::find(
                         CoinTxFilter::ByTxRolePage(
@@ -133,7 +132,7 @@ pub async fn req(
                             per_page,
                             page,
                         ),
-                        &mut db_cli,
+                       
                     )
                     .await
                 } else {
@@ -144,7 +143,7 @@ pub async fn req(
     } else {
         CoinTxEntity::find(
             CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
-            &mut db_cli,
+           
         )
         .await
     };
@@ -162,7 +161,7 @@ pub async fn req(
         for sig in tx.transaction.signatures {
             let pubkey = sig[..64].to_string();
             let device =
-                DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
+                DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))
                     .await?;
             let sig = ServentSigDetail {
                 pubkey,

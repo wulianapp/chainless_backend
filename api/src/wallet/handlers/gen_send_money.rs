@@ -30,11 +30,10 @@ pub struct GenSendMoneyRequest {
 }
 
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
@@ -43,7 +42,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
+       
     )
     .await?;
 
@@ -75,7 +74,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
     models::coin_transfer::CoinTxEntity::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
+       
     )
     .await?;
     Ok(Some(tx_id))

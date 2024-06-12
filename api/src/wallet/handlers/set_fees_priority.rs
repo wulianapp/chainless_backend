@@ -29,17 +29,16 @@ pub struct SetFeesPriorityRequest {
 
 pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let mut db_cli = get_pg_pool_connect().await?;
 
     let (user_id, _, device_id, device_brand) =
-        token_auth::validate_credentials(&req, &mut db_cli).await?;
+        token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, current_strategy) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let SetFeesPriorityRequest { fees_priority } = request_data;
 
@@ -76,6 +75,6 @@ pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> Back
         &device_brand,
         vec![tx_id],
     );
-    record.insert(&mut db_cli).await?;
+    record.insert().await?;
     Ok(None)
 }

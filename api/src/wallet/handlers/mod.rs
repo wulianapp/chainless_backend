@@ -93,9 +93,8 @@ pub async fn gen_random_account_id(
 
 pub async fn get_uncompleted_tx(
     account: &str,
-    conn: &mut PgLocalCli<'_>,
 ) -> Result<Vec<CoinTxEntity>> {
-    let mut txs = CoinTxEntity::find(CoinTxFilter::BySenderUncompleted(account), conn).await?;
+    let mut txs = CoinTxEntity::find(CoinTxFilter::BySenderUncompleted(account)).await?;
     txs.retain(|tx| {
         tx.transaction.stage <= CoinSendStage::ReceiverApproved
             && now_millis() < tx.transaction.expire_at
@@ -105,17 +104,16 @@ pub async fn get_uncompleted_tx(
 
 pub async fn have_no_uncompleted_tx(
     account: &str,
-    conn: &mut PgLocalCli<'_>,
 ) -> Result<(), BackendError> {
-    let tx = get_uncompleted_tx(account, conn).await?;
+    let tx = get_uncompleted_tx(account).await?;
     if !tx.is_empty() {
         Err(WalletError::HaveUncompleteTx)?;
     }
     Ok(())
 }
 
-pub async fn get_freezn_amount(account: &str, coin: &CoinType, conn: &mut PgLocalCli<'_>) -> u128 {
-    let mut tx = get_uncompleted_tx(account, conn).await.unwrap();
+pub async fn get_freezn_amount(account: &str, coin: &CoinType) -> u128 {
+    let mut tx = get_uncompleted_tx(account).await.unwrap();
     tx.retain(|x| x.transaction.coin_type == *coin);
     tx.iter().map(|x| x.transaction.amount).sum()
 }
@@ -123,7 +121,6 @@ pub async fn get_freezn_amount(account: &str, coin: &CoinType, conn: &mut PgLoca
 pub async fn get_available_amount(
     account_id: &str,
     coin: &CoinType,
-    conn: &mut PgLocalCli<'_>,
 ) -> BackendRes<u128> {
     let coin_cli = ContractClient::<Coin>::new_query_cli(coin.clone())
         .await
@@ -133,7 +130,7 @@ pub async fn get_available_amount(
         .await
         .unwrap()
         .unwrap_or("0".to_string());
-    let freezn_amount = get_freezn_amount(account_id, coin, conn).await;
+    let freezn_amount = get_freezn_amount(account_id, coin).await;
     let total: u128 = balance.parse().unwrap();
     if total < freezn_amount {
         Err(BackendError::InternalError(format!(
@@ -147,9 +144,8 @@ pub async fn get_available_amount(
 
 pub async fn get_main_account(
     user_id: u32,
-    conn: &mut PgLocalCli<'_>,
 ) -> Result<String, BackendError> {
-    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), conn).await?;
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
     if user.user_info.main_account.is_none() {
         Err(WalletError::NotSetSecurity)?
     }
@@ -181,9 +177,8 @@ pub async fn get_servant_need(strategy: &Vec<MultiSigRank>, coin: &CoinType, amo
 pub async fn get_session_state(
     user_id: u32,
     device_id: &str,
-    conn: &mut PgLocalCli<'_>,
 ) -> Result<(UserInfo, StrategyData, DeviceInfo), BackendError> {
-    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), conn)
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
@@ -207,7 +202,7 @@ pub async fn get_session_state(
 
     //注册过的一定有设备信息
     let device =
-        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id), conn)
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id))
             .await?
             .into_inner();
     Ok((user.user_info, current_strategy, device))
@@ -230,7 +225,6 @@ pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> 
 //检查所有的手续费币是否全部小于1u
 pub async fn check_have_base_fee(
     main_account: &str,
-    conn: &mut PgLocalCli<'_>,
 ) -> Result<(), BackendError> {
     let fee_coins = get_fees_priority(main_account)
         .await?
@@ -247,7 +241,7 @@ pub async fn check_have_base_fee(
             .unwrap()
             .parse()
             .map_err(|e: ParseIntError| e.to_string())?;
-        let freezn_amount = get_freezn_amount(main_account, &fee_coin, conn).await;
+        let freezn_amount = get_freezn_amount(main_account, &fee_coin).await;
         balance -= freezn_amount;
 
         let value = get_value(&fee_coin, balance).await;

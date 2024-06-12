@@ -37,10 +37,8 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitServantSwitchMasterRequest,
 ) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let CommitServantSwitchMasterRequest {
         add_key_raw,
         delete_key_raw,
@@ -48,20 +46,20 @@ pub(crate) async fn req(
         delete_key_sig,
     } = request_data;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Servant)?;
-    super::check_have_base_fee(&main_account, &mut db_cli).await?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::check_have_base_fee(&main_account).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     //外部注入和token解析结果对比
     let servant_pubkey = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
+       
     )
     .await?
     .device_info
@@ -95,7 +93,7 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-            &mut db_cli,
+           
         )
         .await?;
     } else {
@@ -114,7 +112,7 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-            &mut db_cli,
+           
         )
         .await?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {
@@ -164,8 +162,7 @@ pub(crate) async fn req(
             &context.device.brand,
             vec![txid],
         );
-        record.insert(&mut db_cli).await?;
+        record.insert().await?;
     }
-    db_cli.commit().await?;
     Ok(None::<String>)
 }

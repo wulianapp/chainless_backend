@@ -28,13 +28,12 @@ pub struct NewBtcDepositRequest {
 }
 
 pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> BackendRes<String> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
     //todo: 目前该接口不做限制，后续看怎么收拢权限
     let NewBtcDepositRequest { sender, receiver } = request_data;
 
     let airdrop_info =
-        AirdropEntity::find(AirdropFilter::ByBtcAddress(&receiver), &mut db_cli).await?;
+        AirdropEntity::find(AirdropFilter::ByBtcAddress(&receiver)).await?;
     if airdrop_info.is_empty() {
         //Err(BackendError::InternalError("".to_string()))?;
         warn!("receiver {} isn't belong us", receiver);
@@ -50,7 +49,6 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
         AirdropEntity::update_single(
             AirdropUpdater::BtcLevel(grade),
             AirdropFilter::ByBtcAddress(&receiver),
-            &mut db_cli,
         )
         .await?;
         info!(

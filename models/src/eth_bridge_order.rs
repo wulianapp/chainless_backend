@@ -107,7 +107,7 @@ impl PsqlOp for EthBridgeOrderEntity {
     type FilterContent<'b> = BridgeOrderFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<Vec<EthBridgeOrderEntity>> {
         let sql = format!(
             "select 
@@ -149,7 +149,7 @@ impl PsqlOp for EthBridgeOrderEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP {}",
@@ -162,7 +162,7 @@ impl PsqlOp for EthBridgeOrderEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let EthBridgeOrder {
             id,
             order_type,
@@ -191,7 +191,7 @@ impl PsqlOp for EthBridgeOrderEntity {
         Ok(())
     }
 
-    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -223,10 +223,10 @@ mod tests {
             EthOrderStatus::Pending,
             0u64,
         );
-        secret.insert(&mut db_cli).await.unwrap();
+        secret.insert().await.unwrap();
         let find_res = EthBridgeOrderEntity::find_single(
             BridgeOrderFilter::ByTypeAndId(BridgeOrderType::Withdraw, "0123456789"),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

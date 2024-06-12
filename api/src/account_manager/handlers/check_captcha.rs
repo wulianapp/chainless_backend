@@ -25,13 +25,12 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
         .map_err(|_err| BackendError::RequestParamInvalid("".to_string()))?;
     //todo: register can check captcha
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let check_res = match kind {
         Usage::Register => Captcha::check(&contact, &captcha, kind),
         _ => {
             let user = account_manager::UserInfoEntity::find_single(
                 UserFilter::ByPhoneOrEmail(&contact),
-                &mut db_cli,
+               
             )
             .await
             .map_err(|e| {

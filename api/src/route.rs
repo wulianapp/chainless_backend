@@ -25,7 +25,7 @@ use actix_cors::Cors;
 use actix_web::{error::{ErrorInternalServerError, InternalError}, http, middleware, App, HttpMessage, HttpResponse, HttpServer, ResponseError};
 use env_logger::Env;
 use futures_util::{FutureExt, StreamExt};
-use models::{general::{clean_db_cli, gen_db_cli, get_pg_pool_connect5}, PgLocalCli, PgLocalCli2};
+use models::{general::run_api_call, PgLocalCli, PgLocalCli2};
 use tracing::debug;
 
 use std::future::{ready, Ready};
@@ -103,13 +103,8 @@ where
 
 
         Box::pin(async move {
-            //在中间件为每个请求分配本地连接以及事务提交
-            let (db_cli,conn_ptr) = gen_db_cli(&method).await.map_err(|_| ErrorInternalServerError(""))?;
-            models::LOCAL_CLI9.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
-                let res = fut.await;
-                clean_db_cli(conn_ptr).await.map_err(|_| ErrorInternalServerError(""))?;
-                res
-            }).await
+            //在tokio的本地任务和pg的连接的环境中执行api请求
+            run_api_call(&method,fut).await.unwrap()
         })
     }
 }
@@ -117,6 +112,10 @@ where
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    std::panic::set_hook(Box::new(|_| {
+        println!("Custom panic hook");
+    }));
+    
     common::log::init_logger();
     let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
     //env_logger::init();

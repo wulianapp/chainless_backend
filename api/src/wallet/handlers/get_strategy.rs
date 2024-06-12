@@ -26,10 +26,9 @@ pub struct MultiSigRankResponse {
 }
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let main_account = super::get_main_account(user_id).await?;
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
 
     let strategy = multi_cli.get_strategy(&main_account).await?;

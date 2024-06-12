@@ -94,16 +94,15 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 }
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let main_account = super::get_main_account(user_id).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let current_strategy = multi_sig_cli.get_strategy(&main_account).await?;
 
     let GetTxRequest { order_id } = request_data;
-    let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
+    let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
         .await
         .map_err(|e| {
             if e.to_string().contains("DBError::DataNotFound") {
@@ -118,7 +117,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
         let device =
-            DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey), &mut db_cli)
+            DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))
                 .await?
                 .into_inner();
         let sig = ServentSigDetail {
@@ -130,7 +129,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     }
 
     //获取所有设备信息
-    let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id), &mut db_cli)
+    let all_device = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id))
         .await?
         .into_iter()
         .filter(|x| {

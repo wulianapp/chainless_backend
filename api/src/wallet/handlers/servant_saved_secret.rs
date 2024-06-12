@@ -19,11 +19,10 @@ use tracing::error;
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Servant)?;
@@ -31,7 +30,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     DeviceInfoEntity::update(
         DeviceInfoUpdater::HolderSaved(true),
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
+       
     )
     .await?;
     Ok(None::<String>)

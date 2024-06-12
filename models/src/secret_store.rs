@@ -93,7 +93,7 @@ impl PsqlOp for SecretStoreEntity {
     type FilterContent<'b> = SecretFilter<'b>;
     async fn find(
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<Vec<SecretStoreEntity>> {
         let sql = format!(
             "select 
@@ -128,7 +128,7 @@ impl PsqlOp for SecretStoreEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
+        
     ) -> Result<u64> {
         let sql = format!(
             "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
@@ -141,7 +141,7 @@ impl PsqlOp for SecretStoreEntity {
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let SecretStore {
             pubkey,
             state,
@@ -165,7 +165,7 @@ impl PsqlOp for SecretStoreEntity {
         Ok(())
     }
 
-    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -196,10 +196,10 @@ mod tests {
 
         let secret =
             SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
-        secret.insert(&mut db_cli).await.unwrap();
+        secret.insert().await.unwrap();
         let secret_by_find = SecretStoreEntity::find_single(
             SecretFilter::ByIncumbentPubkey("0123456789"),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();
@@ -209,7 +209,7 @@ mod tests {
         SecretStoreEntity::update(
             SecretUpdater::State(SecretKeyState::Abandoned),
             SecretFilter::ByIncumbentPubkey("01"),
-            &mut db_cli,
+           
         )
         .await
         .unwrap();

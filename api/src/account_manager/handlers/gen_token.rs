@@ -12,9 +12,8 @@ use tokio::time::error::Elapsed;
 use crate::utils::token_auth;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
     let (user_id, token_version, device_id, device_brand) =
-        token_auth::validate_credentials(&req, &mut db_cli).await?;
+        token_auth::validate_credentials(&req).await?;
     let token =
         crate::utils::token_auth::create_jwt(user_id, token_version, &device_id, &device_brand)?;
     Ok(Some(token))

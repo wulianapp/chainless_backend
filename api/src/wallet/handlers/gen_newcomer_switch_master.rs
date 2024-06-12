@@ -39,20 +39,19 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GenNewcomerSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let GenNewcomerSwitchMasterRequest {
         newcomer_pubkey,
         captcha,
     } = request_data;
     Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::NewcomerSwitchMaster)?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Undefined)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let client = ContractClient::<MultiSig>::new_query_cli().await?;
     let master_list = client.get_master_pubkey_list(&main_account).await?;

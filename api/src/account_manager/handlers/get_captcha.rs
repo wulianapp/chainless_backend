@@ -98,13 +98,12 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let mut db_cli = get_pg_pool_connect().await?;
 
     //重置登录密码
     match kind {
         ResetLoginPassword => {
             let user_info =
-                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
                     .await
                     .map_err(|err| {
                         if err.to_string().contains("DBError::DataNotFound") {
@@ -120,14 +119,14 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             if user_info.main_account.is_some() {
                 let find_device_res = DeviceInfoEntity::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-                    &mut db_cli,
+                   
                 )
                 .await?
                 .into_inner();
                 let role = judge_role_by_user_id(
                     find_device_res.hold_pubkey.as_deref(),
                     &user_id,
-                    &mut db_cli,
+                   
                 )
                 .await?;
                 if role != KeyRole::Master {
@@ -139,7 +138,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
         }
         Register => {
             let find_res =
-                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
                     .await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
@@ -147,7 +146,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             get(device_id, contact, kind, None)
         }
         Login => {
-            match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
+            match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
                 .await
             {
                 Ok(info) => get(device_id, contact, kind, Some(info.into_inner().id)),
@@ -169,14 +168,13 @@ pub async fn with_token_req(
     req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind
         .parse()
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
     match kind {
         ResetLoginPassword | Register | Login => {

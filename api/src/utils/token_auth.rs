@@ -71,8 +71,7 @@ fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
 }
 
 pub async fn validate_credentials(
-    req: &HttpRequest,
-    db_cli: &mut PgLocalCli<'_>,
+    req: &HttpRequest
 ) -> Result<(u32, u32, String, String), BackendError> {
     let auth_header = req
         .headers()
@@ -90,7 +89,7 @@ pub async fn validate_credentials(
             Err(Authorization("Token has expired.".to_string()))?
         } else {
             let user_info =
-                UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id), db_cli)
+                UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id))
                     .await
                     .map_err(|err| {
                         if err.to_string().contains("DBError::DataNotFound") {

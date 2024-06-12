@@ -38,15 +38,14 @@ pub(crate) async fn req(
     req: HttpRequest,
     data: GenServantSwitchMasterRequest,
 ) -> BackendRes<GenReplaceKeyResponse> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let GenServantSwitchMasterRequest { captcha } = data;
     Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::ServantSwitchMaster)?;
 
     let servant_pubkey = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
+       
     )
     .await?
     .device_info
@@ -55,12 +54,12 @@ pub(crate) async fn req(
         "this haven't be servant yet".to_string(),
     ))?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Servant)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let client = ContractClient::<MultiSig>::new_query_cli().await?;
     let master_pubkey = client.get_master_pubkey(&main_account).await?;

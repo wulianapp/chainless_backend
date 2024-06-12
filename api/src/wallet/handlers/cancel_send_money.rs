@@ -21,22 +21,21 @@ pub struct CancelSendMoneyRequest {
 
 pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let mut db_cli = get_pg_pool_connect().await?;
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let _device = DeviceInfoEntity::find_single(
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
+       
     )
     .await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let _ = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
 
     let CancelSendMoneyRequest { order_id } = request_data;
-    let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli).await?;
+    let tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id)).await?;
 
     //cann't cancle when status is ReceiverRejected、SenderCanceled、SenderReconfirmed and MultiSigExpired
     if tx.transaction.stage.clone() >= CoinSendStage::ReceiverRejected {
@@ -52,7 +51,7 @@ pub async fn req(req: HttpRequest, request_data: CancelSendMoneyRequest) -> Back
         models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::SenderCanceled),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli,
+           
         )
         .await?;
     }

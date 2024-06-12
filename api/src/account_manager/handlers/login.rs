@@ -87,11 +87,10 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut db_cli,
+       
     )
     .await
     .map_err(|e| {
@@ -124,7 +123,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-            &mut db_cli,
+           
         )
         .await?;
 
@@ -147,11 +146,10 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
 
     let user_info = account_manager::UserInfoEntity::find_single(
         UserFilter::ByPhoneOrEmail(&contact),
-        &mut db_cli,
+       
     )
     .await
     .map_err(|e| {
@@ -169,7 +167,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     device
         .safe_insert(
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-            &mut db_cli,
+           
         )
         .await?;
 

@@ -31,11 +31,10 @@ pub struct ChangeInviteCodeRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> BackendRes<String> {
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
     check_role(role, KeyRole::Master)?;
     let ChangeInviteCodeRequest { code } = request_data;
@@ -45,7 +44,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     }
 
     //todo: get kyc info
-    let user_airdrop = AirdropEntity::find(AirdropFilter::ByInviteCode(&code), &mut db_cli).await?;
+    let user_airdrop = AirdropEntity::find(AirdropFilter::ByInviteCode(&code)).await?;
     if !user_airdrop.is_empty() {
         Err(AirdropError::InviteCodeAlreadyUsed)?;
     }
@@ -53,7 +52,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     AirdropEntity::update_single(
         AirdropUpdater::InviteCode(&code),
         AirdropFilter::ByUserId(&user_id),
-        &mut db_cli,
+       
     )
     .await?;
 
