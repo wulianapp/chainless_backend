@@ -29,6 +29,7 @@ extern crate tokio_postgres;
 //use postgres::{Client, NoTls, Row};
 
 use anyhow::anyhow;
+use anyhow::Ok;
 use anyhow::Result;
 use deadpool::managed::Object;
 use general::get_pg_pool_connect;
@@ -36,7 +37,9 @@ use general::get_pg_pool_connect;
 //use r2d2_postgres::postgres::Transaction;
 use serde::Deserialize;
 use serde::Serialize;
+use tokio::sync::Mutex;
 use std::borrow::Borrow;
+use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display};
 use std::future;
@@ -44,7 +47,6 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::sync::Mutex;
 use tokio_postgres::NoTls;
 use tokio_postgres::Row;
 //use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
@@ -63,7 +65,7 @@ use async_std::task::block_on;
 use ouroboros::self_referencing;
 
 //type PoolConnect = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
-type LocalConn = Object<Manager>;
+pub type LocalConn = Object<Manager>;
 
 static TRY_TIMES: u8 = 5;
 
@@ -75,7 +77,11 @@ static TRY_TIMES: u8 = 5;
 */
 
 lazy_static! {
-    static ref PG_POOL: Pool = connect_pool().unwrap();
+    pub static ref PG_POOL: Pool = connect_pool().unwrap();
+}
+
+tokio::task_local! {
+    pub static  LOCAL_CLI9: RefCell<Option<Arc<PgLocalCli2>>>; 
 }
 
 /***
@@ -105,20 +111,66 @@ thread_local! {
 }
 **/
 
+
 pub enum PgLocalCli<'a> {
     Conn(LocalConn),
     Trans(Transaction<'a>),
 }
 
-/***
-struct DBCli<'a,T: PsqlOp>{
-    db_cli: PgLocalCli<'a>,
-    table: T
+pub enum PgLocalCli2{
+    Conn(&'static mut LocalConn),
+    Trans(Transaction<'static>),
 }
-**/
+
+impl PgLocalCli2 {
+    pub async fn execute(sql: &str) -> Result<u64> {
+        debug!(sql);
+        let cli = LOCAL_CLI9.with(|cli| {
+            cli.borrow().as_ref().unwrap().clone()
+        });
+        let line = match cli.as_ref() {
+            PgLocalCli2::Conn(c) => c.execute(sql, &[]).await?,
+            PgLocalCli2::Trans(t) => t.execute(sql, &[]).await?,
+        };
+        Ok(line)
+    }
+    pub async fn query(sql: &str) -> Result<Vec<Row>> {
+        debug!(sql);
+        let cli = LOCAL_CLI9.with(|cli| {
+            cli.borrow().as_ref().unwrap().clone()
+        });
+        let row = match cli.as_ref() {
+            PgLocalCli2::Conn(c) => c.query(sql, &[]).await?,
+            PgLocalCli2::Trans(t) => t.query(sql, &[]).await?,
+        };
+        Ok(row)
+    }
+    pub async fn commit(self) -> Result<()> {
+        match self {
+            PgLocalCli2::Conn(_c) => {
+                debug!("it's not a trans");
+                Ok(())
+            }
+            PgLocalCli2::Trans(t) => Ok(t.commit().await?),
+        }
+    }
+
+    pub async fn begin(&'static mut self) -> Result<PgLocalCli2> {
+        match self {
+            PgLocalCli2::Conn(c) => {
+                let trans = c.transaction().await?;
+                Ok(PgLocalCli2::Trans(trans))
+            }
+            PgLocalCli2::Trans(t) => {
+                panic!("It is already a trans");
+            }
+        }
+    }
+}
+
 
 impl PgLocalCli<'_> {
-    pub async fn execute(&mut self, sql: &str) -> Result<u64> {
+    pub async fn execute(&self, sql: &str) -> Result<u64> {
         debug!(sql);
         let line = match self {
             PgLocalCli::Conn(c) => c.execute(sql, &[]).await?,
@@ -179,6 +231,12 @@ fn connect_pool() -> Result<Pool> {
     cfg.manager = Some(ManagerConfig {
         recycling_method: RecyclingMethod::Fast,
     });
+
+    cfg.pool = Some(deadpool_postgres::PoolConfig {
+        max_size: 64,
+        timeouts: Default::default(),
+        queue_mode: Default::default(),
+    });
     //let manager = Manager::new(common::env::CONF.database.db_uri().as_str(), NoTls2);
     //let pool = Pool::builder(manager).max_size(16).build().unwrap();
     let pool = cfg.create_pool(None, NoTls).unwrap();
@@ -189,7 +247,7 @@ fn connect_pool() -> Result<Pool> {
 pub async fn query(raw_sql: &str,cli: &mut PgLocalCli<'_>) -> Result<Vec<Row>> {
     let mut try_times = TRY_TIMES;
     //let mut x = get_db_pool_connect().await?;
-    let res = cli.query(raw_sql).await?;
+    let res = PgLocalCli2::query(raw_sql).await?;
     Ok(res)
 
 }

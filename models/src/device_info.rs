@@ -12,7 +12,7 @@ use common::data_structures::*;
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
+use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -137,7 +137,7 @@ impl PsqlOp for DeviceInfoEntity {
          from device_info where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
         let gen_view = |row: &Row| -> Result<DeviceInfoEntity> {
             Ok(DeviceInfoEntity {
@@ -166,7 +166,7 @@ impl PsqlOp for DeviceInfoEntity {
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -200,7 +200,7 @@ impl PsqlOp for DeviceInfoEntity {
             holder_confirm_saved
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         Ok(())
     }
 }

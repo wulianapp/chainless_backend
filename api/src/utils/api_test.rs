@@ -3,7 +3,7 @@ use crate::utils::respond::BackendRespond;
 use crate::{
     test_add_servant, test_create_main_account, test_get_balance_list, test_get_secret,
     test_get_strategy, test_login, test_register, test_search_message, test_service_call,
-    test_update_security,
+    test_update_security, MoreLog,
 };
 
 use std::default::Default;
@@ -80,9 +80,10 @@ pub async fn init() -> App<
 > {
     env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
-    models::general::table_all_clear().await;
     clear_contract().await;
+    models::general::table_all_clear().await;
     App::new()
+        .wrap(MoreLog)
         .configure(configure_routes)
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
@@ -348,6 +349,22 @@ macro_rules! test_get_captcha_with_token {
 }
 
 #[macro_export]
+macro_rules! test_contact_is_used {
+    ( $service:expr,$app:expr) => {{
+            let url = format!("/accountManager/contactIsUsed?contact={}",$app.user.contact);
+            let res: BackendRespond<UserInfoResponse2> = test_service_call!(
+                $service,
+                "get",
+                &url,
+                None::<String>,
+                None::<String>
+            );
+            assert_eq!(res.status_code,0);
+            res.data
+    }};
+}
+
+#[macro_export]
 macro_rules! test_login {
     ($service:expr, $app:expr) => {{
             let payload = json!({
@@ -425,7 +442,7 @@ macro_rules! test_search_message {
 macro_rules! test_get_strategy {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/getStrategy");
-        let res: BackendRespond<GetSecretResponse> = test_service_call!(
+        let res: BackendRespond<StrategyDataResponse> = test_service_call!(
             $service,
             "get",
             &url,

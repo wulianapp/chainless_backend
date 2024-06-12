@@ -9,7 +9,7 @@ use std::fmt;
 use std::fmt::Display;
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
+use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp};
 use anyhow::{Ok, Result};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -107,7 +107,7 @@ impl PsqlOp for SecretStoreEntity {
          from secret_store where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
             Ok(SecretStoreEntity {
@@ -135,7 +135,7 @@ impl PsqlOp for SecretStoreEntity {
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -161,7 +161,7 @@ impl PsqlOp for SecretStoreEntity {
             pubkey, state, user_id, encrypted_prikey_by_password, encrypted_prikey_by_answer
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         Ok(())
     }
 

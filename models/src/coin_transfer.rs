@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio_postgres::Row;
 
 use crate::secret_store::{SecretFilter, SecretStoreEntity};
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
+use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxRole, TxType};
 use common::data_structures::{CoinType, TxStatusOnChain};
@@ -188,7 +188,7 @@ impl PsqlOp for CoinTxEntity {
          from coin_transaction where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
         debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<CoinTxEntity> {
@@ -227,7 +227,7 @@ impl PsqlOp for CoinTxEntity {
             new_value, filter
         );
         info!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         info!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -292,7 +292,7 @@ impl PsqlOp for CoinTxEntity {
         );
         println!("row sql {} rows", sql);
 
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         info!("success insert {} rows", execute_res);
 
         Ok(())

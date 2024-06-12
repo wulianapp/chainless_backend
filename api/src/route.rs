@@ -16,9 +16,104 @@ pub mod newbie_reward;
 pub mod utils;
 pub mod wallet;
 
+use std::{borrow::BorrowMut, cell::RefCell, default, sync::Arc};
+use actix_http::Payload;
+use actix_web::{body, guard::Method, web::{Bytes, Payload as WebPayload}, FromRequest};
+
+
 use actix_cors::Cors;
-use actix_web::{http, middleware, App, HttpServer};
+use actix_web::{error::{ErrorInternalServerError, InternalError}, http, middleware, App, HttpMessage, HttpResponse, HttpServer, ResponseError};
 use env_logger::Env;
+use futures_util::{FutureExt, StreamExt};
+use models::{general::{clean_db_cli, gen_db_cli, get_pg_pool_connect5}, PgLocalCli, PgLocalCli2};
+use tracing::debug;
+
+use std::future::{ready, Ready};
+
+use actix_web::{
+    dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
+    Error,
+};
+use futures_util::future::LocalBoxFuture;
+
+
+
+fn print_body(req: &ServiceRequest) {
+    match req.parts().1 {
+        Payload::H1 { payload } => {
+            debug!("payload {:?}",payload)
+        },
+        _ => {
+            //unimplemented!()
+        },
+    } 
+}
+
+// There are two steps in middleware processing.
+// 1. Middleware initialization, middleware factory gets called with
+//    next service in chain as parameter.
+// 2. Middleware's call method gets called with normal request.
+pub struct MoreLog;
+
+// Middleware factory is `Transform` trait
+// `S` - type of the next service
+// `B` - type of response's body
+impl<S, B> Transform<S, ServiceRequest> for MoreLog
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type InitError = ();
+    type Transform = MoreLogMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
+
+    fn new_transform(&self, service: S) -> Self::Future {
+        ready(Ok(MoreLogMiddleware { service }))
+    }
+}
+
+pub struct MoreLogMiddleware<S> {
+    service: S,
+}
+
+impl<S, B> Service<ServiceRequest> for MoreLogMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S::Future: 'static,
+    B: 'static,
+{
+    type Response = ServiceResponse<B>;
+    type Error = Error;
+    type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
+
+    forward_ready!(service);
+
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+  
+        debug!("new_requested: {} ,{}, {},{:?}", 
+            req.method(),req.path(),req.query_string(),req.head(),
+        );
+        print_body(&req);
+        let method = req.method().to_string();
+                       
+       let fut = self.service.call(req);
+
+
+        Box::pin(async move {
+            //在中间件为每个请求分配本地连接以及事务提交
+            let (db_cli,conn_ptr) = gen_db_cli(&method).await.map_err(|_| ErrorInternalServerError(""))?;
+            models::LOCAL_CLI9.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
+                let res = fut.await;
+                clean_db_cli(conn_ptr).await.map_err(|_| ErrorInternalServerError(""))?;
+                res
+            }).await
+        })
+    }
+}
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -29,8 +124,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);
         App::new()
-            //.wrap(middleware::Logger::default())
-            .wrap(middleware::Logger::new("new request:  %{r}a %U %s %b %{User-Agent}i %{Referer}i RequestId:%{X-Request-Id}i %{X-Session-Id}i %{X-Forwarded-For}i %{body}b"))
+            .wrap(MoreLog)
+            //.wrap(middleware::Logger::new("new request:  %{r}a %U %s %b %{User-Agent}i %{Referer}i RequestId:%{X-Request-Id}i %{X-Session-Id}i %{X-Forwarded-For}i %{body}b"))
             .wrap(
                 Cors::default()
                     .allow_any_origin()

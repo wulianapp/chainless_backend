@@ -1563,6 +1563,7 @@ mod tests {
 
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
+    use common::utils::time::now_millis;
     use models::coin_transfer::CoinTxEntity;
     use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
     use serde_json::json;
@@ -1598,6 +1599,7 @@ mod tests {
     use std::collections::HashMap;
     use tracing::{debug, error, info};
     use crate::wallet::handlers::get_secret::GetSecretResponse;
+    use crate::account_manager::handlers::contact_is_used::UserInfoResponse as UserInfoResponse2;
 
 
     /***
@@ -2443,6 +2445,25 @@ mod tests {
             delete_key_sig
         );
     }
+
+    #[actix_web::test]
+    async fn test_wallet_get_all2() {
+        println!("start test_wallet_get_all");
+        let app = init().await;
+        let service = test::init_service(app).await;
+        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
+        gen_some_accounts_with_new_key();
+        let start = now_millis();
+        for _ in 0..1000{
+             let test1 = test_contact_is_used!(service,sender_master);
+             //let user = PgLocalCli2::execute("select * from users").await.unwrap();
+
+        }
+        println!("--___ {}",now_millis() - start);   
+
+    }
+
+
 
     #[actix_web::test]
     async fn test_wallet_get_all() {

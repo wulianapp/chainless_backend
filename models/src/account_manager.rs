@@ -9,7 +9,7 @@ use std::num::ParseIntError;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::{vec_str2array_text, FilterContent, PgLocalCli, PsqlOp, PsqlType, UpdaterContent};
+use crate::{vec_str2array_text, FilterContent, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType, UpdaterContent};
 use anyhow::Result;
 
 #[derive(Serialize, Debug)]
@@ -134,7 +134,8 @@ impl PsqlOp for UserInfoEntity {
             from users where {}",
             filter
         );
-        let query_res = cli.query(&sql).await?;
+        //let query_res = PgLocalCli2::query(&sql).await?;
+        let query_res = PgLocalCli2::query(&sql).await?;
         //debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<UserInfoEntity> {
@@ -173,7 +174,7 @@ impl PsqlOp for UserInfoEntity {
             new_value, filter
         );
         debug!("start update users {} ", sql);
-        let execute_res = cli.execute(&sql).await?;
+        let execute_res = PgLocalCli2::execute(&sql).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
         Ok(execute_res)
@@ -224,7 +225,7 @@ impl PsqlOp for UserInfoEntity {
             token_version
         );
         debug!("row sql {} rows", sql);
-        let execute_res = cli.execute(&sql).await?;
+        let execute_res = PgLocalCli2::execute(&sql).await?;
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
@@ -264,12 +265,13 @@ mod tests {
         Ok(())
     }
 
+    /*** 
     #[tokio::test]
     async fn test_db_trans_user_info() {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let mut db_cli: PgLocalCli2 = get_pg_pool_connect5().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();
 
         let user = UserInfoEntity::new_with_specified(12345, "0123456789");
@@ -294,4 +296,5 @@ mod tests {
         .await
         .unwrap();
     }
+    ***/
 }

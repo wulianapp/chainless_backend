@@ -11,7 +11,7 @@ use std::fmt;
 use std::fmt::Display;
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
+use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -124,7 +124,7 @@ impl PsqlOp for EthBridgeOrderEntity {
          from ethereum_bridge_order {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
             Ok(EthBridgeOrderEntity {
@@ -156,7 +156,7 @@ impl PsqlOp for EthBridgeOrderEntity {
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -187,7 +187,7 @@ impl PsqlOp for EthBridgeOrderEntity {
             id, order_type, chainless_acc, eth_addr, coin, amount, status, height
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
         Ok(())
     }
 
