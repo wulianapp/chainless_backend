@@ -3,28 +3,18 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use common::env::CONF;
-use common::error_code::BackendRes;
-use common::error_code::{BackendError, ExternalServiceError};
+
 use lettre::transport::smtp::client::{Tls, TlsParameters};
-use tracing::{debug, error};
+use tracing::{debug};
 
-use crate::utils::captcha::Captcha;
-
-enum EmailError {
-    IllegalAccount,
-}
-
-fn is_valid() -> Result<(), EmailError> {
-    unimplemented!()
-}
 
 pub fn send_email(to_mail: &str, content: &str) -> Result<()> {
     let from = CONF.stmp.sender.parse::<Mailbox>()?;
     let to = to_mail.parse::<Mailbox>()?;
 
-    // 创建电子邮件内容
+    // create email content
     let email = Message::builder()
         .from(from)
         .to(to)

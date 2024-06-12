@@ -1,14 +1,11 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
+use blockchain::multi_sig::{MultiSig};
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::BackendError,
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
     wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
@@ -29,16 +26,14 @@ pub async fn req(
     req: HttpRequest,
     request_data: UpdateSubaccountHoldLimitRequest,
 ) -> BackendRes<String> {
-    let mut db_cli = get_pg_pool_connect().await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let UpdateSubaccountHoldLimitRequest { subaccount, limit } = request_data;
     let limit = display2raw(&limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
@@ -59,6 +54,6 @@ pub async fn req(
         &context.device.brand,
         vec![txid],
     );
-    record.insert(&mut db_cli).await?;
+    record.insert().await?;
     Ok(None::<String>)
 }

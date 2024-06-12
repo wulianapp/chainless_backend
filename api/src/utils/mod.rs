@@ -9,9 +9,8 @@ use common::{
 };
 use models::{
     account_manager::{UserFilter, UserInfoEntity},
-    coin_transfer::{CoinTxEntity, CoinTxFilter},
     device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    PgLocalCli, PsqlOp,
+    PsqlOp,
 };
 
 pub mod api_test;
@@ -47,16 +46,12 @@ pub fn judge_role_by_strategy(
 
 pub async fn judge_role_by_account(device_key: Option<&str>, account: &str) -> Result<KeyRole> {
     let cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let strategy = cli.get_strategy(&account).await?;
+    let strategy = cli.get_strategy(account).await?;
     judge_role_by_strategy(strategy.as_ref(), device_key)
 }
 
-pub async fn judge_role_by_user_id(
-    device_key: Option<&str>,
-    id: &u32,
-    db_cli: &mut PgLocalCli<'_>,
-) -> Result<KeyRole> {
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(id), db_cli)
+pub async fn judge_role_by_user_id(device_key: Option<&str>, id: &u32) -> Result<KeyRole> {
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(id))
         .await
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
@@ -94,12 +89,8 @@ impl UserContext {
 
 //获取当前会话的已进行安全问答的用户信息、多签配置、设备信息的属性数据
 //针对未登录过的新设备，device_info为空，不在context的考虑之列
-pub async fn get_user_context(
-    user_id: &u32,
-    device_id: &str,
-    db_cli: &mut PgLocalCli<'_>,
-) -> Result<UserContext, BackendError> {
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), db_cli)
+pub async fn get_user_context(user_id: &u32, device_id: &str) -> Result<UserContext, BackendError> {
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(user_id))
         .await
         .map_err(|err| {
             if err.to_string().contains("DBError::DataNotFound") {
@@ -111,10 +102,9 @@ pub async fn get_user_context(
         .into_inner();
 
     //注册过的一定有设备信息
-    let device =
-        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id), db_cli)
-            .await?
-            .into_inner();
+    let device = DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, user_id))
+        .await?
+        .into_inner();
 
     let strategy = match user_info.main_account {
         Some(ref account) => {

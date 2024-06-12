@@ -1,21 +1,21 @@
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::KeyRole;
+
+
+
 use common::error_code::{AccountManagerError::*, BackendError};
 use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use blockchain::multi_sig::MultiSig;
-use blockchain::ContractClient;
+
+
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::general::*;
-use models::secret_store::SecretStoreEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+
+
+use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -42,10 +42,10 @@ pub struct RegisterByEmailRequest {
 
 //生成十位随机数作为user_id
 const MAX_RETRY_TIMES: u8 = 10;
-async fn gen_user_id(db_cli: &mut PgLocalCli<'_>) -> Result<u32, BackendError> {
+async fn gen_user_id() -> Result<u32, BackendError> {
     for _ in 0..MAX_RETRY_TIMES {
         let num = (random_num() % 9_000_000_000 + 1_000_000_000) as u32;
-        if UserInfoEntity::find(UserFilter::ById(&num), db_cli)
+        if UserInfoEntity::find(UserFilter::ById(&num))
             .await?
             .is_empty()
         {
@@ -69,13 +69,9 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
-
     //check userinfo form db
     let find_res =
-        account_manager::UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact), &mut db_cli)
-            .await?;
+        account_manager::UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -84,7 +80,7 @@ async fn register(
     //todo: hash password  again before store
     Captcha::check_and_delete(&contact, &captcha, Usage::Register)?;
 
-    let this_user_id = gen_user_id(&mut db_cli).await?;
+    let this_user_id = gen_user_id().await?;
     let mut view = UserInfoEntity::new_with_specified(this_user_id, &password);
     match contact_type {
         ContactType::PhoneNumber => {
@@ -95,34 +91,29 @@ async fn register(
         }
     }
     let token_version = view.user_info.token_version;
-    view.insert(&mut db_cli).await?;
+    view.insert().await?;
 
     //register airdrop
-    let predecessor_airdrop = AirdropEntity::find_single(
-        AirdropFilter::ByInviteCode(&predecessor_invite_code),
-        &mut db_cli,
-    )
-    .await
-    .map_err(|_e| InviteCodeNotExist)?;
+    let predecessor_airdrop =
+        AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
+            .await
+            .map_err(|_e| InviteCodeNotExist)?;
 
     let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id;
-    let predecessor_info =
-        UserInfoEntity::find_single(UserFilter::ById(&predecessor_userinfo_id), &mut db_cli)
-            .await?
-            .into_inner();
+    let predecessor_info = UserInfoEntity::find_single(UserFilter::ById(&predecessor_userinfo_id))
+        .await?
+        .into_inner();
 
     if let Some(main_account) = predecessor_info.main_account {
         let user_airdrop =
             AirdropEntity::new_with_specified(this_user_id, predecessor_info.id, &main_account);
-        user_airdrop.insert(&mut db_cli).await?;
+        user_airdrop.insert().await?;
     } else {
         Err(PredecessorNotSetSecurity)?;
     }
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, this_user_id);
-    device.insert(&mut db_cli).await?;
-
-    db_cli.commit().await?;
+    device.insert().await?;
 
     let token = crate::utils::token_auth::create_jwt(
         this_user_id,

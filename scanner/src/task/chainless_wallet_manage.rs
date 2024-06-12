@@ -1,6 +1,5 @@
 use common::data_structures::TxStatusOnChain;
 use models::{
-    general::get_pg_pool_connect,
     wallet_manage_record::{
         WalletManageRecordEntity, WalletManageRecordFilter, WalletManageRecordUpdater,
     },
@@ -11,14 +10,11 @@ use tracing::debug;
 use anyhow::Result;
 
 pub async fn start() -> Result<()> {
-    let mut db_cli = get_pg_pool_connect().await?;
-
     loop {
         //check manage_opcord
-        let ops = WalletManageRecordEntity::find(
-            WalletManageRecordFilter::ByStatus(&TxStatusOnChain::Pending),
-            &mut db_cli,
-        )
+        let ops = WalletManageRecordEntity::find(WalletManageRecordFilter::ByStatus(
+            &TxStatusOnChain::Pending,
+        ))
         .await?;
 
         for op in ops {
@@ -30,7 +26,6 @@ pub async fn start() -> Result<()> {
                 let _ = WalletManageRecordEntity::update_single(
                     WalletManageRecordUpdater::Status(status),
                     WalletManageRecordFilter::ByRecordId(&op.record.record_id),
-                    &mut db_cli,
                 )
                 .await;
             }

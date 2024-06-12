@@ -1,19 +1,17 @@
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
+use blockchain::multi_sig::{MultiSig};
 use models::{
-    account_manager::{UserFilter, UserInfoEntity},
     device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
     secret_store::{SecretFilter, SecretStoreEntity},
     PsqlOp,
 };
 
 use crate::utils::token_auth;
-use common::error_code::{BackendError::ChainError, WalletError};
+use common::error_code::{WalletError};
 use common::{
     data_structures::secret_store::SecretStore,
-    error_code::{AccountManagerError, BackendError, BackendRes},
+    error_code::{BackendError, BackendRes},
 };
 use serde::{Deserialize, Serialize};
 
@@ -35,11 +33,9 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: GetSecretRequest,
 ) -> BackendRes<GetSecretResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
-
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
-    let main_account = super::get_main_account(user_id, &mut db_cli).await?;
+    let main_account = super::get_main_account(user_id).await?;
     let GetSecretRequest { r#type, account_id } = request_data;
     match r#type {
         //如果指定则获取指定账户的key，否则获取当前设备的key(master_key,或者servant_key)
@@ -47,14 +43,12 @@ pub(crate) async fn req(
             if let Some(account_id) = account_id {
                 let pubkey = cli.get_master_pubkey(&account_id).await?;
                 let secret =
-                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(&pubkey), &mut db_cli)
-                        .await?;
+                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(&pubkey)).await?;
                 Ok(Some(vec![secret.secret_store]))
             } else {
-                let device = DeviceInfoEntity::find_single(
-                    DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-                    &mut db_cli,
-                )
+                let device = DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(
+                    &device_id, &user_id,
+                ))
                 .await?;
                 let pubkey = device
                     .device_info
@@ -62,8 +56,7 @@ pub(crate) async fn req(
                     .as_deref()
                     .ok_or(WalletError::PubkeyNotExist)?;
                 let secrete =
-                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(pubkey), &mut db_cli)
-                        .await?;
+                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(pubkey)).await?;
                 Ok(Some(vec![secrete.secret_store]))
             }
         }
@@ -84,9 +77,7 @@ pub(crate) async fn req(
 
             let mut secrets = vec![];
             for key in keys {
-                let secrete =
-                    SecretStoreEntity::find_single(SecretFilter::ByPubkey(&key), &mut db_cli)
-                        .await?;
+                let secrete = SecretStoreEntity::find_single(SecretFilter::ByPubkey(&key)).await?;
                 secrets.push(secrete.secret_store);
             }
             Ok(Some(secrets))

@@ -1,18 +1,15 @@
 //! account manager http service
 pub mod handlers;
 
-use std::future::IntoFuture;
+
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-use blockchain::bridge_on_near;
-use blockchain::bridge_on_near::Status;
-use common::data_structures::{
-    bridge::{DepositStatus, WithdrawStatus},
-    CoinType,
-};
-use serde::{Deserialize, Serialize};
-use tracing::{debug, Level};
+
+
+
+
+
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -250,42 +247,42 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
-    use super::*;
-    use std::default::Default;
-    use std::env;
+    
+    
+    
 
     use actix_web::body::MessageBody;
-    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
+    
     use actix_web::http::header;
 
-    use actix_web::{body::MessageBody as _, test, App};
+    use actix_web::{body::MessageBody as _, test};
 
-    use blockchain::ContractClient;
+    
     use common::btc_crypto::{
-        self, calculate_p2tr_address, calculate_p2wpkh_address, new_secret_key,
+        self, calculate_p2tr_address, new_secret_key,
     };
-    use common::data_structures::device_info::DeviceInfo;
-    use models::coin_transfer::CoinTxEntity;
-    use models::{account_manager, secret_store, PsqlOp};
+    
+    
+    use models::{PsqlOp};
     use serde_json::json;
 
-    use actix_web::Error;
-    use blockchain::multi_sig::StrategyData;
-    use blockchain::multi_sig::{CoinTx, MultiSig};
-    use common::data_structures::account_manager::UserInfo;
-    use common::data_structures::secret_store::SecretStore;
-    use common::encrypt::ed25519_key_gen;
-    use common::utils::math;
-    use models::secret_store::SecretStoreEntity;
+    
+    
+    
+    
+    
+    
+    
+    
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::status::AirdropStatusResponse;
-    use crate::account_manager::handlers::user_info::UserInfoResponse;
-    use actix_web::http::header::HeaderName;
-    use actix_web::http::header::HeaderValue;
-    use common::data_structures::CoinType;
-    use models::account_manager::UserInfoEntity;
-    use std::collections::HashMap;
-    use tracing::{debug, error, info};
+    
+    
+    
+    
+    
+    
+    
 
     #[actix_web::test]
     async fn test_airdrop_braced() {

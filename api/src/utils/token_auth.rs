@@ -1,15 +1,15 @@
 use actix_web::HttpRequest;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::{PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
 
 use actix_web::http::header;
-use common::env::ServiceMode;
+
 use common::error_code::BackendError::Authorization;
-use common::error_code::{BackendError, BackendRes};
+use common::error_code::{BackendError};
 use common::prelude::*;
-use common::utils::time::{now_millis, DAY15, YEAR100};
+use common::utils::time::{now_millis};
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {
@@ -72,7 +72,6 @@ fn validate_jwt(token: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
 
 pub async fn validate_credentials(
     req: &HttpRequest,
-    db_cli: &mut PgLocalCli<'_>,
 ) -> Result<(u32, u32, String, String), BackendError> {
     let auth_header = req
         .headers()
@@ -89,17 +88,16 @@ pub async fn validate_credentials(
         if now_millis() > claim_dat.exp {
             Err(Authorization("Token has expired.".to_string()))?
         } else {
-            let user_info =
-                UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id), db_cli)
-                    .await
-                    .map_err(|err| {
-                        if err.to_string().contains("DBError::DataNotFound") {
-                            WalletError::MainAccountNotExist(err.to_string()).into()
-                        } else {
-                            BackendError::InternalError(err.to_string())
-                        }
-                    })?
-                    .into_inner();
+            let user_info = UserInfoEntity::find_single(UserFilter::ById(&claim_dat.user_id))
+                .await
+                .map_err(|err| {
+                    if err.to_string().contains("DBError::DataNotFound") {
+                        WalletError::MainAccountNotExist(err.to_string()).into()
+                    } else {
+                        BackendError::InternalError(err.to_string())
+                    }
+                })?
+                .into_inner();
 
             if claim_dat.version != user_info.token_version {
                 Err(Authorization("TokenVersionInvalid".to_string()))?

@@ -91,10 +91,7 @@ impl SecretStoreEntity {
 impl PsqlOp for SecretStoreEntity {
     type UpdaterContent<'a> = SecretUpdater<'a>;
     type FilterContent<'b> = SecretFilter<'b>;
-    async fn find(
-        filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<SecretStoreEntity>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<SecretStoreEntity>> {
         let sql = format!(
             "select 
             pubkey,\
@@ -107,7 +104,7 @@ impl PsqlOp for SecretStoreEntity {
          from secret_store where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
             Ok(SecretStoreEntity {
@@ -128,20 +125,19 @@ impl PsqlOp for SecretStoreEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "update secret_store set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let SecretStore {
             pubkey,
             state,
@@ -161,11 +157,11 @@ impl PsqlOp for SecretStoreEntity {
             pubkey, state, user_id, encrypted_prikey_by_password, encrypted_prikey_by_answer
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 
-    async fn delete(_filter: Self::FilterContent<'_>, _cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn delete(_filter: Self::FilterContent<'_>) -> Result<()> {
         todo!()
     }
 }
@@ -180,7 +176,7 @@ pub struct SecretView {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{run_api_call};
 
     use super::*;
     use common::log::init_logger;
@@ -192,26 +188,25 @@ mod tests {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let task = async {
+            let secret =
+                SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
+            secret.insert().await.unwrap();
+            let secret_by_find =
+                SecretStoreEntity::find_single(SecretFilter::ByIncumbentPubkey("0123456789"))
+                    .await
+                    .unwrap();
+            println!("{:?}", secret_by_find);
+            //assert_eq!(secret_by_find.secret_store, secret.secret_store);
 
-        let secret =
-            SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
-        secret.insert(&mut db_cli).await.unwrap();
-        let secret_by_find = SecretStoreEntity::find_single(
-            SecretFilter::ByIncumbentPubkey("0123456789"),
-            &mut db_cli,
-        )
-        .await
-        .unwrap();
-        println!("{:?}", secret_by_find);
-        //assert_eq!(secret_by_find.secret_store, secret.secret_store);
+            SecretStoreEntity::update(
+                SecretUpdater::State(SecretKeyState::Abandoned),
+                SecretFilter::ByIncumbentPubkey("01"),
+            )
+            .await
+            .unwrap();
+        };
+        run_api_call("", task).await.unwrap();
 
-        SecretStoreEntity::update(
-            SecretUpdater::State(SecretKeyState::Abandoned),
-            SecretFilter::ByIncumbentPubkey("01"),
-            &mut db_cli,
-        )
-        .await
-        .unwrap();
     }
 }

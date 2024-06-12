@@ -1,18 +1,18 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole, PubkeySignInfo, TxStatusOnChain};
-use common::encrypt::{ed25519_verify_hex, ed25519_verify_raw};
+use common::encrypt::{ed25519_verify_hex};
 use common::utils::time::now_millis;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
-use tracing::{debug, info};
+
+
+use tracing::{info};
 
 use crate::utils::{get_user_context, token_auth};
-use common::error_code::{to_internal_error, BackendError, BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::{PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -25,26 +25,21 @@ pub struct ReconfirmSendMoneyRequest {
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
     //todo:check user_id if valid
 
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
-
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let ReconfirmSendMoneyRequest {
         order_id,
         confirmed_sig,
     } = request_data;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (_main_account, current_strategy) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
 
-    let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
-        CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
-    )
-    .await?;
+    let coin_tx =
+        models::coin_transfer::CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+            .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
@@ -108,7 +103,6 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli,
         )
         .await?;
     } else {
@@ -136,10 +130,8 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
                 TxStatusOnChain::Pending,
             ),
             CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli,
         )
         .await?;
     }
-    db_cli.commit().await?;
     Ok(None)
 }

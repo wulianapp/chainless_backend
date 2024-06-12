@@ -1,6 +1,6 @@
-use std::str::FromStr;
 
-use actix_web::{web, HttpRequest};
+
+use actix_web::{HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -8,17 +8,17 @@ use common::data_structures::coin_transaction::{CoinSendStage, SubToMainTx, TxTy
 use common::data_structures::CoinType;
 
 use common::data_structures::KeyRole;
-use common::encrypt::{bs58_to_hex, ed25519_verify_hex, ed25519_verify_raw};
+use common::encrypt::{ed25519_verify_hex};
 use common::utils::math::coin_amount::display2raw;
-use models::account_manager::{UserFilter, UserInfoEntity};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
+
+
 use tracing::error;
 
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::AccountSignInfo;
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::coin_transfer::{CoinTxEntity, CoinTxFilter, CoinTxUpdater};
+use models::coin_transfer::{CoinTxEntity};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 
@@ -33,11 +33,10 @@ pub struct SubSendToMainRequest {
 
 pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> BackendRes<String> {
     //todo:check user_id if valid
-    let mut db_cli = get_pg_pool_connect().await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
@@ -71,8 +70,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
         Err(BackendError::SigVerifyFailed)?;
     };
 
-    let available_balance =
-        super::get_available_amount(&subaccount_id, &coin_type, &mut db_cli).await?;
+    let available_balance = super::get_available_amount(&subaccount_id, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
 
     if amount > available_balance {
@@ -102,6 +100,6 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
     );
     coin_info.transaction.tx_type = TxType::SubToMain;
     coin_info.transaction.tx_id = Some(tx_id.clone());
-    coin_info.insert(&mut db_cli).await?;
+    coin_info.insert().await?;
     Ok(Some(tx_id))
 }

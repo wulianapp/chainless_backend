@@ -1,15 +1,15 @@
 use actix_web::HttpRequest;
 use common::constants::INVITE_URL;
-use common::data_structures::{KeyRole, OpStatus};
+
 use common::error_code::BackendRes;
 
-use models::account_manager::{UserFilter, UserInfoEntity};
+
 use models::airdrop::{AirdropEntity, AirdropFilter};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
-use models::{account_manager, PgLocalCli, PsqlOp};
+
+
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tokio::time::error::Elapsed;
+
 //use super::super::ContactIsUsedRequest;
 use crate::utils::{get_user_context, token_auth};
 
@@ -33,15 +33,13 @@ pub struct UserInfoResponse {
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-
-    let user_context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let user_context = get_user_context(&user_id, &device_id).await?;
     let role = user_context.role()?;
     let user_info = user_context.user_info;
 
-    let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id), &mut db_cli)
+    let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id))
         .await?
         .into_inner();
 

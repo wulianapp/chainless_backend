@@ -163,10 +163,7 @@ impl PsqlOp for CoinTxEntity {
     type UpdaterContent<'a> = CoinTxUpdater<'a>;
     type FilterContent<'b> = CoinTxFilter<'b>;
 
-    async fn find(
-        filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
-    ) -> Result<Vec<CoinTxEntity>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<CoinTxEntity>> {
         let sql = format!(
             "select order_id,\
          tx_id,\
@@ -188,7 +185,7 @@ impl PsqlOp for CoinTxEntity {
          from coin_transaction where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<CoinTxEntity> {
@@ -220,20 +217,19 @@ impl PsqlOp for CoinTxEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE coin_transaction SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         info!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         info!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let CoinTransaction {
             order_id,
             tx_id,
@@ -292,7 +288,7 @@ impl PsqlOp for CoinTxEntity {
         );
         println!("row sql {} rows", sql);
 
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         info!("success insert {} rows", execute_res);
 
         Ok(())
@@ -301,7 +297,7 @@ impl PsqlOp for CoinTxEntity {
 
 #[cfg(test)]
 mod tests {
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{run_api_call};
 
     use super::*;
     use common::log::init_logger;
@@ -312,39 +308,39 @@ mod tests {
     async fn test_db_coin_transfer() {
         env::set_var("SERVICE_MODE", "test");
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-
-        let coin_tx = CoinTxEntity::new_with_specified(
-            CoinType::BTC,
-            "1.test".to_string(),
-            "2.test".to_string(),
-            1,
-            "".to_string(),
-            None,
-            1715740449000,
-            CoinSendStage::Created,
-        );
-
-        let order_id = coin_tx.transaction.order_id.clone();
-        println!("start insert");
-        coin_tx.insert(&mut db_cli).await.unwrap();
-        println!("start query");
-
-        let _res =
-            CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"), &mut db_cli)
+        let task = async {
+            let coin_tx = CoinTxEntity::new_with_specified(
+                CoinType::BTC,
+                "1.test".to_string(),
+                "2.test".to_string(),
+                1,
+                "".to_string(),
+                None,
+                1715740449000,
+                CoinSendStage::Created,
+            );
+    
+            let order_id = coin_tx.transaction.order_id.clone();
+            println!("start insert");
+            coin_tx.insert().await.unwrap();
+            println!("start query");
+    
+            let _res = CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"))
                 .await
                 .unwrap();
-        println!("start update");
-        CoinTxEntity::update_single(
-            CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
-            CoinTxFilter::ByOrderId(&order_id),
-            &mut db_cli,
-        )
-        .await
-        .unwrap();
-        let res = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id), &mut db_cli)
+            println!("start update");
+            CoinTxEntity::update_single(
+                CoinTxUpdater::Stage(CoinSendStage::MultiSigExpired),
+                CoinTxFilter::ByOrderId(&order_id),
+            )
             .await
             .unwrap();
-        println!("after update {:?}", res);
+            let res = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+                .await
+                .unwrap();
+            println!("after update {:?}", res);
+        };
+        run_api_call("", task).await.unwrap()
+
     }
 }

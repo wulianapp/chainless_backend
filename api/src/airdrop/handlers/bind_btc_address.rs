@@ -1,31 +1,24 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::{
     airdrop::Airdrop,
-    multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    btc_crypto::{self},
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{KeyRole},
 };
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+
 
 use crate::{
     utils::{get_user_context, token_auth, wallet_grades::query_wallet_grade},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendRes};
 use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Clone, EnumString, Display)]
@@ -43,11 +36,9 @@ pub struct BindBtcAddressRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> BackendRes<u8> {
-    let mut db_cli = get_pg_pool_connect().await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
     check_role(role, KeyRole::Master)?;
@@ -63,7 +54,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
     ***/
 
-    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address), &mut db_cli)
+    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address))
         .await?
         .is_empty()
     {
@@ -83,7 +74,6 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddressAndLevel(&btc_address, grade),
                 AirdropFilter::ByAccountId(&main_account),
-                &mut db_cli,
             )
             .await?;
             Some(grade)
@@ -92,7 +82,6 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
             AirdropEntity::update_single(
                 AirdropUpdater::BtcAddress(&btc_address),
                 AirdropFilter::ByAccountId(&main_account),
-                &mut db_cli,
             )
             .await?;
             None

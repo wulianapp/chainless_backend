@@ -7698,6 +7698,7 @@ dependencies = [
  "common",
  "ed25519-dalek 1.0.1",
  "env_logger",
+ "futures-util",
  "hex",
  "jsonwebtoken 7.2.0",
  "lazy_static",

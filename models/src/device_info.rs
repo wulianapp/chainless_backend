@@ -123,7 +123,7 @@ impl PsqlOp for DeviceInfoEntity {
     type UpdaterContent<'a> = DeviceInfoUpdater<'a>;
     type FilterContent<'b> = DeviceInfoFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select \
             id,\
@@ -137,7 +137,7 @@ impl PsqlOp for DeviceInfoEntity {
          from device_info where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
         let gen_view = |row: &Row| -> Result<DeviceInfoEntity> {
             Ok(DeviceInfoEntity {
@@ -159,20 +159,19 @@ impl PsqlOp for DeviceInfoEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "update device_info set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let DeviceInfo {
             id,
             user_id,
@@ -200,7 +199,7 @@ impl PsqlOp for DeviceInfoEntity {
             holder_confirm_saved
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 }
@@ -208,7 +207,7 @@ impl PsqlOp for DeviceInfoEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{run_api_call};
 
     use super::*;
     use common::log::init_logger;
@@ -221,24 +220,25 @@ mod tests {
         init_logger();
 
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
+        let task = async {
+            let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
+            device.insert().await.unwrap();
+            let mut device_by_find =
+                DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1))
+                    .await
+                    .unwrap();
+            println!("{:?}", device_by_find);
+            //assert_eq!(device.device_info, device_by_find.device_info);
 
-        let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
-        device.insert(&mut db_cli).await.unwrap();
-        let mut device_by_find =
-            DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1), &mut db_cli)
-                .await
-                .unwrap();
-        println!("{:?}", device_by_find);
-        //assert_eq!(device.device_info, device_by_find.device_info);
-
-        device_by_find.device_info.user_id = 2;
-        DeviceInfoEntity::update(
-            DeviceInfoUpdater::State(SecretKeyState::Abandoned),
-            DeviceInfoFilter::ByDeviceUser("123", &1),
-            &mut db_cli,
-        )
-        .await
-        .unwrap();
+            device_by_find.device_info.user_id = 2;
+            DeviceInfoEntity::update(
+                DeviceInfoUpdater::State(SecretKeyState::Abandoned),
+                DeviceInfoFilter::ByDeviceUser("123", &1),
+            )
+            .await
+            .unwrap();
+        };
+        run_api_call("", task).await.unwrap()
+        
     }
 }

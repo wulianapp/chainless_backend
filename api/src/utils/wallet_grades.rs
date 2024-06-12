@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use rust_decimal::Decimal;
 
 use super::btc_aggregated_api::{first_tx, AccountSummary};
@@ -51,8 +51,8 @@ pub async fn query_wallet_grade(account: &str) -> Result<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::data_structures::account_manager;
-    use rust_decimal::prelude::FromPrimitive;
+    
+    
 
     fn calc_wallet(days: i64, balance: &str) -> (String, u8) {
         let account = AccountSummary {

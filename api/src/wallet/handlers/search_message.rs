@@ -1,23 +1,22 @@
 use actix_web::HttpRequest;
-use common::data_structures::coin_transaction::CoinTransaction;
-use common::data_structures::AccountMessage;
+
+
 use common::utils::math::coin_amount::raw2display;
 use common::utils::time::now_millis;
-use models::general::get_pg_pool_connect;
+
 use secret_store::SecretStore;
 
 use super::*;
 use crate::utils::token_auth;
-use crate::wallet::add_servant;
+
 use common::data_structures::{
-    coin_transaction::{CoinSendStage, TxType},
-    get_support_coin_list, TxStatusOnChain,
+    coin_transaction::{CoinSendStage, TxType}, TxStatusOnChain,
 };
-use common::error_code::AccountManagerError;
+
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity};
 use models::coin_transfer::{CoinTxEntity, CoinTxFilter};
-use models::device_info::*;
+
 use models::secret_store::*;
 use models::PsqlOp;
 
@@ -46,34 +45,28 @@ pub struct SearchMessageResponse {
 }
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
-
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
+    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
     if user.user_info.main_account.is_none() {
         return Ok(None);
     }
     let mut messages = SearchMessageResponse::default();
     //if newcomer device not save,notify it to do
-    let device_info = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-        &mut db_cli,
-    )
-    .await?
-    .device_info;
+    let device_info =
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, &user_id))
+            .await?
+            .device_info;
     if device_info.hold_pubkey.is_some() && !device_info.holder_confirm_saved {
-        let secret = SecretStoreEntity::find_single(
-            SecretFilter::ByPubkey(device_info.hold_pubkey.as_ref().unwrap()),
-            &mut db_cli,
-        )
+        let secret = SecretStoreEntity::find_single(SecretFilter::ByPubkey(
+            device_info.hold_pubkey.as_ref().unwrap(),
+        ))
         .await?;
         messages.newcomer_became_sevant.push(secret.secret_store); //(AccountMessage::NewcomerBecameSevant())
     }
 
-    let coin_txs = CoinTxEntity::find(
-        CoinTxFilter::ByAccountPending(user.user_info.main_account.as_ref().unwrap()),
-        &mut db_cli,
-    )
+    let coin_txs = CoinTxEntity::find(CoinTxFilter::ByAccountPending(
+        user.user_info.main_account.as_ref().unwrap(),
+    ))
     .await?;
     let mut tx_msg = coin_txs
         .into_iter()
@@ -98,7 +91,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
 
     messages.coin_tx.append(&mut tx_msg);
 
-    if have_no_uncompleted_tx(&user.user_info.main_account.unwrap(), &mut db_cli)
+    if have_no_uncompleted_tx(&user.user_info.main_account.unwrap())
         .await
         .is_err()
     {

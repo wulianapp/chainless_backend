@@ -3,7 +3,7 @@
 mod cmtelecom;
 mod smsbao;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result};
 use common::env::CONF;
 
 /// 根据 `phone` 格式自动选择相应服务商发送短信。

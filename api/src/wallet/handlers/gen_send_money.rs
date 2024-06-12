@@ -1,27 +1,25 @@
-use actix_web::error::InternalError;
-use actix_web::{web, HttpRequest};
-use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::{KeyRole, PubkeySignInfo};
-use common::error_code::{BackendError, BackendRes, WalletError};
+
+use actix_web::{HttpRequest};
+use common::data_structures::coin_transaction::{TxType};
+use common::data_structures::{KeyRole};
+use common::error_code::{BackendError, BackendRes};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
-use models::secret_store::SecretStoreEntity;
+
+
+
 //use log::info;
-use crate::utils::captcha::{Captcha, ContactType, Usage};
+
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
-use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
-use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+
+
+
+
+
+
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{error, info};
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -30,11 +28,9 @@ pub struct GenSendMoneyRequest {
 }
 
 pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
@@ -43,7 +39,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
     )
     .await?;
 
@@ -75,7 +70,6 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
     models::coin_transfer::CoinTxEntity::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
-        &mut db_cli,
     )
     .await?;
     Ok(Some(tx_id))

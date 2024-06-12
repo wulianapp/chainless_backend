@@ -1,28 +1,25 @@
 use std::collections::BTreeMap;
 
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
+
+
+
+
 use common::error_code::{BackendRes, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
+
 use models::secret_store::SecretStoreEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -34,10 +31,7 @@ pub struct AddSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
-
-    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
+    let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let AddSubaccountRequest {
         subaccount_pubkey,
@@ -48,12 +42,12 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     let hold_value_limit =
         display2raw(&hold_value_limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, _) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     //todo: 24小时内只能三次增加的限制
 
@@ -68,7 +62,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_password,
         &subaccount_prikey_encryped_by_answer,
     );
-    secret.insert(&mut db_cli).await?;
+    secret.insert().await?;
 
     let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let sub_confs = BTreeMap::from([(
@@ -88,10 +82,9 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &context.device.brand,
         vec![txid],
     );
-    record.insert(&mut db_cli).await?;
+    record.insert().await?;
 
     //multi_cli.add_subaccount(user_info.user_info., subacc)1
-    db_cli.commit().await?;
     //info!("new wallet {:?}  successfully", user_info);
     Ok(None::<String>)
 }

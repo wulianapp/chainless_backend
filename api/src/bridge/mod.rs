@@ -3,19 +3,16 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-use blockchain::bridge_on_near;
-use blockchain::bridge_on_near::Status;
-use common::data_structures::{
-    bridge::{DepositStatus, WithdrawStatus},
-    CoinType,
-};
+
+
+
 use handlers::{
     bind_eth_addr::BindEthAddrRequest, gen_bind_eth_addr_sig::GenBindEthAddrSigRequest,
     gen_deposit_sig::GenDepositSigRequest, list_deposit_order::ListDepositOrderRequest,
     list_withdraw_order::ListWithdrawOrderRequest, pre_withdraw::PreWithdrawRequest,
 };
-use serde::{Deserialize, Serialize};
-use tracing::{debug, Level};
+
+use tracing::{debug};
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -281,39 +278,39 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
-    use super::*;
-    use std::default::Default;
-    use std::env;
+    
+    
+    
 
     use actix_web::body::MessageBody;
-    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
+    
     use actix_web::http::header;
 
-    use actix_web::{body::MessageBody as _, test, App};
+    use actix_web::{body::MessageBody as _, test};
 
     use blockchain::ContractClient;
-    use common::data_structures::device_info::DeviceInfo;
-    use models::coin_transfer::CoinTxEntity;
-    use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+    
+    
+    use models::{PsqlOp};
     use serde_json::json;
 
-    use actix_web::Error;
-    use blockchain::multi_sig::StrategyData;
-    use blockchain::multi_sig::{CoinTx, MultiSig};
-    use common::data_structures::account_manager::UserInfo;
-    use common::data_structures::secret_store::SecretStore;
-    use common::encrypt::ed25519_key_gen;
-    use common::utils::math;
-    use models::secret_store::SecretStoreEntity;
+    
+    
+    
+    
+    
+    
+    
+    
     // use log::{info, LevelFilter,debug,error};
-    use super::handlers::list_withdraw_order::ListWithdrawOrderResponse;
+    
     use crate::account_manager::handlers::user_info::UserInfoResponse;
-    use actix_web::http::header::HeaderName;
-    use actix_web::http::header::HeaderValue;
-    use common::data_structures::CoinType;
-    use models::account_manager::UserInfoEntity;
-    use std::collections::HashMap;
-    use tracing::{debug, error, info};
+    
+    
+    
+    
+    
+    
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {
@@ -346,7 +343,8 @@ mod tests {
                 "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
                 &sig,
             )
-            .await.unwrap();
+            .await
+            .unwrap();
         println!("bind_res {} ", bind_res);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let current_bind_eth_addr = bridge_cli

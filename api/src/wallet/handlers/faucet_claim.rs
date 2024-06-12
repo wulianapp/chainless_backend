@@ -3,18 +3,18 @@ use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::{get_support_coin_list, get_support_coin_list_without_cly, CoinType};
+use common::data_structures::{get_support_coin_list, CoinType};
 use common::error_code::BackendError;
-use common::error_code::BackendError::ChainError;
-use common::error_code::BackendError::InternalError;
+
+
 use common::error_code::BackendRes;
-use models::account_manager::{UserFilter, UserInfoEntity};
-use models::general::get_pg_pool_connect;
-use models::PsqlOp;
+
+
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::sync::Mutex;
+
+
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -26,9 +26,8 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
     let account = match req_data.account_id {
         Some(id) => id,
         None => {
-            let mut db_cli = get_pg_pool_connect().await?;
-            let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-            super::get_main_account(user_id, &mut db_cli).await?
+            let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+            super::get_main_account(user_id).await?
         }
     };
 

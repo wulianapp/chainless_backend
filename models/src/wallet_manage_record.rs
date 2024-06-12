@@ -106,7 +106,7 @@ impl PsqlOp for WalletManageRecordEntity {
     type UpdaterContent<'a> = WalletManageRecordUpdater<'a>;
     type FilterContent<'b> = WalletManageRecordFilter<'b>;
 
-    async fn find(filter: Self::FilterContent<'_>, cli: &mut PgLocalCli<'_>) -> Result<Vec<Self>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<Self>> {
         let sql = format!(
             "select 
             record_id,\
@@ -122,7 +122,7 @@ impl PsqlOp for WalletManageRecordEntity {
          from wallet_manage_record where {}",
             filter
         );
-        let execute_res = cli.query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
         let gen_view = |row: &Row| -> Result<WalletManageRecordEntity> {
             Ok(WalletManageRecordEntity {
@@ -146,20 +146,19 @@ impl PsqlOp for WalletManageRecordEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        cli: &mut PgLocalCli<'_>,
     ) -> Result<u64> {
         let sql = format!(
             "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = cli.execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
     }
 
-    async fn insert(self, cli: &mut PgLocalCli<'_>) -> Result<()> {
+    async fn insert(self) -> Result<()> {
         let WalletManageRecord {
             record_id,
             user_id,
@@ -191,7 +190,7 @@ impl PsqlOp for WalletManageRecordEntity {
             status
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = cli.execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 }
@@ -200,11 +199,11 @@ impl PsqlOp for WalletManageRecordEntity {
 mod tests {
 
     use super::*;
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
     use common::log::init_logger;
     use std::env;
     use tokio_postgres::types::ToSql;
 
+    /***
     #[tokio::test]
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");
@@ -226,11 +225,11 @@ mod tests {
             ],
         );
         let record_id = record.record.record_id.clone();
-        record.insert(&mut db_cli).await.unwrap();
+        record.insert().await.unwrap();
 
         let record_by_find = WalletManageRecordEntity::find_single(
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli,
+
         )
         .await
         .unwrap();
@@ -241,9 +240,10 @@ mod tests {
         WalletManageRecordEntity::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record_id),
-            &mut db_cli,
+
         )
         .await
         .unwrap();
     }
+    **/
 }

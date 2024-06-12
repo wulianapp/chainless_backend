@@ -2,24 +2,24 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use models::general::get_pg_pool_connect;
+
 use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::utils::{get_user_context, judge_role_by_account, token_auth};
 use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
-use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity};
+
+
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
-use common::error_code::BackendError::ChainError;
-use common::error_code::BackendError::{self, InternalError};
+
+
 use models::secret_store::SecretStoreEntity;
-use models::{PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::error;
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -35,18 +35,14 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
-    let mut db_cli: PgLocalCli = get_pg_pool_connect().await?;
-    let mut db_cli = db_cli.begin().await?;
+    let (user_id, _, device_id, device_brand) = token_auth::validate_credentials(&req).await?;
 
-    let (user_id, _, device_id, device_brand) =
-        token_auth::validate_credentials(&req, &mut db_cli).await?;
-
-    let context = get_user_context(&user_id, &device_id, &mut db_cli).await?;
+    let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, mut current_strategy) = context.account_strategy()?;
     let role = context.role()?;
 
     super::check_role(role, KeyRole::Master)?;
-    super::have_no_uncompleted_tx(&main_account, &mut db_cli).await?;
+    super::have_no_uncompleted_tx(&main_account).await?;
 
     let NewcommerSwitchServantRequest {
         old_servant_pubkey,
@@ -56,12 +52,10 @@ pub(crate) async fn req(
         new_device_id,
     } = request_data;
 
-    let newcommer_device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id),
-        &mut db_cli,
-    )
-    .await?
-    .into_inner();
+    let newcommer_device =
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id))
+            .await?
+            .into_inner();
     let newcommer_device_role =
         judge_role_by_account(newcommer_device.hold_pubkey.as_deref(), &main_account).await?;
     if newcommer_device_role != KeyRole::Undefined {
@@ -73,7 +67,7 @@ pub(crate) async fn req(
 
     //check if stored already
     let origin_secret =
-        SecretStoreEntity::find(SecretFilter::ByPubkey(&new_servant_pubkey), &mut db_cli).await?;
+        SecretStoreEntity::find(SecretFilter::ByPubkey(&new_servant_pubkey)).await?;
     if origin_secret.is_empty() {
         let secret_info = SecretStoreEntity::new_with_specified(
             &new_servant_pubkey,
@@ -81,12 +75,11 @@ pub(crate) async fn req(
             &new_servant_prikey_encryped_by_password,
             &new_servant_prikey_encryped_by_answer,
         );
-        secret_info.insert(&mut db_cli).await?;
+        secret_info.insert().await?;
     } else {
         SecretStoreEntity::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&new_servant_pubkey),
-            &mut db_cli,
         )
         .await?;
     }
@@ -94,7 +87,6 @@ pub(crate) async fn req(
     SecretStoreEntity::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&old_servant_pubkey),
-        &mut db_cli,
     )
     .await?;
 
@@ -102,13 +94,11 @@ pub(crate) async fn req(
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id),
-        &mut db_cli,
     )
     .await?;
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
-        &mut db_cli,
     )
     .await?;
 
@@ -135,7 +125,6 @@ pub(crate) async fn req(
         &device_brand,
         vec![tx_id],
     );
-    record.insert(&mut db_cli).await?;
-    db_cli.commit().await?;
+    record.insert().await?;
     Ok(None::<String>)
 }

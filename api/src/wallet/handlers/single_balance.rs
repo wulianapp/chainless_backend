@@ -1,22 +1,22 @@
 use crate::utils::token_auth;
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
-use blockchain::fees_call::FeesCall;
+
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::{get_support_coin_list, CoinType};
-use common::error_code::BackendError::ChainError;
-use common::error_code::BackendError::InternalError;
+use common::data_structures::{CoinType};
+
+
 use common::error_code::BackendRes;
 use common::error_code::{to_internal_error, BackendError};
 use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::general::get_pg_pool_connect;
+
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::sync::Mutex;
+
+
+
 use tracing::debug;
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -37,10 +37,8 @@ pub async fn req(
     req: HttpRequest,
     request_data: SingleBalanceRequest,
 ) -> BackendRes<SingleBalanceResponse> {
-    let mut db_cli = get_pg_pool_connect().await?;
-
-    let (user_id, _, _, _) = token_auth::validate_credentials(&req, &mut db_cli).await?;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id), &mut db_cli)
+    let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await?
         .into_inner();
     let main_account = user_info.main_account.clone().unwrap();
