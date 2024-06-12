@@ -1,22 +1,22 @@
-use std::collections::BTreeMap;
+
 
 use actix_web::HttpRequest;
 
-use blockchain::bridge_on_near::{Bridge, BridgeOrder};
-use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
+use blockchain::bridge_on_near::{Bridge};
+
 use blockchain::ContractClient;
 use common::data_structures::bridge::{DepositStatus, OrderType};
-use common::utils::time::timestamp2utc;
+
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
-use models::general::get_pg_pool_connect;
+
 use models::PsqlOp;
 
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 use anyhow::Result;
-use common::data_structures::bridge::EthOrderStatus;
+
 use common::data_structures::CoinType;
-use common::error_code::BackendError::ChainError;
+
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
 
@@ -57,10 +57,10 @@ async fn list_chainless_order_ids(main_account: &str) -> Result<Vec<String>> {
 }
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderEntity>> {
-    EthBridgeOrderEntity::find(
-        BridgeOrderFilter::ByTypeAndAccountId(OrderType::Deposit, main_account),
-       
-    )
+    EthBridgeOrderEntity::find(BridgeOrderFilter::ByTypeAndAccountId(
+        OrderType::Deposit,
+        main_account,
+    ))
     .await
 }
 

@@ -1,32 +1,31 @@
 use crate::utils::{judge_role_by_strategy, token_auth};
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Result};
-use blockchain::coin::Coin;
+
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole;
 use common::data_structures::{
-    coin_transaction::{CoinSendStage, CoinTransaction, TxType},
-    get_support_coin_list, CoinType, TxStatusOnChain,
+    coin_transaction::{CoinSendStage, TxType}, CoinType, TxStatusOnChain,
 };
-use common::error_code::BackendError::InternalError;
+
 use common::error_code::BackendRes;
 use common::error_code::{BackendError, WalletError};
 use common::utils::math::coin_amount::raw2display;
 use common::utils::math::hex_to_bs58;
 use common::utils::time::now_millis;
-use models::account_manager::{UserFilter, UserInfoEntity};
+
 use models::coin_transfer::{CoinTxEntity, CoinTxFilter};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use std::collections::{vec_deque, HashMap};
-use std::f64::consts::E;
-use std::ops::Deref;
-use std::str::FromStr;
-use std::sync::Mutex;
-use tracing::error;
+
+
+
+
+
+
 
 use super::ServentSigDetail;
 use blockchain::fees_call::*;
@@ -94,7 +93,6 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 }
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
-
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
     let main_account = super::get_main_account(user_id).await?;
 
@@ -116,10 +114,9 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     let mut signed_device = vec![];
     for sig in tx.transaction.signatures {
         let pubkey = sig[..64].to_string();
-        let device =
-            DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))
-                .await?
-                .into_inner();
+        let device = DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))
+            .await?
+            .into_inner();
         let sig = ServentSigDetail {
             pubkey,
             device_id: device.id,

@@ -1,33 +1,25 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::{
     airdrop::Airdrop,
-    multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{KeyRole},
+    error_code::{AccountManagerError},
 };
-use lettre::transport::smtp::client;
-use models::{
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
-    PsqlOp,
-};
-use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+
+
+
+use tracing::{debug};
 
 use crate::{
     utils::{get_user_context, token_auth},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendRes};
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;

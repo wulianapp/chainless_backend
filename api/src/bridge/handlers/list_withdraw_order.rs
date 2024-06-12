@@ -1,26 +1,26 @@
-use std::collections::BTreeMap;
+
 
 use actix_web::HttpRequest;
 
 use blockchain::bridge_on_near::Status as StatusOnNear;
 use blockchain::bridge_on_near::{Bridge, BridgeOrder};
-use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData, SubAccConf};
+
 use blockchain::ContractClient;
 use common::data_structures::bridge::{OrderType, WithdrawStatus};
 use common::error_code::parse_str;
 use common::utils::time::timestamp2utc;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::PsqlOp;
-use tracing_subscriber::filter;
+
 
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 use anyhow::Result;
-use common::data_structures::bridge::EthOrderStatus;
+
 use common::data_structures::CoinType;
-use common::error_code::BackendError::ChainError;
+
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
-use models::general::get_pg_pool_connect;
+
 use serde::{Deserialize, Serialize};
 
 use super::paginate_vec;
@@ -57,10 +57,10 @@ pub async fn list_chainless_orders(main_account: &str) -> Result<Vec<(u128, Brid
 }
 
 pub async fn list_external_orders(main_account: &str) -> Result<Vec<EthBridgeOrderEntity>> {
-    EthBridgeOrderEntity::find(
-        BridgeOrderFilter::ByTypeAndAccountId(OrderType::Withdraw, main_account),
-       
-    )
+    EthBridgeOrderEntity::find(BridgeOrderFilter::ByTypeAndAccountId(
+        OrderType::Withdraw,
+        main_account,
+    ))
     .await
 }
 
@@ -68,7 +68,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
-
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
     let main_account = get_main_account(user_id).await?;
 

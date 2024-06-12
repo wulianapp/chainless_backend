@@ -1,31 +1,25 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::{
     airdrop::Airdrop as ChainAirdrop,
-    multi_sig::{MultiSig, MultiSigRank},
 };
 use common::{
-    data_structures::{airdrop::Airdrop, wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{airdrop::Airdrop, KeyRole},
 };
-use lettre::transport::smtp::client;
+
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
-    PgLocalCli, PsqlOp,
+    PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+
 
 use crate::{
     utils::{get_user_context, token_auth},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendRes};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -50,12 +44,10 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     //todo: check predecessor_account_id if exist
     //todo： check if called claim_dw20
 
-    let predecessor_airdrop = AirdropEntity::find_single(
-        AirdropFilter::ByInviteCode(&predecessor_invite_code),
-       
-    )
-    .await
-    .map_err(|_e| AirdropError::PredecessorInviteCodeNotExist)?;
+    let predecessor_airdrop =
+        AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
+            .await
+            .map_err(|_e| AirdropError::PredecessorInviteCodeNotExist)?;
 
     let Airdrop {
         user_id: predecessor_user_id,
@@ -73,7 +65,6 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
             predecessor_account_id.as_ref().unwrap(),
         ),
         AirdropFilter::ByUserId(&user_id),
-       
     )
     .await?;
 

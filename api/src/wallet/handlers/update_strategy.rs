@@ -1,14 +1,11 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::BackendError,
     utils::math::coin_amount::display2raw,
 };
 use models::{
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
     wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
@@ -33,7 +30,6 @@ pub struct UpdateStrategyRequest {
 
 pub async fn req(req: HttpRequest, request_data: UpdateStrategyRequest) -> BackendRes<String> {
     //todo: must be called by main device
-
 
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 

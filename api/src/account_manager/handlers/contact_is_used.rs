@@ -1,8 +1,8 @@
-use common::error_code::{BackendError, BackendRes};
+use common::error_code::{BackendRes};
 
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::general::get_pg_pool_connect;
-use models::{account_manager, PgLocalCli, PsqlOp};
+
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -21,7 +21,7 @@ pub struct ContactIsUsedRequest {
 pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<UserInfoResponse> {
     let ContactIsUsedRequest { contact } = request_data;
     let find_res = UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
-    debug!("__________{:?}",find_res);
+    debug!("__________{:?}", find_res);
     if find_res.is_empty() {
         Ok(Some(UserInfoResponse {
             contact_is_register: false,

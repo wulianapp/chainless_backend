@@ -10,7 +10,7 @@ use std::fmt;
 use std::fmt::Display;
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType};
+use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -111,10 +111,7 @@ impl AirdropEntity {
 impl PsqlOp for AirdropEntity {
     type UpdaterContent<'a> = AirdropUpdater<'a>;
     type FilterContent<'b> = AirdropFilter<'b>;
-    async fn find(
-        filter: Self::FilterContent<'_>,
-        
-    ) -> Result<Vec<AirdropEntity>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<AirdropEntity>> {
         let sql = format!(
             "select 
             user_id,\
@@ -129,7 +126,7 @@ impl PsqlOp for AirdropEntity {
          from airdrop where {}",
             filter
         );
-        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get_airdrop: raw sql {}", sql);
         let gen_view = |row: &Row| {
             Ok(AirdropEntity {
@@ -152,14 +149,13 @@ impl PsqlOp for AirdropEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<u64> {
         let sql = format!(
             "update airdrop set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -198,7 +194,7 @@ impl PsqlOp for AirdropEntity {
             btc_level.to_psql_str()
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 
@@ -210,7 +206,7 @@ impl PsqlOp for AirdropEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::get_pg_pool_connect;
+    use crate::general::{run_api_call};
 
     use super::*;
     use common::log::init_logger;
@@ -221,23 +217,22 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-
-        let airdrop = AirdropEntity::new_with_specified(1, 2, "3.local");
-        airdrop.insert().await.unwrap();
-        let airdrop_by_find =
-            AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"))
+        let task = async {
+            let airdrop = AirdropEntity::new_with_specified(1, 2, "3.local");
+            airdrop.insert().await.unwrap();
+            let airdrop_by_find = AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"))
                 .await
                 .unwrap();
-        println!("{:?}", airdrop_by_find);
-        //assert_eq!(airdrop.airdrop, airdrop_by_find.airdrop);
-
-        AirdropEntity::update_single(
-            AirdropUpdater::InviteCode("3"),
-            AirdropFilter::ByInviteCode("1"),
-           
-        )
-        .await
-        .unwrap();
+            println!("{:?}", airdrop_by_find);
+            //assert_eq!(airdrop.airdrop, airdrop_by_find.airdrop);
+    
+            AirdropEntity::update_single(
+                AirdropUpdater::InviteCode("3"),
+                AirdropFilter::ByInviteCode("1"),
+            )
+            .await
+            .unwrap();
+        };
+        run_api_call("",task).await.unwrap();
     }
 }

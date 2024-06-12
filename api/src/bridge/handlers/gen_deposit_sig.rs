@@ -1,24 +1,24 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::CoinType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
+
 use serde::Deserialize;
 use serde::Serialize;
 //use log::debug;
 use tracing::debug;
 
-use crate::utils::captcha::{Captcha, Usage};
+
 use crate::utils::get_user_context;
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
-use common::error_code::{AccountManagerError::*, WalletError};
-use common::error_code::{BackendError, BackendRes};
-use models::account_manager::{UserFilter, UserUpdater};
-use models::{account_manager, PsqlOp};
+use common::error_code::{WalletError};
+use common::error_code::{BackendRes};
+
+
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GenDepositResponse {

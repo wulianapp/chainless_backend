@@ -16,7 +16,7 @@ use strum_macros::{Display, EnumString, ToString};
 use self::{coin_transaction::CoinTransaction, secret_store::SecretStore};
 
 #[derive(Deserialize, Serialize, Debug, EnumString, Display, PartialEq, Clone)]
-pub enum KeyRole{
+pub enum KeyRole {
     /// 主设备
     Master,
     /// 从设备

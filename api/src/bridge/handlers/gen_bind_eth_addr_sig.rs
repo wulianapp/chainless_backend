@@ -1,20 +1,20 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
+
 use serde::{Deserialize, Serialize};
 //use log::debug;
-use tracing::debug;
 
-use crate::utils::captcha::{Captcha, Usage};
+
+
 use crate::utils::{get_user_context, token_auth};
 use crate::wallet::handlers::*;
-use common::error_code::{AccountManagerError::*, WalletError};
-use common::error_code::{BackendError, BackendRes};
-use models::account_manager::{UserFilter, UserUpdater};
-use models::{account_manager, PsqlOp};
+
+use common::error_code::{BackendRes};
+
+
 
 #[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]

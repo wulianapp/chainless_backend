@@ -1,15 +1,15 @@
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig, StrategyData};
+
 use common::data_structures::{DeviceState, KeyRole};
-use models::general::get_pg_pool_connect;
+
 use serde::{Deserialize, Serialize};
 
 use crate::utils::{get_user_context, judge_role_by_strategy, token_auth};
-use blockchain::ContractClient;
+
 use common::data_structures::device_info::DeviceInfo;
 use common::error_code::BackendRes;
-use models::account_manager::{UserFilter, UserInfoEntity};
+
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 use models::PsqlOp;
 use std::cmp::Ordering;
@@ -28,12 +28,11 @@ pub struct DeviceListResponse {
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<DeviceListResponse>> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let devices: Vec<DeviceInfo> =
-        DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id))
-            .await?
-            .into_iter()
-            .map(|d| d.into_inner())
-            .collect();
+    let devices: Vec<DeviceInfo> = DeviceInfoEntity::find(DeviceInfoFilter::ByUser(&user_id))
+        .await?
+        .into_iter()
+        .map(|d| d.into_inner())
+        .collect();
 
     let context = get_user_context(&user_id, &device_id).await?;
 

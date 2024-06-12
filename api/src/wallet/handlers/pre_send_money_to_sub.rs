@@ -1,24 +1,24 @@
-use std::str::FromStr;
+
 
 use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::constants::TX_EXPAIRE_TIME;
-use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxType};
-use common::data_structures::CoinType;
+use common::data_structures::coin_transaction::{CoinSendStage, TxType};
+
 
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+use common::utils::time::{now_millis};
+
+
 use tracing::{debug, error};
 
-use crate::utils::captcha::{Captcha, Usage};
+
 use crate::utils::{get_user_context, token_auth};
-use common::error_code::{parse_str, AccountManagerError, BackendError, BackendRes, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity};
+use common::error_code::{parse_str, BackendError, BackendRes, WalletError};
+
 
 use common::error_code::BackendError::ChainError;
 use models::coin_transfer::CoinTxEntity;
@@ -40,7 +40,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: PreSendMoneyToSubRequest,
 ) -> BackendRes<(String, String)> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;

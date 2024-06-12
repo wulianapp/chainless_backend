@@ -1,27 +1,24 @@
-use actix_web::error::InternalError;
-use actix_web::{web, HttpRequest};
+
+use actix_web::{HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::{KeyRole, SecretKeyState};
-use common::error_code::{BackendError, BackendRes, WalletError};
+use common::error_code::{BackendError, BackendRes};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
-use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
 use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
-use crate::utils::captcha::{Captcha, ContactType, Usage};
+
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
-use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+
+
+
+
+
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, warn};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -39,7 +36,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitNewcomerSwitchMasterRequest,
 ) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let CommitNewcomerSwitchMasterRequest {
         newcomer_pubkey,
@@ -98,7 +94,6 @@ pub(crate) async fn req(
             SecretStoreEntity::update_single(
                 SecretUpdater::State(SecretKeyState::Incumbent),
                 SecretFilter::ByPubkey(&newcomer_pubkey),
-               
             )
             .await?;
         }
@@ -107,7 +102,6 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&newcomer_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-           
         )
         .await?;
     } else {
@@ -128,7 +122,6 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeUndefined(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-           
         )
         .await?;
     } else {

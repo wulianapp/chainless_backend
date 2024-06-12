@@ -1,31 +1,30 @@
 use crate::utils::token_auth;
 use actix_web::HttpRequest;
-use blockchain::coin::Coin;
-use blockchain::multi_sig::MultiSig;
-use blockchain::ContractClient;
+
+
+
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::TxStatusOnChain;
 use common::data_structures::{
-    coin_transaction::{CoinTransaction, TxType},
-    get_support_coin_list, CoinType,
+    coin_transaction::{TxType}, CoinType,
 };
 use common::error_code::to_param_invalid_error;
-use common::error_code::AccountManagerError;
+
 use common::error_code::BackendError;
-use common::error_code::BackendError::InternalError;
+
 use common::error_code::BackendRes;
 use common::utils::math::coin_amount::raw2display;
 use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoEntity};
 use models::coin_transfer::{CoinTxEntity, CoinTxFilter};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::str::FromStr;
-use std::sync::Mutex;
+
+
+
+
 
 use super::ServentSigDetail;
 use anyhow::Result;
@@ -85,7 +84,6 @@ pub async fn req(
     req: HttpRequest,
     request_data: TxListRequest,
 ) -> BackendRes<Vec<CoinTxViewResponse>> {
-
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
 
     let main_account = super::get_main_account(user_id).await?;
@@ -110,30 +108,28 @@ pub async fn req(
             Err(_) => return Ok(Some(vec![])),
         };
         match filter_type {
-            FilterType::OrderId => {
-                CoinTxEntity::find(CoinTxFilter::ByOrderId(data)).await
-            }
+            FilterType::OrderId => CoinTxEntity::find(CoinTxFilter::ByOrderId(data)).await,
             FilterType::AccountId => {
-                CoinTxEntity::find(
-                    CoinTxFilter::ByTxRolePage(tx_role, &main_account, Some(data), per_page, page),
-                   
-                )
+                CoinTxEntity::find(CoinTxFilter::ByTxRolePage(
+                    tx_role,
+                    &main_account,
+                    Some(data),
+                    per_page,
+                    page,
+                ))
                 .await
             }
             FilterType::Phone | FilterType::Mail => {
                 if let Ok(counterparty_main_account) =
                     UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(data)).await
                 {
-                    CoinTxEntity::find(
-                        CoinTxFilter::ByTxRolePage(
-                            tx_role,
-                            &main_account,
-                            Some(&counterparty_main_account.user_info.main_account.unwrap()),
-                            per_page,
-                            page,
-                        ),
-                       
-                    )
+                    CoinTxEntity::find(CoinTxFilter::ByTxRolePage(
+                        tx_role,
+                        &main_account,
+                        Some(&counterparty_main_account.user_info.main_account.unwrap()),
+                        per_page,
+                        page,
+                    ))
                     .await
                 } else {
                     return Ok(None);
@@ -141,10 +137,13 @@ pub async fn req(
             }
         }
     } else {
-        CoinTxEntity::find(
-            CoinTxFilter::ByTxRolePage(tx_role, &main_account, None, per_page, page),
-           
-        )
+        CoinTxEntity::find(CoinTxFilter::ByTxRolePage(
+            tx_role,
+            &main_account,
+            None,
+            per_page,
+            page,
+        ))
         .await
     };
 
@@ -161,8 +160,7 @@ pub async fn req(
         for sig in tx.transaction.signatures {
             let pubkey = sig[..64].to_string();
             let device =
-                DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey))
-                    .await?;
+                DeviceInfoEntity::find_single(DeviceInfoFilter::ByHoldKey(&pubkey)).await?;
             let sig = ServentSigDetail {
                 pubkey,
                 device_id: device.device_info.id,

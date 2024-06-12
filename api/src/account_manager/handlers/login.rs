@@ -3,10 +3,10 @@ use std::sync::Mutex;
 
 use anyhow::Result;
 use common::error_code::AccountManagerError::{
-    self, AccountLocked, PasswordIncorrect, PhoneOrEmailNotRegister,
+    self, AccountLocked, PasswordIncorrect,
 };
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
-use models::general::get_pg_pool_connect;
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
+
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
@@ -15,7 +15,7 @@ use common::error_code::{BackendError, BackendRes};
 use common::prelude::*;
 use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
-use models::{account_manager, PgLocalCli, PsqlOp};
+use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
@@ -87,20 +87,17 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
 
-
-    let user_info = account_manager::UserInfoEntity::find_single(
-        UserFilter::ByPhoneOrEmail(&contact),
-       
-    )
-    .await
-    .map_err(|e| {
-        if e.to_string().contains("DBError::DataNotFound") {
-            AccountManagerError::PhoneOrEmailNotRegister.into()
-        } else {
-            BackendError::InternalError(e.to_string())
-        }
-    })?
-    .into_inner();
+    let user_info =
+        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+            .await
+            .map_err(|e| {
+                if e.to_string().contains("DBError::DataNotFound") {
+                    AccountManagerError::PhoneOrEmailNotRegister.into()
+                } else {
+                    BackendError::InternalError(e.to_string())
+                }
+            })?
+            .into_inner();
 
     let (is_lock, remain_chance, unlock_time) =
         is_locked(user_info.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
@@ -121,10 +118,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
     device
-        .safe_insert(
-            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-           
-        )
+        .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;
 
     //generate auth token
@@ -146,29 +140,23 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-
-    let user_info = account_manager::UserInfoEntity::find_single(
-        UserFilter::ByPhoneOrEmail(&contact),
-       
-    )
-    .await
-    .map_err(|e| {
-        if e.to_string().contains("DBError::DataNotFound") {
-            AccountManagerError::PhoneOrEmailNotRegister.into()
-        } else {
-            BackendError::InternalError(e.to_string())
-        }
-    })?
-    .into_inner();
+    let user_info =
+        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+            .await
+            .map_err(|e| {
+                if e.to_string().contains("DBError::DataNotFound") {
+                    AccountManagerError::PhoneOrEmailNotRegister.into()
+                } else {
+                    BackendError::InternalError(e.to_string())
+                }
+            })?
+            .into_inner();
 
     Captcha::check_and_delete(&user_info.id.to_string(), &captcha, Usage::Login)?;
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
     device
-        .safe_insert(
-            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-           
-        )
+        .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;
 
     //generate auth token

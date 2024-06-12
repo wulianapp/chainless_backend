@@ -1,4 +1,4 @@
-use actix_web::error::InternalError;
+
 use actix_web::HttpRequest;
 use common::data_structures::KeyRole;
 //use log::debug;
@@ -6,16 +6,16 @@ use common::error_code::AccountManagerError::{self, CaptchaRequestTooFrequently}
 use common::log::generate_trace_id;
 use models::account_manager::{UserFilter, UserInfoEntity};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info};
+use tracing::{debug, error};
 
 use crate::utils::captcha::{email, Captcha, ContactType, Usage};
 use crate::utils::captcha::{sms, Usage::*};
 use crate::utils::{captcha, get_user_context, judge_role_by_user_id, token_auth};
-use common::env::CONF;
-use common::error_code::{BackendError, BackendRes, ExternalServiceError, WalletError};
+
+use common::error_code::{BackendError, BackendRes, WalletError};
 use common::prelude::*;
 use common::utils::time::now_millis;
 
@@ -102,33 +102,27 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
     //重置登录密码
     match kind {
         ResetLoginPassword => {
-            let user_info =
-                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-                    .await
-                    .map_err(|err| {
-                        if err.to_string().contains("DBError::DataNotFound") {
-                            AccountManagerError::PhoneOrEmailNotRegister.into()
-                        } else {
-                            BackendError::InternalError(err.to_string())
-                        }
-                    })?
-                    .into_inner();
+            let user_info = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+                .await
+                .map_err(|err| {
+                    if err.to_string().contains("DBError::DataNotFound") {
+                        AccountManagerError::PhoneOrEmailNotRegister.into()
+                    } else {
+                        BackendError::InternalError(err.to_string())
+                    }
+                })?
+                .into_inner();
             let user_id = user_info.id;
 
             //安全问答之前都允许，安全问答之后只有主设备允许
             if user_info.main_account.is_some() {
                 let find_device_res = DeviceInfoEntity::find_single(
                     DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-                   
                 )
                 .await?
                 .into_inner();
-                let role = judge_role_by_user_id(
-                    find_device_res.hold_pubkey.as_deref(),
-                    &user_id,
-                   
-                )
-                .await?;
+                let role =
+                    judge_role_by_user_id(find_device_res.hold_pubkey.as_deref(), &user_id).await?;
                 if role != KeyRole::Master {
                     Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
                 }
@@ -137,28 +131,22 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             get(device_id, contact, kind, Some(user_info.id))
         }
         Register => {
-            let find_res =
-                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-                    .await;
+            let find_res = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact)).await;
             if find_res.is_ok() {
                 Err(AccountManagerError::PhoneOrEmailAlreadyRegister)?;
             }
             get(device_id, contact, kind, None)
         }
-        Login => {
-            match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-                .await
-            {
-                Ok(info) => get(device_id, contact, kind, Some(info.into_inner().id)),
-                Err(err) => {
-                    if err.to_string().contains("DBError::DataNotFound") {
-                        Err(AccountManagerError::PhoneOrEmailNotRegister)?
-                    } else {
-                        Err(BackendError::InternalError(err.to_string()))?
-                    }
+        Login => match UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact)).await {
+            Ok(info) => get(device_id, contact, kind, Some(info.into_inner().id)),
+            Err(err) => {
+                if err.to_string().contains("DBError::DataNotFound") {
+                    Err(AccountManagerError::PhoneOrEmailNotRegister)?
+                } else {
+                    Err(BackendError::InternalError(err.to_string()))?
                 }
             }
-        }
+        },
         SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster
         | ReplenishContact => Err(BackendError::RequestParamInvalid("".to_string()))?,
     }
@@ -168,7 +156,6 @@ pub async fn with_token_req(
     req: HttpRequest,
     request_data: GetCaptchaWithTokenRequest,
 ) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let GetCaptchaWithTokenRequest { contact, kind } = request_data;
     let kind: Usage = kind

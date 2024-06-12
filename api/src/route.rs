@@ -3,7 +3,6 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-#[macro_use]
 extern crate common;
 #[macro_use]
 extern crate lazy_static;
@@ -16,16 +15,17 @@ pub mod newbie_reward;
 pub mod utils;
 pub mod wallet;
 
-use std::{borrow::BorrowMut, cell::RefCell, default, sync::Arc};
 use actix_http::Payload;
-use actix_web::{body, guard::Method, web::{Bytes, Payload as WebPayload}, FromRequest};
+
 
 
 use actix_cors::Cors;
-use actix_web::{error::{ErrorInternalServerError, InternalError}, http, middleware, App, HttpMessage, HttpResponse, HttpServer, ResponseError};
+use actix_web::{
+    http, App, HttpServer,
+};
 use env_logger::Env;
-use futures_util::{FutureExt, StreamExt};
-use models::{general::run_api_call, PgLocalCli, PgLocalCli2};
+
+use models::{general::run_api_call};
 use tracing::debug;
 
 use std::future::{ready, Ready};
@@ -36,17 +36,15 @@ use actix_web::{
 };
 use futures_util::future::LocalBoxFuture;
 
-
-
 fn print_body(req: &ServiceRequest) {
     match req.parts().1 {
         Payload::H1 { payload } => {
-            debug!("payload {:?}",payload)
-        },
+            debug!("payload {:?}", payload)
+        }
         _ => {
             //unimplemented!()
-        },
-    } 
+        }
+    }
 }
 
 // There are two steps in middleware processing.
@@ -92,46 +90,43 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-  
-        debug!("new_requested: {} ,{}, {},{:?}", 
-            req.method(),req.path(),req.query_string(),req.head(),
+        debug!(
+            "new_requested: {} ,{}, {},{:?}",
+            req.method(),
+            req.path(),
+            req.query_string(),
+            req.head(),
         );
         print_body(&req);
         let method = req.method().to_string();
-                       
-       let fut = self.service.call(req);
 
+        let fut = self.service.call(req);
 
         Box::pin(async move {
             //在tokio的本地任务和pg的连接的环境中执行api请求
-            run_api_call(&method,fut).await.unwrap()
+            run_api_call(&method, fut).await.unwrap()
         })
     }
 }
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::panic::set_hook(Box::new(|_| {
         println!("Custom panic hook");
     }));
-    
+
     common::log::init_logger();
     let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
-    //env_logger::init();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     HttpServer::new(move || {
-        //let auth = HttpAuthentication::bearer(token_auth::validate_credentials);
         App::new()
             .wrap(MoreLog)
-            //.wrap(middleware::Logger::new("new request:  %{r}a %U %s %b %{User-Agent}i %{Referer}i RequestId:%{X-Request-Id}i %{X-Session-Id}i %{X-Forwarded-For}i %{body}b"))
             .wrap(
                 Cors::default()
                     .allow_any_origin()
                     //.supports_credentials()
                     .allow_any_header()
                     //.allowed_origin("127.0.0.1")
-                    //.send_wildcard()
                     .allowed_methods(vec!["GET", "POST", "DELETE", "OPTIONS"])
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
@@ -141,7 +136,6 @@ async fn main() -> std::io::Result<()> {
             .configure(wallet::configure_routes)
             .configure(bridge::configure_routes)
             .configure(airdrop::configure_routes)
-
     })
     .bind(service)?
     .run()

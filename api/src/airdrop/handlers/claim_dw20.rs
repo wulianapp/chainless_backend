@@ -1,22 +1,19 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{KeyRole},
 };
 use models::{
     airdrop::{AirdropEntity, AirdropFilter},
-    general::get_pg_pool_connect,
     PsqlOp,
 };
-use tracing::{debug, info};
+use tracing::{debug};
 
-use crate::utils::{get_user_context, token_auth, wallet_grades::query_wallet_grade};
+use crate::utils::{get_user_context, token_auth};
 use crate::wallet::handlers::*;
 use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+use common::error_code::{BackendRes};
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -30,8 +27,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     check_role(role, KeyRole::Master)?;
 
-    let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
+    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
 
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli

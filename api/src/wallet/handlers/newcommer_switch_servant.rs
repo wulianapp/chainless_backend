@@ -2,24 +2,24 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use models::general::get_pg_pool_connect;
+
 use models::wallet_manage_record::WalletManageRecordEntity;
 
 use crate::utils::{get_user_context, judge_role_by_account, token_auth};
 use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
-use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity};
+
+
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
-use common::error_code::BackendError::ChainError;
-use common::error_code::BackendError::{self, InternalError};
+
+
 use models::secret_store::SecretStoreEntity;
-use models::{PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::error;
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -35,9 +35,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: NewcommerSwitchServantRequest,
 ) -> BackendRes<String> {
-
-    let (user_id, _, device_id, device_brand) =
-        token_auth::validate_credentials(&req).await?;
+    let (user_id, _, device_id, device_brand) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
     let (main_account, mut current_strategy) = context.account_strategy()?;
@@ -54,12 +52,10 @@ pub(crate) async fn req(
         new_device_id,
     } = request_data;
 
-    let newcommer_device = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id),
-       
-    )
-    .await?
-    .into_inner();
+    let newcommer_device =
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id))
+            .await?
+            .into_inner();
     let newcommer_device_role =
         judge_role_by_account(newcommer_device.hold_pubkey.as_deref(), &main_account).await?;
     if newcommer_device_role != KeyRole::Undefined {
@@ -84,7 +80,6 @@ pub(crate) async fn req(
         SecretStoreEntity::update_single(
             SecretUpdater::State(SecretKeyState::Incumbent),
             SecretFilter::ByPubkey(&new_servant_pubkey),
-           
         )
         .await?;
     }
@@ -92,7 +87,6 @@ pub(crate) async fn req(
     SecretStoreEntity::update_single(
         SecretUpdater::State(SecretKeyState::Abandoned),
         SecretFilter::ByPubkey(&old_servant_pubkey),
-       
     )
     .await?;
 
@@ -100,13 +94,11 @@ pub(crate) async fn req(
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeServant(&new_servant_pubkey),
         DeviceInfoFilter::ByDeviceUser(&new_device_id, &user_id),
-       
     )
     .await?;
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeUndefined(&old_servant_pubkey),
         DeviceInfoFilter::ByHoldKey(&old_servant_pubkey),
-       
     )
     .await?;
 

@@ -1,21 +1,21 @@
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::MultiSig;
-use models::general::get_pg_pool_connect;
+
+
 
 use crate::utils::{get_user_context, token_auth};
 use common::data_structures::KeyRole;
 use common::error_code::BackendRes;
-use common::error_code::{AccountManagerError, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
-use models::secret_store::{SecretFilter, SecretUpdater};
 
-use blockchain::ContractClient;
-use common::error_code::BackendError::{self, InternalError};
-use models::secret_store::SecretStoreEntity;
+
+use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
+
+
+
+
+
 use models::PsqlOp;
-use tracing::error;
+
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -30,7 +30,6 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     DeviceInfoEntity::update(
         DeviceInfoUpdater::HolderSaved(true),
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-       
     )
     .await?;
     Ok(None::<String>)

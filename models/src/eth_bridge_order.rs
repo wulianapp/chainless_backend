@@ -11,7 +11,7 @@ use std::fmt;
 use std::fmt::Display;
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp};
+use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -105,10 +105,7 @@ impl EthBridgeOrderEntity {
 impl PsqlOp for EthBridgeOrderEntity {
     type UpdaterContent<'a> = BridgeOrderUpdater<'a>;
     type FilterContent<'b> = BridgeOrderFilter<'b>;
-    async fn find(
-        filter: Self::FilterContent<'_>,
-        
-    ) -> Result<Vec<EthBridgeOrderEntity>> {
+    async fn find(filter: Self::FilterContent<'_>) -> Result<Vec<EthBridgeOrderEntity>> {
         let sql = format!(
             "select 
             id,\
@@ -124,7 +121,7 @@ impl PsqlOp for EthBridgeOrderEntity {
          from ethereum_bridge_order {}",
             filter
         );
-        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get_secret: raw sql {}", sql);
         let gen_view = |row: &Row| {
             Ok(EthBridgeOrderEntity {
@@ -149,14 +146,13 @@ impl PsqlOp for EthBridgeOrderEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<u64> {
         let sql = format!(
             "update ethereum_bridge_order set {} ,updated_at=CURRENT_TIMESTAMP {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -187,7 +183,7 @@ impl PsqlOp for EthBridgeOrderEntity {
             id, order_type, chainless_acc, eth_addr, coin, amount, status, height
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 
@@ -199,7 +195,7 @@ impl PsqlOp for EthBridgeOrderEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+    use crate::general::{run_api_call};
 
     use super::*;
     use common::log::init_logger;
@@ -211,26 +207,27 @@ mod tests {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
         crate::general::table_all_clear().await;
-        let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
-
-        let secret = EthBridgeOrderEntity::new_with_specified(
-            "0123456789",
-            "test.node0",
-            "0x123",
-            BridgeOrderType::Withdraw,
-            CoinType::DW20,
-            10000u128,
-            EthOrderStatus::Pending,
-            0u64,
-        );
-        secret.insert().await.unwrap();
-        let find_res = EthBridgeOrderEntity::find_single(
-            BridgeOrderFilter::ByTypeAndId(BridgeOrderType::Withdraw, "0123456789"),
-           
-        )
-        .await
-        .unwrap();
-        println!("{:?}", find_res);
-        assert_eq!(find_res.order.amount, 10000);
+        let task  = async {
+            let secret = EthBridgeOrderEntity::new_with_specified(
+                "0123456789",
+                "test.node0",
+                "0x123",
+                BridgeOrderType::Withdraw,
+                CoinType::DW20,
+                10000u128,
+                EthOrderStatus::Pending,
+                0u64,
+            );
+            secret.insert().await.unwrap();
+            let find_res = EthBridgeOrderEntity::find_single(BridgeOrderFilter::ByTypeAndId(
+                BridgeOrderType::Withdraw,
+                "0123456789",
+            ))
+            .await
+            .unwrap();
+            println!("{:?}", find_res);
+            assert_eq!(find_res.order.amount, 10000);
+        };
+        run_api_call("", task).await.unwrap();
     }
 }

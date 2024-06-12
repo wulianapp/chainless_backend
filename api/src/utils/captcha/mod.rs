@@ -15,11 +15,11 @@ use regex::Regex;
 
 use common::error_code::AccountManagerError::*;
 use common::error_code::BackendError::InternalError;
-use common::error_code::BackendError::*;
+
 
 use common::constants::*;
 use common::utils::time::now_millis;
-use phonenumber::Mode;
+
 use strum_macros::{Display, EnumString};
 
 lazy_static! {
@@ -223,7 +223,7 @@ impl Captcha {
     }
 
     pub fn check_and_delete(user: &str, code: &str, kind: Usage) -> Result<(), BackendError> {
-        Self::check(user,code,kind.clone())?;
+        Self::check(user, code, kind.clone())?;
         let code_storage = &mut CODE_STORAGE
             .lock()
             .map_err(|e| InternalError(e.to_string()))?;
@@ -234,10 +234,10 @@ impl Captcha {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::captcha::email::send_email;
+    
     use crate::utils::captcha::validate;
-    use crate::utils::captcha::Captcha;
-    use crate::utils::captcha::Usage;
+    
+    
     #[test]
     fn test_phone_valided() {
         assert!(validate("+86 13682471710").is_ok());

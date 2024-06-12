@@ -1,45 +1,43 @@
-use crate::account_manager::{configure_routes, handlers};
-use crate::utils::respond::BackendRespond;
+use crate::account_manager::{configure_routes};
+
 use crate::{
-    test_add_servant, test_create_main_account, test_get_balance_list, test_get_secret,
-    test_get_strategy, test_login, test_register, test_search_message, test_service_call,
-    test_update_security, MoreLog,
+    MoreLog,
 };
 
-use std::default::Default;
+
 use std::env;
 
-use actix_web::body::MessageBody;
+
 use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
-use actix_web::http::header;
 
-use actix_web::{body::MessageBody as _, test, App};
 
-use blockchain::ContractClient;
-use common::data_structures::device_info::DeviceInfo;
-use models::coin_transfer::CoinTxEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
-use serde_json::json;
+use actix_web::{App};
+
+
+
+
+
+
 
 use actix_web::Error;
-use blockchain::multi_sig::StrategyData;
-use blockchain::multi_sig::{CoinTx, MultiSig};
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
+
+use blockchain::multi_sig::{MultiSig};
+
+
 use common::encrypt::ed25519_key_gen;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
-use common::utils::math::{self, random_num};
-use models::secret_store::SecretStoreEntity;
+use common::utils::math::{random_num};
+
 // use log::{info, LevelFilter,debug,error};
-use crate::account_manager::handlers::user_info::UserInfoResponse;
-use crate::wallet::handlers::get_strategy::StrategyDataResponse;
-use crate::wallet::handlers::get_secret::GetSecretResponse;
-use crate::wallet::*;
-use actix_web::http::header::HeaderName;
-use actix_web::http::header::HeaderValue;
-use common::data_structures::CoinType;
-use models::account_manager::UserInfoEntity;
-use tracing::{debug, error, info};
+
+
+
+
+
+
+
+
+
 
 #[derive(Debug, Clone)]
 pub struct TestWallet {
@@ -351,16 +349,14 @@ macro_rules! test_get_captcha_with_token {
 #[macro_export]
 macro_rules! test_contact_is_used {
     ( $service:expr,$app:expr) => {{
-            let url = format!("/accountManager/contactIsUsed?contact={}",$app.user.contact);
-            let res: BackendRespond<UserInfoResponse2> = test_service_call!(
-                $service,
-                "get",
-                &url,
-                None::<String>,
-                None::<String>
-            );
-            assert_eq!(res.status_code,0);
-            res.data
+        let url = format!(
+            "/accountManager/contactIsUsed?contact={}",
+            $app.user.contact
+        );
+        let res: BackendRespond<UserInfoResponse2> =
+            test_service_call!($service, "get", &url, None::<String>, None::<String>);
+        assert_eq!(res.status_code, 0);
+        res.data
     }};
 }
 

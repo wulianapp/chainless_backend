@@ -26,32 +26,23 @@ extern crate jsonrpc_client_http;
 extern crate rustc_serialize;
 extern crate tokio_postgres;
 
-//use postgres::{Client, NoTls, Row};
-
 use anyhow::anyhow;
 use anyhow::Ok;
 use anyhow::Result;
 use deadpool::managed::Object;
-use general::get_pg_pool_connect;
-//use r2d2_postgres::postgres::GenericClient;
-//use r2d2_postgres::postgres::Transaction;
 use serde::Deserialize;
 use serde::Serialize;
-use tokio::sync::Mutex;
 use std::borrow::Borrow;
 use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::fmt::{Debug, Display};
 use std::future;
 use std::ops::Deref;
-use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio_postgres::NoTls;
 use tokio_postgres::Row;
-//use r2d2_postgres::{postgres::NoTls, PostgresConnectionManager};
-//use r2d2::Pool;
-//use r2d2_postgres::postgres::Row;
 use deadpool_postgres::Manager;
 use deadpool_postgres::Pool;
 use deadpool_postgres::Transaction;
@@ -59,12 +50,10 @@ use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod};
 
 use async_trait::async_trait;
 use tokio::runtime::Runtime;
-//use futures::executor::block_on;
 use async_std::task::block_on;
 
 use ouroboros::self_referencing;
 
-//type PoolConnect = r2d2::PooledConnection<PostgresConnectionManager<NoTls>>;
 pub type LocalConn = Object<Manager>;
 
 static TRY_TIMES: u8 = 5;
@@ -81,106 +70,28 @@ lazy_static! {
 }
 
 tokio::task_local! {
-    pub static  LOCAL_CLI9: RefCell<Option<Arc<PgLocalCli2>>>; 
+    pub static  LOCAL_CLI: RefCell<Option<Arc<PgLocalCli>>>;
 }
 
-/***
-thread_local! {
-    pub static  LOCAL_CONN: RefCell<LocalConn> = {
-        let conn = block_on(async{
-            error!("Gen LOCAL_CONN ");
-            PG_POOL.get().await.unwrap()
-        });
-        RefCell::new(conn)
-    };
-
-    pub static  LOCAL_CONN2: LocalConn = {
-        let conn = block_on(async{
-            error!("Gen LOCAL_CONN ");
-            PG_POOL.get().await.unwrap()
-        });
-        conn
-    };
-
-    pub static LOCAL_TX: RefCell<Option<Transaction<'static>>> = RefCell::new(None);
-
-    pub static LOCAL_CONN4: (Pool,Option<Transaction<'static>>) = {
-        unimplemented!()
-    };
-
-}
-**/
-
-
-pub enum PgLocalCli<'a> {
-    Conn(LocalConn),
-    Trans(Transaction<'a>),
-}
-
-pub enum PgLocalCli2{
+pub enum PgLocalCli {
     Conn(&'static mut LocalConn),
     Trans(Transaction<'static>),
 }
 
-impl PgLocalCli2 {
+impl PgLocalCli {
     pub async fn execute(sql: &str) -> Result<u64> {
         debug!(sql);
-        let cli = LOCAL_CLI9.with(|cli| {
-            cli.borrow().as_ref().unwrap().clone()
-        });
+        let cli = LOCAL_CLI.with(|cli| cli.borrow().as_ref().unwrap().clone());
         let line = match cli.as_ref() {
-            PgLocalCli2::Conn(c) => c.execute(sql, &[]).await?,
-            PgLocalCli2::Trans(t) => t.execute(sql, &[]).await?,
-        };
-        Ok(line)
-    }
-    pub async fn query(sql: &str) -> Result<Vec<Row>> {
-        debug!(sql);
-        let cli = LOCAL_CLI9.with(|cli| {
-            cli.borrow().as_ref().unwrap().clone()
-        });
-        let row = match cli.as_ref() {
-            PgLocalCli2::Conn(c) => c.query(sql, &[]).await?,
-            PgLocalCli2::Trans(t) => t.query(sql, &[]).await?,
-        };
-        Ok(row)
-    }
-    pub async fn commit(self) -> Result<()> {
-        match self {
-            PgLocalCli2::Conn(_c) => {
-                debug!("it's not a trans");
-                Ok(())
-            }
-            PgLocalCli2::Trans(t) => Ok(t.commit().await?),
-        }
-    }
-
-    pub async fn begin(&'static mut self) -> Result<PgLocalCli2> {
-        match self {
-            PgLocalCli2::Conn(c) => {
-                let trans = c.transaction().await?;
-                Ok(PgLocalCli2::Trans(trans))
-            }
-            PgLocalCli2::Trans(t) => {
-                panic!("It is already a trans");
-            }
-        }
-    }
-}
-
-
-impl PgLocalCli<'_> {
-    pub async fn execute(&self, sql: &str) -> Result<u64> {
-        debug!(sql);
-        let line = match self {
             PgLocalCli::Conn(c) => c.execute(sql, &[]).await?,
             PgLocalCli::Trans(t) => t.execute(sql, &[]).await?,
         };
         Ok(line)
     }
-    pub async fn query(&mut self, sql: &str) -> Result<Vec<Row>> {
+    pub async fn query(sql: &str) -> Result<Vec<Row>> {
         debug!(sql);
-        let row = match self {
+        let cli = LOCAL_CLI.with(|cli| cli.borrow().as_ref().unwrap().clone());
+        let row = match cli.as_ref() {
             PgLocalCli::Conn(c) => c.query(sql, &[]).await?,
             PgLocalCli::Trans(t) => t.query(sql, &[]).await?,
         };
@@ -189,33 +100,34 @@ impl PgLocalCli<'_> {
     pub async fn commit(self) -> Result<()> {
         match self {
             PgLocalCli::Conn(_c) => {
-                panic!("it's not a trans")
+                debug!("it's not a trans");
+                Ok(())
             }
             PgLocalCli::Trans(t) => Ok(t.commit().await?),
         }
     }
 
-    pub async fn begin(&mut self) -> Result<PgLocalCli<'_>> {
+    pub async fn begin(&'static mut self) -> Result<PgLocalCli> {
         match self {
             PgLocalCli::Conn(c) => {
                 let trans = c.transaction().await?;
                 Ok(PgLocalCli::Trans(trans))
             }
             PgLocalCli::Trans(_t) => {
-                panic!("It is already a trans")
+                panic!("It is already a trans");
             }
         }
     }
 }
 
-impl<'a> From<LocalConn> for PgLocalCli<'a> {
-    fn from(value: LocalConn) -> Self {
+impl From<&'static mut LocalConn> for PgLocalCli {
+    fn from(value: &'static mut LocalConn) -> Self {
         Self::Conn(value)
     }
 }
 
-impl<'a> From<Transaction<'a>> for PgLocalCli<'a> {
-    fn from(value: Transaction<'a>) -> Self {
+impl From<Transaction<'static>> for PgLocalCli {
+    fn from(value: Transaction<'static>) -> Self {
         Self::Trans(value)
     }
 }
@@ -237,75 +149,11 @@ fn connect_pool() -> Result<Pool> {
         timeouts: Default::default(),
         queue_mode: Default::default(),
     });
-    //let manager = Manager::new(common::env::CONF.database.db_uri().as_str(), NoTls2);
-    //let pool = Pool::builder(manager).max_size(16).build().unwrap();
+
     let pool = cfg.create_pool(None, NoTls).unwrap();
     Ok(pool)
 }
 
-/***
-pub async fn query(raw_sql: &str,cli: &mut PgLocalCli<'_>) -> Result<Vec<Row>> {
-    let mut try_times = TRY_TIMES;
-    //let mut x = get_db_pool_connect().await?;
-    let res = PgLocalCli2::query(raw_sql).await?;
-    Ok(res)
-
-}
-
-pub async fn execute(raw_sql: String) -> Result<u64> {
-    let mut try_times = TRY_TIMES;
-    /***
-    let local_conn = LOCAL_CONN2.with(|x| {
-        x.clone()
-    });
-    loop {
-        error!("_0003_finish3 execute ");
-        let tmp1 = local_conn.lock().unwrap();
-        match tmp1.execute(&raw_sql, &[]).await{
-            Ok(data) => {
-                return Ok(data);
-            }
-            Err(error) => {
-                if try_times == 0 {
-                    let error_info = format!("erro:{:?}, query still failed after retry", error);
-                    error!("{}", error_info);
-                    Err(anyhow!(error_info))?;
-                } else {
-                    error!("error {:?}", error);
-                    //crate::PG_POOL = connect_pool()?;
-                    try_times -= 1;
-                    continue;
-                }
-            }
-        }
-    }
-    **/
-    tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-    Ok(0)
-
-}
-
-pub async fn query_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Result<Vec<Row>> {
-    Ok(tx.query(raw_sql, &[]).await?)
-  }
-
-
-pub async fn execute_with_trans(raw_sql: &str,tx: &mut Transaction<'_>) -> Result<u64> {
-    Ok(tx.execute(raw_sql, &[]).await?)
-}
-
-pub fn execute2(raw_sql: &str) -> Result<u64> {
-    let mut try_times = TRY_TIMES;
-    let mut db_client = crate::CLIENTDB.lock().map_err(|e| anyhow!(e.to_string()))?;
-    //let mut db_client2 = LOCAL_CLI.take();
-    LOCAL_CLI.with_borrow_mut(|client|{
-        Ok(client.execute(raw_sql, &[])?)
-    })
-}
-***/
-
-type UpdaterContent = String;
-type FilterContent = String;
 #[async_trait]
 pub trait PsqlOp {
     type UpdaterContent<'a>: Display + Send;
@@ -340,13 +188,11 @@ pub trait PsqlOp {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<u64>;
 
     async fn update_single(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<()>
     where
         Self: Sized + Send,
@@ -369,11 +215,7 @@ pub trait PsqlOp {
     async fn insert(self) -> Result<()>;
 
     //insert after check key
-    async fn safe_insert(
-        self,
-        filter: Self::FilterContent<'_>,
-        
-    ) -> Result<()>
+    async fn safe_insert(self, filter: Self::FilterContent<'_>) -> Result<()>
     where
         Self: Sized + Send,
     {

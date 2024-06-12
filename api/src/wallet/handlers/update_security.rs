@@ -1,12 +1,11 @@
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank, StrategyData};
+
 use models::{
     account_manager::{UserFilter, UserInfoEntity, UserUpdater},
     device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater},
-    general::get_pg_pool_connect,
     secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater},
-    PgLocalCli, PsqlOp,
+    PsqlOp,
 };
 
 use crate::utils::{
@@ -14,8 +13,8 @@ use crate::utils::{
     get_user_context, token_auth,
 };
 use common::{
-    data_structures::{secret_store::SecretStore, KeyRole},
-    error_code::{BackendError, BackendRes, WalletError},
+    data_structures::{KeyRole},
+    error_code::{BackendRes},
 };
 use serde::{Deserialize, Serialize};
 
@@ -39,7 +38,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: UpdateSecurityRequest,
 ) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -59,7 +57,6 @@ pub(crate) async fn req(
     UserInfoEntity::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),
         UserFilter::ById(&user_id),
-       
     )
     .await?;
 
@@ -70,7 +67,6 @@ pub(crate) async fn req(
                 &secret.encrypted_prikey_by_answer,
             ),
             SecretFilter::ByPubkey(&secret.pubkey),
-           
         )
         .await?;
 
@@ -79,7 +75,6 @@ pub(crate) async fn req(
             DeviceInfoEntity::update_single(
                 DeviceInfoUpdater::HolderSaved(false),
                 DeviceInfoFilter::ByHoldKey(&secret.pubkey),
-               
             )
             .await?;
         }

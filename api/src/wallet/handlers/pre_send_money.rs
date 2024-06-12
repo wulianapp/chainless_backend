@@ -1,26 +1,26 @@
-use std::str::FromStr;
+
 
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{CoinTx, MultiSig};
+use blockchain::multi_sig::{MultiSig};
 use blockchain::ContractClient;
 use common::constants::TX_EXPAIRE_TIME;
-use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxType};
-use common::data_structures::CoinType;
+use common::data_structures::coin_transaction::{CoinSendStage, TxType};
+
 
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+use common::utils::time::{now_millis};
+
+
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::utils::captcha::{Captcha, Usage};
+
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{
     to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
-    WalletError::{self, *},
+    WalletError::{self},
 };
 use models::account_manager::{UserFilter, UserInfoEntity};
 
@@ -44,7 +44,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: PreSendMoneyRequest,
 ) -> BackendRes<(String, Option<String>)> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let PreSendMoneyRequest {
         to,
@@ -100,8 +99,7 @@ pub(crate) async fn req(
     }
     let coin_type = coin.parse().map_err(to_param_invalid_error)?;
 
-    let available_balance =
-        super::get_available_amount(&main_account, &coin_type).await?;
+    let available_balance = super::get_available_amount(&main_account, &coin_type).await?;
     let available_balance = available_balance.unwrap_or(0);
     if amount > available_balance {
         error!(

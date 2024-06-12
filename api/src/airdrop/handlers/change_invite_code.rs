@@ -1,28 +1,22 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
+
 use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{KeyRole},
 };
 use models::{
-    account_manager::{UserFilter, UserInfoEntity},
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+
 
 use crate::{
     utils::{get_user_context, token_auth},
     wallet::handlers::*,
 };
-use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+
+use common::error_code::{BackendRes};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +25,6 @@ pub struct ChangeInviteCodeRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -52,7 +45,6 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     AirdropEntity::update_single(
         AirdropUpdater::InviteCode(&code),
         AirdropFilter::ByUserId(&user_id),
-       
     )
     .await?;
 

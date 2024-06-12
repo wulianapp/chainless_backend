@@ -1,25 +1,20 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
-use blockchain::multi_sig::{MultiSig, MultiSigRank};
+
 use common::{
-    data_structures::{airdrop::Airdrop, wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
+    data_structures::{airdrop::Airdrop, KeyRole},
 };
 use models::{
-    airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
+    airdrop::{AirdropEntity, AirdropFilter},
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
 
-use crate::utils::{get_user_context, token_auth, wallet_grades::query_wallet_grade};
+
+use crate::utils::{get_user_context, token_auth};
 use crate::wallet::handlers::*;
-use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+
+use common::error_code::{BackendRes};
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct AirdropStatusResponse {
@@ -35,7 +30,6 @@ pub struct AirdropStatusResponse {
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -45,10 +39,9 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
     check_role(role, KeyRole::Master)?;
 
     //todo: check sig,
-    
+
     //todo: get kyc info
-    let user_airdrop =
-        AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
+    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
     let Airdrop {
         user_id,
         account_id,

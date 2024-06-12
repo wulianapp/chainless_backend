@@ -1,4 +1,4 @@
-use std::{num::ParseIntError, ops::Deref, str::FromStr, string::ParseError};
+use std::{num::ParseIntError};
 
 use anyhow::Result;
 use blockchain::{
@@ -20,15 +20,15 @@ use models::{
     account_manager::{UserFilter, UserInfoEntity},
     coin_transfer::{CoinTxEntity, CoinTxFilter},
     device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    PgLocalCli, PsqlOp,
+    PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
-use crate::{account_manager::user_info, utils::respond::BackendRespond};
+
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;
-use common::error_code::WalletError::*;
+
 pub use common::prelude::*;
 use common::utils::math::*;
 
@@ -91,9 +91,7 @@ pub async fn gen_random_account_id(
     ))
 }
 
-pub async fn get_uncompleted_tx(
-    account: &str,
-) -> Result<Vec<CoinTxEntity>> {
+pub async fn get_uncompleted_tx(account: &str) -> Result<Vec<CoinTxEntity>> {
     let mut txs = CoinTxEntity::find(CoinTxFilter::BySenderUncompleted(account)).await?;
     txs.retain(|tx| {
         tx.transaction.stage <= CoinSendStage::ReceiverApproved
@@ -102,9 +100,7 @@ pub async fn get_uncompleted_tx(
     Ok(txs)
 }
 
-pub async fn have_no_uncompleted_tx(
-    account: &str,
-) -> Result<(), BackendError> {
+pub async fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
     let tx = get_uncompleted_tx(account).await?;
     if !tx.is_empty() {
         Err(WalletError::HaveUncompleteTx)?;
@@ -118,10 +114,7 @@ pub async fn get_freezn_amount(account: &str, coin: &CoinType) -> u128 {
     tx.iter().map(|x| x.transaction.amount).sum()
 }
 
-pub async fn get_available_amount(
-    account_id: &str,
-    coin: &CoinType,
-) -> BackendRes<u128> {
+pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendRes<u128> {
     let coin_cli = ContractClient::<Coin>::new_query_cli(coin.clone())
         .await
         .map_err(|err| ChainError(err.to_string()))?;
@@ -142,9 +135,7 @@ pub async fn get_available_amount(
     }
 }
 
-pub async fn get_main_account(
-    user_id: u32,
-) -> Result<String, BackendError> {
+pub async fn get_main_account(user_id: u32) -> Result<String, BackendError> {
     let user = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
     if user.user_info.main_account.is_none() {
         Err(WalletError::NotSetSecurity)?
@@ -201,10 +192,9 @@ pub async fn get_session_state(
         ))?;
 
     //注册过的一定有设备信息
-    let device =
-        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id))
-            .await?
-            .into_inner();
+    let device = DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id))
+        .await?
+        .into_inner();
     Ok((user.user_info, current_strategy, device))
 }
 
@@ -223,9 +213,7 @@ pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> 
 
 //fixme: 查一次最多rpc调用 1 + 5 * 2
 //检查所有的手续费币是否全部小于1u
-pub async fn check_have_base_fee(
-    main_account: &str,
-) -> Result<(), BackendError> {
+pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError> {
     let fee_coins = get_fees_priority(main_account)
         .await?
         .ok_or(InternalError("not set fees priority".to_string()))?;

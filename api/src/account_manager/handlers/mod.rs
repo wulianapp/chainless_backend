@@ -9,14 +9,8 @@ pub mod replenish_contact;
 pub mod reset_password;
 pub mod user_info;
 
-use common::{
-    data_structures::account_manager::UserInfo,
-    error_code::{AccountManagerError, BackendError, ExternalServiceError},
-};
-use models::{
-    account_manager::{UserFilter, UserInfoEntity},
-    PsqlOp,
-};
+
+
 
 /*****
 fn get_user_info() -> Result<UserInfo,BackendError>{

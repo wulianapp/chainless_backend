@@ -1,28 +1,25 @@
-use std::collections::HashMap;
 
-use crate::utils::captcha::{Captcha, ContactType, Usage};
+
+use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
+
+
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::KeyRole;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
-use common::error_code::{BackendError, BackendRes, WalletError};
-use common::utils::math::generate_random_hex_string;
+
+
+
+use common::error_code::{BackendRes, WalletError};
+
 use models::account_manager::{UserFilter, UserUpdater};
 use models::airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
-use models::general::{get_pg_pool_connect, transaction_begin};
 use models::secret_store::SecretStoreEntity;
 use models::wallet_manage_record::WalletManageRecordEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
@@ -44,9 +41,7 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CreateMainAccountRequest,
 ) -> BackendRes<String> {
-
-    let (user_id, _, device_id, device_brand) =
-        token_auth::validate_credentials(&req).await?;
+    let (user_id, _, device_id, device_brand) = token_auth::validate_credentials(&req).await?;
     let CreateMainAccountRequest {
         master_pubkey,
         master_prikey_encrypted_by_password,
@@ -61,10 +56,9 @@ pub(crate) async fn req(
     Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //store user info
-    let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id))
-            .await?
-            .into_inner();
+    let user_info = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id))
+        .await?
+        .into_inner();
 
     if user_info.main_account.is_some() {
         Err(WalletError::MainAccountAlreadyExist(
@@ -80,7 +74,6 @@ pub(crate) async fn req(
     account_manager::UserInfoEntity::update_single(
         UserUpdater::SecruityInfo(&anwser_indexes, &main_account_id),
         UserFilter::ById(&user_id),
-       
     )
     .await?;
 
@@ -103,7 +96,6 @@ pub(crate) async fn req(
     DeviceInfoEntity::update_single(
         DeviceInfoUpdater::BecomeMaster(&master_pubkey),
         DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-       
     )
     .await?;
 
@@ -128,7 +120,6 @@ pub(crate) async fn req(
     AirdropEntity::update_single(
         AirdropUpdater::AccountId(&main_account_id),
         AirdropFilter::ByUserId(&user_id),
-       
     )
     .await?;
 

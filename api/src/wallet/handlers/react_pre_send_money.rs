@@ -1,11 +1,11 @@
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::KeyRole;
 use common::utils::time::now_millis;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
+
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
@@ -37,11 +37,9 @@ pub(crate) async fn req(
         is_agreed,
     } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
-        CoinTxFilter::ByOrderId(&order_id),
-       
-    )
-    .await?;
+    let coin_tx =
+        models::coin_transfer::CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+            .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
@@ -78,14 +76,12 @@ pub(crate) async fn req(
         models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
             CoinTxFilter::ByOrderId(&order_id),
-           
         )
         .await?;
     } else {
         models::coin_transfer::CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::ReceiverRejected),
             CoinTxFilter::ByOrderId(&order_id),
-           
         )
         .await?;
     };

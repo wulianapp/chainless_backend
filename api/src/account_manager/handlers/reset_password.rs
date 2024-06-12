@@ -3,18 +3,18 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
+
 use serde::{Deserialize, Serialize};
-use tokio::time::error::Elapsed;
+
 //use log::debug;
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
-use crate::utils::{judge_role_by_strategy, token_auth};
+use crate::utils::{judge_role_by_strategy};
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
-use models::{account_manager, PgLocalCli, PsqlOp};
+use models::{account_manager, PsqlOp};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,21 +37,16 @@ pub async fn req(
         device_id,
     } = request_data.clone();
 
-
-    let user_info = account_manager::UserInfoEntity::find_single(
-        UserFilter::ByPhoneOrEmail(&contact),
-       
-    )
-    .await
-    .map_err(|_e| PhoneOrEmailNotRegister)?
-    .into_inner();
+    let user_info =
+        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+            .await
+            .map_err(|_e| PhoneOrEmailNotRegister)?
+            .into_inner();
 
     if let Some(account) = user_info.main_account {
-        let devices = DeviceInfoEntity::find(
-            DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id),
-           
-        )
-        .await?;
+        let devices =
+            DeviceInfoEntity::find(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
+                .await?;
         //针对用新设备修改
         let role = if devices.is_empty() {
             KeyRole::Undefined
@@ -81,7 +76,6 @@ pub async fn req(
     account_manager::UserInfoEntity::update_single(
         UserUpdater::LoginPwdHash(&new_password, user_info.token_version + 1),
         UserFilter::ById(&user_info.id),
-       
     )
     .await?;
 

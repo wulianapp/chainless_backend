@@ -1,28 +1,25 @@
 use std::collections::BTreeMap;
 
-use actix_web::{web, HttpRequest};
+use actix_web::{HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
+
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
+
+
+
+
 use common::error_code::{BackendRes, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
+
 use models::secret_store::SecretStoreEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::info;
+
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -34,7 +31,6 @@ pub struct AddSubaccountRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let AddSubaccountRequest {

@@ -9,7 +9,9 @@ use std::num::ParseIntError;
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::{vec_str2array_text, FilterContent, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType, UpdaterContent};
+use crate::{
+    vec_str2array_text, PgLocalCli, PsqlOp, PsqlType,
+};
 use anyhow::Result;
 
 #[derive(Serialize, Debug)]
@@ -135,7 +137,7 @@ impl PsqlOp for UserInfoEntity {
             filter
         );
         //let query_res = PgLocalCli2::query(&sql).await?;
-        let query_res = PgLocalCli2::query(&sql).await?;
+        let query_res = PgLocalCli::query(&sql).await?;
         //debug!("get_snapshot: raw sql {}", sql);
 
         let gen_view = |row: &Row| -> Result<UserInfoEntity> {
@@ -167,14 +169,13 @@ impl PsqlOp for UserInfoEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<u64> {
         let sql = format!(
             "UPDATE users SET {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update users {} ", sql);
-        let execute_res = PgLocalCli2::execute(&sql).await?;
+        let execute_res = PgLocalCli::execute(&sql).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update users {} rows", execute_res);
         Ok(execute_res)
@@ -225,7 +226,7 @@ impl PsqlOp for UserInfoEntity {
             token_version
         );
         debug!("row sql {} rows", sql);
-        let execute_res = PgLocalCli2::execute(&sql).await?;
+        let execute_res = PgLocalCli::execute(&sql).await?;
         debug!("success insert {} rows", execute_res);
         Ok(())
     }
@@ -233,9 +234,6 @@ impl PsqlOp for UserInfoEntity {
 
 #[cfg(test)]
 mod tests {
-
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
-
     use super::*;
     use common::log::init_logger;
     use std::env;
@@ -246,7 +244,7 @@ mod tests {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
         crate::general::table_all_clear().await;
-    
+
         let user = UserInfoEntity::new_with_specified(123245, "0123456789");
         user.insert().await.unwrap();
         let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245))
@@ -254,17 +252,13 @@ mod tests {
             .unwrap();
         println!("{:?}", user_by_find);
         //assert_eq!(user_by_find.user_info, user.user_info);
-        UserInfoEntity::update(
-            UserUpdater::LoginPwdHash("0123", 2),
-            UserFilter::ById(&1),
-           
-        )
-        .await
-        .unwrap();
+        UserInfoEntity::update(UserUpdater::LoginPwdHash("0123", 2), UserFilter::ById(&1))
+            .await
+            .unwrap();
         Ok(())
     }
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_trans_user_info() {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
@@ -290,7 +284,7 @@ mod tests {
         UserInfoEntity::update(
             UserUpdater::LoginPwdHash("0123", 2),
             UserFilter::ById(&1),
-           
+
         )
         .await
         .unwrap();

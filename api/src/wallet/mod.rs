@@ -1,12 +1,12 @@
 //! account manager http service
 
 pub mod handlers;
-use actix_web::web::service;
+
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::CoinType;
-use common::error_code::LangType;
+
+
+
 use handlers::add_servant::AddServantRequest;
 use handlers::add_subaccount::AddSubaccountRequest;
 use handlers::balance_list::BalanceListRequest;
@@ -37,25 +37,20 @@ use handlers::update_subaccount_hold_limit::UpdateSubaccountHoldLimitRequest;
 use handlers::upload_servant_sig::UploadTxSignatureRequest;
 
 use handlers::get_secret::GetSecretRequest;
-use serde::{Deserialize, Serialize};
+
 
 use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
-use crate::account_manager::{
-    contact_is_used, login_by_password, register_by_email, register_by_phone, reset_password,
-};
-use tracing::{debug, span, Level};
 
-use self::handlers::balance_list::AccountType;
+use tracing::{debug};
+
+
 use crate::utils::respond::get_lang;
-use common::data_structures::{
-    coin_transaction::{CoinSendStage, CoinTransaction, TxType},
-    get_support_coin_list, TxStatusOnChain,
-};
+
 use common::log::generate_trace_id;
 use handlers::set_fees_priority::SetFeesPriorityRequest;
-use handlers::ServentSigDetail;
+
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -1551,43 +1546,46 @@ mod tests {
 
     use super::*;
     use core::panic;
-    use std::default::Default;
-    use std::env;
-    use std::ops::Deref;
+    
+    
+    
 
     use actix_web::body::MessageBody;
-    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
+    
     use actix_web::http::header;
 
-    use actix_web::{body::MessageBody as _, test, App};
+    use actix_web::{body::MessageBody as _, test};
 
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::utils::time::now_millis;
-    use models::coin_transfer::CoinTxEntity;
-    use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+    
+    use models::{PsqlOp};
+    use serde::{Serialize,Deserialize};
     use serde_json::json;
 
     use super::handlers::balance_list::BalanceListResponse;
     use super::handlers::estimate_transfer_fee::EstimateTransferFeeResponse;
     use super::handlers::get_tx::GetTxResponse;
     use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
-    use actix_web::http::header::HeaderName;
-    use actix_web::http::header::HeaderValue;
-    use actix_web::Error;
-    use blockchain::multi_sig::StrategyData;
-    use blockchain::multi_sig::{CoinTx, MultiSig};
-    use common::data_structures::account_manager::UserInfo;
+    
+    
+    
+    
+    
+    
     use common::data_structures::coin_transaction::{CoinSendStage, TxType};
     use common::data_structures::secret_store::SecretStore;
-    use common::data_structures::AccountMessage;
-    use common::encrypt::{ed25519_key_gen, ed25519_verify_hex, ed25519_verify_raw};
+    
+    use common::encrypt::{ed25519_key_gen, ed25519_verify_hex};
 
-    use common::utils::math;
-    use models::secret_store::SecretStoreEntity;
+    
+    
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::search_message::SearchMessageResponse;
+    use crate::account_manager::handlers::contact_is_used::UserInfoResponse as UserInfoResponse2;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
+    
     use blockchain::bridge_on_eth::Bridge;
     use blockchain::coin::Coin;
     use blockchain::erc20_on_eth::Erc20;
@@ -1595,12 +1593,9 @@ mod tests {
     use common::data_structures::CoinType;
     use common::utils::math::*;
     use handlers::get_strategy::StrategyDataResponse;
-    use models::account_manager::UserInfoEntity;
-    use std::collections::HashMap;
-    use tracing::{debug, error, info};
-    use crate::wallet::handlers::get_secret::GetSecretResponse;
-    use crate::account_manager::handlers::contact_is_used::UserInfoResponse as UserInfoResponse2;
-
+    
+    
+    
 
     /***
 
@@ -2296,7 +2291,7 @@ mod tests {
         }
     }
 
-    use std::str::FromStr;
+    
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub struct SubAccCoinTx {
         pub coin_id: String,
@@ -2451,19 +2446,15 @@ mod tests {
         println!("start test_wallet_get_all");
         let app = init().await;
         let service = test::init_service(app).await;
-        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
-        gen_some_accounts_with_new_key();
+        let (sender_master, _sender_servant, _sender_newcommer, _receiver) =
+            gen_some_accounts_with_new_key();
         let start = now_millis();
-        for _ in 0..1000{
-             let test1 = test_contact_is_used!(service,sender_master);
-             //let user = PgLocalCli2::execute("select * from users").await.unwrap();
-
+        for _ in 0..1000 {
+            let _test1 = test_contact_is_used!(service, sender_master);
+            //let user = PgLocalCli2::execute("select * from users").await.unwrap();
         }
-        println!("--___ {}",now_millis() - start);   
-
+        println!("--___ {}", now_millis() - start);
     }
-
-
 
     #[actix_web::test]
     async fn test_wallet_get_all() {

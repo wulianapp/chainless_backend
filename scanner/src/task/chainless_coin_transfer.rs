@@ -1,6 +1,6 @@
 use common::data_structures::TxStatusOnChain;
 use models::coin_transfer::CoinTxEntity;
-use models::general::get_pg_pool_connect;
+
 use models::{
     coin_transfer::{CoinTxFilter, CoinTxUpdater},
     PsqlOp,
@@ -12,11 +12,7 @@ use anyhow::Result;
 pub async fn start() -> Result<()> {
     loop {
         //check manage_opcord
-        let txs = CoinTxEntity::find(
-            CoinTxFilter::ByChainStatus(TxStatusOnChain::Pending),
-       
-        )
-        .await?;
+        let txs = CoinTxEntity::find(CoinTxFilter::ByChainStatus(TxStatusOnChain::Pending)).await?;
 
         for tx in txs {
             let tx_id = if let Some(txid) = tx.transaction.tx_id {
@@ -32,7 +28,6 @@ pub async fn start() -> Result<()> {
                 CoinTxEntity::update_single(
                     CoinTxUpdater::StageChainStatus(tx.transaction.stage, status),
                     CoinTxFilter::ByOrderId(&tx.transaction.order_id),
-               
                 )
                 .await?;
             }

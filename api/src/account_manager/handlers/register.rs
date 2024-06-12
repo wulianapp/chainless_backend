@@ -1,21 +1,21 @@
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::KeyRole;
+
+
+
 use common::error_code::{AccountManagerError::*, BackendError};
 use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
-use blockchain::multi_sig::MultiSig;
-use blockchain::ContractClient;
+
+
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::general::*;
-use models::secret_store::SecretStoreEntity;
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+
+
+use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -69,11 +69,9 @@ async fn register(
     //encrypted_prikey: String,
     //pubkey: String,
 ) -> BackendRes<String> {
-
     //check userinfo form db
     let find_res =
-        account_manager::UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact))
-            .await?;
+        account_manager::UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
@@ -96,18 +94,15 @@ async fn register(
     view.insert().await?;
 
     //register airdrop
-    let predecessor_airdrop = AirdropEntity::find_single(
-        AirdropFilter::ByInviteCode(&predecessor_invite_code),
-       
-    )
-    .await
-    .map_err(|_e| InviteCodeNotExist)?;
+    let predecessor_airdrop =
+        AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
+            .await
+            .map_err(|_e| InviteCodeNotExist)?;
 
     let predecessor_userinfo_id = predecessor_airdrop.airdrop.user_id;
-    let predecessor_info =
-        UserInfoEntity::find_single(UserFilter::ById(&predecessor_userinfo_id))
-            .await?
-            .into_inner();
+    let predecessor_info = UserInfoEntity::find_single(UserFilter::ById(&predecessor_userinfo_id))
+        .await?
+        .into_inner();
 
     if let Some(main_account) = predecessor_info.main_account {
         let user_airdrop =
@@ -119,7 +114,6 @@ async fn register(
 
     let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, this_user_id);
     device.insert().await?;
-
 
     let token = crate::utils::token_auth::create_jwt(
         this_user_id,

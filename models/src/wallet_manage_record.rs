@@ -18,7 +18,7 @@ use derive_more::{AsRef, Deref};
 use serde::{Deserialize, Serialize};
 use slog_term::PlainSyncRecordDecorator;
 
-use crate::{vec_str2array_text, PgLocalCli, PgLocalCli2, PsqlOp, PsqlType};
+use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, AsRef, Clone)]
@@ -122,7 +122,7 @@ impl PsqlOp for WalletManageRecordEntity {
          from wallet_manage_record where {}",
             filter
         );
-        let execute_res = PgLocalCli2::query(sql.as_str()).await?;
+        let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get device: raw sql {}", sql);
         let gen_view = |row: &Row| -> Result<WalletManageRecordEntity> {
             Ok(WalletManageRecordEntity {
@@ -146,14 +146,13 @@ impl PsqlOp for WalletManageRecordEntity {
     async fn update(
         new_value: Self::UpdaterContent<'_>,
         filter: Self::FilterContent<'_>,
-        
     ) -> Result<u64> {
         let sql = format!(
             "update wallet_manage_record set {} ,updated_at=CURRENT_TIMESTAMP where {}",
             new_value, filter
         );
         debug!("start update orders {} ", sql);
-        let execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let execute_res = PgLocalCli::execute(sql.as_str()).await?;
         //assert_ne!(execute_res, 0);
         debug!("success update orders {} rows", execute_res);
         Ok(execute_res)
@@ -191,7 +190,7 @@ impl PsqlOp for WalletManageRecordEntity {
             status
         );
         debug!("row sql {} rows", sql);
-        let _execute_res = PgLocalCli2::execute(sql.as_str()).await?;
+        let _execute_res = PgLocalCli::execute(sql.as_str()).await?;
         Ok(())
     }
 }
@@ -200,12 +199,11 @@ impl PsqlOp for WalletManageRecordEntity {
 mod tests {
 
     use super::*;
-    use crate::general::{get_pg_pool_connect, transaction_begin, transaction_commit};
     use common::log::init_logger;
     use std::env;
     use tokio_postgres::types::ToSql;
 
-    /*** 
+    /***
     #[tokio::test]
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");
@@ -231,7 +229,7 @@ mod tests {
 
         let record_by_find = WalletManageRecordEntity::find_single(
             WalletManageRecordFilter::ByRecordId(&record_id),
-           
+
         )
         .await
         .unwrap();
@@ -242,7 +240,7 @@ mod tests {
         WalletManageRecordEntity::update(
             WalletManageRecordUpdater::Status(TxStatusOnChain::Successful),
             WalletManageRecordFilter::ByRecordId(&record_id),
-           
+
         )
         .await
         .unwrap();

@@ -1,27 +1,24 @@
-use actix_web::error::InternalError;
-use actix_web::{web, HttpRequest};
+
+use actix_web::{HttpRequest};
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole, SecretKeyState};
+use common::data_structures::{KeyRole};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
-use models::general::{get_pg_pool_connect, transaction_begin};
-use models::secret_store::{SecretFilter, SecretStoreEntity, SecretUpdater};
+
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
-use crate::utils::captcha::{Captcha, ContactType, Usage};
+
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::account_manager::UserInfo;
-use common::data_structures::secret_store::SecretStore;
-use common::error_code::AccountManagerError::{
-    InviteCodeNotExist, PhoneOrEmailAlreadyRegister, PhoneOrEmailNotRegister,
-};
-use common::error_code::BackendError::ChainError;
-use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
-use models::{account_manager, secret_store, PgLocalCli, PsqlOp};
+
+
+
+
+
+use models::{PsqlOp};
 use serde::{Deserialize, Serialize};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, warn};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,7 +34,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: CommitServantSwitchMasterRequest,
 ) -> BackendRes<String> {
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let CommitServantSwitchMasterRequest {
         add_key_raw,
@@ -57,16 +53,14 @@ pub(crate) async fn req(
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     //外部注入和token解析结果对比
-    let servant_pubkey = DeviceInfoEntity::find_single(
-        DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-       
-    )
-    .await?
-    .device_info
-    .hold_pubkey
-    .ok_or(BackendError::InternalError(
-        "this haven't be servant yet".to_string(),
-    ))?;
+    let servant_pubkey =
+        DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, &user_id))
+            .await?
+            .device_info
+            .hold_pubkey
+            .ok_or(BackendError::InternalError(
+                "this haven't be servant yet".to_string(),
+            ))?;
     let master_list = multi_sig_cli.get_master_pubkey_list(&main_account).await?;
 
     //get old_master
@@ -93,7 +87,6 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeMaster(&servant_pubkey),
             DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-           
         )
         .await?;
     } else {
@@ -112,7 +105,6 @@ pub(crate) async fn req(
         DeviceInfoEntity::update_single(
             DeviceInfoUpdater::BecomeServant(&old_master),
             DeviceInfoFilter::ByHoldKey(&old_master),
-           
         )
         .await?;
     } else if master_list.len() == 1 && master_list.contains(&servant_pubkey) {

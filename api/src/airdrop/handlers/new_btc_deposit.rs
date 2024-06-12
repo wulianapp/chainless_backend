@@ -1,24 +1,17 @@
-use actix_web::{web, HttpRequest};
-use blockchain::airdrop::Airdrop as ChainAirdrop;
-use common::{
-    data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
-    error_code::{AccountManagerError, BackendError},
-    utils::math::coin_amount::display2raw,
-};
+use actix_web::{HttpRequest};
+
+
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
-    device_info::{DeviceInfoEntity, DeviceInfoFilter},
-    general::get_pg_pool_connect,
-    wallet_manage_record::WalletManageRecordEntity,
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
-use crate::utils::{token_auth, wallet_grades::query_wallet_grade};
-use crate::wallet::handlers::*;
-use blockchain::ContractClient;
-use common::error_code::{BackendRes, WalletError};
+use crate::utils::{wallet_grades::query_wallet_grade};
+
+
+use common::error_code::{BackendRes};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -28,12 +21,10 @@ pub struct NewBtcDepositRequest {
 }
 
 pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> BackendRes<String> {
-
     //todo: 目前该接口不做限制，后续看怎么收拢权限
     let NewBtcDepositRequest { sender, receiver } = request_data;
 
-    let airdrop_info =
-        AirdropEntity::find(AirdropFilter::ByBtcAddress(&receiver)).await?;
+    let airdrop_info = AirdropEntity::find(AirdropFilter::ByBtcAddress(&receiver)).await?;
     if airdrop_info.is_empty() {
         //Err(BackendError::InternalError("".to_string()))?;
         warn!("receiver {} isn't belong us", receiver);

@@ -8,16 +8,16 @@ use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 use common::data_structures::{CoinType, KeyRole};
 use common::utils::math::coin_amount::display2raw;
-use common::utils::time::{now_millis, DAY1};
-use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
-use models::general::get_pg_pool_connect;
-use serde::{Deserialize, Serialize};
-use tracing::{debug, error};
+use common::utils::time::{now_millis};
 
-use crate::utils::captcha::{Captcha, Usage};
+
+use serde::{Deserialize, Serialize};
+use tracing::{error};
+
+
 use crate::utils::{get_user_context, token_auth};
-use common::error_code::{AccountManagerError, BackendError, BackendRes, BridgeError, WalletError};
-use models::account_manager::{UserFilter, UserInfoEntity};
+use common::error_code::{BackendError, BackendRes, BridgeError, WalletError};
+
 
 use models::coin_transfer::CoinTxEntity;
 use models::PsqlOp;
