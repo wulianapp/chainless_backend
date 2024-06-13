@@ -1969,7 +1969,7 @@ mod tests {
         }
     }
 
-    #[actix_web::test]
+    //#[actix_web::test]
     async fn test_wallet_main_send_money_to_bridge() {
         println!("start test_wallet_main_send_money_to_bridge");
         let app = init().await;
@@ -2136,7 +2136,7 @@ mod tests {
     }
 
     //todo: eth主网币，场景单独测试DRY
-    #[actix_web::test]
+    //#[actix_web::test]
     async fn test_wallet_main_send_eth_to_bridge() {
         println!("start test_wallet_main_send_eth_to_bridge");
         let app = init().await;

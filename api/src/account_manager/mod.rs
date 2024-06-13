@@ -452,7 +452,7 @@ mod tests {
         let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new_update_cli()
             .await
             .unwrap();
-        cli.clear_all().await.unwrap();
+        //cli.clear_all().await.unwrap();
         //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
         //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
     }
@@ -468,7 +468,7 @@ mod tests {
     > {
         env::set_var("SERVICE_MODE", "test");
         common::log::init_logger();
-        models::general::table_all_clear();
+        //models::general::table_all_clear().await;
         App::new().configure(configure_routes)
     }
 

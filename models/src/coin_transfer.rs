@@ -297,7 +297,7 @@ impl PsqlOp for CoinTxEntity {
 
 #[cfg(test)]
 mod tests {
-    use crate::general::{run_api_call};
+    use crate::general::{run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -307,7 +307,7 @@ mod tests {
     #[tokio::test]
     async fn test_db_coin_transfer() {
         env::set_var("SERVICE_MODE", "test");
-        crate::general::table_all_clear().await;
+        table_clear("coin_transaction").await.unwrap();
         let task = async {
             let coin_tx = CoinTxEntity::new_with_specified(
                 CoinType::BTC,

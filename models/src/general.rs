@@ -107,13 +107,12 @@ pub async fn init_system_config() -> Result<(), String> {
 }
 
 pub async fn table_all_clear() {
-    /***
     table_clear("airdrop").await.unwrap();
     table_clear("users").await.unwrap();
     table_clear("coin_transaction").await.unwrap();
     table_clear("device_info").await.unwrap();
     table_clear("secret_store").await.unwrap();
     table_clear("ethereum_bridge_order").await.unwrap();
+    table_clear("wallet_manage_record").await.unwrap();    
     init_system_config().await.unwrap();
-    ***/
 }

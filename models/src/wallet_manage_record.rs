@@ -208,7 +208,7 @@ mod tests {
     async fn test_db_wallet_manage_record() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
-        crate::general::table_all_clear().await;
+        table_clear("wallet_manage_record").await.unwrap();
 
         let mut db_cli: PgLocalCli = get_pg_pool_connect().await.unwrap();
         let mut db_cli = db_cli.begin().await.unwrap();

@@ -207,7 +207,7 @@ impl PsqlOp for DeviceInfoEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{run_api_call};
+    use crate::general::{run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -219,7 +219,7 @@ mod tests {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
 
-        crate::general::table_all_clear().await;
+        table_clear("device_info").await.unwrap();
         let task = async {
             let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
             device.insert().await.unwrap();

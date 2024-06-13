@@ -1,8 +1,8 @@
 //! encapsulation of some postgresql interface for easy call
 //#![deny(missing_docs)]
 //#![deny(warnings)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
+//#![allow(unused_imports)]
+//#![allow(dead_code)]
 
 pub mod account_manager;
 pub mod airdrop;

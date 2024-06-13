@@ -239,6 +239,8 @@ impl PsqlOp for UserInfoEntity {
 
 #[cfg(test)]
 mod tests {
+    use crate::general::table_clear;
+
     use super::*;
     use common::log::init_logger;
     use std::env;
@@ -248,7 +250,7 @@ mod tests {
     async fn test_db_user_info() -> Result<()> {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
-        crate::general::table_all_clear().await;
+        table_clear("users").await.unwrap();
 
         let user = UserInfoEntity::new_with_specified(123245, "0123456789");
         user.insert().await.unwrap();

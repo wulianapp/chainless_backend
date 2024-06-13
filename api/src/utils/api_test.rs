@@ -1,42 +1,12 @@
-use crate::account_manager::{configure_routes};
-
-use crate::{
-    MoreLog,
-};
-
-
+use crate::MoreLog;
 use std::env;
-
-
 use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
-
-
-use actix_web::{App};
-
-
-
-
-
-
-
+use actix_web::App;
 use actix_web::Error;
-
-use blockchain::multi_sig::{MultiSig};
-
-
+use blockchain::multi_sig::MultiSig;
 use common::encrypt::ed25519_key_gen;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
-use common::utils::math::{random_num};
-
-// use log::{info, LevelFilter,debug,error};
-
-
-
-
-
-
-
-
+use common::utils::math::random_num;
 
 
 #[derive(Debug, Clone)]
@@ -78,11 +48,11 @@ pub async fn init() -> App<
 > {
     env::set_var("BACKEND_SERVICE_MODE", "test");
     common::log::init_logger();
-    clear_contract().await;
-    models::general::table_all_clear().await;
+    //clear_contract().await;
+    //models::general::table_all_clear().await;
     App::new()
         .wrap(MoreLog)
-        .configure(configure_routes)
+        .configure(crate::account_manager::configure_routes)
         .configure(crate::wallet::configure_routes)
         .configure(crate::bridge::configure_routes)
         .configure(crate::airdrop::configure_routes)
@@ -261,8 +231,6 @@ pub async fn clear_contract() {
         .await
         .unwrap();
     cli.clear_all().await.unwrap();
-    //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
-    //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
 }
 
 pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {

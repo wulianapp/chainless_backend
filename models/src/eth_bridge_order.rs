@@ -195,7 +195,7 @@ impl PsqlOp for EthBridgeOrderEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{run_api_call};
+    use crate::general::{run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -206,7 +206,7 @@ mod tests {
     async fn test_db_bridge_order() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
-        crate::general::table_all_clear().await;
+        table_clear("ethereum_bridge_order").await.unwrap();
         let task  = async {
             let secret = EthBridgeOrderEntity::new_with_specified(
                 "0123456789",

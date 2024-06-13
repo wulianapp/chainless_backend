@@ -206,7 +206,7 @@ impl PsqlOp for AirdropEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{run_api_call};
+    use crate::general::{run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -216,7 +216,7 @@ mod tests {
     async fn test_db_airdop() {
         env::set_var("CONFIG", "/root/chainless_backend/config_test.toml");
         init_logger();
-        crate::general::table_all_clear().await;
+        table_clear("airdrop").await.unwrap();
         let task = async {
             let airdrop = AirdropEntity::new_with_specified(1, 2, "3.local");
             airdrop.insert().await.unwrap();

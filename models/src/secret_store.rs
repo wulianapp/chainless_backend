@@ -176,7 +176,7 @@ pub struct SecretView {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{run_api_call};
+    use crate::general::{run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -187,7 +187,7 @@ mod tests {
     async fn test_db_secret_store() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
-        crate::general::table_all_clear().await;
+        table_clear("secret_store").await.unwrap();
         let task = async {
             let secret =
                 SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");

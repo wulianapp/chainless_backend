@@ -18,20 +18,26 @@ blockchain = { path = "./blockchain" }
 common = { path = "./common" }
 models = { path = "./models" }
 
-## actix
+## http
 actix-cors = "0.6.5"
 actix-http  = "3.5.1"
 actix-rt = "2.9.0"
 actix-web = "4.4.1"
+actix-web-httpauth = "0.6"
+reqwest = "0.11"
+jsonrpc-client-core = "0.5.0"
+jsonrpc-client-http = "0.5.0"
+jsonrpc-http-server = "12.0"
 
 ## serder
 serde = { version = "1.0.193", features = ["derive"] }
-## serde_json = "1.0.108"
 serde_derive = "1.0"
 
-## tokio
-tokio = { version = "1.28.2", features = ["full"] }
+## sync
+async-std = "1.12.0"
 futures-util = { version = "0.3.30"}
+futures = { version = "0.3"}
+tokio = { version = "1.28.2", features = ["full"] }
 
 
 ## near
@@ -63,46 +69,47 @@ hex = "0.4"
 rand = "0.7"
 secp256k1 = "0.29.0"
 serde_json = { version = "1.0.108", default-features = false, features = ["alloc", "arbitrary_precision"] }
+sha2 = "0.10.8"
 uuid = { version = "1.7.0" ,features = ["v4"]}
 
 ## code tool
 anyhow = "1.0.77"
 derive_more = "0.99"
 ouroboros = "0.18.3"
+lazy_static = "1.4.0"
 strum = "=0.26.1"
 strum_macros = "=0.26.1"
 thiserror = "1.0.52"
+async-trait = "0.1.80"
+
+
+## db
+deadpool = {version = "0.12.0"}
+deadpool-postgres = {version = "0.13.2"}
+##postgres = {version = "0.16.0-rc.2",features=["with-serde_json-1"]}
+##r2d2 = "0.8.10"
+##r2d2_postgres = "0.18.1"
+tokio-postgres = "0.7.10"
+
+
+
+## utils
+clap = "4.5.4"
+chrono = "0.4"
+jsonwebtoken = "7.2.0"
+lettre = "0.11"
+phonenumber = "0.3"
+toml = "*"
 
 
 
 ## other
-actix-web-httpauth = "0.6"
-async-trait = "0.1.80"
-async-std = "1.12.0"
-clap = "4.5.4"
-chrono = "0.4"
-deadpool = {version = "0.12.0"}
-deadpool-postgres = {version = "0.13.2"}
-futures = { version = "0.3"}
-jsonrpc-client-core = "0.5.0"
-jsonrpc-client-http = "0.5.0"
-jsonrpc-http-server = "12.0"
-jsonwebtoken = "7.2.0"
-lazy_static = "1.4.0"
-lettre = "0.11"
 num = "0.2"
-phonenumber = "0.3"
-postgres = {version = "0.16.0-rc.2",features=["with-serde_json-1"]}
 regex = "1.5"
-reqwest = "0.11"
 rust_decimal = { version = "1.0.3", features = ["postgres"] }
 rustc-serialize = "0.3.18"
-r2d2 = "0.8.10"
-r2d2_postgres = "0.18.1"
 slog-async = "2.3.0"
 slog-term = "2.4.0"
-toml = "*"
-tokio-postgres = "0.7.10"
 untrusted = "0.6.2"
 
 
