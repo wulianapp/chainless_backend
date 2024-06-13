@@ -2,6 +2,7 @@ use actix_web::{web, HttpRequest};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole;
+use common::hash::Hash;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use serde::{Deserialize, Serialize};
@@ -74,7 +75,7 @@ pub async fn req(
 
     //modify user's password  at db
     account_manager::UserInfoEntity::update_single(
-        UserUpdater::LoginPwdHash(&new_password, user_info.token_version + 1),
+        UserUpdater::LoginPwdHash(&new_password.hash(), user_info.token_version + 1),
         UserFilter::ById(&user_info.id),
     )
     .await?;

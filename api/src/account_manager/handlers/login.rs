@@ -3,6 +3,7 @@ use std::sync::Mutex;
 
 use anyhow::Result;
 use common::error_code::AccountManagerError::{self, AccountLocked, PasswordIncorrect};
+use common::hash::Hash;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use tracing::debug;
@@ -103,7 +104,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         Err(AccountLocked(unlock_time))?;
     }
 
-    if password != user_info.login_pwd_hash {
+    if password.hash() != user_info.login_pwd_hash {
         record_once_retry(user_info.id)?;
         Err(PasswordIncorrect(remain_chance))?;
     } else {

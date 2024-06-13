@@ -1,4 +1,5 @@
 use common::error_code::{AccountManagerError::*, BackendError};
+use common::hash::{Hash};
 use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
@@ -76,7 +77,7 @@ async fn register(
     Captcha::check_and_delete(&contact, &captcha, Usage::Register)?;
 
     let this_user_id = gen_user_id().await?;
-    let mut view = UserInfoEntity::new_with_specified(this_user_id, &password);
+    let mut view = UserInfoEntity::new_with_specified(this_user_id, &password.hash());
     match contact_type {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = Some(contact.clone());
