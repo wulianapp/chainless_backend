@@ -118,4 +118,13 @@ mod tests {
         let (score, grade) = calc_wallet(5633, "31.5999");
         assert_eq!((score, grade), ("47.1599".to_string(), 2));
     }
+
+
+    #[tokio::test]
+    async fn test_api_utils_some_addr() {
+        let grade = query_wallet_grade(
+            "bcrt1qtpyr2uh7ff0l3xc599ztnpxut9h660hvqawnfa"
+        ).await.unwrap();
+        println!("grade {}",grade);
+    }
 }

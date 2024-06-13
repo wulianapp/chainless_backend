@@ -21,7 +21,7 @@ use actix_http::Payload;
 
 use actix_cors::Cors;
 use actix_web::{
-    http, App, HttpServer,
+    error::ErrorInternalServerError, http, App, HttpServer
 };
 use env_logger::Env;
 
@@ -104,7 +104,9 @@ where
 
         Box::pin(async move {
             //在tokio的本地任务和pg的连接的环境中执行api请求
-            run_api_call(&method, fut).await.unwrap()
+            run_api_call(&method, fut)
+            .await
+            .map_err(ErrorInternalServerError)?
         })
     }
 }

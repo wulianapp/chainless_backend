@@ -43,7 +43,7 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
     match inner_res {
         Ok(data) => generate_ok_respond(data),
         Err(error) => {
-            if error.to_string().contains("Authorization") {
+            if error.code() == BackendError::Authorization("".to_string()).code() {
                 debug!("return_error_respond: {}", error.to_string());
                 HttpResponse::Unauthorized().json(error.to_string())
             } else {
