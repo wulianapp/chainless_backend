@@ -1,6 +1,6 @@
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use models::{
     device_info::{DeviceInfoEntity, DeviceInfoFilter},
     secret_store::{SecretFilter, SecretStoreEntity},
@@ -8,7 +8,7 @@ use models::{
 };
 
 use crate::utils::token_auth;
-use common::error_code::{WalletError};
+use common::error_code::WalletError;
 use common::{
     data_structures::secret_store::SecretStore,
     error_code::{BackendError, BackendRes},

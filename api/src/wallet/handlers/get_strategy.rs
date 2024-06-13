@@ -4,7 +4,6 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 
-
 use crate::utils::token_auth;
 
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};

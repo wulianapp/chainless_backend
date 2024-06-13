@@ -1,15 +1,10 @@
 use actix_web::HttpRequest;
 
-
-
-use blockchain::{
-    fees_call::FeesCall,
-};
+use blockchain::fees_call::FeesCall;
 
 use crate::utils::token_auth;
 
 use common::{data_structures::CoinType, error_code::BackendRes};
-
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<Vec<CoinType>> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;

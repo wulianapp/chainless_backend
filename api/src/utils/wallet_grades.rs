@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use anyhow::{Result};
+use anyhow::Result;
 use rust_decimal::Decimal;
 
 use super::btc_aggregated_api::{first_tx, AccountSummary};
@@ -51,8 +51,6 @@ pub async fn query_wallet_grade(account: &str) -> Result<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    
 
     fn calc_wallet(days: i64, balance: &str) -> (String, u8) {
         let account = AccountSummary {
@@ -119,12 +117,11 @@ mod tests {
         assert_eq!((score, grade), ("47.1599".to_string(), 2));
     }
 
-
     #[tokio::test]
     async fn test_api_utils_some_addr() {
-        let grade = query_wallet_grade(
-            "bcrt1qtpyr2uh7ff0l3xc599ztnpxut9h660hvqawnfa"
-        ).await.unwrap();
-        println!("grade {}",grade);
+        let grade = query_wallet_grade("bcrt1qtpyr2uh7ff0l3xc599ztnpxut9h660hvqawnfa")
+            .await
+            .unwrap();
+        println!("grade {}", grade);
     }
 }

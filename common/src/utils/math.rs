@@ -24,7 +24,6 @@ pub fn random_num() -> u128 {
 
 pub mod coin_amount {
     use super::*;
-    use std::ops::{Div, Mul};
 
     pub fn raw2display(raw: u128) -> String {
         //截取后方的10位

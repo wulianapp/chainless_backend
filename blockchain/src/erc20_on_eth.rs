@@ -1,12 +1,12 @@
 use anyhow::Result;
 
 use ::common::data_structures::CoinType;
-use common::env::CONF as ENV_CONF;
+
 use ethers::prelude::*;
 use ethers::types::Address;
 
 use std::marker::PhantomData;
-use std::ops::Mul;
+
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -79,7 +79,7 @@ impl EthContractClient<Erc20> {
 mod tests {
 
     use ::common::{
-        data_structures::{get_support_coin_list, get_support_coin_list_without_cly, CoinType},
+        data_structures::{get_support_coin_list, CoinType},
         utils::math::coin_amount::raw2display,
     };
 

@@ -1,13 +1,9 @@
 use crate::utils::token_auth;
 use actix_web::HttpRequest;
 
-
-
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::TxStatusOnChain;
-use common::data_structures::{
-    coin_transaction::{TxType}, CoinType,
-};
+use common::data_structures::{coin_transaction::TxType, CoinType};
 use common::error_code::to_param_invalid_error;
 
 use common::error_code::BackendError;
@@ -21,10 +17,6 @@ use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
-
-
-
 
 use super::ServentSigDetail;
 use anyhow::Result;

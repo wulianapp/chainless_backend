@@ -1,7 +1,9 @@
-//! wulian app backend service
-
-#![allow(unused_imports)]
+#![deny(warnings)]
+//#![allow(unused_imports)]
 #![allow(dead_code)]
+#![allow(non_snake_case)]
+
+/// wulian app backend service
 
 extern crate common;
 #[macro_use]
@@ -17,15 +19,11 @@ pub mod wallet;
 
 use actix_http::Payload;
 
-
-
 use actix_cors::Cors;
-use actix_web::{
-    error::ErrorInternalServerError, http, App, HttpServer
-};
+use actix_web::{error::ErrorInternalServerError, http, App, HttpServer};
 use env_logger::Env;
 
-use models::{general::run_api_call};
+use models::general::run_api_call;
 use tracing::debug;
 
 use std::future::{ready, Ready};
@@ -105,8 +103,8 @@ where
         Box::pin(async move {
             //在tokio的本地任务和pg的连接的环境中执行api请求
             run_api_call(&method, fut)
-            .await
-            .map_err(ErrorInternalServerError)?
+                .await
+                .map_err(ErrorInternalServerError)?
         })
     }
 }

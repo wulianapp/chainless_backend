@@ -1,4 +1,4 @@
-use std::{num::ParseIntError};
+use std::num::ParseIntError;
 
 use anyhow::Result;
 use blockchain::{
@@ -24,7 +24,6 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
-
 
 use common::error_code::BackendError::ChainError;
 use common::error_code::BackendError::*;

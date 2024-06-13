@@ -1,17 +1,15 @@
 extern crate rustc_serialize;
 
 use async_trait::async_trait;
-use common::data_structures::OpStatus;
+
 use tokio_postgres::Row;
 //use r2d2_postgres::postgres::{Row, Transaction};
 use std::fmt;
-use std::num::ParseIntError;
+
 //#[derive(Serialize)]
 use common::data_structures::account_manager::UserInfo;
 
-use crate::{
-    vec_str2array_text, PgLocalCli, PsqlOp, PsqlType,
-};
+use crate::{PgLocalCli, PsqlOp, PsqlType};
 use anyhow::Result;
 
 #[derive(Serialize, Debug)]
@@ -244,7 +242,6 @@ mod tests {
     use super::*;
     use common::log::init_logger;
     use std::env;
-    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
     async fn test_db_user_info() -> Result<()> {

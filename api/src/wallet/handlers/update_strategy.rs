@@ -1,14 +1,11 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, MultiSigRank};
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, KeyRole},
     utils::math::coin_amount::display2raw,
 };
-use models::{
-    wallet_manage_record::WalletManageRecordEntity,
-    PsqlOp,
-};
+use models::{wallet_manage_record::WalletManageRecordEntity, PsqlOp};
 
 use crate::utils::{get_user_context, token_auth};
 use blockchain::ContractClient;

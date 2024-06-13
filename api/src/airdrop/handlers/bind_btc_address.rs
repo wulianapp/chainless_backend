@@ -1,24 +1,19 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
-use blockchain::{
-    airdrop::Airdrop,
-};
-use common::{
-    data_structures::{KeyRole},
-};
+use blockchain::airdrop::Airdrop;
+use common::data_structures::KeyRole;
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
 
-
 use crate::{
     utils::{get_user_context, token_auth, wallet_grades::query_wallet_grade},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Clone, EnumString, Display)]

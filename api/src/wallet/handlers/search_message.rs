@@ -1,6 +1,5 @@
 use actix_web::HttpRequest;
 
-
 use common::utils::math::coin_amount::raw2display;
 use common::utils::time::now_millis;
 
@@ -10,7 +9,8 @@ use super::*;
 use crate::utils::token_auth;
 
 use common::data_structures::{
-    coin_transaction::{CoinSendStage, TxType}, TxStatusOnChain,
+    coin_transaction::{CoinSendStage, TxType},
+    TxStatusOnChain,
 };
 
 use common::error_code::BackendRes;

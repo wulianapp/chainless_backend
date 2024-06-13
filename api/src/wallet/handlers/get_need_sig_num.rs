@@ -1,10 +1,6 @@
-
-
 use actix_web::HttpRequest;
 
-
 use common::data_structures::CoinType;
-
 
 use crate::utils::token_auth;
 

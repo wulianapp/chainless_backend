@@ -11,7 +11,7 @@ use std::str::FromStr;
 use crate::{env::CONF as global_conf, error_code::*};
 use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
 use self::{coin_transaction::CoinTransaction, secret_store::SecretStore};
 

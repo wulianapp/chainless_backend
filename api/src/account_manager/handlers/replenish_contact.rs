@@ -4,19 +4,15 @@ use common::data_structures::account_manager::UserInfo;
 use common::data_structures::KeyRole;
 use common::error_code::AccountManagerError::{self};
 
-
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 use crate::utils::{get_user_context, token_auth};
 
-
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 
-
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

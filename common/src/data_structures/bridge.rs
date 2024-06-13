@@ -1,10 +1,8 @@
 use super::*;
-use crate::{env::CONF as global_conf, error_code::*};
-use near_primitives::types::AccountId;
+
 use serde_derive::{Deserialize, Serialize};
-use std::fmt::Display as StdDisplay;
-use std::str::FromStr;
-use strum_macros::{Display, EnumString, ToString};
+
+use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq, EnumString, Display, Clone)]
 pub enum OrderType {

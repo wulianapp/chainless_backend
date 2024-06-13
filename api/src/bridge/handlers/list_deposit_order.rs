@@ -1,8 +1,6 @@
-
-
 use actix_web::HttpRequest;
 
-use blockchain::bridge_on_near::{Bridge};
+use blockchain::bridge_on_near::Bridge;
 
 use blockchain::ContractClient;
 use common::data_structures::bridge::{DepositStatus, OrderType};

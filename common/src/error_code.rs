@@ -1,9 +1,6 @@
-use std::{collections::HashMap, fmt::Display, path::Path, str::FromStr};
+use std::{collections::HashMap, str::FromStr};
 
-use crate::{
-    data_structures::{coin_transaction::CoinSendStage, KeyRole},
-    prelude::CoinType,
-};
+use crate::data_structures::{coin_transaction::CoinSendStage, KeyRole};
 use serde::Deserialize;
 use thiserror::Error;
 
@@ -12,7 +9,6 @@ use anyhow::Error as AnyhowError;
 use serde_json;
 use std::error::Error as StdError;
 use strum_macros::{Display, EnumString};
-use tracing::{debug, info};
 
 #[derive(Deserialize, Debug, Default)]
 pub struct MultiLangErrMsg {

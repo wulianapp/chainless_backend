@@ -2,15 +2,14 @@ extern crate rustc_serialize;
 
 use async_trait::async_trait;
 use common::data_structures::airdrop::Airdrop;
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::SecretKeyState;
+
 use serde::{Deserialize, Serialize};
-use slog_term::PlainSyncRecordDecorator;
+
 use std::fmt;
-use std::fmt::Display;
+
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
+use crate::{PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -225,7 +224,7 @@ mod tests {
                 .unwrap();
             println!("{:?}", airdrop_by_find);
             //assert_eq!(airdrop.airdrop, airdrop_by_find.airdrop);
-    
+
             AirdropEntity::update_single(
                 AirdropUpdater::InviteCode("3"),
                 AirdropFilter::ByInviteCode("1"),
@@ -233,6 +232,6 @@ mod tests {
             .await
             .unwrap();
         };
-        run_api_call("",task).await.unwrap();
+        run_api_call("", task).await.unwrap();
     }
 }

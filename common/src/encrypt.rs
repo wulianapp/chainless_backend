@@ -1,10 +1,7 @@
-use crate::error_code::BackendError;
-use crate::error_code::BackendRes;
 use anyhow::Ok;
-use std::collections::HashMap;
-use std::fmt::Debug;
+
 use std::str::FromStr;
-use tracing::error;
+
 //use ed25519_dalek::Signer;
 use anyhow::Result;
 use bs58;
@@ -12,9 +9,6 @@ use ed25519_dalek::Signer as DalekSigner;
 use ed25519_dalek::Verifier;
 use hex::ToHex;
 use rand::rngs::OsRng;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tracing::debug;
 
 pub fn bs58_to_hex(input: &str) -> Result<String> {
     let decoded = bs58::decode(input.as_bytes()).into_vec()?;
@@ -90,8 +84,6 @@ pub fn ed25519_verify_hex(data: &str, pubkey_hex: &str, sig: &str) -> Result<boo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ed25519_dalek::ed25519::signature::Signature;
-    use near_crypto::{ED25519SecretKey, PublicKey};
 
     #[test]
     fn test_ed25519_gen_pubkey_sign() {

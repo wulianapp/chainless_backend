@@ -1,12 +1,7 @@
-use std::fmt;
-use std::str::FromStr;
+use super::{CoinType, TxStatusOnChain};
 
-use super::{secret_store::SecretStore, CoinType, TxStatusOnChain};
-use crate::env::CONF as global_conf;
-use anyhow::Error;
-use near_primitives::types::AccountId;
 use serde_derive::{Deserialize, Serialize};
-use strum_macros::{Display, EnumString, ToString};
+use strum_macros::{Display, EnumString};
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq)]
 pub enum TxRole {

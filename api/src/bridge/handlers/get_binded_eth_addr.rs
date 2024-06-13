@@ -1,20 +1,14 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
-
-
-
 
 //use log::debug;
 use tracing::debug;
 
-
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 
-use common::error_code::{BackendRes};
-
-
+use common::error_code::BackendRes;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: check jwt token

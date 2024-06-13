@@ -1,16 +1,10 @@
 //use std::sync::{Mutex, MutexGuard};
-use near_primitives::types::Nonce;
-use std::{env, fmt, fs};
-use tokio::sync::{Mutex, MutexGuard};
+
+use std::{env, fs};
 
 use std::fmt::Debug;
-use std::str::FromStr;
 
 use serde::Deserialize;
-use tracing::{debug, info, warn};
-use tracing_futures::Instrument;
-
-use crate::utils::time::MINUTE30;
 
 #[derive(Deserialize, Debug, PartialEq, EnumString, Display)]
 pub enum ServiceMode {
@@ -110,11 +104,7 @@ lazy_static! {
 
 #[cfg(test)]
 mod tests {
-    use tracing::error;
 
-    use crate::log::init_logger;
-
-    use super::*;
     #[test]
     fn test_get_env() {
         println!("envs {:?}", *super::CONF);

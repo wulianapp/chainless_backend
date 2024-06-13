@@ -15,7 +15,7 @@ use handlers::register::RegisterByPhoneRequest;
 use handlers::replenish_contact::ReplenishContactRequest;
 use handlers::reset_password::ResetPasswordRequest;
 
-use tracing::{debug};
+use tracing::debug;
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -441,15 +441,14 @@ mod tests {
     use actix_web::body::MessageBody;
     use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
-    
-    
+
     use actix_web::{test, App, Error};
     use std::env;
     use tests::handlers::user_info::UserInfoResponse;
 
     use crate::utils::respond::BackendRespond;
     async fn clear_contract(_account_id: &str) {
-        let cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new_update_cli()
+        let _cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new_update_cli()
             .await
             .unwrap();
         //cli.clear_all().await.unwrap();

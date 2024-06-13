@@ -6,7 +6,8 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::KeyRole;
 use common::data_structures::{
-    coin_transaction::{CoinSendStage, TxType}, CoinType, TxStatusOnChain,
+    coin_transaction::{CoinSendStage, TxType},
+    CoinType, TxStatusOnChain,
 };
 
 use common::error_code::BackendRes;
@@ -20,12 +21,6 @@ use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
-
-
-
-
-
 
 use super::ServentSigDetail;
 use blockchain::fees_call::*;

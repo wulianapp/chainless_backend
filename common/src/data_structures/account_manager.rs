@@ -1,7 +1,5 @@
 use serde_derive::Serialize;
 
-use super::OpStatus;
-
 #[derive(Serialize, Debug, Clone, PartialEq)]
 pub struct UserInfo {
     pub id: u32,

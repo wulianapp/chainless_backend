@@ -1,20 +1,16 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
-
-use common::{
-    data_structures::{airdrop::Airdrop, KeyRole},
-};
+use common::data_structures::{airdrop::Airdrop, KeyRole};
 use models::{
     airdrop::{AirdropEntity, AirdropFilter},
     PsqlOp,
 };
 use serde::{Deserialize, Serialize};
 
-
 use crate::utils::{get_user_context, token_auth};
 use crate::wallet::handlers::*;
 
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct AirdropStatusResponse {

@@ -4,9 +4,6 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-
-
-
 use handlers::add_servant::AddServantRequest;
 use handlers::add_subaccount::AddSubaccountRequest;
 use handlers::balance_list::BalanceListRequest;
@@ -38,19 +35,15 @@ use handlers::upload_servant_sig::UploadTxSignatureRequest;
 
 use handlers::get_secret::GetSecretRequest;
 
-
 use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
-
-use tracing::{debug};
-
+use tracing::debug;
 
 use crate::utils::respond::get_lang;
 
 use common::log::generate_trace_id;
 use handlers::set_fees_priority::SetFeesPriorityRequest;
-
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -1546,46 +1539,30 @@ mod tests {
 
     use super::*;
     use core::panic;
-    
-    
-    
-
     use actix_web::body::MessageBody;
-    
     use actix_web::http::header;
-
-    use actix_web::{body::MessageBody as _, test};
-
+    use actix_web::{test};
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::utils::time::now_millis;
-    
-    use models::{PsqlOp};
-    use serde::{Serialize,Deserialize};
+    use serde::{Deserialize, Serialize};
     use serde_json::json;
 
     use super::handlers::balance_list::BalanceListResponse;
     use super::handlers::estimate_transfer_fee::EstimateTransferFeeResponse;
     use super::handlers::get_tx::GetTxResponse;
     use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
-    
-    
-    
-    
-    
-    
+
     use common::data_structures::coin_transaction::{CoinSendStage, TxType};
     use common::data_structures::secret_store::SecretStore;
-    
+
     use common::encrypt::{ed25519_key_gen, ed25519_verify_hex};
 
-    
-    
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::search_message::SearchMessageResponse;
     use crate::account_manager::handlers::contact_is_used::UserInfoResponse as UserInfoResponse2;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
-    
+
     use blockchain::bridge_on_eth::Bridge;
     use blockchain::coin::Coin;
     use blockchain::erc20_on_eth::Erc20;
@@ -1593,9 +1570,6 @@ mod tests {
     use common::data_structures::CoinType;
     use common::utils::math::*;
     use handlers::get_strategy::StrategyDataResponse;
-    
-    
-    
 
     /***
 
@@ -2291,7 +2265,6 @@ mod tests {
         }
     }
 
-    
     #[derive(Serialize, Deserialize, Clone, Debug)]
     pub struct SubAccCoinTx {
         pub coin_id: String,

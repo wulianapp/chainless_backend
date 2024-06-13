@@ -1,4 +1,7 @@
-/// listen tx status on chain
+#![deny(warnings)]
+//#![allow(unused_imports)]
+#![allow(dead_code)]
+
 pub mod task;
 
 use anyhow::Result;

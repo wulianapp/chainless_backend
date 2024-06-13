@@ -1,29 +1,19 @@
 use common::constants::BRIDGE_DEPOSIT_EXPIRE_TIME;
 use common::data_structures::bridge::OrderType as BridgeOrderType;
-use common::encrypt::bs58_to_hex;
-use near_crypto::SecretKey;
-use near_primitives::borsh::BorshDeserialize;
-use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
-use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
+
+use near_primitives::types::AccountId;
 use std::collections::HashMap;
-use std::ops::Deref;
+
 use std::str::FromStr;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use hex;
-use lazy_static::lazy_static;
-use near_jsonrpc_client::methods;
-use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::transaction::Action::FunctionCall;
-use near_primitives::views::QueryRequest;
 
 use common::data_structures::CoinType;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::multi_sig::get_pubkey;
-use crate::relayer::MULTI_SIG_RELAYER_POOL;
 use crate::ContractClient;
 use anyhow::Result;
 
@@ -321,7 +311,7 @@ mod tests {
     use common::data_structures::get_support_coin_list;
     use common::utils::math::*;
 
-    use crate::{eth_cli::EthContractClient, multi_sig::MultiSig};
+    use crate::eth_cli::EthContractClient;
 
     use super::*;
 

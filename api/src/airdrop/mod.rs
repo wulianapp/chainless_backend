@@ -1,15 +1,7 @@
 //! account manager http service
 pub mod handlers;
 
-
-
 use actix_web::{get, post, web, HttpRequest, Responder};
-
-
-
-
-
-
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -247,42 +239,17 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
-    
-    
-    
-
     use actix_web::body::MessageBody;
-    
+
     use actix_web::http::header;
 
-    use actix_web::{body::MessageBody as _, test};
+    use actix_web::test;
 
-    
-    use common::btc_crypto::{
-        self, calculate_p2tr_address, new_secret_key,
-    };
-    
-    
-    use models::{PsqlOp};
+    use common::btc_crypto::{self, calculate_p2tr_address, new_secret_key};
     use serde_json::json;
 
-    
-    
-    
-    
-    
-    
-    
-    
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::status::AirdropStatusResponse;
-    
-    
-    
-    
-    
-    
-    
 
     #[actix_web::test]
     async fn test_airdrop_braced() {

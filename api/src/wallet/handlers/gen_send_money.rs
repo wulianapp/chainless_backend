@@ -1,25 +1,16 @@
-
-use actix_web::{HttpRequest};
-use common::data_structures::coin_transaction::{TxType};
-use common::data_structures::{KeyRole};
+use actix_web::HttpRequest;
+use common::data_structures::coin_transaction::TxType;
+use common::data_structures::KeyRole;
 use common::error_code::{BackendError, BackendRes};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-
-
 
 //use log::info;
 
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 
-
-
-
-
-
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

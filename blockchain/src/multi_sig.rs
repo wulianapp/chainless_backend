@@ -1,29 +1,17 @@
 use anyhow::{anyhow, Result};
 use common::data_structures::{get_support_coin_list, PubkeySignInfo};
-use common::error_code::to_internal_error;
-use common::utils::time::now_millis;
-use std::collections::BTreeMap;
-use std::fmt::Debug;
-use std::str::FromStr;
-use tracing::error;
-//use ed25519_dalek::Signer;
-use ed25519_dalek::Signer as DalekSigner;
-use hex::ToHex;
-use near_crypto::{ED25519SecretKey, PublicKey, SecretKey, Signer};
-use near_jsonrpc_client::methods;
-use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::transaction::{Action, FunctionCallAction, SignedTransaction};
-use near_primitives::types::{BlockReference, Finality, FunctionArgs};
-use near_primitives::views::{FinalExecutionStatus, QueryRequest};
-use rand::rngs::OsRng;
-use serde_json::json;
 
-//use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
+use common::utils::time::now_millis;
+use hex::ToHex;
 use lazy_static::lazy_static;
 use near_crypto::InMemorySigner;
 use near_crypto::Signature;
-use near_primitives::account::Account;
-use near_primitives::borsh::BorshSerialize;
+use near_crypto::{ED25519SecretKey, PublicKey, SecretKey, Signer};
+use serde_json::json;
+use std::collections::BTreeMap;
+use std::fmt::Debug;
+use std::str::FromStr;
+
 use near_primitives::types::AccountId;
 
 use common::data_structures::CoinType;
@@ -34,7 +22,7 @@ use crate::coin::Coin;
 use crate::fees_call::FeesCall;
 use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
-use crate::general::{gen_transaction, safe_gen_transaction};
+
 use crate::ContractClient;
 use common::utils::math::*;
 
@@ -632,19 +620,13 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<S
 
 #[cfg(test)]
 mod tests {
-    use ed25519_dalek::ed25519::signature::Signature;
 
-    use near_crypto::{ED25519SecretKey, PublicKey};
-    use tokio::task;
-    use tracing::info;
+    use tracing::{error, info};
 
     use super::*;
-    use crate::general::broadcast_tx_commit_from_raw2;
+
     use crate::ContractClient;
-    use common::{
-        log::init_logger,
-        utils::time::{now_millis, DAY1},
-    };
+    use common::log::init_logger;
 
     fn servant_keys() -> Vec<String> {
         vec![
@@ -711,7 +693,9 @@ mod tests {
                     .await
                     .unwrap();
                 let signature = common::encrypt::ed25519_sign_hex(master_prikey, &res.0).unwrap();
-                crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature).await;
+                crate::general::broadcast_tx_commit_from_raw2(&res.1, &signature)
+                    .await
+                    .unwrap();
             }
         }
     }

@@ -6,16 +6,14 @@ use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::{get_support_coin_list, CoinType};
 
+use common::error_code::parse_str;
 use common::error_code::BackendError::InternalError;
 use common::error_code::BackendRes;
-use common::error_code::{parse_str};
 use common::utils::math::coin_amount::raw2display;
 use models::account_manager::{UserFilter, UserInfoEntity};
 
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
-
 
 use tracing::debug;
 

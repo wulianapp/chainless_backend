@@ -9,9 +9,6 @@ pub mod replenish_contact;
 pub mod reset_password;
 pub mod user_info;
 
-
-
-
 /*****
 fn get_user_info() -> Result<UserInfo,BackendError>{
     let find_res = UserInfoView::find_single(UserFilter::ByPhoneOrEmail(&contact));

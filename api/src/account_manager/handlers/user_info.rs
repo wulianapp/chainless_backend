@@ -5,11 +5,9 @@ use common::constants::INVITE_URL;
 
 use common::error_code::BackendRes;
 
-
 use models::airdrop::{AirdropEntity, AirdropFilter};
 
-
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 
 //use super::super::ContactIsUsedRequest;
@@ -45,18 +43,18 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         .await?
         .into_inner();
 
-    let invite_code = if let Some(ref account) = user_info.main_account{
+    let invite_code = if let Some(ref account) = user_info.main_account {
         let cli = ContractClient::<Airdrop>::new_query_cli().await?;
         let user_airdrop_on_chain = cli.get_user(account).await?;
         user_airdrop_on_chain.map(|_u| airdrop_info.invite_code)
-    }else{
+    } else {
         None
     };
 
     let invite_url = if let Some(ref code) = invite_code {
         let url = format!("{}{}", INVITE_URL, code);
         Some(url)
-    }else{
+    } else {
         None
     };
 
@@ -75,7 +73,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         role: role.to_string(),
         name: Some("Bob".to_string()),
         birth: Some("1993-04-01".to_string()),
-        invite_url
+        invite_url,
     };
     Ok(Some(info))
 }

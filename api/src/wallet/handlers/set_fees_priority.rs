@@ -1,21 +1,16 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
-use blockchain::{
-    fees_call::FeesCall,
-};
+use blockchain::fees_call::FeesCall;
 use common::{
     data_structures::{wallet_namage_record::WalletOperateType, CoinType, KeyRole},
     error_code::BackendError,
 };
-use models::{
-    wallet_manage_record::WalletManageRecordEntity,
-    PsqlOp,
-};
+use models::{wallet_manage_record::WalletManageRecordEntity, PsqlOp};
 use tracing::debug;
 
 use crate::utils::{get_user_context, token_auth};
 
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]

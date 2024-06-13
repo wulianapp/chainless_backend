@@ -3,16 +3,15 @@ extern crate rustc_serialize;
 use async_trait::async_trait;
 use common::data_structures::device_info::DeviceInfo;
 use std::fmt;
-use std::fmt::Display;
+
 use tokio_postgres::Row;
 //#[derive(Serialize)]
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::SecretKeyState;
-use common::data_structures::*;
-use serde::{Deserialize, Serialize};
-use slog_term::PlainSyncRecordDecorator;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
+use common::data_structures::SecretKeyState;
+
+use serde::{Deserialize, Serialize};
+
+use crate::{PgLocalCli, PsqlOp, PsqlType};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -212,7 +211,6 @@ mod tests {
     use super::*;
     use common::log::init_logger;
     use std::env;
-    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
     async fn test_db_device_info() {
@@ -239,6 +237,5 @@ mod tests {
             .unwrap();
         };
         run_api_call("", task).await.unwrap()
-        
     }
 }

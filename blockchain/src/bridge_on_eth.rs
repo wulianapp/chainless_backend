@@ -2,14 +2,13 @@ use anyhow::{Ok, Result};
 
 use ::common::data_structures::bridge::OrderType;
 use ::common::data_structures::CoinType;
-use ::common::utils::time::now_millis;
+
 use common::env::CONF as ENV_CONF;
 use ethers::prelude::*;
 use ethers::types::Address;
-use hex::FromHex;
 
 use std::marker::PhantomData;
-use std::ops::Mul;
+
 use std::str::FromStr;
 use std::sync::Arc;
 

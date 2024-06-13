@@ -1,6 +1,5 @@
-use anyhow::Error;
-use tracing::{span, subscriber::SetGlobalDefaultError, warn, Level};
-use tracing_futures::WithSubscriber;
+use tracing::{warn, Level};
+
 use uuid::Uuid;
 pub fn init_logger() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()

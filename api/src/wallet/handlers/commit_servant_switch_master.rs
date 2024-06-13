@@ -1,7 +1,6 @@
-
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use common::data_structures::wallet_namage_record::WalletOperateType;
-use common::data_structures::{KeyRole};
+use common::data_structures::KeyRole;
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 
@@ -12,11 +11,7 @@ use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 
-
-
-
-
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 

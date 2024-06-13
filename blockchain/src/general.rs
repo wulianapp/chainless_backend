@@ -12,13 +12,12 @@ use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::Transaction;
 use near_primitives::types::{AccountId, BlockReference};
 
-use near_jsonrpc_client::JsonRpcClient;
 use near_jsonrpc_primitives::types::transactions::TransactionInfo;
 
 use hex;
 //use log::debug;
 use anyhow::{anyhow, Ok, Result};
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 //todo: contract_addr type change into AccountId
 pub async fn gen_transaction(signer: &InMemorySigner, contract_addr: &str) -> Result<Transaction> {

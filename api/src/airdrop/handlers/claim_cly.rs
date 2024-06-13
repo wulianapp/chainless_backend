@@ -1,23 +1,16 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
-use blockchain::{
-    airdrop::Airdrop,
-};
-use common::{
-    data_structures::{KeyRole},
-    error_code::{AccountManagerError},
-};
+use blockchain::airdrop::Airdrop;
+use common::{data_structures::KeyRole, error_code::AccountManagerError};
 
-
-
-use tracing::{debug};
+use tracing::debug;
 
 use crate::{
     utils::{get_user_context, token_auth},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
@@ -30,10 +23,10 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     //领cly之前肯定已经领了dw20
     let cli = ContractClient::<Airdrop>::new_query_cli().await?;
-    let user_airdrop_on_chain = cli.get_user(
-        context.user_info.main_account.as_ref().unwrap()
-    ).await?;
-    if user_airdrop_on_chain.is_none(){
+    let user_airdrop_on_chain = cli
+        .get_user(context.user_info.main_account.as_ref().unwrap())
+        .await?;
+    if user_airdrop_on_chain.is_none() {
         Err(AirdropError::HaveNotClaimAirdrop)?;
     }
 

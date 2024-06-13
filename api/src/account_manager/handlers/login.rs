@@ -2,9 +2,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 
 use anyhow::Result;
-use common::error_code::AccountManagerError::{
-    self, AccountLocked, PasswordIncorrect,
-};
+use common::error_code::AccountManagerError::{self, AccountLocked, PasswordIncorrect};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use tracing::debug;

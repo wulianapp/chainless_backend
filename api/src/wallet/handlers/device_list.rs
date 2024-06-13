@@ -1,6 +1,5 @@
 use actix_web::HttpRequest;
 
-
 use common::data_structures::{DeviceState, KeyRole};
 
 use serde::{Deserialize, Serialize};

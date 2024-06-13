@@ -1,8 +1,8 @@
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 use models::account_manager::{UserFilter, UserInfoEntity};
 
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 

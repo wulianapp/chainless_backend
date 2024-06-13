@@ -1,16 +1,11 @@
-
-
 use crate::utils::captcha::{Captcha, Usage};
 use crate::utils::token_auth;
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 
-
 use common::data_structures::wallet_namage_record::WalletOperateType;
-
-
 
 use common::error_code::{BackendRes, WalletError};
 

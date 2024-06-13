@@ -4,12 +4,12 @@ use async_trait::async_trait;
 use common::data_structures::secret_store::SecretStore;
 use common::data_structures::SecretKeyState;
 use serde::{Deserialize, Serialize};
-use slog_term::PlainSyncRecordDecorator;
+
 use std::fmt;
-use std::fmt::Display;
+
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
+use crate::{PgLocalCli, PsqlOp};
 use anyhow::{Ok, Result};
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -181,7 +181,6 @@ mod tests {
     use super::*;
     use common::log::init_logger;
     use std::env;
-    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
     async fn test_db_secret_store() {
@@ -189,8 +188,12 @@ mod tests {
         init_logger();
         table_clear("secret_store").await.unwrap();
         let task = async {
-            let secret =
-                SecretStoreEntity::new_with_specified("0123456789", 1, "key_password", "key_by_answer");
+            let secret = SecretStoreEntity::new_with_specified(
+                "0123456789",
+                1,
+                "key_password",
+                "key_by_answer",
+            );
             secret.insert().await.unwrap();
             let secret_by_find =
                 SecretStoreEntity::find_single(SecretFilter::ByIncumbentPubkey("0123456789"))
@@ -207,6 +210,5 @@ mod tests {
             .unwrap();
         };
         run_api_call("", task).await.unwrap();
-
     }
 }

@@ -9,17 +9,14 @@ use crate::utils::{get_user_context, judge_role_by_account, token_auth};
 use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
 
-
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
 
-
 use models::secret_store::SecretStoreEntity;
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

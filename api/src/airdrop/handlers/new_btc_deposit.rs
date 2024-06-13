@@ -1,5 +1,4 @@
-use actix_web::{HttpRequest};
-
+use actix_web::HttpRequest;
 
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
@@ -8,10 +7,9 @@ use models::{
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::utils::{wallet_grades::query_wallet_grade};
+use crate::utils::wallet_grades::query_wallet_grade;
 
-
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

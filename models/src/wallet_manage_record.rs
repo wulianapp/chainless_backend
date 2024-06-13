@@ -1,24 +1,20 @@
 extern crate rustc_serialize;
 
 use async_trait::async_trait;
-use common::data_structures::device_info::DeviceInfo;
+
 use common::data_structures::wallet_namage_record::{WalletManageRecord, WalletOperateType};
 use common::utils::math::generate_random_hex_string;
 use std::fmt;
-use std::fmt::Display;
-use std::ops::Deref;
+
 use tokio_postgres::Row;
 //#[derive(Serialize)]
-use common::data_structures::coin_transaction::CoinSendStage;
-use common::data_structures::secret_store::SecretStore;
-use common::data_structures::SecretKeyState;
-use common::data_structures::TxStatusOnChain;
-use common::data_structures::*;
-use derive_more::{AsRef, Deref};
-use serde::{Deserialize, Serialize};
-use slog_term::PlainSyncRecordDecorator;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
+use common::data_structures::TxStatusOnChain;
+
+use derive_more::AsRef;
+use serde::{Deserialize, Serialize};
+
+use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, AsRef, Clone)]
@@ -197,11 +193,6 @@ impl PsqlOp for WalletManageRecordEntity {
 
 #[cfg(test)]
 mod tests {
-
-    use super::*;
-    use common::log::init_logger;
-    use std::env;
-    use tokio_postgres::types::ToSql;
 
     /***
     #[tokio::test]

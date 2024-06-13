@@ -1,6 +1,6 @@
 use crate::utils::{
     math::BASE_DECIMAL,
-    time::{DAY1, DAY7, MINUTE1, MINUTE10, MINUTE2, MINUTE30, MINUTE5},
+    time::{DAY7, MINUTE1, MINUTE10, MINUTE2, MINUTE5},
 };
 
 /***
@@ -62,7 +62,3 @@ pub const PG_POOL_SIZE: usize = 90;
 pub const SUBACCOUNT_AMOUNT_LIMIT: u16 = 3;
 //pub const SUBACCOUNT_TIME_LIMIT: u64 = DAY1;
 pub const SUBACCOUNT_TIME_LIMIT: u64 = MINUTE10;
-
-
-
-

@@ -16,7 +16,6 @@ use regex::Regex;
 use common::error_code::AccountManagerError::*;
 use common::error_code::BackendError::InternalError;
 
-
 use common::constants::*;
 use common::utils::time::now_millis;
 
@@ -234,10 +233,9 @@ impl Captcha {
 
 #[cfg(test)]
 mod tests {
-    
+
     use crate::utils::captcha::validate;
-    
-    
+
     #[test]
     fn test_phone_valided() {
         assert!(validate("+86 13682471710").is_ok());

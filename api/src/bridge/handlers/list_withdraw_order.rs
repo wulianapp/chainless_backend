@@ -1,5 +1,3 @@
-
-
 use actix_web::HttpRequest;
 
 use blockchain::bridge_on_near::Status as StatusOnNear;
@@ -11,7 +9,6 @@ use common::error_code::parse_str;
 use common::utils::time::timestamp2utc;
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::PsqlOp;
-
 
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;

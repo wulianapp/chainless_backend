@@ -1,5 +1,6 @@
+#![deny(warnings)]
 //#![allow(unused_imports)]
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 pub mod airdrop;
 pub mod bridge_on_near;
@@ -13,18 +14,17 @@ pub mod eth_cli;
 pub mod fees_call;
 mod relayer;
 
-use ethers::providers::JsonRpcError;
-use general::{gen_transaction_with_caller, pubkey_from_hex_str};
+use general::pubkey_from_hex_str;
 use lazy_static::lazy_static;
-use near_jsonrpc_client::{methods, JsonRpcClient, MethodCallResult};
+use near_jsonrpc_client::{methods, JsonRpcClient};
 use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::TransactionInfo};
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use anyhow::{anyhow, Result};
 use common::prelude::*;
-use near_crypto::{InMemorySigner, KeyType, PublicKey, SecretKey, Signer};
+use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
-    borsh::{self, BorshSerialize},
+    borsh::{self},
     transaction::{
         Action, AddKeyAction, CreateAccountAction, DeleteKeyAction, FunctionCallAction,
         SignedTransaction, Transaction, TransferAction,
@@ -33,13 +33,13 @@ use near_primitives::{
     views::{FinalExecutionStatus, QueryRequest},
 };
 use relayer::{wait_for_idle_relayer, Relayer};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::json;
-use std::{fmt::Pointer, hash::Hash, marker::PhantomData, str::FromStr};
-use tokio::sync::MutexGuard;
-use tracing::{debug, error, field::debug, info};
+use serde::de::DeserializeOwned;
 
-use crate::general::{gen_transaction, gen_transaction_with_caller_with_nonce};
+use std::marker::PhantomData;
+use tokio::sync::MutexGuard;
+use tracing::debug;
+
+use crate::general::gen_transaction_with_caller_with_nonce;
 
 lazy_static! {
     //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");

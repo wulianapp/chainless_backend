@@ -3,12 +3,11 @@ use lettre::message::Mailbox;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{Message, SmtpTransport, Transport};
 
-use anyhow::{Result};
+use anyhow::Result;
 use common::env::CONF;
 
 use lettre::transport::smtp::client::{Tls, TlsParameters};
-use tracing::{debug};
-
+use tracing::debug;
 
 pub fn send_email(to_mail: &str, content: &str) -> Result<()> {
     let from = CONF.stmp.sender.parse::<Mailbox>()?;

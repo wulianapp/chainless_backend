@@ -6,12 +6,12 @@ use common::data_structures::{
     CoinType,
 };
 use serde::{Deserialize, Serialize};
-use slog_term::PlainSyncRecordDecorator;
+
 use std::fmt;
-use std::fmt::Display;
+
 use tokio_postgres::Row;
 
-use crate::{vec_str2array_text, PgLocalCli, PsqlOp};
+use crate::{PgLocalCli, PsqlOp};
 use anyhow::Result;
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -200,14 +200,13 @@ mod tests {
     use super::*;
     use common::log::init_logger;
     use std::env;
-    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
     async fn test_db_bridge_order() {
         env::set_var("SERVICE_MODE", "test");
         init_logger();
         table_clear("ethereum_bridge_order").await.unwrap();
-        let task  = async {
+        let task = async {
             let secret = EthBridgeOrderEntity::new_with_specified(
                 "0123456789",
                 "test.node0",

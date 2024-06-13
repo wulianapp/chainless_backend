@@ -1,37 +1,22 @@
-use crate::error_code::BackendError;
-use crate::error_code::BackendRes;
 use anyhow::Ok;
 use anyhow::Result;
 use bitcoin::address::Address;
-use bitcoin::ecdsa::Signature;
-use bitcoin::hashes::sha256;
+
 use bitcoin::hashes::Hash;
-use bitcoin::key;
+
 use bitcoin::key::PublicKey;
 use bitcoin::key::TweakedPublicKey;
 use bitcoin::network::Network;
-use bitcoin::opcodes;
-use bitcoin::script;
+
 use bitcoin::sign_message::signed_msg_hash;
 use bitcoin::sign_message::MessageSignature;
 use bitcoin::CompressedPublicKey;
 use bitcoin::XOnlyPublicKey;
-use bs58;
-use hex::ToHex;
-use rand::rngs::OsRng;
+
 use rand::Rng;
-use secp256k1::ecdsa::RecoverableSignature;
-use secp256k1::ecdsa::RecoveryId;
-use secp256k1::Message;
+
 use secp256k1::{Secp256k1, SecretKey};
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::fmt::Debug;
 use std::str::FromStr;
-use tracing::debug;
-use tracing::error;
 
 pub fn calculate_p2wpkh_address(pubkey_hex: &str) -> Result<String> {
     let key_bytes = hex::decode(pubkey_hex)?;
@@ -122,7 +107,6 @@ pub fn sign(sk: &str, data: &str) -> Result<String> {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::AddressType;
 
     use crate::prelude::CHAINLESS_AIRDROP;
 

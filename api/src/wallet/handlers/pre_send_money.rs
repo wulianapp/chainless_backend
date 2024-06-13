@@ -1,21 +1,16 @@
-
-
 use actix_web::HttpRequest;
 
-use blockchain::multi_sig::{MultiSig};
+use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::constants::TX_EXPAIRE_TIME;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
 
-
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
-use common::utils::time::{now_millis};
-
+use common::utils::time::now_millis;
 
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
-
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{

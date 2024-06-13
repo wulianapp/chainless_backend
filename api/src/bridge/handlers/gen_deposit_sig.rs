@@ -1,24 +1,20 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
 use common::data_structures::CoinType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
-
 use serde::Deserialize;
 use serde::Serialize;
 //use log::debug;
 use tracing::debug;
 
-
 use crate::utils::get_user_context;
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
-use common::error_code::{WalletError};
-use common::error_code::{BackendRes};
-
-
+use common::error_code::BackendRes;
+use common::error_code::WalletError;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GenDepositResponse {

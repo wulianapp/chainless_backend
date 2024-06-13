@@ -1,13 +1,12 @@
 use crate::MoreLog;
-use std::env;
 use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
 use actix_web::App;
 use actix_web::Error;
 use blockchain::multi_sig::MultiSig;
 use common::encrypt::ed25519_key_gen;
+use std::env;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::random_num;
-
 
 #[derive(Debug, Clone)]
 pub struct TestWallet {

@@ -1,19 +1,13 @@
-use std::borrow::BorrowMut;
-use std::cell::RefCell;
-use std::ops::Deref;
-use std::ops::DerefMut;
-use std::sync::Arc;
-
-use anyhow::Result;
-use futures::Future;
 use crate::LocalConn;
 use crate::PgLocalCli;
 use crate::LOCAL_CLI;
-use crate::TRY_TIMES;
+use anyhow::Result;
+use futures::Future;
+use std::cell::RefCell;
+use std::sync::Arc;
+
 use anyhow::anyhow;
-use deadpool::managed::Object;
-use deadpool_postgres::Manager;
-use deadpool_postgres::Transaction;
+
 use crate::PG_POOL;
 
 pub async fn gen_db_cli(method: &str) -> Result<(PgLocalCli, *mut LocalConn)> {
@@ -113,6 +107,6 @@ pub async fn table_all_clear() {
     table_clear("device_info").await.unwrap();
     table_clear("secret_store").await.unwrap();
     table_clear("ethereum_bridge_order").await.unwrap();
-    table_clear("wallet_manage_record").await.unwrap();    
+    table_clear("wallet_manage_record").await.unwrap();
     init_system_config().await.unwrap();
 }

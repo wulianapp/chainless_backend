@@ -5,12 +5,11 @@ use std::str::FromStr;
 
 use async_trait::async_trait;
 use common::utils::math::generate_random_hex_string;
-use jsonrpc_http_server::jsonrpc_core::futures::future::OrElse;
+
 //#[derive(Serialize)]
 use serde::{Deserialize, Serialize};
 use tokio_postgres::Row;
 
-use crate::secret_store::{SecretFilter, SecretStoreEntity};
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxRole, TxType};
@@ -300,9 +299,8 @@ mod tests {
     use crate::general::{run_api_call, table_clear};
 
     use super::*;
-    use common::log::init_logger;
+
     use std::env;
-    use tokio_postgres::types::ToSql;
 
     #[tokio::test]
     async fn test_db_coin_transfer() {
@@ -319,12 +317,12 @@ mod tests {
                 1715740449000,
                 CoinSendStage::Created,
             );
-    
+
             let order_id = coin_tx.transaction.order_id.clone();
             println!("start insert");
             coin_tx.insert().await.unwrap();
             println!("start query");
-    
+
             let _res = CoinTxEntity::find_single(CoinTxFilter::BySenderUncompleted("1.test"))
                 .await
                 .unwrap();
@@ -341,6 +339,5 @@ mod tests {
             println!("after update {:?}", res);
         };
         run_api_call("", task).await.unwrap()
-
     }
 }

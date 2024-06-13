@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use common::constants::{SUBACCOUNT_AMOUNT_LIMIT, SUBACCOUNT_TIME_LIMIT};
 use common::data_structures::account_manager::UserInfo;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
-use common::utils::time::{now_millis, DAY1};
+use common::utils::time::{now_millis};
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
 //use log::info;
@@ -15,15 +15,11 @@ use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
 
-
-
-
 use common::error_code::{BackendError, BackendRes, WalletError};
 
 use models::secret_store::SecretStoreEntity;
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -35,26 +31,29 @@ pub struct AddSubaccountRequest {
 }
 
 //24小时内只能创建三次子账户
-async fn update_add_record(user_info: &UserInfo) -> Result<(),BackendError>{
+async fn update_add_record(user_info: &UserInfo) -> Result<(), BackendError> {
     let now = now_millis();
     let records_len = user_info.create_subacc_time.len() as u16;
     assert!(records_len <= SUBACCOUNT_AMOUNT_LIMIT);
 
-    let mut times =  user_info.create_subacc_time.clone();
-    if records_len == SUBACCOUNT_AMOUNT_LIMIT 
-        && user_info.create_subacc_time[2] - now >= SUBACCOUNT_TIME_LIMIT{
-       Err(WalletError::SubaccountCreateTooFrequently)?;
-    }else if records_len == SUBACCOUNT_AMOUNT_LIMIT
-        && user_info.create_subacc_time[2] - now < SUBACCOUNT_TIME_LIMIT{
+    let mut times = user_info.create_subacc_time.clone();
+    if records_len == SUBACCOUNT_AMOUNT_LIMIT
+        && user_info.create_subacc_time[2] - now >= SUBACCOUNT_TIME_LIMIT
+    {
+        Err(WalletError::SubaccountCreateTooFrequently)?;
+    } else if records_len == SUBACCOUNT_AMOUNT_LIMIT
+        && user_info.create_subacc_time[2] - now < SUBACCOUNT_TIME_LIMIT
+    {
         times.remove(0);
-        times.push(now);  
-    }else{
+        times.push(now);
+    } else {
         times.push(now);
     }
     UserInfoEntity::update_single(
-        UserUpdater::SubCreateRecords(times), 
-    UserFilter::ById(&user_info.id)
-    ).await?;
+        UserUpdater::SubCreateRecords(times),
+        UserFilter::ById(&user_info.id),
+    )
+    .await?;
 
     Ok(())
 }
@@ -110,9 +109,6 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         vec![txid],
     );
     record.insert().await?;
-
-
-    
 
     //info!("new wallet {:?}  successfully", user_info);
     Ok(None)

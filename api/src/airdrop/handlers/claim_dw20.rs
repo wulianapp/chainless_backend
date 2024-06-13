@@ -1,20 +1,16 @@
-use actix_web::{HttpRequest};
-
-use airdrop::Airdrop;
+use actix_web::HttpRequest;
 use blockchain::airdrop::Airdrop as ChainAirdrop;
-use common::{
-    data_structures::{KeyRole},
-};
+use common::data_structures::KeyRole;
 use models::{
     airdrop::{AirdropEntity, AirdropFilter},
     PsqlOp,
 };
-use tracing::{debug};
+use tracing::debug;
 
 use crate::utils::{get_user_context, token_auth};
 use crate::wallet::handlers::*;
 use blockchain::ContractClient;
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device
@@ -32,10 +28,10 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     //上级必须也领过空投
     let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
-    let predecessor_airdrop_on_chain = cli.get_user(
-        &user_airdrop.airdrop.predecessor_account_id,
-    ).await?;
-    if predecessor_airdrop_on_chain.is_none(){
+    let predecessor_airdrop_on_chain = cli
+        .get_user(&user_airdrop.airdrop.predecessor_account_id)
+        .await?;
+    if predecessor_airdrop_on_chain.is_none() {
         Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
     }
 

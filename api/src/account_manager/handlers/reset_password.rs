@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::utils::captcha::{Captcha, Usage};
-use crate::utils::{judge_role_by_strategy};
+use crate::utils::judge_role_by_strategy;
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};

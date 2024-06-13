@@ -1,15 +1,15 @@
 use actix_web::HttpRequest;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use models::account_manager::{UserFilter, UserInfoEntity};
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 
 use actix_web::http::header;
 
+use common::error_code::BackendError;
 use common::error_code::BackendError::Authorization;
-use common::error_code::{BackendError};
 use common::prelude::*;
-use common::utils::time::{now_millis};
+use common::utils::time::now_millis;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 struct Claims {

@@ -1,18 +1,17 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::{KeyRole, PubkeySignInfo, TxStatusOnChain};
-use common::encrypt::{ed25519_verify_hex};
+use common::encrypt::ed25519_verify_hex;
 use common::utils::time::now_millis;
 
-
-use tracing::{info};
+use tracing::info;
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::{PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]

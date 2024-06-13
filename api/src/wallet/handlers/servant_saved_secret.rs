@@ -1,21 +1,12 @@
 use actix_web::HttpRequest;
 
-
-
-
 use crate::utils::{get_user_context, token_auth};
 use common::data_structures::KeyRole;
 use common::error_code::BackendRes;
 
-
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 
-
-
-
-
 use models::PsqlOp;
-
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<String> {
     //todo: must be called by main device

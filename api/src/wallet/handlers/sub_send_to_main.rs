@@ -1,6 +1,4 @@
-
-
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
@@ -8,17 +6,15 @@ use common::data_structures::coin_transaction::{CoinSendStage, SubToMainTx, TxTy
 use common::data_structures::CoinType;
 
 use common::data_structures::KeyRole;
-use common::encrypt::{ed25519_verify_hex};
+use common::encrypt::ed25519_verify_hex;
 use common::utils::math::coin_amount::display2raw;
-
-
 
 use tracing::error;
 
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::AccountSignInfo;
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::coin_transfer::{CoinTxEntity};
+use models::coin_transfer::CoinTxEntity;
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 

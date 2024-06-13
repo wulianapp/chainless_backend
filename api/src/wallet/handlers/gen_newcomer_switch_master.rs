@@ -1,9 +1,6 @@
-
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 use common::data_structures::KeyRole;
 use common::error_code::{BackendError, BackendRes};
-
-
 
 //use log::info;
 use crate::utils::captcha::{Captcha, Usage};
@@ -11,13 +8,7 @@ use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 
-
-
-
-
-
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

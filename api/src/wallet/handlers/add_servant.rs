@@ -4,21 +4,18 @@ use blockchain::multi_sig::MultiSig;
 use common::data_structures::wallet_namage_record::WalletOperateType;
 use models::wallet_manage_record::WalletManageRecordEntity;
 
-
 use crate::utils::{get_user_context, token_auth};
 use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
-use common::error_code::{WalletError};
+use common::error_code::WalletError;
 
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 
 use blockchain::ContractClient;
 
-
 use models::secret_store::SecretStoreEntity;
-use models::{PsqlOp};
-
+use models::PsqlOp;
 
 use serde::{Deserialize, Serialize};
 

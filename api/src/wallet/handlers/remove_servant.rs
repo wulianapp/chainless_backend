@@ -9,7 +9,6 @@ use crate::utils::{get_user_context, token_auth};
 use common::data_structures::{KeyRole, SecretKeyState};
 use common::error_code::BackendRes;
 
-
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::{SecretFilter, SecretUpdater};
 

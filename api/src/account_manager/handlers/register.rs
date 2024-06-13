@@ -1,6 +1,3 @@
-
-
-
 use common::error_code::{AccountManagerError::*, BackendError};
 use common::utils::math::random_num;
 use models::airdrop::{AirdropEntity, AirdropFilter};
@@ -8,10 +5,8 @@ use models::device_info::DeviceInfoEntity;
 //use log::{debug, info};
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 
-
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity};
-
 
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};

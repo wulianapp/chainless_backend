@@ -1,11 +1,7 @@
-use actix_web::{HttpRequest};
+use actix_web::HttpRequest;
 
-use blockchain::{
-    airdrop::Airdrop as ChainAirdrop,
-};
-use common::{
-    data_structures::{airdrop::Airdrop, KeyRole},
-};
+use blockchain::airdrop::Airdrop as ChainAirdrop;
+use common::data_structures::{airdrop::Airdrop, KeyRole};
 
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
@@ -13,13 +9,12 @@ use models::{
 };
 use serde::{Deserialize, Serialize};
 
-
 use crate::{
     utils::{get_user_context, token_auth},
     wallet::handlers::*,
 };
 use blockchain::ContractClient;
-use common::error_code::{BackendRes};
+use common::error_code::BackendRes;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

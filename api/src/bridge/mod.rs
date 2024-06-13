@@ -3,16 +3,13 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
-
-
-
 use handlers::{
     bind_eth_addr::BindEthAddrRequest, gen_bind_eth_addr_sig::GenBindEthAddrSigRequest,
     gen_deposit_sig::GenDepositSigRequest, list_deposit_order::ListDepositOrderRequest,
     list_withdraw_order::ListWithdrawOrderRequest, pre_withdraw::PreWithdrawRequest,
 };
 
-use tracing::{debug};
+use tracing::debug;
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -278,39 +275,18 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
-    
-    
-    
-
     use actix_web::body::MessageBody;
-    
+
     use actix_web::http::header;
 
-    use actix_web::{body::MessageBody as _, test};
+    use actix_web::{test};
 
     use blockchain::ContractClient;
-    
-    
-    use models::{PsqlOp};
     use serde_json::json;
 
-    
-    
-    
-    
-    
-    
-    
-    
     // use log::{info, LevelFilter,debug,error};
-    
+
     use crate::account_manager::handlers::user_info::UserInfoResponse;
-    
-    
-    
-    
-    
-    
 
     #[actix_web::test]
     async fn test_bind_eth_addr() {

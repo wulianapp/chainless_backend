@@ -1,23 +1,13 @@
-
-
 use actix_web::HttpRequest;
 
-
-
-
-
 use crate::utils::token_auth;
-use common::{
-    error_code::{BackendRes},
-};
+use common::error_code::BackendRes;
 use common::{
     data_structures::CoinType,
     error_code::{to_param_invalid_error, WalletError},
     utils::math::coin_amount::{display2raw, raw2display},
 };
 use serde::{Deserialize, Serialize};
-
-
 
 #[derive(Deserialize, Serialize, Clone, Default, Debug)]
 pub struct EstimateTransferFeeResponse {

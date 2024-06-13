@@ -1,6 +1,5 @@
 use actix_web::HttpRequest;
 
-
 use models::{
     account_manager::{UserFilter, UserInfoEntity, UserUpdater},
     device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater},
@@ -12,10 +11,7 @@ use crate::utils::{
     captcha::{Captcha, Usage},
     get_user_context, token_auth,
 };
-use common::{
-    data_structures::{KeyRole},
-    error_code::{BackendRes},
-};
+use common::{data_structures::KeyRole, error_code::BackendRes};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]

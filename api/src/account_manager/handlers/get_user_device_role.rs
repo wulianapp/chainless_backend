@@ -1,15 +1,14 @@
-
-use common::data_structures::{KeyRole};
+use common::data_structures::KeyRole;
 use common::error_code::{AccountManagerError, BackendError, BackendRes};
 
-use models::account_manager::{UserFilter};
+use models::account_manager::UserFilter;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
 use models::{account_manager, PsqlOp};
 use serde::{Deserialize, Serialize};
 
 //use super::super::ContactIsUsedRequest;
-use crate::utils::{get_user_context};
+use crate::utils::get_user_context;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]

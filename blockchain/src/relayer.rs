@@ -1,28 +1,18 @@
 use common::env::RelayerPool;
-use ed25519_dalek::Sha512;
-use ethers_core::k256::sha2::Sha256;
-use lazy_static::lazy_static;
-use std::str::{from_utf8, FromStr};
 
-use common::data_structures::TxStatusOnChain;
-use common::utils::math::hex_to_bs58;
-use near_crypto::{ED25519SecretKey, InMemorySigner, KeyType, PublicKey, SecretKey, Signature};
-use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
-use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
-use near_jsonrpc_client::JsonRpcClient;
-use near_jsonrpc_client::{methods, MethodCallResult};
-use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_jsonrpc_primitives::types::transactions::TransactionInfo;
-use near_primitives::borsh::BorshDeserialize;
+use lazy_static::lazy_static;
+use std::str::FromStr;
+
+use near_crypto::{InMemorySigner, KeyType, SecretKey};
+
 use near_primitives::hash::hash;
-use near_primitives::transaction::Transaction;
-use near_primitives::types::{AccountId, BlockReference};
-use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
+
+use near_primitives::types::AccountId;
 
 //use log::debug;
 use anyhow::{anyhow, Result};
 use tokio::sync::{Mutex, MutexGuard};
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 pub struct Relayer {
     pub derive_index: u32,
@@ -103,7 +93,18 @@ mod tests {
     use near_primitives::{
         account::{AccessKey, AccessKeyPermission},
         action::{Action, AddKeyAction},
+        types::BlockReference,
     };
+
+    use near_crypto::{PublicKey, SecretKey};
+
+    use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
+
+    use near_jsonrpc_client::methods;
+    use near_jsonrpc_primitives::types::query::QueryResponseKind;
+
+    use near_primitives::transaction::Transaction;
+    use near_primitives::types::AccountId;
     use tracing::error;
 
     #[tokio::test]

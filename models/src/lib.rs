@@ -1,8 +1,8 @@
 //! encapsulation of some postgresql interface for easy call
 //#![deny(missing_docs)]
-//#![deny(warnings)]
+#![deny(warnings)]
 //#![allow(unused_imports)]
-//#![allow(dead_code)]
+#![allow(dead_code)]
 
 pub mod account_manager;
 pub mod airdrop;
@@ -31,29 +31,19 @@ use anyhow::Ok;
 use anyhow::Result;
 use common::constants::PG_POOL_SIZE;
 use deadpool::managed::Object;
-use serde::Deserialize;
-use serde::Serialize;
-use std::borrow::Borrow;
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
-use std::fmt::{Debug, Display};
-use std::future;
-use std::ops::Deref;
-use std::str::FromStr;
+use std::fmt::Display;
+
 use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio_postgres::NoTls;
-use tokio_postgres::Row;
+
 use deadpool_postgres::Manager;
 use deadpool_postgres::Pool;
 use deadpool_postgres::Transaction;
 use deadpool_postgres::{Config, ManagerConfig, RecyclingMethod};
+use tokio_postgres::NoTls;
+use tokio_postgres::Row;
 
 use async_trait::async_trait;
-use tokio::runtime::Runtime;
-use async_std::task::block_on;
-
-use ouroboros::self_referencing;
 
 pub type LocalConn = Object<Manager>;
 

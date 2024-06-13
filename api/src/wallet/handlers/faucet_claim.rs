@@ -6,15 +6,9 @@ use blockchain::ContractClient;
 use common::data_structures::{get_support_coin_list, CoinType};
 use common::error_code::BackendError;
 
-
 use common::error_code::BackendRes;
 
-
-
 use serde::{Deserialize, Serialize};
-
-
-
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]

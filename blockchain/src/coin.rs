@@ -1,12 +1,10 @@
 use common::data_structures::coin_transaction::CoinTransaction;
-use common::error_code::to_internal_error;
-use near_crypto::SecretKey;
+
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{Action, FunctionCallAction, Transaction};
-use near_primitives::types::{AccountId, Balance, BlockReference, Finality, FunctionArgs};
+use near_primitives::types::{AccountId, BlockReference, Finality, FunctionArgs};
 use std::ops::Deref;
 use std::str::FromStr;
-use tracing::debug;
 
 use hex;
 use lazy_static::lazy_static;
@@ -20,7 +18,6 @@ use common::data_structures::CoinType;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::multi_sig::get_pubkey;
 use crate::ContractClient;
 use anyhow::Result;
 
@@ -131,12 +128,10 @@ mod tests {
     use common::data_structures::CoinType;
     use common::prelude::*;
     use near_crypto::InMemorySigner;
-    use near_primitives::borsh::{self, BorshSerialize};
+    use near_primitives::borsh::{self};
     use near_primitives::types::AccountId;
     use serde_json::json;
     use std::str::FromStr;
-    use std::time::Duration;
-    use tokio::time::sleep;
 
     use super::*;
 

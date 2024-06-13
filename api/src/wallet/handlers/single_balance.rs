@@ -4,8 +4,7 @@ use blockchain::coin::Coin;
 
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::{CoinType};
-
+use common::data_structures::CoinType;
 
 use common::error_code::BackendRes;
 use common::error_code::{to_internal_error, BackendError};
@@ -14,8 +13,6 @@ use models::account_manager::{UserFilter, UserInfoEntity};
 
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-
-
 
 use tracing::debug;
 
