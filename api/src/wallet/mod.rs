@@ -1560,7 +1560,7 @@ mod tests {
 
     // use log::{info, LevelFilter,debug,error};
     use super::handlers::search_message::SearchMessageResponse;
-    use crate::account_manager::handlers::contact_is_used::UserInfoResponse as UserInfoResponse2;
+    use crate::account_manager::handlers::contact_is_used::ContactIsUsedResponse;
     use crate::account_manager::handlers::user_info::UserInfoResponse;
 
     use blockchain::bridge_on_eth::Bridge;

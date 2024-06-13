@@ -437,39 +437,17 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
 
-    use crate::test_service_call;
+    use crate::{test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
+    use crate::utils::api_test::{gen_some_accounts_with_new_key,init};
     use actix_web::body::MessageBody;
-    use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
     use actix_web::http::header;
-
-    use actix_web::{test, App, Error};
-    use std::env;
+    use actix_web::{test};
+    use tests::handlers::contact_is_used::ContactIsUsedResponse;
     use tests::handlers::user_info::UserInfoResponse;
+    use serde_json::json;
 
     use crate::utils::respond::BackendRespond;
-    async fn clear_contract(_account_id: &str) {
-        let _cli = blockchain::ContractClient::<blockchain::multi_sig::MultiSig>::new_update_cli()
-            .await
-            .unwrap();
-        //cli.clear_all().await.unwrap();
-        //cli.init_strategy(account_id, account_id.to_owned()).await.unwrap();
-        //cli.remove_account_strategy(account_id.to_owned()).await.unwrap();
-    }
 
-    async fn init() -> App<
-        impl ServiceFactory<
-            ServiceRequest,
-            Config = (),
-            Response = ServiceResponse,
-            Error = Error,
-            InitError = (),
-        >,
-    > {
-        env::set_var("SERVICE_MODE", "test");
-        common::log::init_logger();
-        //models::general::table_all_clear().await;
-        App::new().configure(configure_routes)
-    }
 
     #[actix_web::test]
     async fn test_hello() {
@@ -489,119 +467,24 @@ mod tests {
     async fn test_all_braced_account_manager_ok() {
         let app = init().await;
         let service = test::init_service(app).await;
-        clear_contract("").await;
 
-        //getCaptcha
-        let payload =
-            r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "Register" }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/getCaptcha",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code, 0);
+        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) = gen_some_accounts_with_new_key();
+ 
+        test_register!(service,sender_master);
 
-        //register
-        let payload = r#"
-            { 
-            "deviceId": "000000",
-            "deviceBrand": "Apple",
-            "email": "test000001@gmail.com",
-            "captcha": "000001",
-            "password": "123456789"
-            }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/registerByEmail",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code, 0);
-
-        //login
-        let payload = r#"
-            { "deviceId": "000000",
-             "deviceBrand": "Apple",
-            "contact": "test000001@gmail.com",
-             "password": "123456789"
-            }"#;
-        let login_res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/login",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", login_res.data);
-        assert_eq!(login_res.status_code, 0);
+        test_login!(service,sender_master);
 
         //check contact if is used
-        let res: BackendRespond<bool> = test_service_call!(
-            service,
-            "get",
-            "/accountManager/contactIsUsed?contact=test000001@gmail.com",
-            None::<String>,
-            None::<String>
-        );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code, 0);
+        let res = test_contact_is_used!(service,sender_master);
+        println!("used_res {:?}",res);
 
-        let payload = r#"{ "deviceId": "000000", "contact": "test000001@gmail.com","kind": "resetPassword" }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/getCaptcha",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code, 0);
+        sender_master.user.password = "new_pwd".to_string();
+        test_reset_password!(service,sender_master);
 
-        let payload = r#"
-        { "deviceId": "000000",
-         "captcha": "000001",
-         "contact": "test000001@gmail.com",
-         "newPassword": "new123456789"
-        }
-        "#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/resetPassword",
-            Some(payload),
-            Some(login_res.data.unwrap())
-        );
-        println!("{:?}", res.msg);
-        assert_eq!(res.status_code, 0);
 
-        let payload = r#"
-        { "deviceId": "000000",
-         "deviceBrand": "Apple",
-        "contact": "test000001@gmail.com",
-         "password": "new123456789"
-        }"#;
-        let res: BackendRespond<String> = test_service_call!(
-            service,
-            "post",
-            "/accountManager/login",
-            Some(payload),
-            None::<String>
-        );
-        println!("{:?}", res.data);
-        assert_eq!(res.status_code, 0);
+        test_login!(service,sender_master);
 
-        let res: BackendRespond<UserInfoResponse> = test_service_call!(
-            service,
-            "get",
-            "/accountManager/userInfo",
-            None::<String>,
-            Some(res.data.unwrap())
-        );
-        println!("{:?}", res.data);
+        let info = test_user_info!(service,sender_master);
+        println!("{:?}", info);
     }
 }

@@ -320,7 +320,7 @@ macro_rules! test_contact_is_used {
             "/accountManager/contactIsUsed?contact={}",
             $app.user.contact
         );
-        let res: BackendRespond<UserInfoResponse2> =
+        let res: BackendRespond<ContactIsUsedResponse> =
             test_service_call!($service, "get", &url, None::<String>, None::<String>);
         assert_eq!(res.status_code, 0);
         res.data
@@ -344,6 +344,26 @@ macro_rules! test_login {
                 None::<String>
             );
             $app.user.token = Some(res.data.unwrap());
+    }};
+}
+
+#[macro_export]
+macro_rules! test_reset_password {
+    ($service:expr, $app:expr) => {{
+            let payload = json!({
+                "deviceId":  $app.device.id,
+                "captcha": "000000",
+                "contact": $app.user.contact,
+                "newPassword": $app.user.password
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/resetPassword",
+                Some(payload.to_string()),
+                None::<String>
+            );
+            assert_eq!(res.status_code,0);
     }};
 }
 
