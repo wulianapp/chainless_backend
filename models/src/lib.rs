@@ -98,6 +98,16 @@ impl PgLocalCli {
         }
     }
 
+    pub async fn rollback(self) -> Result<()> {
+        match self {
+            PgLocalCli::Conn(_c) => {
+                debug!("it's not a trans");
+                Ok(())
+            }
+            PgLocalCli::Trans(t) => Ok(t.rollback().await?),
+        }
+    }
+
     pub async fn begin(&'static mut self) -> Result<PgLocalCli> {
         match self {
             PgLocalCli::Conn(c) => {

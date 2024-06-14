@@ -10,6 +10,7 @@ killall -9 api
 killall -9 scanner
 cp ./target/debug/api ./target/debug/api_ori
 cp ./target/debug/scanner ./target/debug/scanner_ori
+cargo build
 nohup ./target/debug/api > ./$api_log_file &
 nohup ./target/debug/scanner --task chainless_wallet_manage > ./$scanner_wallet_manage_log_file &
 nohup ./target/debug/scanner --task chainless_coin_transfer > ./$scanner_coin_transfer_log_file &

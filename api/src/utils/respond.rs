@@ -1,3 +1,4 @@
+use actix_http::header;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use common::error_code::{BackendError, ErrorCode, LangType};
 use serde::{Deserialize, Serialize};
@@ -40,17 +41,28 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
     lang: LangType,
     inner_res: BackendRes<D, E>,
 ) -> impl Responder {
-    match inner_res {
-        Ok(data) => generate_ok_respond(data),
+    let (mut res,err_code) = match inner_res {
+        Ok(data) => {
+            let res = generate_ok_respond(data);
+            (res,0)
+        },
         Err(error) => {
-            if error.code() == BackendError::Authorization("".to_string()).code() {
+            let err_code = error.code();
+            let res = if err_code == BackendError::Authorization("".to_string()).code() {
                 debug!("return_error_respond: {}", error.to_string());
                 HttpResponse::Unauthorized().json(error.to_string())
             } else {
                 generate_error_respond(error, lang)
-            }
+            };
+            (res,err_code)
         }
-    }
+    };
+    //目前是给中间件做错误码传递用
+    let header_name = header::HeaderName::from_static("chainless_status_code");
+    let header_value = header::HeaderValue::from_str(&err_code.to_string()).unwrap();
+    res.headers_mut().append(header_name, header_value);
+    res
+
 }
 
 pub fn get_lang(req: &HttpRequest) -> LangType {

@@ -206,7 +206,7 @@ impl PsqlOp for DeviceInfoEntity {
 #[cfg(test)]
 mod tests {
 
-    use crate::general::{run_api_call, table_clear};
+    use crate::general::{self, run_api_call, table_clear};
 
     use super::*;
     use common::log::init_logger;
@@ -236,6 +236,8 @@ mod tests {
             .await
             .unwrap();
         };
-        run_api_call("", task).await.unwrap()
+        let (conn_ptr,_res) = run_api_call("", task).await.unwrap();
+        general::commit().await.unwrap();
+        general::clean_conn(conn_ptr);
     }
 }

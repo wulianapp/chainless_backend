@@ -17,16 +17,16 @@ pub mod newbie_reward;
 pub mod utils;
 pub mod wallet;
 
-use actix_http::Payload;
+use actix_http::{header, Payload};
 
 use actix_cors::Cors;
-use actix_web::{error::ErrorInternalServerError, http, web::BytesMut, App, HttpServer};
+use actix_web::{error::ErrorInternalServerError, http, App, HttpServer};
 use env_logger::Env;
 
-use models::general::run_api_call;
+use models::general::{clean_conn, gen_db_cli};
 use tracing::debug;
 
-use std::future::{ready, Ready};
+use std::{cell::RefCell, future::{ready, Ready}, sync::Arc};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -37,7 +37,7 @@ use futures_util::future::LocalBoxFuture;
 fn print_body(req: &ServiceRequest) {
     match req.parts().1 {
         Payload::H1 { payload } => {
-            debug!("payload {:?}", payload)
+            debug!("body_payload {:?}", payload)
         }
         _ => {
             //unimplemented!()
@@ -79,9 +79,7 @@ impl<S, B> Service<ServiceRequest> for MoreLogMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    //B: 'static,
-    B: actix_web::body::MessageBody + 'static + std::fmt::Debug,
-
+    B: 'static,
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -101,12 +99,34 @@ where
         let method = req.method().to_string();
 
         let fut = self.service.call(req);
-
         Box::pin(async move {
-            //在tokio的本地任务和pg的连接的环境中执行api请求
-            run_api_call(&method, fut)
-                .await
-                .map_err(ErrorInternalServerError)?
+            let (db_cli, conn_ptr) = gen_db_cli(&method).await.map_err(ErrorInternalServerError)?;
+            
+            //todo: 最好LOCAL_CLI的初始化放在modles模块
+            models::LOCAL_CLI.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
+                let res = fut.await;
+                
+                let err_code = res.as_ref().map(|res|{
+                    let value = res.headers().get(
+                        header::HeaderName::from_static("chainless_status_code")
+                    ).unwrap();
+                    value.to_str().unwrap().parse::<u16>().unwrap()
+                });
+
+                //只有post正确完成之后才commit，否则都回滚
+                match (res.as_ref(),method.as_str(),err_code) {
+                    (Ok(_),"POST",Ok(0)) => {
+                        models::general::commit().await.map_err(ErrorInternalServerError)?;
+                    },
+                    _ => {
+                        models::general::rollback().await.map_err(ErrorInternalServerError)?;
+                    }
+                };
+                clean_conn(conn_ptr);
+
+                res
+            }).await
+            
         })
     }
 }
