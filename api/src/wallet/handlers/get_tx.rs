@@ -219,8 +219,6 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         unsigned_device,
         tx_type: tx.transaction.tx_type,
         chain_status: tx.transaction.chain_status,
-        //fee_coin,
-        //fee_amount: raw2display(fee_amount),
         fees_detail,
         updated_at: tx.updated_at,
         created_at: tx.created_at,

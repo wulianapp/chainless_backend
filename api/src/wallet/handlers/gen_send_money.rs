@@ -11,6 +11,7 @@ use blockchain::multi_sig::MultiSig;
 
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
+use models::coin_transfer::CoinTxEntity;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -28,7 +29,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
 
     let GenSendMoneyRequest { order_id } = request_data;
 
-    let coin_tx = models::coin_transfer::CoinTxEntity::find_single(
+    let coin_tx = CoinTxEntity::find_single(
         models::coin_transfer::CoinTxFilter::ByOrderId(&order_id),
     )
     .await?;
@@ -58,7 +59,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: GenSendMoneyRequest) -> 
             coin_tx.transaction.expire_at,
         )
         .await?;
-    models::coin_transfer::CoinTxEntity::update_single(
+    CoinTxEntity::update_single(
         CoinTxUpdater::TxidTxRaw(&tx_id, &chain_raw_tx),
         CoinTxFilter::ByOrderId(&order_id),
     )

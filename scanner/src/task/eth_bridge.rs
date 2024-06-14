@@ -137,7 +137,6 @@ pub async fn start() -> Result<()> {
             current_height
         );
 
-        //todo: 8区块的时候confirm，之前pending
         if last_process_height == current_height {
             info!(
                 "current chain height2 {},wait for new block",
@@ -145,9 +144,8 @@ pub async fn start() -> Result<()> {
             );
             tokio::time::sleep(time::Duration::from_millis(1000)).await;
         } else if last_process_height < current_height {
-            //规避RPC阻塞等网络问题导致的没有及时获取到最新块高，以及系统重启时期对离线期间区块的处理
+            //初始化和监听最新区块复用了此逻辑(8区块的时候confirm，当前的pending)
             for height in last_process_height + 1..=current_height {
-                //info!("check height {}", height);
                 listen_newest_block(&bridge, height).await?;
                 listen_confirmed_block(&bridge, height - ETH_TX_CONFIRM_BLOCK_NUM as u64).await?;
             }

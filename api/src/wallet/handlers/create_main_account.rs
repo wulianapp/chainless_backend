@@ -9,12 +9,12 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 
 use common::error_code::{BackendRes, WalletError};
 
-use models::account_manager::{UserFilter, UserUpdater};
+use models::account_manager::{UserFilter, UserUpdater,UserInfoEntity};
 use models::airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater};
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter, DeviceInfoUpdater};
 use models::secret_store::SecretStoreEntity;
 use models::wallet_manage_record::WalletManageRecordEntity;
-use models::{account_manager, PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use tracing::info;
@@ -51,7 +51,7 @@ pub(crate) async fn req(
     Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
 
     //store user info
-    let user_info = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id))
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id))
         .await?
         .into_inner();
 
@@ -66,7 +66,7 @@ pub(crate) async fn req(
     let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
 
-    account_manager::UserInfoEntity::update_single(
+    UserInfoEntity::update_single(
         UserUpdater::SecruityInfo(&anwser_indexes, &main_account_id),
         UserFilter::ById(&user_id),
     )

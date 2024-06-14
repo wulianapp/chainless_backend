@@ -49,12 +49,16 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
     ***/
 
+    /***
+    //tmp: 等提前查等级的流程加上，再打开
+    //防止一个金牌地址对多个账户小号打款评级
     if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address))
         .await?
         .is_empty()
     {
         Err(AirdropError::BtcAddressAlreadyUsed)?;
     }
+    ***/
 
     //todo: get kyc info
     let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();

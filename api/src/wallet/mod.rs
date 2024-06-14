@@ -227,7 +227,6 @@ async fn get_fees_priority(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getSecret
 */
 
-//todo: 不应该根据设备和账户直接查,考虑到表迁移，应该是根据pubkey来查
 #[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
 #[get("/wallet/getSecret")]
 async fn get_secret(
@@ -1621,7 +1620,6 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_add_remove_subaccount() {
-        //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_add_remove_subaccount");
         let app = init().await;
         let service = test::init_service(app).await;
@@ -1672,7 +1670,6 @@ mod tests {
 
     #[actix_web::test]
     async fn test_wallet_update_subaccount_hold_limit_ok() {
-        //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_update_subaccount_hold_limit_ok");
         let app = init().await;
         let service = test::init_service(app).await;

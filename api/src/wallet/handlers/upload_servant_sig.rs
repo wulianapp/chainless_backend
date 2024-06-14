@@ -11,6 +11,7 @@ use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
+use models::coin_transfer::CoinTxEntity;
 
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +24,6 @@ pub struct UploadTxSignatureRequest {
 
 pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> BackendRes<String> {
     //todo: check tx_status must be SenderReconfirmed
-    //todo:check user_id if valid
 
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
@@ -45,7 +45,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
 
     //todo: two update action is unnecessary
     let mut tx =
-        models::coin_transfer::CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+        CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
             .await?;
 
     let data = tx.transaction.coin_tx_raw;
@@ -68,7 +68,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
 
     tx.transaction.signatures.push(signature);
     //fixme: repeat update twice
-    models::coin_transfer::CoinTxEntity::update_single(
+    CoinTxEntity::update_single(
         CoinTxUpdater::Signature(tx.transaction.signatures.clone()),
         CoinTxFilter::ByOrderId(&order_id),
     )
@@ -94,7 +94,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
         if tx.transaction.tx_type == TxType::MainToSub
             || tx.transaction.tx_type == TxType::MainToBridge
         {
-            models::coin_transfer::CoinTxEntity::update_single(
+            CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )
@@ -123,14 +123,14 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
                 )
                 .await?;
 
-            models::coin_transfer::CoinTxEntity::update_single(
+            CoinTxEntity::update_single(
                 CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )
             .await?;
         //非子账户非强制的话，签名收集够了则需要收款方进行确认
         } else {
-            models::coin_transfer::CoinTxEntity::update_single(
+            CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::SenderSigCompleted),
                 CoinTxFilter::ByOrderId(&order_id),
             )

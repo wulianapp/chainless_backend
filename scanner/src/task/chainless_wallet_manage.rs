@@ -29,7 +29,7 @@ pub async fn start() -> Result<()> {
                 )
                 .await;
             }
-            //todo: try to call again when relayer operate
+            //todo: try to call again when failed
         }
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     }

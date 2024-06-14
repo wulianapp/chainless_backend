@@ -229,6 +229,19 @@ impl Captcha {
         code_storage.remove(&(user.to_string(), kind));
         Ok(())
     }
+
+    pub fn clean_up_expired() -> Result<(),BackendError>{
+        let code_storage = &mut CODE_STORAGE
+            .lock()
+            .map_err(|e| InternalError(e.to_string()))?;
+        
+        code_storage.retain(|_k,v| {
+            !v.is_expired()
+        });
+        Ok(())
+    }
+
+    //todo: restrict map size
 }
 
 #[cfg(test)]

@@ -7,9 +7,6 @@ use common::utils::math::coin_amount::display2raw;
 
 use serde::Deserialize;
 use serde::Serialize;
-//use log::debug;
-use tracing::debug;
-
 use crate::utils::get_user_context;
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
@@ -34,9 +31,6 @@ pub async fn req(
     req: HttpRequest,
     request_data: GenDepositSigRequest,
 ) -> BackendRes<GenDepositResponse> {
-    //todo: check jwt token
-    debug!("start reset_password");
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -45,7 +39,7 @@ pub async fn req(
 
     check_role(role, KeyRole::Master)?;
 
-    let GenDepositSigRequest { coin, amount } = request_data.clone();
+    let GenDepositSigRequest { coin, amount } = request_data;
     let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
     let coin: CoinType = coin
@@ -60,7 +54,6 @@ pub async fn req(
     let (sig, deadline, cid) = bridge_cli
         .sign_deposit_info(coin, amount, &main_account)
         .await?;
-    println!("sig {} ", sig);
 
     Ok(Some(GenDepositResponse { cid, deadline, sig }))
 }

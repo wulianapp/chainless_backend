@@ -27,7 +27,6 @@ impl SecretStoreEntity {
 
 #[derive(Debug)]
 pub enum SecretUpdater<'a> {
-    //todo:
     EncrypedPrikey(&'a str, &'a str),
     State(SecretKeyState),
 }

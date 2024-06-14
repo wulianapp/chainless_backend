@@ -15,7 +15,7 @@ use crate::utils::judge_role_by_strategy;
 use common::error_code::{AccountManagerError::*, WalletError};
 use common::error_code::{BackendError, BackendRes};
 use models::account_manager::{UserFilter, UserUpdater};
-use models::{account_manager, PsqlOp};
+use models::{account_manager::UserInfoEntity, PsqlOp};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -39,7 +39,7 @@ pub async fn req(
     } = request_data.clone();
 
     let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
             .await
             .map_err(|_e| PhoneOrEmailNotRegister)?
             .into_inner();
@@ -74,7 +74,7 @@ pub async fn req(
     )?;
 
     //modify user's password  at db
-    account_manager::UserInfoEntity::update_single(
+    UserInfoEntity::update_single(
         UserUpdater::LoginPwdHash(&new_password.hash(), user_info.token_version + 1),
         UserFilter::ById(&user_info.id),
     )

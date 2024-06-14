@@ -6,12 +6,12 @@ use common::data_structures::{KeyRole, PubkeySignInfo, TxStatusOnChain};
 use common::encrypt::ed25519_verify_hex;
 use common::utils::time::now_millis;
 
+use models::PsqlOp;
 use tracing::info;
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
-use models::PsqlOp;
+use models::coin_transfer::{CoinTxEntity,CoinTxFilter, CoinTxUpdater};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -22,7 +22,6 @@ pub struct ReconfirmSendMoneyRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
-    //todo:check user_id if valid
 
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let ReconfirmSendMoneyRequest {
@@ -36,8 +35,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
 
     super::check_role(role, KeyRole::Master)?;
 
-    let coin_tx =
-        models::coin_transfer::CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+    let coin_tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
             .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
@@ -95,7 +93,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             .await?;
 
         //todo:txid?
-        models::coin_transfer::CoinTxEntity::update_single(
+        CoinTxEntity::update_single(
             CoinTxUpdater::TxidStageChainStatus(
                 &tx_id,
                 CoinSendStage::SenderReconfirmed,
@@ -123,7 +121,7 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
             &confirmed_sig,
         )
         .await?;
-        models::coin_transfer::CoinTxEntity::update_single(
+        CoinTxEntity::update_single(
             CoinTxUpdater::StageChainStatus(
                 CoinSendStage::SenderReconfirmed,
                 TxStatusOnChain::Pending,

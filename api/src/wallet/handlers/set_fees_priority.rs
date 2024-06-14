@@ -20,8 +20,6 @@ pub struct SetFeesPriorityRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> BackendRes<String> {
-    //todo: must be called by main device
-
     let (user_id, _, device_id, device_brand) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;

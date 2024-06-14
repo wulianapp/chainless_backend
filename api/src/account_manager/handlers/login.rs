@@ -14,7 +14,7 @@ use common::error_code::{BackendError, BackendRes};
 use common::prelude::*;
 use common::utils::time::now_millis;
 use models::account_manager::UserFilter;
-use models::{account_manager, PsqlOp};
+use models::{account_manager::UserInfoEntity, PsqlOp};
 use serde::{Deserialize, Serialize};
 
 lazy_static! {
@@ -44,7 +44,6 @@ fn record_once_retry(user_id: u32) -> Result<()> {
         .lock()
         .map_err(|e| BackendError::InternalError(e.to_string()))?;
     let now = now_millis();
-    debug!("0001___{}", now);
     retry_storage.entry(user_id).or_default().push(now);
     Ok(())
 }
@@ -87,7 +86,7 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     } = request_data;
 
     let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
             .await
             .map_err(|e| {
                 if e.to_string().contains("DBError::DataNotFound") {
@@ -140,7 +139,7 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
     } = request_data;
 
     let user_info =
-        account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
             .await
             .map_err(|e| {
                 if e.to_string().contains("DBError::DataNotFound") {

@@ -23,8 +23,6 @@ pub struct ChangePredecessorRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> BackendRes<String> {
-    //todo: must be called by main device
-
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -36,8 +34,6 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
         predecessor_invite_code,
     } = request_data;
 
-    //todo: check predecessor_account_id if exist
-    //todo： check if called claim_dw20
 
     let predecessor_airdrop =
         AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
@@ -63,13 +59,12 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     )
     .await?;
 
+    //predecessor must have called claim_dw20
     let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let user_info = cli.get_user(&main_account).await?;
     if user_info.is_some() {
         cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
             .await?;
     }
-
-    //todo: change ref
     Ok(None)
 }

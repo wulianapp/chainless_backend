@@ -20,7 +20,7 @@ pub mod wallet;
 use actix_http::Payload;
 
 use actix_cors::Cors;
-use actix_web::{error::ErrorInternalServerError, http, App, HttpServer};
+use actix_web::{error::ErrorInternalServerError, http, web::BytesMut, App, HttpServer};
 use env_logger::Env;
 
 use models::general::run_api_call;
@@ -79,7 +79,9 @@ impl<S, B> Service<ServiceRequest> for MoreLogMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
+    //B: 'static,
+    B: actix_web::body::MessageBody + 'static + std::fmt::Debug,
+
 {
     type Response = ServiceResponse<B>;
     type Error = Error;
@@ -93,7 +95,7 @@ where
             req.method(),
             req.path(),
             req.query_string(),
-            req.head(),
+            req.head()
         );
         print_body(&req);
         let method = req.method().to_string();

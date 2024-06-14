@@ -123,5 +123,5 @@ pub(crate) async fn req(
         vec![tx_id],
     );
     record.insert().await?;
-    Ok(None::<String>)
+    Ok(None)
 }

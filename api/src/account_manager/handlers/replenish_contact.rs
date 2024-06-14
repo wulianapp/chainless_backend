@@ -11,7 +11,7 @@ use crate::utils::{get_user_context, token_auth};
 use common::error_code::BackendRes;
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 
-use models::{account_manager, PsqlOp};
+use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -24,9 +24,8 @@ pub struct ReplenishContactRequest {
 pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> BackendRes<String> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
-    let res = account_manager::UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
-    //todo:
-    //新设备或者主设备
+    let res = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
+    //安全问答之前或者主设备
     if res.user_info.main_account.is_some() {
         let role = get_user_context(&user_id, &device_id).await?.role()?;
         crate::wallet::handlers::check_role(role, KeyRole::Master)?;

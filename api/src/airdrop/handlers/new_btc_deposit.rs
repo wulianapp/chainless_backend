@@ -24,7 +24,6 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
 
     let airdrop_info = AirdropEntity::find(AirdropFilter::ByBtcAddress(&receiver)).await?;
     if airdrop_info.is_empty() {
-        //Err(BackendError::InternalError("".to_string()))?;
         warn!("receiver {} isn't belong us", receiver);
         return Ok(None);
     }

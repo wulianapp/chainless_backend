@@ -7,9 +7,9 @@ use models::device_info::DeviceInfoEntity;
 use crate::utils::captcha::{Captcha, ContactType, Usage};
 
 use common::error_code::BackendRes;
-use models::account_manager::{UserFilter, UserInfoEntity};
+use models::account_manager::{UserFilter};
 
-use models::{account_manager, PsqlOp};
+use models::{account_manager::UserInfoEntity, PsqlOp};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
@@ -62,18 +62,15 @@ async fn register(
     predecessor_invite_code: String,
     password: String,
     contact_type: ContactType,
-    //encrypted_prikey: String,
-    //pubkey: String,
 ) -> BackendRes<String> {
     //check userinfo form db
     let find_res =
-        account_manager::UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
+        UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
     if !find_res.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
 
     //store user info
-    //todo: hash password  again before store
     Captcha::check_and_delete(&contact, &captcha, Usage::Register)?;
 
     let this_user_id = gen_user_id().await?;
@@ -132,8 +129,6 @@ pub mod by_email {
             captcha,
             predecessor_invite_code,
             password,
-            //encrypted_prikey,
-            //pubkey,
         } = request_data;
         //captcha::validate_email(&email)?;
         super::register(
@@ -144,8 +139,6 @@ pub mod by_email {
             predecessor_invite_code,
             password,
             ContactType::Email,
-            //encrypted_prikey,
-            //pubkey,
         )
         .await
     }

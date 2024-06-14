@@ -10,6 +10,7 @@ use common::error_code::{BackendError, BackendRes, WalletError};
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
+use models::coin_transfer::CoinTxEntity;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -22,7 +23,6 @@ pub(crate) async fn req(
     req: HttpRequest,
     request_data: ReactPreSendMoneyRequest,
 ) -> BackendRes<String> {
-    //todo:check user_id if valid
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -36,7 +36,7 @@ pub(crate) async fn req(
     } = request_data;
 
     let coin_tx =
-        models::coin_transfer::CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
+        CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
             .await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
@@ -71,13 +71,13 @@ pub(crate) async fn req(
                 coin_tx.transaction.expire_at,
             )
             .await?;
-        models::coin_transfer::CoinTxEntity::update_single(
+        CoinTxEntity::update_single(
             CoinTxUpdater::ChainTxInfo(&tx_id, &chain_raw_tx, CoinSendStage::ReceiverApproved),
             CoinTxFilter::ByOrderId(&order_id),
         )
         .await?;
     } else {
-        models::coin_transfer::CoinTxEntity::update_single(
+        CoinTxEntity::update_single(
             CoinTxUpdater::Stage(CoinSendStage::ReceiverRejected),
             CoinTxFilter::ByOrderId(&order_id),
         )

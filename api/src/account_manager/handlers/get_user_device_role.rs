@@ -4,10 +4,8 @@ use common::error_code::{AccountManagerError, BackendError, BackendRes};
 use models::account_manager::UserFilter;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
-use models::{account_manager, PsqlOp};
+use models::{account_manager::UserInfoEntity, PsqlOp};
 use serde::{Deserialize, Serialize};
-
-//use super::super::ContactIsUsedRequest;
 use crate::utils::get_user_context;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -20,7 +18,7 @@ pub struct GetUserDeviceRoleRequest {
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
-    let user = account_manager::UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+    let user = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
         .await
         .map_err(|e| {
             if e.to_string().contains("DBError::DataNotFound") {

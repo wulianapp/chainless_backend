@@ -31,7 +31,7 @@ pub async fn start() -> Result<()> {
                 )
                 .await?;
             }
-            //todo: try to call again,if main2sub or sub2main
+            //todo: try to call again when failed
         }
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
     }

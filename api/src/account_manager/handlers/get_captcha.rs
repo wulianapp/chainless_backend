@@ -39,7 +39,7 @@ fn get(
     kind: Usage,
     user_id: Option<u32>,
 ) -> BackendRes<String> {
-    //todo:
+    
     let contract_type = captcha::validate(&contact)?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
@@ -49,7 +49,7 @@ fn get(
 
     if let Some(data) = captcha::get_captcha(&storage_key, &kind)? {
         let past_time = now_millis() - data.created_at;
-        //todo:env
+        
         if past_time <= CAPTCHA_REQUEST_INTERVAL {
             let remain_time = CAPTCHA_REQUEST_INTERVAL - past_time;
             let remain_secs = (remain_time / 1000) as u8;
@@ -57,8 +57,7 @@ fn get(
         } else if past_time <= CAPTCHA_EXPAIRE_TIME {
             debug!("send new code cover former code");
         } else {
-            //delete and regenerate new captcha
-            //todo: unnecessary
+            //delete old and regenerate new
             let _ = data.delete();
         }
     }
@@ -84,8 +83,9 @@ fn get(
         }
     });
 
-    //todo: delete expired captcha，so as to avoid use too much memory
-    Ok(None::<String>)
+    //delete expired captcha
+    Captcha::clean_up_expired()?;
+    Ok(None)
 }
 
 pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> BackendRes<String> {
@@ -162,6 +162,7 @@ pub async fn with_token_req(
         .map_err(|_err| BackendError::RequestParamInvalid(kind))?;
     let context = get_user_context(&user_id, &device_id).await?;
     let role = context.role()?;
+
     match kind {
         ResetLoginPassword | Register | Login => {
             Err(BackendError::RequestParamInvalid("".to_string()))?

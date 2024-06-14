@@ -28,7 +28,6 @@ pub struct SubSendToMainRequest {
 }
 
 pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> BackendRes<String> {
-    //todo:check user_id if valid
 
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 

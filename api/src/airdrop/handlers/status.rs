@@ -55,8 +55,6 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         predecessor_user_id: predecessor_user_id.to_string(),
         predecessor_account_id,
         btc_address,
-        btc_level,
-        //cly_claimed: None,
-        //du20_claimed: None,
+        btc_level
     }))
 }
