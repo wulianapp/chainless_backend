@@ -71,7 +71,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
         BindWay::Directly => {
             let grade = query_wallet_grade(&btc_address).await?;
             AirdropEntity::update_single(
-                AirdropUpdater::BtcAddressAndLevel(&btc_address, grade),
+                AirdropUpdater::BtcAddressAndLevel(&btc_address, Some(grade)),
                 AirdropFilter::ByAccountId(&main_account),
             )
             .await?;
@@ -79,7 +79,7 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
         }
         BindWay::Indirectly => {
             AirdropEntity::update_single(
-                AirdropUpdater::BtcAddress(&btc_address),
+                AirdropUpdater::BtcAddressAndLevel(&btc_address, None),
                 AirdropFilter::ByAccountId(&main_account),
             )
             .await?;

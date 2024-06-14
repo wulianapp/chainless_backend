@@ -247,6 +247,7 @@ impl<T> ContractClient<T> {
             .sign(transaction.get_hash_and_size().0.as_ref());
 
         let tx = SignedTransaction::new(signature, transaction.clone());
+        //todo: commit是否有必要，直接用async？
         let request = methods::broadcast_tx_commit::RpcBroadcastTxCommitRequest {
             signed_transaction: tx.clone(),
         };

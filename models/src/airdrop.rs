@@ -29,7 +29,7 @@ impl AirdropEntity {
 pub enum AirdropUpdater<'a> {
     InviteCode(&'a str),
     BtcAddress(&'a str),
-    BtcAddressAndLevel(&'a str, u8),
+    BtcAddressAndLevel(&'a str, Option<u8>),
     AccountId(&'a str),
     //user_id,account_id
     Predecessor(&'a u32, &'a str),
@@ -46,7 +46,8 @@ impl fmt::Display for AirdropUpdater<'_> {
                 format!("btc_address='{}'", addr)
             }
             AirdropUpdater::BtcAddressAndLevel(addr, level) => {
-                format!("btc_address='{}',btc_level={} ", addr, level)
+                let level: PsqlType = level.to_owned().into();
+                format!("btc_address='{}',btc_level={} ", addr, level.to_psql_str())
             }
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)
