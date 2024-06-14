@@ -4,18 +4,15 @@ pub mod sms;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use common::error_code::{AccountManagerError, BackendError};
+use common::error_code::{BackendError};
 use common::utils::math::random_num;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
 use tracing::debug;
-
 use common::env::ServiceMode;
 use regex::Regex;
-
 use common::error_code::AccountManagerError::*;
 use common::error_code::BackendError::InternalError;
-
 use common::constants::*;
 use common::utils::time::now_millis;
 
@@ -34,6 +31,7 @@ pub enum ContactType {
 impl FromStr for ContactType {
     type Err = BackendError;
 
+    //目前联系方式的合法性由前端保证，后端只做简单甄别
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s.contains('@') {
             Ok(ContactType::Email)
@@ -61,54 +59,6 @@ pub enum Usage {
     //AddServant,
     ServantSwitchMaster,
     NewcomerSwitchMaster,
-}
-
-/***
-impl FromStr for Usage {
-    type Err = BackendError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "register" => Ok(Self::Register),
-            "resetPassword" => Ok(Self::ResetLoginPassword),
-            "setSecurity" => Ok(Self::SetSecurity),
-            "addServant" => Ok(Self::AddServant),
-            "servantReplaceMaster" => Ok(Self::ServantSwitchMaster),
-            "newcomerBecomeMaster" => Ok(Self::NewcomerSwitchMaster),
-            _ => Err(RequestParamInvalid(s.to_string())),
-        }
-    }
-}
-*/
-
-pub fn validate(input: &str) -> Result<ContactType, AccountManagerError> {
-    // Updated regex for phone numbers with international dialing code
-    if input.contains('@') {
-        /***
-        let email_re = Regex::new(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$").unwrap();
-        if email_re.is_match(input) {
-            Ok(ContactType::Email)
-        } else {
-            Err(PhoneOrEmailIncorrect)
-        }
-        */
-        if input.contains('@') {
-            Ok(ContactType::Email)
-        } else {
-            Err(PhoneOrEmailIncorrect)
-        }
-    } else {
-        //这里和前端的有效判断不一致先放开
-        let _number = phonenumber::parse(None, input);
-        //if phonenumber::is_valid(&number){
-        /***
-        if number.is_ok() {
-            Ok(ContactType::PhoneNumber)
-        } else {
-            Err(PhoneOrEmailIncorrect)
-        }
-        */
-        Ok(ContactType::PhoneNumber)
-    }
 }
 
 pub fn get_captcha(user: &str, kind: &Usage) -> Result<Option<Captcha>, BackendError> {
@@ -240,19 +190,5 @@ impl Captcha {
         });
         Ok(())
     }
-
     //todo: restrict map size
-}
-
-#[cfg(test)]
-mod tests {
-
-    use crate::utils::captcha::validate;
-
-    #[test]
-    fn test_phone_valided() {
-        assert!(validate("+86 13682471710").is_ok());
-        assert!(validate("+355 88888888").is_ok());
-        assert!(validate("+852 89587885").is_ok());
-    }
 }

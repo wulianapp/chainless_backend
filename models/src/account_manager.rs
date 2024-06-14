@@ -62,7 +62,11 @@ impl fmt::Display for UserUpdater<'_> {
                 format!("account_ids={} ", new_servant_str.to_psql_str())
             }
             UserUpdater::SubCreateRecords(times) => {
-                let times: PsqlType = times.to_owned().into();
+                let times: PsqlType = times
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .into();
                 format!("create_subacc_time={} ", times.to_psql_str())
             }
             UserUpdater::SecruityInfo(anwser_indexes, main_account) => format!(
@@ -154,9 +158,9 @@ impl PsqlOp for UserInfoEntity {
                     is_frozen: row.get::<usize, bool>(5),
                     kyc_is_verified: row.get(6),
                     create_subacc_time: row
-                        .get::<usize, Vec<i64>>(7)
+                        .get::<usize, Vec<String>>(7)
                         .into_iter()
-                        .map(|t| t as u64)
+                        .map(|t| t.parse::<u64>().unwrap())
                         .collect::<Vec<u64>>(),
                     main_account: row.get(8),
                     token_version: row.get::<usize, i64>(9) as u32,

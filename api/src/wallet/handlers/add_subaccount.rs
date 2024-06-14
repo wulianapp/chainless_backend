@@ -10,7 +10,6 @@ use common::utils::math::coin_amount::display2raw;
 use common::utils::time::{now_millis};
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
-//use log::info;
 use crate::utils::{get_user_context, token_auth};
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 use blockchain::ContractClient;
@@ -79,7 +78,6 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
-
     let secret = SecretStoreEntity::new_with_specified(
         &subaccount_pubkey,
         user_id,
@@ -87,8 +85,8 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         &subaccount_prikey_encryped_by_answer,
     );
     secret.insert().await?;
-
     update_add_record(&context.user_info).await?;
+
 
     let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let sub_confs = BTreeMap::from([(
@@ -99,7 +97,6 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
         },
     )]);
     let txid = multi_cli.add_subaccount(&main_account, sub_confs).await?;
-
     let record = WalletManageRecordEntity::new_with_specified(
         user_id,
         WalletOperateType::AddSubaccount,

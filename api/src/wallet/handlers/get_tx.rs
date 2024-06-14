@@ -1,4 +1,4 @@
-use crate::utils::{judge_role_by_strategy, token_auth};
+use crate::utils::{get_main_account, judge_role_by_strategy, token_auth};
 use actix_web::HttpRequest;
 use anyhow::{anyhow, Result};
 
@@ -89,7 +89,7 @@ async fn get_actual_fee(account_id: &str, dist_tx_id: &str) -> Result<Vec<(CoinT
 
 pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<GetTxResponse> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-    let main_account = super::get_main_account(user_id).await?;
+    let main_account = get_main_account(&user_id).await?;
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let current_strategy = multi_sig_cli.get_strategy(&main_account).await?;

@@ -40,7 +40,7 @@ fn get(
     user_id: Option<u32>,
 ) -> BackendRes<String> {
     
-    let contract_type = captcha::validate(&contact)?;
+    let contract_type: ContactType = contact.parse()?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
         Some(id) => id.to_string(),

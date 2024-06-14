@@ -154,11 +154,8 @@ pub mod by_phone {
             phone_number,
             captcha,
             predecessor_invite_code,
-            password,
-            //encrypted_prikey,
-            //pubkey,
+            password
         } = request_data;
-        //captcha::validate_phone(&phone_number)?;
         super::register(
             device_id,
             device_brand,
@@ -167,8 +164,6 @@ pub mod by_phone {
             predecessor_invite_code,
             password,
             ContactType::PhoneNumber,
-            //encrypted_prikey,
-            //pubkey,
         )
         .await
     }

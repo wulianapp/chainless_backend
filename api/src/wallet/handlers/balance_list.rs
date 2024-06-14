@@ -52,16 +52,16 @@ pub async fn req(
         .await?
         .into_inner();
 
-    let main_account = user_info.main_account.clone();
+    let main_account = user_info.main_account.as_ref();
     let coin_list = get_support_coin_list();
     let mul_cli = ContractClient::<MultiSig>::new_query_cli().await?;
 
     let check_accounts = match request_data.kind {
-        AccountType::Main => vec![main_account.clone()],
+        AccountType::Main => vec![user_info.main_account.clone()],
         AccountType::AllSub => {
             if main_account.is_some() {
                 let strategy = mul_cli
-                    .get_strategy(&main_account.unwrap())
+                    .get_strategy(main_account.unwrap())
                     .await?
                     .ok_or(InternalError("".to_string()))?;
                 strategy
@@ -74,7 +74,7 @@ pub async fn req(
             }
         }
         AccountType::All => {
-            let mut all = vec![main_account.clone()];
+            let mut all = vec![user_info.main_account.clone()];
             if main_account.is_some() {
                 let strategy = mul_cli
                     .get_strategy(&main_account.unwrap())
@@ -101,7 +101,7 @@ pub async fn req(
         for (index, account) in check_accounts.iter().enumerate() {
             let coin_cli: ContractClient<Coin> =
                 ContractClient::<Coin>::new_query_cli(coin.clone()).await?;
-            let (balance_on_chain, hold_limit) = if user_info.main_account.is_some() {
+            let (balance_on_chain, hold_limit) = if main_account.is_some() {
                 let balance = coin_cli
                     .get_balance(account.as_ref().unwrap())
                     .await?
@@ -111,7 +111,7 @@ pub async fn req(
                     None
                 } else {
                     let strategy = multi_cli
-                        .get_strategy(user_info.main_account.as_ref().unwrap())
+                        .get_strategy(main_account.unwrap())
                         .await?
                         .ok_or("")?;
                     let sub_confs = strategy.sub_confs;

@@ -7,6 +7,7 @@ use blockchain::ContractClient;
 use common::data_structures::bridge::{OrderType, WithdrawStatus};
 use common::error_code::parse_str;
 use common::utils::time::timestamp2utc;
+use models::account_manager::{UserFilter, UserInfoEntity};
 use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 use models::PsqlOp;
 
@@ -66,7 +67,13 @@ pub(crate) async fn req(
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-    let main_account = get_main_account(user_id).await?;
+    let main_account = UserInfoEntity::find_single(
+        UserFilter::ById(&user_id)
+    )
+    .await?
+    .into_inner()
+    .main_account
+    .ok_or(WalletError::NotSetSecurity)?;
 
     let ListWithdrawOrderRequest {
         page,

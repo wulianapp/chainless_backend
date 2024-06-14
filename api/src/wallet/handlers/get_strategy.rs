@@ -4,7 +4,7 @@ use actix_web::HttpRequest;
 
 use blockchain::multi_sig::{MultiSig, SubAccConf};
 
-use crate::utils::token_auth;
+use crate::utils::{get_main_account, token_auth};
 
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
@@ -26,7 +26,7 @@ pub struct MultiSigRankResponse {
 
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<StrategyDataResponse> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-    let main_account = super::get_main_account(user_id).await?;
+    let main_account = get_main_account(&user_id).await?;
     let multi_cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
 
     let strategy = multi_cli.get_strategy(&main_account).await?;

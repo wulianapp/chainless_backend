@@ -13,7 +13,6 @@ use blockchain::ContractClient;
 use common::error_code::BackendRes;
 
 pub async fn req(req: HttpRequest) -> BackendRes<String> {
-    //todo: must be called by main device
     //todo: sync tx records after claim
 
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;

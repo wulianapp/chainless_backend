@@ -1,6 +1,5 @@
 use actix_web::HttpRequest;
-
-use crate::utils::token_auth;
+use crate::utils::{get_main_account, token_auth};
 use common::error_code::BackendRes;
 use common::{
     data_structures::CoinType,
@@ -29,7 +28,7 @@ pub(crate) async fn req(
 ) -> BackendRes<EstimateTransferFeeResponse> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
 
-    let main_account = super::get_main_account(user_id).await?;
+    let main_account = get_main_account(&user_id).await?;
 
     let EstimateTransferFeeRequest { coin, amount } = request_data;
     let coin: CoinType = coin.parse().map_err(to_param_invalid_error)?;

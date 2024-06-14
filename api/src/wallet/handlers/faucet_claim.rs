@@ -1,4 +1,4 @@
-use crate::utils::token_auth;
+use crate::utils::{get_main_account, token_auth};
 use actix_web::HttpRequest;
 use blockchain::coin::Coin;
 use blockchain::multi_sig::MultiSig;
@@ -21,7 +21,7 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
         Some(id) => id,
         None => {
             let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-            super::get_main_account(user_id).await?
+            get_main_account(&user_id).await?
         }
     };
 

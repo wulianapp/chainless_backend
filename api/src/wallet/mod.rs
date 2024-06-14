@@ -1628,11 +1628,6 @@ mod tests {
         test_register!(service, sender_master);
         test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let _subacc = sender_master.wallet.subaccount.first().unwrap();
-        let sender_info = test_get_strategy!(service, sender_master).unwrap();
-        let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
-        let _first_subaccount_id = sub_accoounts.first().unwrap();
-
         let strategy = test_get_strategy!(service, sender_master).unwrap();
         let (_new_sub_prikey, new_sub_pubkey) = ed25519_key_gen();
         test_add_subaccount!(service, sender_master, new_sub_pubkey);
@@ -1884,7 +1879,6 @@ mod tests {
         assert_eq!(user_info.role, "Master");
 
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
-        //println!("{},,,{:?}", line!(), sender_info);
         assert_eq!(
             sender_info.master_pubkey.as_str(),
             sender_servant.wallet.pubkey.as_ref().unwrap()
@@ -2548,7 +2542,6 @@ mod tests {
 
         //step2.2: check sender's new strategy
         let sender_strategy = test_get_strategy!(service, sender_master).unwrap();
-        println!("{},,,{:?}", line!(), sender_strategy);
 
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
@@ -2559,7 +2552,7 @@ mod tests {
 
         //step2.4: get device list
         let device_lists: Vec<DeviceInfo> = test_get_device_list!(service, sender_servant).unwrap();
-        println!("{},,,{:?}", line!(), device_lists);
+        println!("{:?}",device_lists);
 
         //step3: master: pre_send_money
         let res = test_pre_send_money2!(
@@ -2705,7 +2698,6 @@ mod tests {
 
         //step2.2: check sender's new strategy
         let sender_strategy = test_get_strategy!(service, sender_master).unwrap();
-        println!("{},,,{:?}", line!(), sender_strategy);
 
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
@@ -2715,8 +2707,7 @@ mod tests {
 
         //step2.4: get device list
         let device_lists: Vec<DeviceInfo> = test_get_device_list!(service, sender_servant).unwrap();
-        println!("{},,,{:?}", line!(), device_lists);
-
+        println!("{:?}",device_lists);
         //step3: master: pre_send_money
         //test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let res = test_pre_send_money!(

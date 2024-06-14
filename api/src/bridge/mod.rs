@@ -312,7 +312,6 @@ mod tests {
             .unwrap();
         println!("sign_bind sig {} ", sig);
 
-        //todo: sig on imtoken and verify on server
         let bind_res = bridge_cli
             .bind_eth_addr(
                 &user_info.main_account,

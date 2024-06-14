@@ -9,8 +9,7 @@ use models::eth_bridge_order::{BridgeOrderFilter, EthBridgeOrderEntity};
 
 use models::PsqlOp;
 
-use crate::utils::token_auth;
-use crate::wallet::handlers::*;
+use crate::utils::{get_main_account, token_auth};
 use anyhow::Result;
 
 use common::data_structures::CoinType;
@@ -67,13 +66,12 @@ pub(crate) async fn req(
     request_data: ListDepositOrderRequest,
 ) -> BackendRes<Vec<ListDepositOrderResponse>> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-    //todo:
-    let main_account = get_main_account(user_id).await?;
-
     let ListDepositOrderRequest {
         page,
         per_page: page_size,
     } = request_data;
+
+    let main_account = get_main_account(&user_id).await?;
 
     let order_ids_on_chainless = list_chainless_order_ids(&main_account).await?;
     let orders_on_external = list_external_orders(&main_account).await?;

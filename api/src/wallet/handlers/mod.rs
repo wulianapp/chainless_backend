@@ -134,14 +134,6 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
     }
 }
 
-pub async fn get_main_account(user_id: u32) -> Result<String, BackendError> {
-    let user = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
-    if user.user_info.main_account.is_none() {
-        Err(WalletError::NotSetSecurity)?
-    }
-    Ok(user.user_info.main_account.unwrap())
-}
-
 //calculate total value for dollar
 //目前的场景转账超过300兆才会溢出
 //由于取整造成的精度丢失可以忽略

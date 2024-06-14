@@ -12,6 +12,7 @@ use common::utils::time::now_millis;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
+use crate::utils::captcha::ContactType;
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{
     to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
@@ -60,8 +61,7 @@ pub(crate) async fn req(
 
     super::check_role(role, KeyRole::Master)?;
 
-    //todo:
-    let (to_account_id, to_contact) = if to.contains('@') || to.contains('+') {
+    let (to_account_id, to_contact) = if to.parse::<ContactType>().is_ok() {
         let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to))
             .await
             .map_err(|err| {

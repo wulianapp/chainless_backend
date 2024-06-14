@@ -20,6 +20,19 @@ pub mod respond;
 pub mod token_auth;
 pub mod wallet_grades;
 
+
+pub async fn get_main_account(user_id: &u32) -> Result<String,BackendError>{
+    
+    let account = UserInfoEntity::find_single(
+        UserFilter::ById(user_id)
+        )
+        .await?
+        .into_inner()
+        .main_account
+        .ok_or(WalletError::NotSetSecurity)?;
+    Ok(account)
+}
+
 //通过合约数据来判定设备角色
 pub fn judge_role_by_strategy(
     strategy: Option<&StrategyData>,

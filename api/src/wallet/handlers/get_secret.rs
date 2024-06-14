@@ -7,7 +7,7 @@ use models::{
     PsqlOp,
 };
 
-use crate::utils::token_auth;
+use crate::utils::{get_main_account, token_auth};
 use common::error_code::WalletError;
 use common::{
     data_structures::secret_store::SecretStore,
@@ -35,7 +35,7 @@ pub(crate) async fn req(
 ) -> BackendRes<GetSecretResponse> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let cli = blockchain::ContractClient::<MultiSig>::new_query_cli().await?;
-    let main_account = super::get_main_account(user_id).await?;
+    let main_account = get_main_account(&user_id).await?;
     let GetSecretRequest { r#type, account_id } = request_data;
     match r#type {
         //如果指定则获取指定账户的key，否则获取当前设备的key(master_key,或者servant_key)

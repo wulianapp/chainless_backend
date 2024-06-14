@@ -307,7 +307,6 @@ impl ContractClient<MultiSig> {
 
     async fn register_account_with_name(&self, account_id: &str, pubkey: &str) -> Result<String> {
         let arg_str = format!("{}:{}", account_id, pubkey);
-        debug!("0001a  {}  {}", file!(), line!());
         self.commit_by_relayer("register_account_with_name", &arg_str)
             .await
     }

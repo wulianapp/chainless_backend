@@ -1,4 +1,4 @@
-use crate::utils::token_auth;
+use crate::utils::{get_main_account, token_auth};
 use actix_web::HttpRequest;
 
 use common::data_structures::coin_transaction::CoinSendStage;
@@ -78,7 +78,7 @@ pub async fn req(
 ) -> BackendRes<Vec<CoinTxViewResponse>> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
 
-    let main_account = super::get_main_account(user_id).await?;
+    let main_account = get_main_account(&user_id).await?;
     let TxListRequest {
         tx_role,
         counterparty,
