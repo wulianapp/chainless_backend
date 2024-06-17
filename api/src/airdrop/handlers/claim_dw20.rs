@@ -25,9 +25,9 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     check_role(role, KeyRole::Master)?;
 
     let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?.into_inner();
-    if user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
+    if user_airdrop.btc_address.is_some() && user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
         Err(AirdropError::BtcGradeStatusIllegal)?;
-    } 
+    }
 
     AirdropEntity::update_single(
         AirdropUpdater::GradeStatus(BtcGradeStatus::Reconfirmed),
