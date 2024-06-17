@@ -1,8 +1,9 @@
 use actix_web::HttpRequest;
+use airdrop::BtcGradeStatus;
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::data_structures::KeyRole;
 use models::{
-    airdrop::{AirdropEntity, AirdropFilter},
+    airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
     PsqlOp,
 };
 use tracing::debug;
@@ -23,12 +24,22 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     check_role(role, KeyRole::Master)?;
 
-    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?;
+    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?.into_inner();
+    if user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
+        Err(AirdropError::BtcGradeStatusIllegal)?;
+    } 
+
+    AirdropEntity::update_single(
+        AirdropUpdater::GradeStatus(BtcGradeStatus::Reconfirmed),
+        AirdropFilter::ByAccountId(&main_account),
+    )
+    .await?;
+
 
     //上级必须也领过空投
     let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
     let predecessor_airdrop_on_chain = cli
-        .get_user(&user_airdrop.airdrop.predecessor_account_id)
+        .get_user(&user_airdrop.predecessor_account_id)
         .await?;
     if predecessor_airdrop_on_chain.is_none() {
         Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
@@ -38,9 +49,9 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let ref_user = cli
         .claim_dw20(
             &main_account,
-            &user_airdrop.airdrop.predecessor_account_id,
-            user_airdrop.airdrop.btc_address.as_deref(),
-            user_airdrop.airdrop.btc_level.unwrap_or_default(),
+            &user_airdrop.predecessor_account_id,
+            user_airdrop.btc_address.as_deref(),
+            user_airdrop.btc_level.unwrap_or_default(),
         )
         .await?;
     debug!("successful claim dw20 txid {}", ref_user);

@@ -104,38 +104,6 @@ async fn bind_btc_address(
     )
 }
 
-
-
-/**
- * @api {post} /airdrop/reconfirmBindBtcAddress 二次确认绑定btc地址
- * @apiVersion 0.0.1
- * @apiName ReconfirmBindBtcAddress
- * @apiGroup Airdrop
- * @apiHeader {String} Authorization  user's access token
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
-   -d ' {
-             "servantPubkey": "123",
-           }'
-   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
-    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
-    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
-* @apiSuccess {String}    msg              错误信息
-* @apiSuccess {String}   [data]            返回null
-* @apiSampleRequest http://120.232.251.101:8066/airdrop/reconfirmBindBtcAddress
-*/
-#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/airdrop/reconfirmBindBtcAddress")]
-async fn reconfirm_bind_btc_address(
-    req: HttpRequest
-) -> impl Responder {
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::reconfirm_bind_btc_address::req(req).await
-    )
-}
-
 /**
  * @api {post} /airdrop/changeInviteCode 修改邀请码
  * @apiVersion 0.0.1
@@ -294,7 +262,6 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(change_predecessor)
         .service(claim_cly)
         .service(claim_dw20)
-        .service(reconfirm_bind_btc_address)
         .service(get_grade)
         .service(new_btc_deposit);
 }

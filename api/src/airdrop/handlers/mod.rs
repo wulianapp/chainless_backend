@@ -1,5 +1,4 @@
 pub mod bind_btc_address;
-pub mod reconfirm_bind_btc_address;
 pub mod change_invite_code;
 pub mod change_predecessor;
 pub mod claim_cly;
