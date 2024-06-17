@@ -15,7 +15,7 @@ use tracing::debug;
 
 use crate::utils::respond::gen_extra_respond;
 use crate::utils::respond::get_lang;
-use common::log::generate_trace_id;
+use crate::utils::respond::get_trace_id;
 
 /**
  * @api {post} /bridge/preWithdraw 主钱包发起提现跨链的预交易
@@ -43,7 +43,7 @@ use common::log::generate_trace_id;
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToBridge
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/bridge/preWithdraw")]
 async fn pre_withdraw(
     req: HttpRequest,
@@ -75,7 +75,7 @@ async fn pre_withdraw(
  * @apiSampleRequest http://120.232.251.101:8066/bridge/bindEthAddr
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/bridge/bindEthAddr")]
 async fn bind_eth_addr(
     req: HttpRequest,
@@ -103,7 +103,7 @@ async fn bind_eth_addr(
  * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/bridge/genBindEthAddrSig")]
 async fn gen_bind_eth_addr_sig(
     req: HttpRequest,
@@ -136,7 +136,7 @@ async fn gen_bind_eth_addr_sig(
 * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/bridge/genDepositSig")]
 async fn gen_deposit_sig(
     req: HttpRequest,
@@ -162,7 +162,7 @@ async fn gen_deposit_sig(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/bridge/getBindedEthAddr")]
 async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -204,7 +204,7 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/bridge/listWithdrawOrder")]
 async fn list_withdraw_order(
     req: HttpRequest,
@@ -247,7 +247,7 @@ async fn list_withdraw_order(
 * @apiSuccess {String} data.created_at   创建时间
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/bridge/listDepositOrder")]
 async fn list_deposit_order(
     req: HttpRequest,

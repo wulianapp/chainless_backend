@@ -21,8 +21,7 @@ use tracing::debug;
 
 use crate::utils::respond::gen_extra_respond;
 use crate::utils::respond::get_lang;
-use common::log::generate_trace_id;
-
+use crate::utils::respond::get_trace_id;
 /**
  * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,
  * @apiVersion 0.0.1
@@ -39,7 +38,7 @@ use common::log::generate_trace_id;
  * @apiSuccess {String} data                null
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/getCaptchaWithoutToken")]
 async fn get_captcha_without_token(
     req: HttpRequest,
@@ -67,7 +66,7 @@ async fn get_captcha_without_token(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getCaptchaWithoutToken
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/getCaptchaWithToken")]
 async fn get_captcha_with_token(
     req: HttpRequest,
@@ -96,7 +95,7 @@ async fn get_captcha_with_token(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/accountManager/contactIsUsed")]
 async fn contact_is_used(
     req: HttpRequest,
@@ -125,7 +124,7 @@ async fn contact_is_used(
 * @apiSuccess {bool} data                验证码是否存在
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/accountManager/checkCaptcha")]
 async fn check_captcha(
     req: HttpRequest,
@@ -170,7 +169,7 @@ async fn check_captcha(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/userInfo
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/accountManager/userInfo")]
 async fn user_info(req: HttpRequest) -> impl Responder {
     //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
@@ -198,7 +197,7 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/registerByEmail")]
 async fn register_by_email(
     req: HttpRequest,
@@ -231,7 +230,7 @@ async fn register_by_email(
 * @apiSuccess {String} data         token值.
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/registerByPhone")]
 async fn register_by_phone(
     req: HttpRequest,
@@ -261,7 +260,7 @@ async fn register_by_phone(
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/login")]
 //todo: rename with loginByPassword
 async fn login_by_password(
@@ -291,7 +290,7 @@ async fn login_by_password(
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/getUserDeviceRole
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/accountManager/getUserDeviceRole")]
 async fn get_user_device_role(
     req: HttpRequest,
@@ -321,7 +320,7 @@ async fn get_user_device_role(
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/loginByCaptcha")]
 async fn login_by_captcha(
     req: HttpRequest,
@@ -352,7 +351,7 @@ async fn login_by_captcha(
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/resetPassword
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/resetPassword")]
 async fn reset_password(
     req: HttpRequest,
@@ -382,7 +381,7 @@ async fn reset_password(
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/replenishContact
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/replenishContact")]
 async fn replenish_contact(
     req: HttpRequest,
@@ -409,7 +408,7 @@ async fn replenish_contact(
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/genToken
  */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/genToken")]
 async fn gen_token(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::gen_token::req(req).await)

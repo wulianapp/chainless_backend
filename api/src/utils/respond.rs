@@ -1,6 +1,6 @@
 use actix_http::header;
 use actix_web::{HttpRequest, HttpResponse, Responder};
-use common::error_code::{BackendError, ErrorCode, LangType};
+use common::{error_code::{BackendError, ErrorCode, LangType}, log::generate_trace_id};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tracing::{debug, error, warn};
@@ -73,3 +73,12 @@ pub fn get_lang(req: &HttpRequest) -> LangType {
         .parse()
         .unwrap()
 }
+
+pub fn get_trace_id(req: &HttpRequest) -> String {
+    //没有该请求头就用uuid
+    req.headers()
+    .get("Request-Id")
+    .map(|k| k.to_str().unwrap_or(generate_trace_id().as_str()).to_string())
+    .unwrap_or(generate_trace_id())
+}
+

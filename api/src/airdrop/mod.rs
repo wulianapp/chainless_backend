@@ -11,7 +11,7 @@ use crate::airdrop::handlers::change_predecessor::ChangePredecessorRequest;
 use crate::airdrop::handlers::new_btc_deposit::NewBtcDepositRequest;
 use crate::utils::respond::gen_extra_respond;
 use crate::utils::respond::get_lang;
-use common::log::generate_trace_id;
+use crate::utils::respond::get_trace_id;
 
 /**
 * @api {get} /airdrop/status 获取后台存储中的用户空投状态
@@ -37,7 +37,7 @@ use common::log::generate_trace_id;
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/status
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/airdrop/status")]
 async fn status(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::status::req(req).await)
@@ -65,7 +65,7 @@ async fn status(req: HttpRequest) -> impl Responder {
 * @apiSuccess {Number}   [data]            Directly返回等级，Indirectly返回null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/bindBtcAddress
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/bindBtcAddress")]
 async fn bind_btc_address(
     req: HttpRequest,
@@ -97,7 +97,7 @@ async fn bind_btc_address(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/changeInviteCode
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/changeInviteCode")]
 async fn change_invite_code(
     req: HttpRequest,
@@ -129,7 +129,7 @@ async fn change_invite_code(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/changePredecessor
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/changePredecessor")]
 async fn change_predecessor(
     req: HttpRequest,
@@ -160,7 +160,7 @@ async fn change_predecessor(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/claimCly
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/claimCly")]
 async fn claim_cly(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::claim_cly::req(req).await)
@@ -185,7 +185,7 @@ async fn claim_cly(req: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/claimDw20
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/claimDw20")]
 async fn claim_dw20(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::claim_dw20::req(req).await)
@@ -196,8 +196,13 @@ async fn claim_dw20(req: HttpRequest) -> impl Responder {
  * @apiVersion 0.0.1
  * @apiName NewBtcDeposit
  * @apiGroup Airdrop
- * @apiBody {String}     sender                 发送方btc地址
- * @apiBody {String}     receiver               接收方btc地址
+ * @apiBody {Object[]}     utxoArray                 utxo组
+ * @apiBody {String}     utxoArray.sender               发送方btc地址
+ * @apiBody {String}     utxoArray.recipient               接收方btc地址
+ * @apiBody {Number}     utxoArray.value                  value
+ * @apiBody {Number}     utxoArray.blockheight           blockheight
+ * @apiBody {Number}     utxoArray.blocktime             blocktime
+ * @apiBody {String}     utxoArray.txid               交易hash
  * @apiExample {curl} Example usage:
  *   curl -X POST http://120.232.251.101:8066
    -d ' {
@@ -211,7 +216,7 @@ async fn claim_dw20(req: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/newBtcDeposit
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/newBtcDeposit")]
 async fn new_btc_deposit(
     req: HttpRequest,

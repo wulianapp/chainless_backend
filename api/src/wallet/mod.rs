@@ -34,6 +34,7 @@ use handlers::update_subaccount_hold_limit::UpdateSubaccountHoldLimitRequest;
 use handlers::upload_servant_sig::UploadTxSignatureRequest;
 
 use handlers::get_secret::GetSecretRequest;
+use handlers::set_fees_priority::SetFeesPriorityRequest;
 
 use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
@@ -42,8 +43,7 @@ use tracing::debug;
 
 use crate::utils::respond::get_lang;
 
-use common::log::generate_trace_id;
-use handlers::set_fees_priority::SetFeesPriorityRequest;
+use crate::utils::respond::get_trace_id;
 
 /**
 * @api {get} /wallet/searchMessage 查询待处理的钱包消息
@@ -103,7 +103,7 @@ use handlers::set_fees_priority::SetFeesPriorityRequest;
 * @apiSampleRequest http://120.232.251.101:8066/wallet/searchMessage
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/searchMessage")]
 async fn search_message(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::search_message::req(req).await)
@@ -134,7 +134,7 @@ async fn search_message(req: HttpRequest) -> impl Responder {
 * @apiSuccess {String} data.multi_sig_ranks.sig_num        金额区间需要的最小签名数.
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/getStrategy")]
 async fn get_strategy(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::get_strategy::req(req).await)
@@ -162,7 +162,7 @@ async fn get_strategy(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/estimateTransferFee
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/estimateTransferFee")]
 async fn estimate_transfer_fee(
     req: HttpRequest,
@@ -194,7 +194,7 @@ async fn estimate_transfer_fee(
 * @apiSuccess {String[]} data                          币种顺序,且不包含CLY
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getStrategy
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/getFeesPriority")]
 async fn get_fees_priority(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::get_fees_priority::req(req).await)
@@ -227,7 +227,7 @@ async fn get_fees_priority(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getSecret
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/getSecret")]
 async fn get_secret(
     req: HttpRequest,
@@ -277,7 +277,7 @@ async fn get_secret(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/preSendMoney")]
 async fn pre_send_money(
     req: HttpRequest,
@@ -323,7 +323,7 @@ async fn pre_send_money(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/preSendMoneyToSub
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/preSendMoneyToSub")]
 async fn pre_send_money_to_sub(
     req: HttpRequest,
@@ -362,7 +362,7 @@ async fn pre_send_money_to_sub(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reactPreSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/reactPreSendMoney")]
 async fn react_pre_send_money(
     req: HttpRequest,
@@ -404,7 +404,7 @@ async fn react_pre_send_money(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/reconfirmSendMoney")]
 async fn reconfirm_send_money(
     req: HttpRequest,
@@ -445,7 +445,7 @@ async fn reconfirm_send_money(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/canceSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/cancelSendMoney")]
 async fn cancel_send_money(
     req: HttpRequest,
@@ -489,7 +489,7 @@ async fn cancel_send_money(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/reconfirmSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/subSendToMain")]
 async fn sub_send_to_main(
     req: HttpRequest,
@@ -530,7 +530,7 @@ e4c12e677ce35b7e61c0b2b67907befd3b0939ed6c5f4a9fc0c9666b011b9050d4600",
  * @apiSampleRequest http://120.232.251.101:8066/wallet/uploadServantSig
  */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/uploadServantSig")]
 async fn upload_servant_sig(
     req: HttpRequest,
@@ -576,7 +576,7 @@ async fn upload_servant_sig(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/addServant")]
 async fn add_servant(
     req: HttpRequest,
@@ -616,7 +616,7 @@ async fn add_servant(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/newcommerSwitchServant
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/newcommerSwitchServant")]
 async fn newcommer_switch_servant(
     req: HttpRequest,
@@ -652,7 +652,7 @@ async fn newcommer_switch_servant(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeServant
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/removeServant")]
 async fn remove_servant(
     req: HttpRequest,
@@ -685,7 +685,7 @@ async fn remove_servant(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/servantSavedSecret
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/servantSavedSecret")]
 async fn servant_saved_secret(req: HttpRequest) -> impl Responder {
     gen_extra_respond(
@@ -719,7 +719,7 @@ async fn servant_saved_secret(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/addServant
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/addSubaccount")]
 async fn add_subaccount(
     req: HttpRequest,
@@ -757,7 +757,7 @@ async fn add_subaccount(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/removeSubaccount
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/removeSubaccount")]
 async fn remove_subaccount(
     req: HttpRequest,
@@ -797,7 +797,7 @@ async fn remove_subaccount(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/updateStrategy")]
 async fn update_strategy(
     req: HttpRequest,
@@ -833,7 +833,7 @@ async fn update_strategy(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/setFeesPriority
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/setFeesPriority")]
 async fn set_fees_priority(
     req: HttpRequest,
@@ -870,7 +870,7 @@ async fn set_fees_priority(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateSubaccountHoldLimit
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/updateSubaccountHoldLimit")]
 async fn update_subaccount_hold_limit(
     req: HttpRequest,
@@ -912,7 +912,7 @@ async fn update_subaccount_hold_limit(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/updateStrategy
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/updateSecurity")]
 async fn update_security(
     req: HttpRequest,
@@ -957,7 +957,7 @@ async fn update_security(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/createMainAccount
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/createMainAccount")]
 async fn create_main_account(
     req: HttpRequest,
@@ -993,7 +993,7 @@ async fn create_main_account(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/faucetClaim
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/faucetClaim")]
 async fn faucet_claim(
     req: HttpRequest,
@@ -1033,7 +1033,7 @@ async fn faucet_claim(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/balanceList")]
 async fn balance_list(
     req: HttpRequest,
@@ -1071,7 +1071,7 @@ async fn balance_list(
 * @apiSuccess {String} [data.hold_limit]                      持仓上限.主账户为空
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getBalance
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/singleBalance")]
 async fn single_balance(
     req: HttpRequest,
@@ -1147,7 +1147,7 @@ async fn single_balance(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/balanceList
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/txList")]
 async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> impl Responder {
     debug!(
@@ -1218,7 +1218,7 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/getTx")]
 async fn get_tx(req: HttpRequest, request_data: web::Query<GetTxRequest>) -> impl Responder {
     gen_extra_respond(
@@ -1251,7 +1251,7 @@ async fn get_tx(req: HttpRequest, request_data: web::Query<GetTxRequest>) -> imp
 
 * @apiSampleRequest http://120.232.251.101:8066/wallet/deviceList
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/deviceList")]
 async fn device_list(req: HttpRequest) -> impl Responder {
     gen_extra_respond(get_lang(&req), handlers::device_list::req(req).await)
@@ -1284,7 +1284,7 @@ async fn device_list(req: HttpRequest) -> impl Responder {
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genNewcomerSwitchMaster
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/genNewcomerSwitchMaster")]
 async fn gen_newcomer_switch_master(
     req: HttpRequest,
@@ -1326,7 +1326,7 @@ async fn gen_newcomer_switch_master(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genServantSwitchMaster
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/genServantSwitchMaster")]
 async fn gen_servant_switch_master(
     req: HttpRequest,
@@ -1361,7 +1361,7 @@ async fn gen_servant_switch_master(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getNeedSigNum
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/getNeedSigNum")]
 async fn get_need_sig_num(
     req: HttpRequest,
@@ -1395,7 +1395,7 @@ async fn get_need_sig_num(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/genSendMoney
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/genSendMoney")]
 async fn gen_send_money(
     req: HttpRequest,
@@ -1435,7 +1435,7 @@ async fn gen_send_money(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitNewcomerSwitchMaster
 */
 
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/commitNewcomerSwitchMaster")]
 async fn commit_newcomer_switch_master(
     req: HttpRequest,
@@ -1475,7 +1475,7 @@ async fn commit_newcomer_switch_master(
 * @apiSuccess {String} data                null
 * @apiSampleRequest http://120.232.251.101:8066/wallet/commitServantSwitchMaster
 */
-#[tracing::instrument(skip_all,fields(trace_id = generate_trace_id()))]
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/wallet/commitServantSwitchMaster")]
 async fn commit_servant_switch_master(
     req: HttpRequest,

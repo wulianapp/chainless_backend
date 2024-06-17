@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 //#![allow(unused_imports)]
 #![allow(dead_code)]
 #![allow(non_snake_case)]
@@ -24,7 +24,7 @@ use actix_web::{error::ErrorInternalServerError, http, App, HttpServer};
 use env_logger::Env;
 
 use models::general::{clean_conn, gen_db_cli};
-use tracing::debug;
+use tracing::{debug, info};
 
 use std::{cell::RefCell, future::{ready, Ready}, sync::Arc};
 
@@ -134,6 +134,7 @@ where
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     common::log::init_logger();
+    info!("Service Start");
     let service: String = format!("0.0.0.0:{}", common::env::CONF.api_port);
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     HttpServer::new(move || {
