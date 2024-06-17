@@ -1,7 +1,7 @@
 extern crate rustc_serialize;
 
 use async_trait::async_trait;
-use common::data_structures::airdrop::Airdrop;
+use common::data_structures::airdrop::{Airdrop, BtcGradeStatus};
 
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +34,7 @@ pub enum AirdropUpdater<'a> {
     //user_id,account_id
     Predecessor(&'a u32, &'a str),
     BtcLevel(u8),
+    GradeStatus(BtcGradeStatus),
 }
 
 impl fmt::Display for AirdropUpdater<'_> {
@@ -46,8 +47,14 @@ impl fmt::Display for AirdropUpdater<'_> {
                 format!("btc_address='{}'", addr)
             }
             AirdropUpdater::BtcAddressAndLevel(addr, level) => {
+                let have_grade = level.is_some();
                 let level: PsqlType = level.to_owned().into();
-                format!("btc_address='{}',btc_level={} ", addr, level.to_psql_str())
+                if have_grade {
+                    format!("btc_address='{}',btc_grade_status='PendingCalculate',btc_level={} ", addr, level.to_psql_str())
+                }else{
+                    format!("btc_address='{}',btc_grade_status='Calculated',btc_level={} ", addr, level.to_psql_str())
+                }
+                
             }
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)
@@ -60,6 +67,9 @@ impl fmt::Display for AirdropUpdater<'_> {
             }
             AirdropUpdater::BtcLevel(level) => {
                 format!("btc_level={}", level)
+            }
+            AirdropUpdater::GradeStatus(status) => {
+                format!("btc_grade_status='{}'", status.to_string())
             }
         };
         write!(f, "{}", description)
@@ -101,6 +111,7 @@ impl AirdropEntity {
                 predecessor_account_id: predecessor_account_id.to_string(),
                 btc_address: None,
                 btc_level: None,
+                btc_grade_status: BtcGradeStatus::PendingCalculate,
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -121,6 +132,7 @@ impl PsqlOp for AirdropEntity {
             predecessor_account_id,\
             btc_address,\
             btc_level,\
+            btc_grade_status,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from airdrop where {}",
@@ -128,7 +140,7 @@ impl PsqlOp for AirdropEntity {
         );
         let execute_res = PgLocalCli::query(sql.as_str()).await?;
         debug!("get_airdrop: raw sql {}", sql);
-        let gen_view = |row: &Row| {
+        let gen_view = |row: &Row| -> Result<AirdropEntity>{
             Ok(AirdropEntity {
                 airdrop: Airdrop {
                     user_id: row.get::<usize, i64>(0) as u32,
@@ -138,9 +150,10 @@ impl PsqlOp for AirdropEntity {
                     predecessor_account_id: row.get::<usize, String>(4),
                     btc_address: row.get::<usize, Option<String>>(5),
                     btc_level: row.get::<usize, Option<i16>>(6).map(|x| x as u8),
+                    btc_grade_status: row.get::<usize, String>(7).parse()?,
                 },
-                updated_at: row.get(7),
-                created_at: row.get(8),
+                updated_at: row.get(8),
+                created_at: row.get(9),
             })
         };
 
@@ -170,6 +183,7 @@ impl PsqlOp for AirdropEntity {
             predecessor_account_id,
             btc_address,
             btc_level,
+            btc_grade_status
         } = self.into_inner();
         let account_id: PsqlType = account_id.into();
         let btc_address: PsqlType = btc_address.into();
@@ -183,15 +197,17 @@ impl PsqlOp for AirdropEntity {
                 predecessor_user_id,\
                 predecessor_account_id,\
                 btc_address,\
-                btc_level
-         ) values ('{}',{},'{}',{},'{}',{},{});",
+                btc_level,\
+                btc_grade_status
+         ) values ('{}',{},'{}',{},'{}',{},{},'{}');",
             user_id,
             account_id.to_psql_str(),
             invite_code,
             predecessor_user_id,
             predecessor_account_id,
             btc_address.to_psql_str(),
-            btc_level.to_psql_str()
+            btc_level.to_psql_str(),
+            btc_grade_status.to_string()
         );
         debug!("row sql {} rows", sql);
         let _execute_res = PgLocalCli::execute(sql.as_str()).await?;

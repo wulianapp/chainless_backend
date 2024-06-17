@@ -1,5 +1,6 @@
 use actix_web::HttpRequest;
 
+use airdrop::BtcGradeStatus;
 use blockchain::airdrop::Airdrop;
 use common::data_structures::KeyRole;
 use models::{
@@ -49,16 +50,21 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
     ***/
 
-    /***
+
     //tmp: 等提前查等级的流程加上，再打开
     //防止一个金牌地址对多个账户小号打款评级
-    if !AirdropEntity::find(AirdropFilter::ByBtcAddress(&btc_address))
-        .await?
-        .is_empty()
-    {
-        Err(AirdropError::BtcAddressAlreadyUsed)?;
+    match AirdropEntity::find_single(AirdropFilter::ByBtcAddress(&btc_address)).await {
+        Ok(data) => {
+            if data.into_inner().btc_grade_status == BtcGradeStatus::Reconfirmed{
+                Err(AirdropError::BtcAddressAlreadyUsed)?;
+            }
+        },
+        Err(e) if e.to_string().contains("DataNotFound") => {
+            //do nothing
+        },
+        Err(e) => Err(e)?,
     }
-    ***/
+    
 
     //todo: get kyc info
     let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();

@@ -294,6 +294,10 @@ pub enum AirdropError {
     HaveNotClaimAirdrop,
     #[error("predecessor haven't claim airdrop")]
     PredecessorHaveNotClaimAirdrop,
+    #[error("BtcAddressAlreadyBinded")]
+    BtcAddressAlreadyBinded,
+    #[error("BtcGradeStatusIllegal")]
+    BtcGradeStatusIllegal,
 }
 
 impl ErrorCode for AirdropError {
@@ -307,6 +311,8 @@ impl ErrorCode for AirdropError {
             Self::ForbidSetSelfAsPredecessor => 5005,
             Self::HaveNotClaimAirdrop => 5006,
             Self::PredecessorHaveNotClaimAirdrop => 5007,
+            Self::BtcAddressAlreadyBinded => 5008,
+            Self::BtcGradeStatusIllegal => 5009
         }
     }
 }
