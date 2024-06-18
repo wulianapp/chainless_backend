@@ -6,7 +6,7 @@ members = [
     "scanner",
     "models",
     "blockchain"
-, "bot"]
+]
 
 exclude = [
     "doc",

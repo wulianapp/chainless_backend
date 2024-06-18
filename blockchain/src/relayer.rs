@@ -1,11 +1,12 @@
 use common::env::RelayerPool;
 
 use lazy_static::lazy_static;
+use near_jsonrpc_client::methods::query::RpcQueryRequest;
 use std::str::FromStr;
 
 use near_crypto::{InMemorySigner, KeyType, SecretKey};
 
-use near_primitives::hash::hash;
+use near_primitives::{hash::hash, types::BlockReference};
 
 use near_primitives::types::AccountId;
 
@@ -17,7 +18,8 @@ use tracing::{debug, warn};
 pub struct Relayer {
     pub derive_index: u32,
     pub signer: InMemorySigner,
-    //pub nonce: u64,
+    /// 用到的当前的时候再去初始化，初始化完成之后再本地维护
+    pub nonce: Option<u64>,
 }
 
 impl AsRef<InMemorySigner> for Relayer {
@@ -37,6 +39,7 @@ lazy_static! {
             pool.push(Mutex::new(Relayer{
                 derive_index,
                 signer,
+                nonce: None
             }));
         }
         pool
@@ -56,12 +59,31 @@ pub fn find_idle_relayer() -> Option<MutexGuard<'static, Relayer>> {
     None
 }
 
-pub async fn wait_for_idle_relayer() -> MutexGuard<'static, Relayer> {
+pub async fn wait_for_idle_relayer() -> Result<MutexGuard<'static, Relayer>> {
     loop {
         match find_idle_relayer() {
-            Some(x) => {
+            Some(mut x) => {
+                let current_nonce = if let Some(num) = x.nonce{
+                    num
+                }else{
+                    let access_key_query_response = crate::rpc_call(RpcQueryRequest {
+                        block_reference: BlockReference::latest(),
+                        request: near_primitives::views::QueryRequest::ViewAccessKey {
+                            account_id: x.signer.account_id.clone(),
+                            public_key: x.signer.public_key.clone(),
+                        },
+                    })
+                    .await?;
+
+                    let current_nonce = match access_key_query_response.kind {
+                        near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+                        _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
+                    };
+                    current_nonce            
+                };
+                x.nonce = Some(current_nonce + 1);
                 debug!("find idle relayer {}", x.derive_index);
-                return x;
+                return Ok(x);
             }
             None => {
                 warn!("relayer is busy");
@@ -95,14 +117,9 @@ mod tests {
         action::{Action, AddKeyAction},
         types::BlockReference,
     };
-
     use near_crypto::{PublicKey, SecretKey};
-
     use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
-
     use near_jsonrpc_client::methods;
-    use near_jsonrpc_primitives::types::query::QueryResponseKind;
-
     use near_primitives::transaction::Transaction;
     use near_primitives::types::AccountId;
     use tracing::error;
@@ -114,7 +131,7 @@ mod tests {
         for index in 0..10 {
             let handle = tokio::spawn(async move {
                 //tokio::time::sleep(std::time::Duration::from_millis(index as u64 * 1000)).await;
-                let relayer = wait_for_idle_relayer().await;
+                let relayer = wait_for_idle_relayer().await.unwrap();
                 error!(
                     "relayer {} index {}",
                     relayer.signer.public_key.to_string(),
@@ -168,7 +185,7 @@ mod tests {
         .await
         .unwrap();
         let current_nonce = match access_key_query_response.kind {
-            QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+            near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(access_key) => access_key.nonce,
             _ => panic!(),
         };
         let tx = Transaction {

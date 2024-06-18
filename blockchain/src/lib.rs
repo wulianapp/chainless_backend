@@ -100,7 +100,7 @@ impl<T> Drop for ContractClient<T> {
 impl<T> ContractClient<T> {
     //对于复用代码的项目需要手动注入地址
     pub async fn gen_cli(contract: &str) -> Result<Self> {
-        let relayer = wait_for_idle_relayer().await;
+        let relayer = wait_for_idle_relayer().await?;
         Ok(Self {
             deployed_at: contract.parse()?,
             relayer: Some(relayer),
@@ -233,7 +233,7 @@ impl<T> ContractClient<T> {
 
     async fn commit_by_relayer(&self, method_name: &str, args: &str) -> Result<String> {
         debug!("method_name: {},args: {}", method_name, args);
-        let transaction = self
+        let mut transaction = self
             .gen_tx(
                 &self.as_ref().account_id,
                 &self.as_ref().public_key,
@@ -241,6 +241,8 @@ impl<T> ContractClient<T> {
                 args,
             )
             .await?;
+        //todo: relayer用到的不止这一个地方
+        transaction.nonce = self.relayer.as_ref().unwrap().nonce.ok_or(anyhow!(""))?;
         //relayer_sign
         let signature = self
             .as_ref()
