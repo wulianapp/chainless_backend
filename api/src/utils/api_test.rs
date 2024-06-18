@@ -4,9 +4,15 @@ use actix_web::App;
 use actix_web::Error;
 use blockchain::multi_sig::MultiSig;
 use common::encrypt::ed25519_key_gen;
+use common::env::{ServiceMode, CONF};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 use std::env;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::random_num;
+use reqwest::Client;
+
+use super::respond::BackendRespond;
 
 #[derive(Debug, Clone)]
 pub struct TestWallet {
@@ -239,16 +245,63 @@ pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
     cli.get_tx_state(txs_index).await.unwrap().unwrap()
 }
 
+lazy_static! {
+    static ref REQ_CLI: reqwest::Client  = reqwest::Client::new();
+
+}
+/*** 
+pub async fn test1(){
+    let res = REQ_CLI.post("http://httpbin.org/post")
+    .body("the exact body that is sent")
+    .header("ChainLessLanguage", "ZH_TW")
+    .header("Content-Type", "application/json")
+    .send()
+    .await?;
+}
+***/
+/***
+ * 
+ let res = client.post("http://httpbin.org/post")
+    .body("the exact body that is sent")
+    .send()
+    .await?;
+*/
+
+
+pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(method:&str,api:&str,payload:Option<String>,token:Option<String>) ->  BackendRespond<T> {
+        let uri = format!("http://120.232.251.101:8066{}",api);
+        let uri = format!("http://192.168.1.15:8066{}",api);
+        let mut parameters = if method == "post" {
+            REQ_CLI.post(&uri)
+                .header("ChainLessLanguage", "ZH_TW")
+                .header("Content-Type", "application/json")
+        } else {
+            REQ_CLI.get(uri)
+        };
+
+        if let Some(data) = payload {
+            parameters = parameters.body(data.to_string());
+        };
+
+        if let Some(data) = token {
+            parameters = parameters.header("Authorization", format!("bearer {}", data));
+        };
+
+        let body_str = parameters.send().await.unwrap().text().await.unwrap();
+        println!("api {}, body_str {}", api, body_str);
+        serde_json::from_str::<_>(&body_str).unwrap()
+}
+
 #[macro_export]
-macro_rules! test_service_call {
+macro_rules! test_actix_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
         let mut parameters = if $method == "post" {
-            test::TestRequest::post()
+            actix_web::test::TestRequest::post()
                 .uri($api)
                 .insert_header(header::ContentType::json())
                 .insert_header(("ChainLessLanguage", "ZH_TW"))
         } else {
-            test::TestRequest::get().uri($api)
+            actix_web::test::TestRequest::get().uri($api)
         };
 
         if let Some(data) = $payload {
@@ -261,13 +314,24 @@ macro_rules! test_service_call {
         };
 
         let req = parameters.to_request();
-        let body = test::call_and_read_body(&$service, req)
+        let body = actix_web::test::call_and_read_body(&$service, req)
             .await
             .try_into_bytes()
             .unwrap();
         let body_str = String::from_utf8(body.to_vec()).unwrap();
         println!("api {}, body_str {}", $api, body_str);
         serde_json::from_str::<_>(&body_str).unwrap()
+    }};
+}
+
+#[macro_export]
+macro_rules! test_service_call {
+    ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
+        if common::env::CONF.service_mode != common::prelude::ServiceMode::Test {
+            crate::utils::api_test::local_reqwest_call($method,$api,$payload,$token).await
+        }else{
+            crate::test_actix_call!($service,$method,$api,$payload,$token)
+        }
     }};
 }
 //data值都放上次处理进行unwrap，因为确实有null的场景，没有需要数据返回的直接不返回数据
@@ -307,7 +371,7 @@ macro_rules! test_get_captcha_with_token {
                 "post",
                 "/accountManager/getCaptchaWithToken",
                 Some(payload.to_string()),
-                Some($app.user.token.as_ref().unwrap())
+                Some($app.user.token.clone().unwrap())
             );
             assert_eq!(res.status_code,0);
     }};
@@ -380,7 +444,7 @@ macro_rules! test_create_main_account{
             "post",
             "/accountManager/getCaptchaWithToken",
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         ***/
@@ -399,7 +463,7 @@ macro_rules! test_create_main_account{
             "post",
             "/wallet/createMainAccount",
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -414,7 +478,7 @@ macro_rules! test_search_message {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -430,7 +494,7 @@ macro_rules! test_get_strategy {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -446,7 +510,7 @@ macro_rules! test_user_info {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -462,7 +526,7 @@ macro_rules! test_get_fees_priority {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -487,7 +551,7 @@ macro_rules! test_tx_list {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -510,7 +574,7 @@ macro_rules! test_add_servant {
             "post",
             "/wallet/addServant",
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -525,7 +589,7 @@ macro_rules! test_servant_saved_secret {
             "post",
             &url,
             None::<String>,
-            Some($servant.user.token.as_ref().unwrap())
+            Some($servant.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
     }};
@@ -546,7 +610,7 @@ macro_rules! test_add_subaccount {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
     }};
@@ -564,7 +628,7 @@ macro_rules! test_remove_subaccount {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
     }};
@@ -581,7 +645,7 @@ macro_rules! test_remove_servant {
             "post",
             "/wallet/removeServant",
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -600,7 +664,7 @@ macro_rules! test_update_strategy {
             "post",
             "/wallet/updateStrategy",
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -617,7 +681,7 @@ macro_rules! test_set_fees_priority{
             "post",
             "/wallet/setFeesPriority",
             Some(payload.to_string()),
-            Some($master.user.token.as_ref().unwrap())
+            Some($master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -636,7 +700,7 @@ macro_rules! test_update_security {
             "post",
             "/accountManager/getCaptchaWithToken",
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         ***/
@@ -651,7 +715,7 @@ macro_rules! test_update_security {
             "post",
             "/wallet/updateSecurity",
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -672,7 +736,7 @@ macro_rules! test_pre_send_money {
             "post",
             "/wallet/preSendMoney",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -694,7 +758,7 @@ macro_rules! test_pre_send_money2 {
             "post",
             "/wallet/preSendMoney",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -715,7 +779,7 @@ macro_rules! test_pre_send_money_to_sub {
             "post",
             "/wallet/preSendMoneyToSub",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -739,7 +803,7 @@ macro_rules! test_pre_send_money_to_bridge {
             "post",
             "/bridge/preWithdraw",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         println!("__0001");
@@ -759,7 +823,7 @@ macro_rules! test_reconfirm_send_money {
             "post",
             "/wallet/reconfirmSendMoney",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -777,7 +841,7 @@ macro_rules! test_upload_servant_sig {
             "post",
             "/wallet/uploadServantSig",
             Some(payload.to_string()),
-            Some($sender_servant.user.token.as_ref().unwrap())
+            Some($sender_servant.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
     }};
@@ -798,7 +862,7 @@ macro_rules! test_newcommer_switch_servant {
             "post",
             "/wallet/newcommerSwitchServant",
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -819,7 +883,7 @@ macro_rules! test_gen_newcommer_switch_master {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_newcommer.user.token.as_ref().unwrap())
+            Some($sender_newcommer.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -838,7 +902,7 @@ macro_rules! test_gen_servant_switch_master {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_servant.user.token.as_ref().unwrap())
+            Some($sender_servant.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -860,7 +924,7 @@ macro_rules! test_sub_send_to_master {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -880,7 +944,7 @@ macro_rules! test_update_subaccount_hold_limit {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_master.user.token.as_ref().unwrap())
+            Some($sender_master.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -900,7 +964,7 @@ macro_rules! test_react_pre_send_money {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($receiver.user.token.as_ref().unwrap())
+            Some($receiver.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -927,7 +991,7 @@ macro_rules! test_commit_newcommer_switch_master {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_newcommer.user.token.as_ref().unwrap())
+            Some($sender_newcommer.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -952,7 +1016,7 @@ macro_rules! test_commit_servant_switch_master {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($sender_servant.user.token.as_ref().unwrap())
+            Some($sender_servant.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code,0);
         res.data
@@ -971,7 +1035,7 @@ macro_rules! test_faucet_claim {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
     }};
@@ -987,7 +1051,7 @@ macro_rules! test_get_secret {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1006,7 +1070,7 @@ macro_rules! test_estimate_transfer_fee {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1022,7 +1086,7 @@ macro_rules! test_get_balance_list {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1038,7 +1102,7 @@ macro_rules! test_get_tx {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1054,7 +1118,7 @@ macro_rules! test_bridge_list_order {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         println!("ListWithdrawOrderResponse {:#?}", res);
         assert_eq!(res.status_code, 0);
@@ -1071,7 +1135,7 @@ macro_rules! test_get_device_list {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1088,7 +1152,7 @@ macro_rules! test_airdrop_status {
             "get",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1110,7 +1174,7 @@ macro_rules! test_bind_btc_address {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1130,7 +1194,7 @@ macro_rules! test_new_btc_deposit {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1149,7 +1213,7 @@ macro_rules! test_change_invite_code {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1168,7 +1232,7 @@ macro_rules! test_change_predecessor {
             "post",
             &url,
             Some(payload.to_string()),
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1184,7 +1248,7 @@ macro_rules! test_claim_cly {
             "post",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data
@@ -1200,7 +1264,7 @@ macro_rules! test_claim_dw20 {
             "post",
             &url,
             None::<String>,
-            Some($app.user.token.as_ref().unwrap())
+            Some($app.user.token.clone().unwrap())
         );
         assert_eq!(res.status_code, 0);
         res.data

@@ -6,7 +6,7 @@ members = [
     "scanner",
     "models",
     "blockchain"
-]
+, "bot"]
 
 exclude = [
     "doc",
@@ -37,7 +37,9 @@ serde_derive = "1.0"
 async-std = "1.12.0"
 futures-util = { version = "0.3.30"}
 futures = { version = "0.3"}
+rayon = "1.10.0"
 tokio = { version = "1.28.2", features = ["full"] }
+
 
 
 ## near

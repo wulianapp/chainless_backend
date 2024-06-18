@@ -424,6 +424,7 @@ dependencies = [
  "models",
  "phonenumber",
  "rand 0.7.3",
+ "rayon",
  "regex",
  "reqwest",
  "rust_decimal",
@@ -835,6 +836,10 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "bot"
+version = "0.1.0"
 
 [[package]]
 name = "brotli"

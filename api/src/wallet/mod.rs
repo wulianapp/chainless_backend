@@ -1540,13 +1540,12 @@ mod tests {
     use core::panic;
     use actix_web::body::MessageBody;
     use actix_web::http::header;
-    use actix_web::{test};
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
+    use common::env::ServiceMode;
     use common::utils::time::now_millis;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
-
     use super::handlers::balance_list::BalanceListResponse;
     use super::handlers::estimate_transfer_fee::EstimateTransferFeeResponse;
     use super::handlers::get_tx::GetTxResponse;
@@ -1569,13 +1568,14 @@ mod tests {
     use common::data_structures::CoinType;
     use common::utils::math::*;
     use handlers::get_strategy::StrategyDataResponse;
+    use rayon::prelude::*;
 
     /***
 
     #[actix_web::test]
     async fn test_wallet_yunlong_fake_tx() {
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master,
             mut sender_servant,
             mut sender_newcommer,
@@ -1604,7 +1604,7 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_fees_prioritys_op");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
@@ -1622,7 +1622,7 @@ mod tests {
     async fn test_wallet_add_remove_subaccount() {
         println!("start test_wallet_add_remove_subaccount");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
@@ -1667,7 +1667,7 @@ mod tests {
     async fn test_wallet_update_subaccount_hold_limit_ok() {
         println!("start test_wallet_update_subaccount_hold_limit_ok");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
@@ -1690,7 +1690,7 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_force_transfer_with_servant");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _, mut receiver) =
             gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
@@ -1757,7 +1757,7 @@ mod tests {
         //todo: cureent is single, add multi_sig testcase
         println!("start test_wallet_force_transfer_without_servant");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, mut receiver) = gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
@@ -1799,7 +1799,7 @@ mod tests {
     async fn test_wallet_replace_servant() {
         println!("start test_wallet_replace_servant");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, mut sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -1836,7 +1836,7 @@ mod tests {
     async fn test_wallet_servant_switch_master() {
         println!("start test_wallet_servant_switch_master");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -1893,7 +1893,7 @@ mod tests {
     async fn test_wallet_main_send_money_to_sub() {
         println!("start test_wallet_main_send_money_to_sub");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
@@ -1938,7 +1938,7 @@ mod tests {
     async fn test_wallet_main_send_money_to_bridge() {
         println!("start test_wallet_main_send_money_to_bridge");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
@@ -2105,7 +2105,7 @@ mod tests {
     async fn test_wallet_main_send_eth_to_bridge() {
         println!("start test_wallet_main_send_eth_to_bridge");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -2266,7 +2266,7 @@ mod tests {
     async fn test_wallet_sub_send_money_to_main() {
         println!("start test_wallet_sub_send_money_to_main");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
         test_register!(service, sender_master);
@@ -2333,7 +2333,7 @@ mod tests {
     async fn test_wallet_change_security() {
         println!("start test_wallet_change_security");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
         let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
@@ -2371,7 +2371,7 @@ mod tests {
     async fn test_wallet_newcommer_replace_master() {
         println!("start test_wallet_newcommer_replace_master");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, mut sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -2409,11 +2409,11 @@ mod tests {
     async fn test_wallet_get_all2() {
         println!("start test_wallet_get_all");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
         let start = now_millis();
-        for _ in 0..1000 {
+        for _ in 0..10 {
             let _test1 = test_contact_is_used!(service, sender_master);
             //let user = PgLocalCli2::execute("select * from users").await.unwrap();
         }
@@ -2421,10 +2421,10 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_wallet_get_all() {
+    async fn test_wallet_get_all3() {
         println!("start test_wallet_get_all");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -2455,7 +2455,7 @@ mod tests {
     async fn test_wallet_faucet_ok() {
         println!("start test_wallet_faucet_ok");
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 
@@ -2490,8 +2490,24 @@ mod tests {
     }
     */
 
+    #[test]
+    fn local_paralle_wallet_all_braced_wallet_ok_with_new_key() {
+        rayon::ThreadPoolBuilder::new().num_threads(20).build().unwrap().install(|| {
+            let mut data: Vec<i32> = (0..1000).collect();
+            data.par_iter_mut().for_each(|_num| {
+                tokio::runtime::Runtime::new().unwrap().block_on(async {
+                    wallet_all_braced_wallet_ok_with_new_key().await
+                })
+            });
+        });
+    }   
+
     #[actix_web::test]
     async fn test_wallet_all_braced_wallet_ok_with_new_key() {
+        wallet_all_braced_wallet_ok_with_new_key().await
+    }
+
+    async fn wallet_all_braced_wallet_ok_with_new_key() {
         //fixme: currently used service mode is from environment ,not init's value
         let (sender_master, sender_servant, _sender_newcommer, receiver) =
             gen_some_accounts_with_new_key();
@@ -2515,7 +2531,7 @@ mod tests {
         mut sender_servant: TestWulianApp2,
     ) {
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         //init: get token by register or login
         test_register!(service, sender_master);
         test_register!(service, receiver);
@@ -2673,7 +2689,7 @@ mod tests {
         mut sender_servant: TestWulianApp2,
     ) {
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         //init: get token by register or login
         test_register!(service, sender_master);
         test_register!(service, receiver);

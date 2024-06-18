@@ -287,7 +287,7 @@ mod tests {
     #[actix_web::test]
     async fn test_airdrop_braced() {
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
 

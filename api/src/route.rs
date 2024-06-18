@@ -21,6 +21,7 @@ use actix_http::{header, Payload};
 
 use actix_cors::Cors;
 use actix_web::{error::ErrorInternalServerError, http, App, HttpServer};
+use common::log::generate_trace_id;
 use env_logger::Env;
 
 use models::general::{clean_conn, gen_db_cli};
@@ -100,16 +101,18 @@ where
 
         let fut = self.service.call(req);
         Box::pin(async move {
+            let log_id = generate_trace_id();
+
             let (db_cli, conn_ptr) = gen_db_cli(&method).await.map_err(ErrorInternalServerError)?;
-            
+            debug!("log_id:{} : create local cli",log_id);
             //todo: 最好LOCAL_CLI的初始化放在modles模块
             models::LOCAL_CLI.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
                 let res = fut.await;
-                
+                let default_code = header::HeaderValue::from_str("1").unwrap();
                 let err_code = res.as_ref().map(|res|{
                     let value = res.headers().get(
                         header::HeaderName::from_static("chainless_status_code")
-                    ).unwrap();
+                    ).unwrap_or(&default_code);
                     value.to_str().unwrap().parse::<u16>().unwrap()
                 });
 
@@ -123,7 +126,7 @@ where
                     }
                 };
                 clean_conn(conn_ptr);
-
+                debug!("log_id:{} : clean local cli",log_id);
                 res
             }).await
             

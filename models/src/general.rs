@@ -49,6 +49,7 @@ pub fn clean_conn(conn_ptr: *mut LocalConn) {
     unsafe {
         let _ = Box::from_raw(conn_ptr);
     };
+    debug!("pool_status {:?}", PG_POOL.status());
 }
 
 pub fn into_local_cli() -> Result<PgLocalCli>{

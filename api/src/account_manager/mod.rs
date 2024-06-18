@@ -451,8 +451,8 @@ mod tests {
     #[actix_web::test]
     async fn test_hello() {
         let app = init().await;
-        let service = test::init_service(app).await;
-        let req = test::TestRequest::get().uri("/hello/test").to_request();
+        let service = actix_web::test::init_service(app).await;
+        let req = actix_web::test::TestRequest::get().uri("/hello/test").to_request();
         let body = test::call_service(&service, req)
             .await
             .into_body()
@@ -465,7 +465,7 @@ mod tests {
     #[actix_web::test]
     async fn test_all_braced_account_manager_ok() {
         let app = init().await;
-        let service = test::init_service(app).await;
+        let service = actix_web::test::init_service(app).await;
 
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) = gen_some_accounts_with_new_key();
  
