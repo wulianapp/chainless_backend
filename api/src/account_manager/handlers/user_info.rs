@@ -43,10 +43,18 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         .await?
         .into_inner();
 
+    //仅实名领取之后才能显示邀请链接    
     let invite_code = if let Some(ref account) = user_info.main_account {
         let cli = ContractClient::<Airdrop>::new_query_cli().await?;
         let user_airdrop_on_chain = cli.get_user(account).await?;
-        user_airdrop_on_chain.map(|_u| airdrop_info.invite_code)
+        match user_airdrop_on_chain {
+            Some(user) if user.create_cly != 0 =>{
+                Some(airdrop_info.invite_code)
+            },
+            _ =>{
+                None
+            }
+        }
     } else {
         None
     };

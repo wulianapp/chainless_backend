@@ -254,7 +254,7 @@ impl<T> ContractClient<T> {
 
         debug!("call commit_by_relayer txid {}", &tx.get_hash().to_string());
 
-        let rep = crate::rpc_call(request).await.unwrap();
+        let rep = crate::rpc_call(request).await?;
         if let FinalExecutionStatus::Failure(error) = rep.status {
             Err(anyhow!(error.to_string()))?
         }
