@@ -268,7 +268,7 @@ pub async fn test1(){
 
 pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(method:&str,api:&str,payload:Option<String>,token:Option<String>) ->  BackendRespond<T> {
         let _uri = format!("http://120.232.251.101:8067{}",api);
-        let uri = format!("http://192.168.1.15:8067{}",api);
+        let uri = format!("http://192.168.1.15:8066{}",api);
         let mut parameters = if method == "post" {
             REQ_CLI.post(&uri)
                 .header("ChainLessLanguage", "ZH_TW")

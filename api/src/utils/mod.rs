@@ -39,12 +39,16 @@ pub fn judge_role_by_strategy(
     device_key: Option<&str>,
 ) -> Result<KeyRole> {
     let role = match (strategy, device_key) {
+        //未注册
         (None, None) => KeyRole::Undefined,
         (None, Some(_)) => Err(anyhow!("unreachable"))?,
+        //已注册但是没有key的新设备
         (Some(_), None) => KeyRole::Undefined,
         (Some(strategy), Some(hold_key)) => {
+            //主设备
             if strategy.master_pubkey.eq(hold_key) {
                 KeyRole::Master
+            //从设备    
             } else if strategy.servant_pubkeys.contains(&hold_key.to_string()) {
                 KeyRole::Servant
             } else {

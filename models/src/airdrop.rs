@@ -47,7 +47,7 @@ impl fmt::Display for AirdropUpdater<'_> {
                 format!("btc_address='{}'", addr)
             }
             AirdropUpdater::BtcAddressAndLevel(addr, level) => {
-                let have_grade = level.is_some();
+                let have_grade = level.is_none();
                 let level: PsqlType = level.to_owned().into();
                 if have_grade {
                     format!("btc_address='{}',btc_grade_status='PendingCalculate',btc_level={} ", addr, level.to_psql_str())

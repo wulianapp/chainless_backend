@@ -3,8 +3,8 @@ create table if not exists users
 (
     --用户id,目前是直接自增
     id bigserial  primary key, 
-    phone_number text,
-    email text,
+    phone_number text unique,
+    email text unique,
     --登陆密码
     login_pwd_hash text not null,
     -- 安全问答序列号
@@ -16,11 +16,11 @@ create table if not exists users
     -- 最近三次创建子账户的时间戳，对应每天只能创建三个子账户的需求
     create_subacc_time bigint[],
     -- 无链钱包id
-    main_account text,
+    main_account text unique,
     -- 令牌版本
     token_version bigint not null,
     updated_at  timestamp with time zone default current_timestamp,
-    created_at  timestamp with time zone default current_timestamp
+    created_at  timestamp with time zone default current_timestamp,
 );
 
 
@@ -41,7 +41,7 @@ create table coin_transaction(
      -- 订单id
      order_id  text primary key,
      -- 链上tx_id
-     tx_id text,
+     tx_id text unique,
      --  发送方
      sender text,
      -- 接收方

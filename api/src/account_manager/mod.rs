@@ -145,7 +145,8 @@ async fn check_captcha(
  * @apiVersion 0.0.1
  * @apiName userInfo
  * @apiGroup AccountManager
- * @apiBody {String} contact   邮箱或者手机号
+ * @apiHeader {String} Authorization  user's access token
+ * @apiHeader {String} Request-Iddd  request-id
  * @apiExample {curl} Example usage:
  * curl -X GET "http://120.232.251.101:8066/accountManager/userInfo"
  * @apiSuccess {String=0,1,} status_code         状态码.
