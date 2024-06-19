@@ -34,7 +34,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         Err(AccountManagerError::KYCNotRegister)?;
     }
 
-    let cli = ContractClient::<Airdrop>::new_update_cli().await?;
+    let mut cli = ContractClient::<Airdrop>::new_update_cli().await?;
     let receive_res = cli.claim_cly(&main_account).await?;
     debug!("successful claim air_reward {:?}", receive_res);
     Ok(None)

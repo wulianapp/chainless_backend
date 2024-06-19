@@ -61,7 +61,7 @@ pub(crate) async fn req(
         ))?;
     }
 
-    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     //todo:
     let main_account_id = super::gen_random_account_id(&multi_sig_cli).await?;
     let subaccount_id = super::gen_random_account_id(&multi_sig_cli).await?;
@@ -119,7 +119,7 @@ pub(crate) async fn req(
     .await?;
 
     //注册的时候就把允许跨链的状态设置了
-    let bridge_cli = ContractClient::<Bridge>::new_update_cli().await?;
+    let mut bridge_cli = ContractClient::<Bridge>::new_update_cli().await?;
     let set_res = bridge_cli.set_user_batch(&main_account_id).await?;
     debug!("set_user_batch txid {} ,{}", set_res, main_account_id);
 

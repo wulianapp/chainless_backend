@@ -35,7 +35,7 @@ impl ContractClient<Airdrop> {
 
     //claion after kyc
     pub async fn claim_dw20(
-        &self,
+        &mut self,
         account_id: &str,
         predecessor_account_id: &str,
         btc_address: Option<&str>,
@@ -52,7 +52,7 @@ impl ContractClient<Airdrop> {
     }
 
     //claim anonymously
-    pub async fn claim_cly(&self, account_id: &str) -> Result<String> {
+    pub async fn claim_cly(&mut self, account_id: &str) -> Result<String> {
         let args_str = json!({
             "account_id":  account_id,
         })
@@ -61,7 +61,7 @@ impl ContractClient<Airdrop> {
     }
 
     pub async fn change_predecessor(
-        &self,
+        &mut self,
         account_id: &str,
         predecessor_account_id: &str,
     ) -> Result<String> {

@@ -154,7 +154,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn init_strategy(
-        &self,
+        &mut self,
         main_account_pubkey: &str,
         main_account_id: &str,
         subaccount_pubkey: &str,
@@ -186,13 +186,13 @@ impl ContractClient<MultiSig> {
         .await
     }
 
-    pub async fn remove_tx_index(&self, tx_index: u64) -> Result<String> {
+    pub async fn remove_tx_index(&mut self, tx_index: u64) -> Result<String> {
         let args_str = json!({"index": tx_index}).to_string();
         self.commit_by_relayer("remove_tx_index", &args_str).await
     }
 
     pub async fn add_subaccount(
-        &self,
+        &mut self,
         main_acc: &str,
         subacc: BTreeMap<&str, SubAccConf>,
     ) -> Result<String> {
@@ -222,7 +222,7 @@ impl ContractClient<MultiSig> {
         self.commit_by_relayer("add_subaccounts", &args_str).await
     }
 
-    pub async fn remove_subaccount(&self, main_acc: &str, subacc: &str) -> Result<String> {
+    pub async fn remove_subaccount(&mut self, main_acc: &str, subacc: &str) -> Result<String> {
         let main_acc = AccountId::from_str(main_acc)?;
         let subacc = AccountId::from_str(subacc)?;
 
@@ -235,7 +235,7 @@ impl ContractClient<MultiSig> {
             .await
     }
 
-    pub async fn remove_account_strategy(&self, acc: String) -> Result<String> {
+    pub async fn remove_account_strategy(&mut self, acc: String) -> Result<String> {
         let acc_id = AccountId::from_str(&acc)?;
         let args_str = json!({"acc": acc_id}).to_string();
         self.commit_by_relayer("remove_account_strategy", &args_str)
@@ -243,7 +243,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn set_strategy(
-        &self,
+        &mut self,
         account_id: &str,
         master_pubkey: &str,
         servant_pubkeys: Vec<String>,
@@ -270,7 +270,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn update_rank(
-        &self,
+        &mut self,
         account_id: &str,
         rank_arr: Vec<MultiSigRank>,
     ) -> Result<String> {
@@ -284,7 +284,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn update_subaccount_hold_limit(
-        &self,
+        &mut self,
         main_account: &str,
         subaccount: &str,
         hold_limit: u128,
@@ -301,18 +301,18 @@ impl ContractClient<MultiSig> {
             .await
     }
 
-    async fn register_account(&self, user_id: &str) -> Result<String> {
+    async fn register_account(&mut self, user_id: &str) -> Result<String> {
         self.commit_by_relayer("register_account", user_id).await
     }
 
-    async fn register_account_with_name(&self, account_id: &str, pubkey: &str) -> Result<String> {
+    async fn register_account_with_name(&mut self, account_id: &str, pubkey: &str) -> Result<String> {
         let arg_str = format!("{}:{}", account_id, pubkey);
         self.commit_by_relayer("register_account_with_name", &arg_str)
             .await
     }
 
     pub async fn update_servant_pubkey(
-        &self,
+        &mut self,
         account_id: &str,
         servant_pubkey: Vec<String>,
     ) -> Result<String> {
@@ -327,7 +327,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn update_servant_pubkey_and_master(
-        &self,
+        &mut self,
         account_id: &str,
         servant_pubkey: Vec<String>,
         master_pubkey: String,
@@ -343,7 +343,7 @@ impl ContractClient<MultiSig> {
             .await
     }
 
-    pub async fn update_master(&self, account_id: &str, master_pubkey: String) -> Result<String> {
+    pub async fn update_master(&mut self, account_id: &str, master_pubkey: String) -> Result<String> {
         let user_account_id: AccountId = AccountId::from_str(account_id)?;
         let args_str = json!({
             "user_account_id": user_account_id,
@@ -355,7 +355,7 @@ impl ContractClient<MultiSig> {
 
     //todo: 检查持仓限制
     pub async fn internal_transfer_main_to_sub(
-        &self,
+        &mut self,
         master_sig: PubkeySignInfo,
         servant_sigs: Vec<PubkeySignInfo>,
         from: &str,
@@ -384,7 +384,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn internal_transfer_sub_to_main(
-        &self,
+        &mut self,
         main_account: &str,
         sub_sig: AccountSignInfo,
         coin: CoinType,
@@ -440,42 +440,6 @@ impl ContractClient<MultiSig> {
             .await
     }
 
-    //for test
-    pub fn ed25519_sign() {
-        todo!()
-    }
-
-    pub async fn gen_send_money_raw_tx2(
-        &self,
-        tx_index: u64,
-        _sender_account_id: &str,
-        _sender_pubkey: &str,
-        servant_device_sigs: Vec<PubkeySignInfo>,
-        from: &str,
-        to: &str,
-        coin: CoinType,
-        transfer_amount: u128,
-        expire_at: u64,
-    ) -> Result<(String, String)> {
-        let coin_tx = CoinTx {
-            from: AccountId::from_str(from)?,
-            to: AccountId::from_str(to)?,
-            coin_id: coin.to_account_id(),
-            amount: transfer_amount,
-            expire_at,
-            memo: None,
-        };
-
-        let args_str = json!({
-            "tx_index": tx_index,
-            "servant_device_sigs": servant_device_sigs,
-            "coin_tx": coin_tx,
-        })
-        .to_string();
-
-        self.gen_raw_with_relayer("send_money", &args_str).await
-    }
-
     pub fn gen_send_money_info(
         &self,
         sender_id: &str,
@@ -500,7 +464,7 @@ impl ContractClient<MultiSig> {
     //转账给跨链桥
     //todo: 弃用
     pub async fn internal_withdraw(
-        &self,
+        &mut self,
         master_sig: PubkeySignInfo,
         servant_sigs: Vec<PubkeySignInfo>,
         from: &str,
@@ -721,7 +685,7 @@ mod tests {
         for index in 0..10 {
             let handle = tokio::spawn(async move {
                 info!("abcd_{}", index);
-                let client = ContractClient::<super::MultiSig>::new_update_cli()
+                let mut client = ContractClient::<super::MultiSig>::new_update_cli()
                     .await
                     .unwrap();
                 let account1 = gen_random_account_id();

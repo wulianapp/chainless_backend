@@ -100,7 +100,7 @@ pub(crate) async fn req(
     .await?;
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     //delete older and than add new
     current_strategy

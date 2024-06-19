@@ -32,7 +32,7 @@ pub async fn req(req: HttpRequest, req_data: FaucetClaimRequest) -> BackendRes<S
     }
     let coin_list = get_support_coin_list();
     for coin in coin_list {
-        let coin_cli: ContractClient<Coin> =
+        let mut coin_cli: ContractClient<Coin> =
             ContractClient::<Coin>::new_update_cli(coin.clone()).await?;
         let amount = if coin.eq(&CoinType::ETH) {
             10000000000000000

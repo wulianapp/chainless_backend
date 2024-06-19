@@ -50,7 +50,7 @@ pub async fn req(req: HttpRequest, request_data: SubSendToMainRequest) -> Backen
         .parse()
         .map_err(|_e| BackendError::RequestParamInvalid("coin not support".to_string()))?;
 
-    let cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     // check sig
     let tx = SubToMainTx {

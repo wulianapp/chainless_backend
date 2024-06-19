@@ -62,7 +62,7 @@ pub async fn req(req: HttpRequest, request_data: RemoveSubaccountRequest) -> Bac
         SecretFilter::ByPubkey(sub_pubkey),
     )
     .await?;
-    let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let tx_id = multi_cli
         .remove_subaccount(&main_account, &account_id)
         .await?;

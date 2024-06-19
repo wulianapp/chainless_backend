@@ -36,7 +36,7 @@ pub async fn req(
     let limit = display2raw(&limit).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
     //add wallet info
-    let cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut cli = ContractClient::<MultiSig>::new_update_cli().await?;
 
     let txid = cli
         .update_subaccount_hold_limit(&main_account, &subaccount, limit)

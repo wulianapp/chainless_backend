@@ -29,7 +29,7 @@ impl ContractClient<FeesCall> {
     }
 
     pub async fn set_fees_priority(
-        &self,
+        &mut self,
         account_id: &str,
         tokens: Vec<CoinType>,
     ) -> Result<String> {
@@ -129,7 +129,7 @@ mod tests {
     use super::*;
     #[tokio::test]
     async fn test_fees_set_get() {
-        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
+        let mut fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
         let prioritys = fees_cli.get_fees_priority("user.node0").await.unwrap();
         println!("prioritys_1 {:?} ", prioritys);
 

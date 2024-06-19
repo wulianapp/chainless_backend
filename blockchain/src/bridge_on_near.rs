@@ -108,7 +108,7 @@ impl ContractClient<Bridge> {
         common::env::CONF.bridge_admin_prikey.clone()
     }
 
-    pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
+    pub async fn send_coin(&mut self, receiver: &str, amount: u128) -> Result<String> {
         let receiver: AccountId = AccountId::from_str(receiver)?;
         let args_str = json!({
             "receiver_id":  receiver,
@@ -165,7 +165,7 @@ impl ContractClient<Bridge> {
         }
     }
 
-    pub async fn set_user_batch(&self, account_id: &str) -> Result<String> {
+    pub async fn set_user_batch(&mut self, account_id: &str) -> Result<String> {
         //todo: verify user's ecdsa signature
         let account_ids = HashMap::from([(AccountId::from_str(account_id)?, true)]);
         let args_str = json!({
@@ -176,7 +176,7 @@ impl ContractClient<Bridge> {
     }
 
     pub async fn bind_eth_addr(
-        &self,
+        &mut self,
         account_id: &str,
         address: &str,
         sig: &str,
@@ -192,7 +192,7 @@ impl ContractClient<Bridge> {
         self.commit_by_relayer("bind_address", &args_str).await
     }
 
-    pub async fn unbind_eth_addr(&self, account_id: &str, address: &str) -> Result<String> {
+    pub async fn unbind_eth_addr(&mut self, account_id: &str, address: &str) -> Result<String> {
         //todo: verify user's ecdsa signature
         let args_str = json!({
             "chain_id":1,
@@ -325,7 +325,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_eth_sign() {
-        let bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
+        let mut bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
         let set_res = bridge_cli.set_user_batch("node0").await.unwrap();
         println!("set_user_batch txid {} ", set_res);
 
@@ -357,7 +357,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_bind_deposit() {
-        let bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
+        let mut bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
         let set_res = bridge_cli.set_user_batch("test").await.unwrap();
         println!("set_user_batch txid {} ", set_res);
 
@@ -423,7 +423,7 @@ mod tests {
         let deposit_amount = 10_000u128 * BASE_DECIMAL; //10k
         let replayer_acccount_id = "test";
 
-        let bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
+        let mut bridge_cli = ContractClient::<Bridge>::new_update_cli().await.unwrap();
         let current_binded_eth_addr = bridge_cli.get_binded_eth_addr("test").await.unwrap();
         println!("get_binded_eth_addr {:?} ", current_binded_eth_addr);
 

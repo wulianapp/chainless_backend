@@ -70,7 +70,7 @@ pub(crate) async fn req(req: HttpRequest, request_data: AddServantRequest) -> Ba
     }
 
     //add wallet info
-    let multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut multi_sig_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     //it is impossible to get none
 
     current_strategy

@@ -82,7 +82,7 @@ pub async fn wait_for_idle_relayer() -> Result<MutexGuard<'static, Relayer>> {
                     current_nonce            
                 };
                 x.nonce = Some(current_nonce + 1);
-                debug!("find idle relayer {}", x.derive_index);
+                debug!("find idle index_relayer_{}", x.derive_index);
                 return Ok(x);
             }
             None => {

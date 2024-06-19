@@ -31,7 +31,7 @@ pub async fn req(req: HttpRequest, request_data: SetFeesPriorityRequest) -> Back
 
     let SetFeesPriorityRequest { fees_priority } = request_data;
 
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new_update_cli().await?;
+    let mut fees_call_cli = blockchain::ContractClient::<FeesCall>::new_update_cli().await?;
 
     if fees_priority.len() != 5 {
         Err(BackendError::RequestParamInvalid(

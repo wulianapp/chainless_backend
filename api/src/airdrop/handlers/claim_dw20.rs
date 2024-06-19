@@ -45,7 +45,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
     }
 
-    let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
+    let mut cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli
         .claim_dw20(
             &main_account,

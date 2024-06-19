@@ -37,7 +37,7 @@ use serde::de::DeserializeOwned;
 
 use std::marker::PhantomData;
 use tokio::sync::MutexGuard;
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::general::gen_transaction_with_caller_with_nonce;
 
@@ -92,7 +92,7 @@ impl<T> AsRef<InMemorySigner> for ContractClient<T> {
 impl<T> Drop for ContractClient<T> {
     fn drop(&mut self) {
         if let Some(relayer) = self.relayer.as_ref() {
-            debug!("index {} relayer released", relayer.derive_index);
+            debug!("index_relayer_{} released", relayer.derive_index);
         }
     }
 }
@@ -182,35 +182,6 @@ impl<T> ContractClient<T> {
         Ok(transaction)
     }
 
-    /***
-    async fn gen_create_account_tx(&self, receiver: &AccountId) -> Result<Transaction> {
-        let deposit_actions: Vec<Action> =
-            vec![Action::Transfer(TransferAction { deposit: 0u128 })];
-
-        let mut transaction = gen_transaction_with_caller(
-            self.relayer.account_id.clone(),
-            self.relayer.public_key().clone(),
-            receiver.as_str(),
-        )
-        .await?;
-        transaction.actions = deposit_actions;
-        Ok(transaction)
-    }
-    */
-    async fn gen_raw_with_relayer(
-        &self,
-        method_name: &str,
-        args: &str,
-    ) -> Result<(String, String)> {
-        self.gen_raw_with_caller(
-            &self.as_ref().account_id,
-            &self.as_ref().public_key,
-            method_name,
-            args,
-        )
-        .await
-    }
-
     async fn gen_raw_with_caller(
         &self,
         caller_account_id: &AccountId,
@@ -231,7 +202,7 @@ impl<T> ContractClient<T> {
         Ok((txid, raw_str))
     }
 
-    async fn commit_by_relayer(&self, method_name: &str, args: &str) -> Result<String> {
+    async fn commit_by_relayer(&mut self, method_name: &str, args: &str) -> Result<String> {
         debug!("method_name: {},args: {}", method_name, args);
         let mut transaction = self
             .gen_tx(
@@ -242,7 +213,10 @@ impl<T> ContractClient<T> {
             )
             .await?;
         //todo: relayer用到的不止这一个地方
-        transaction.nonce = self.relayer.as_ref().unwrap().nonce.ok_or(anyhow!(""))?;
+        let this_nonce = self.relayer.as_ref().unwrap().nonce.ok_or(anyhow!(""))? + 1;
+        info!("index_relayer_{}_this_nonce {}", self.relayer.as_ref().unwrap().derive_index,this_nonce);
+        self.relayer.as_mut().unwrap().nonce = Some(this_nonce);
+        transaction.nonce = this_nonce;
         //relayer_sign
         let signature = self
             .as_ref()
@@ -268,7 +242,7 @@ impl<T> ContractClient<T> {
         Ok(txid)
     }
 
-    pub async fn clear_all(&self) -> Result<String> {
+    pub async fn clear_all(&mut self) -> Result<String> {
         self.commit_by_relayer("clear_all", "").await
     }
 

@@ -60,7 +60,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     .await?;
 
     //predecessor must have called claim_dw20
-    let cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
+    let mut cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let user_info = cli.get_user(&main_account).await?;
     if user_info.is_some() {
         cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())

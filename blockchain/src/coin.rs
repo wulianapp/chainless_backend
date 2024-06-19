@@ -105,7 +105,7 @@ impl ContractClient<Coin> {
         Self::gen_cli_without_relayer(&contract).await
     }
 
-    pub async fn send_coin(&self, receiver: &str, amount: u128) -> Result<String> {
+    pub async fn send_coin(&mut self, receiver: &str, amount: u128) -> Result<String> {
         let receiver: AccountId = AccountId::from_str(receiver)?;
         let args_str = json!({
             "receiver_id":  receiver,
@@ -179,7 +179,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::DW20)
+        let mut coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::DW20)
             .await
             .unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";

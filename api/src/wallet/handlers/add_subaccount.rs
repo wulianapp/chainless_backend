@@ -7,7 +7,7 @@ use common::data_structures::wallet_namage_record::WalletOperateType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
-use common::utils::time::{now_millis};
+use common::utils::time::now_millis;
 use models::account_manager::{UserFilter, UserInfoEntity, UserUpdater};
 use models::wallet_manage_record::WalletManageRecordEntity;
 use crate::utils::{get_user_context, token_auth};
@@ -88,7 +88,7 @@ pub async fn req(req: HttpRequest, request_data: AddSubaccountRequest) -> Backen
     update_add_record(&context.user_info).await?;
 
 
-    let multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
+    let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     let sub_confs = BTreeMap::from([(
         subaccount_id.as_str(),
         SubAccConf {

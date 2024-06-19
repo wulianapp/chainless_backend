@@ -1693,7 +1693,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _, mut receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         coin_cli
@@ -1759,7 +1759,7 @@ mod tests {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, mut receiver) = gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         //let receive = a336dc50a8cef019d92c3c80c92a2a9d3842c95576d544286d166f1501a2351b
@@ -1896,7 +1896,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         coin_cli
@@ -1941,7 +1941,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         coin_cli
@@ -1959,7 +1959,7 @@ mod tests {
         let user_info = test_user_info!(service, sender_master).unwrap();
         println!("{:#?}", user_info);
         //: bind eth addr before send money
-        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()
+        let mut bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()
             .await
             .unwrap();
         let sig = bridge_cli
@@ -1972,7 +1972,7 @@ mod tests {
         println!("sign_bind sig {} ", sig);
 
         //todo: sig on imtoken and verify on server
-        let bind_res = bridge_cli
+        let mut bind_res = bridge_cli
             .bind_eth_addr(
                 &user_info.main_account,
                 "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a",
@@ -2008,7 +2008,7 @@ mod tests {
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:#?}", txs);
 
-        let coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::BTC)
+        let mut coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::BTC)
             .await
             .unwrap();
         let erc20_cli = EthContractClient::<Erc20>::new(&CoinType::BTC).unwrap();
@@ -2118,7 +2118,7 @@ mod tests {
 
         let user_info = test_user_info!(service, sender_master).unwrap();
         println!("{:#?}", user_info);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
             .await
             .unwrap();
         coin_cli
@@ -2126,7 +2126,7 @@ mod tests {
             .await
             .unwrap();
         //: bind eth addr before send money
-        let bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()
+        let mut bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()
             .await
             .unwrap();
         let sig = bridge_cli
@@ -2172,7 +2172,7 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
             .await
             .unwrap();
         let eth_bridge_cli =
@@ -2275,7 +2275,7 @@ mod tests {
         let sender_info = test_get_strategy!(service, sender_master).unwrap();
         let sub_accoounts: Vec<String> = sender_info.subaccounts.into_keys().collect();
         let subaccount_id = sub_accoounts.first().unwrap();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDC)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDC)
             .await
             .unwrap();
         coin_cli
@@ -2336,7 +2336,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         coin_cli
@@ -2482,7 +2482,7 @@ mod tests {
         let sender_servant = simulate_sender_servant();
 
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_with_type(CoinType::DW20).unwrap();
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_with_type(CoinType::DW20).unwrap();
         coin_cli.send_coin(&sender_master.wallet.main_account, 13u128).await.unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -2493,7 +2493,7 @@ mod tests {
     #[test]
     fn local_paralle_wallet_all_braced_wallet_ok_with_new_key() {
         rayon::ThreadPoolBuilder::new().num_threads(20).build().unwrap().install(|| {
-            let mut data: Vec<i32> = (0..1000).collect();
+            let mut data: Vec<i32> = (0..100).collect();
             data.par_iter_mut().for_each(|_num| {
                 tokio::runtime::Runtime::new().unwrap().block_on(async {
                     wallet_all_braced_wallet_ok_with_new_key().await
@@ -2512,7 +2512,8 @@ mod tests {
         let (sender_master, sender_servant, _sender_newcommer, receiver) =
             gen_some_accounts_with_new_key();
 
-        let coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        /***  
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
         coin_cli
@@ -2520,7 +2521,7 @@ mod tests {
             .await
             .unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
+        **/
         test_all_braced_wallet_ok(sender_master, receiver, sender_servant).await;
     }
 

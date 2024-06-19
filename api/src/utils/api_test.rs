@@ -4,13 +4,11 @@ use actix_web::App;
 use actix_web::Error;
 use blockchain::multi_sig::MultiSig;
 use common::encrypt::ed25519_key_gen;
-use common::env::{ServiceMode, CONF};
 use serde::de::DeserializeOwned;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::env;
 //use common::data_structures::wallet::{AccountMessage, SendStage};
 use common::utils::math::random_num;
-use reqwest::Client;
 
 use super::respond::BackendRespond;
 
@@ -232,7 +230,7 @@ pub fn gen_some_accounts_with_new_key() -> (
 }
 
 pub async fn clear_contract() {
-    let cli = blockchain::ContractClient::<MultiSig>::new_update_cli()
+    let mut cli = blockchain::ContractClient::<MultiSig>::new_update_cli()
         .await
         .unwrap();
     cli.clear_all().await.unwrap();
@@ -269,8 +267,8 @@ pub async fn test1(){
 
 
 pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(method:&str,api:&str,payload:Option<String>,token:Option<String>) ->  BackendRespond<T> {
-        let uri = format!("http://120.232.251.101:8066{}",api);
-        let uri = format!("http://192.168.1.15:8066{}",api);
+        let _uri = format!("http://120.232.251.101:8067{}",api);
+        let uri = format!("http://192.168.1.15:8067{}",api);
         let mut parameters = if method == "post" {
             REQ_CLI.post(&uri)
                 .header("ChainLessLanguage", "ZH_TW")
@@ -327,7 +325,7 @@ macro_rules! test_actix_call {
 #[macro_export]
 macro_rules! test_service_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
-        if common::env::CONF.service_mode != common::prelude::ServiceMode::Test {
+        if common::env::CONF.service_mode == common::prelude::ServiceMode::Test {
             crate::utils::api_test::local_reqwest_call($method,$api,$payload,$token).await
         }else{
             crate::test_actix_call!($service,$method,$api,$payload,$token)
