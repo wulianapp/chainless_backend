@@ -25,8 +25,17 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     check_role(role, KeyRole::Master)?;
 
     let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?.into_inner();
-    if user_airdrop.btc_address.is_some() && user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
-        Err(AirdropError::BtcGradeStatusIllegal)?;
+    if let Some(ref address) = user_airdrop.btc_address{
+        if user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
+            Err(AirdropError::BtcGradeStatusIllegal)?;
+        }
+        //一个btc地址允许被多账户评级，但是只允许一个最终上传
+        let airdrops_by_btc = AirdropEntity::find(AirdropFilter::ByBtcAddress(address)).await?;
+        for data in airdrops_by_btc {
+            if data.airdrop.btc_grade_status == BtcGradeStatus::Reconfirmed {
+                Err(AirdropError::BtcAddressAlreadyUsed)?;   
+            }
+        }
     }
 
     AirdropEntity::update_single(

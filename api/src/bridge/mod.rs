@@ -165,7 +165,6 @@ async fn gen_deposit_sig(
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/bridge/getBindedEthAddr")]
 async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
-    //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
         handlers::get_binded_eth_addr::req(req).await,
@@ -210,6 +209,7 @@ async fn list_withdraw_order(
     req: HttpRequest,
     request_data: web::Query<ListWithdrawOrderRequest>,
 ) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
         handlers::list_withdraw_order::req(req, request_data.into_inner()).await,
@@ -253,6 +253,7 @@ async fn list_deposit_order(
     req: HttpRequest,
     request_data: web::Query<ListDepositOrderRequest>,
 ) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
         handlers::list_deposit_order::req(req, request_data.into_inner()).await,

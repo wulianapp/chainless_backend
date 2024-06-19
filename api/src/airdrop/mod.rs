@@ -3,6 +3,7 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 use handlers::get_grade::GetGradeRequest;
+use tracing::debug;
 
 //use captcha::{ContactType, VerificationCode};
 
@@ -66,8 +67,9 @@ async fn status(req: HttpRequest) -> impl Responder {
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/airdrop/getGrade")]
-async fn get_grade(req: HttpRequest,req_datat: web::Query<GetGradeRequest>) -> impl Responder {
-    gen_extra_respond(get_lang(&req), handlers::get_grade::req(req,req_datat.into_inner()).await)
+async fn get_grade(req: HttpRequest,request_data: web::Query<GetGradeRequest>) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(get_lang(&req), handlers::get_grade::req(req,request_data.into_inner()).await)
 }
 
 /**
@@ -96,11 +98,11 @@ async fn get_grade(req: HttpRequest,req_datat: web::Query<GetGradeRequest>) -> i
 #[post("/airdrop/bindBtcAddress")]
 async fn bind_btc_address(
     req: HttpRequest,
-    req_data: web::Json<BindBtcAddressRequest>,
+    request_data: web::Json<BindBtcAddressRequest>,
 ) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
-        handlers::bind_btc_address::req(req, req_data.into_inner()).await,
+        handlers::bind_btc_address::req(req, request_data.into_inner()).await,
     )
 }
 
@@ -128,11 +130,12 @@ async fn bind_btc_address(
 #[post("/airdrop/changeInviteCode")]
 async fn change_invite_code(
     req: HttpRequest,
-    req_data: web::Json<ChangeInviteCodeRequest>,
+    request_data: web::Json<ChangeInviteCodeRequest>,
 ) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::change_invite_code::req(req, req_data.into_inner()).await,
+        handlers::change_invite_code::req(req, request_data.into_inner()).await,
     )
 }
 
@@ -160,11 +163,12 @@ async fn change_invite_code(
 #[post("/airdrop/changePredecessor")]
 async fn change_predecessor(
     req: HttpRequest,
-    req_data: web::Json<ChangePredecessorRequest>,
+    request_data: web::Json<ChangePredecessorRequest>,
 ) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::change_predecessor::req(req, req_data.into_inner()).await,
+        handlers::change_predecessor::req(req, request_data.into_inner()).await,
     )
 }
 
@@ -249,6 +253,7 @@ async fn new_btc_deposit(
     req: HttpRequest,
     request_data: web::Json<NewBtcDepositRequest>,
 ) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
         handlers::new_btc_deposit::req(req, request_data.into_inner()).await,

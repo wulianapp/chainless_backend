@@ -175,7 +175,7 @@ create table airdrop
     -- 上级钱包id
     predecessor_account_id text not null,
     -- btc地址
-    btc_address text unique,
+    btc_address text,
     -- btc登记
     btc_level smallint,
     -- 地址评级状态

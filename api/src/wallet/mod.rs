@@ -1441,10 +1441,7 @@ async fn commit_newcomer_switch_master(
     req: HttpRequest,
     request_data: web::Json<CommitNewcomerSwitchMasterRequest>,
 ) -> impl Responder {
-    debug!(
-        "req_params::  {}",
-        serde_json::to_string(&request_data.0).unwrap()
-    );
+    debug!("{}",serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
         handlers::commit_newcomer_replace_master::req(req, request_data.into_inner()).await,

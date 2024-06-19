@@ -173,7 +173,6 @@ async fn check_captcha(
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/accountManager/userInfo")]
 async fn user_info(req: HttpRequest) -> impl Responder {
-    //debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(get_lang(&req), handlers::user_info::req(req).await)
 }
 
