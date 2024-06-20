@@ -22,4 +22,5 @@ pub struct Airdrop {
     pub btc_address: Option<String>,
     pub btc_level: Option<u8>,
     pub btc_grade_status: BtcGradeStatus,
+    pub ref_btc_address: Option<String>,
 }

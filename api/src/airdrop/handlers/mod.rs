@@ -6,3 +6,4 @@ pub mod claim_dw20;
 pub mod new_btc_deposit;
 pub mod status;
 pub mod get_grade;
+pub mod reset_status;

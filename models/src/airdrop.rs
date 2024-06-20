@@ -35,11 +35,21 @@ pub enum AirdropUpdater<'a> {
     Predecessor(&'a u32, &'a str),
     BtcLevel(u8),
     GradeStatus(BtcGradeStatus),
+    LevelStatus(u8,BtcGradeStatus),
+    BtcAddrLevelStatus(Option<String>,u8,BtcGradeStatus),
+    ResetBind,
 }
 
 impl fmt::Display for AirdropUpdater<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let description = match self {
+            AirdropUpdater::ResetBind => {
+                format!("ref_btc_address=NULL,btc_address=NULL,btc_level=0,btc_grade_status='NotBind' ")
+            }
+            AirdropUpdater::BtcAddrLevelStatus(addr,level,status) => {
+                let addr: PsqlType = addr.to_owned().into();
+                format!("btc_address={},btc_level='{}',btc_grade_status='{}' ", addr.to_psql_str(),level,status.to_string())
+            }
             AirdropUpdater::InviteCode(code) => {
                 format!("invite_code='{}'", code)
             }
@@ -55,6 +65,9 @@ impl fmt::Display for AirdropUpdater<'_> {
                     format!("btc_address='{}',btc_grade_status='Calculated',btc_level={} ", addr, level.to_psql_str())
                 }
                 
+            }
+            AirdropUpdater::LevelStatus(level,status) => {
+                format!("btc_level='{}',btc_grade_status='{}' ", level,status.to_string())
             }
             AirdropUpdater::AccountId(id) => {
                 format!("account_id='{}'", id)
@@ -111,7 +124,8 @@ impl AirdropEntity {
                 predecessor_account_id: predecessor_account_id.to_string(),
                 btc_address: None,
                 btc_level: None,
-                btc_grade_status: BtcGradeStatus::PendingCalculate,
+                btc_grade_status: BtcGradeStatus::NotBind,
+                ref_btc_address: None,
             },
             updated_at: "".to_string(),
             created_at: "".to_string(),
@@ -151,9 +165,10 @@ impl PsqlOp for AirdropEntity {
                     btc_address: row.get::<usize, Option<String>>(5),
                     btc_level: row.get::<usize, Option<i16>>(6).map(|x| x as u8),
                     btc_grade_status: row.get::<usize, String>(7).parse()?,
+                    ref_btc_address: row.get::<usize, Option<String>>(8),
                 },
-                updated_at: row.get(8),
-                created_at: row.get(9),
+                updated_at: row.get(9),
+                created_at: row.get(10),
             })
         };
 
@@ -183,11 +198,14 @@ impl PsqlOp for AirdropEntity {
             predecessor_account_id,
             btc_address,
             btc_level,
-            btc_grade_status
+            btc_grade_status,
+            ref_btc_address
         } = self.into_inner();
         let account_id: PsqlType = account_id.into();
         let btc_address: PsqlType = btc_address.into();
         let btc_level: PsqlType = btc_level.into();
+        let ref_btc_address: PsqlType = ref_btc_address.into();
+
 
         let sql = format!(
             "insert into airdrop (\
@@ -198,8 +216,9 @@ impl PsqlOp for AirdropEntity {
                 predecessor_account_id,\
                 btc_address,\
                 btc_level,\
-                btc_grade_status
-         ) values ('{}',{},'{}',{},'{}',{},{},'{}');",
+                btc_grade_status,\
+                ref_btc_address
+         ) values ('{}',{},'{}',{},'{}',{},{},'{}',{});",
             user_id,
             account_id.to_psql_str(),
             invite_code,
@@ -207,7 +226,8 @@ impl PsqlOp for AirdropEntity {
             predecessor_account_id,
             btc_address.to_psql_str(),
             btc_level.to_psql_str(),
-            btc_grade_status.to_string()
+            btc_grade_status.to_string(),
+            ref_btc_address.to_psql_str()
         );
         debug!("row sql {} rows", sql);
         let _execute_res = PgLocalCli::execute(sql.as_str()).await?;

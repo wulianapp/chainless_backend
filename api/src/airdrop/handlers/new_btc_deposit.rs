@@ -9,7 +9,7 @@ use tracing::{info, warn};
 
 use crate::utils::wallet_grades::query_wallet_grade;
 
-use common::error_code::BackendRes;
+use common::{data_structures::airdrop::BtcGradeStatus, error_code::BackendRes};
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -43,13 +43,15 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
         }
 
         //directly的方式不允许重复评级，防止被覆盖
+        //一旦间接评级完成，后续的就不再评级
         if airdrop_info.len() == 1
             && airdrop_info[0].airdrop.btc_address.is_some()
+            && airdrop_info[0].airdrop.btc_grade_status == BtcGradeStatus::PendingCalculate
             && airdrop_info[0].airdrop.btc_level.is_none()
         {
             let grade = query_wallet_grade(&sender).await?;
             AirdropEntity::update_single(
-                AirdropUpdater::BtcLevel(grade),
+                AirdropUpdater::LevelStatus(grade,BtcGradeStatus::Calculated),
                 AirdropFilter::ByBtcAddress(&receiver),
             )
             .await?;

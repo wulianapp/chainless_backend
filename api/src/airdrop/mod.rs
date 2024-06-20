@@ -36,6 +36,7 @@ use crate::utils::respond::get_trace_id;
 * @apiSuccess {String} data.predecessor_account_id   上级钱包id
 * @apiSuccess {String} [data.btc_address]       绑定的btc钱包地址
 * @apiSuccess {Number} [data.btc_level]         btc地址对应的等级
+* @apiSuccess {String} [data.ref_btc_address]         btc大号地址
 * @apiSuccess {String=NotBind,PendingCalculate,Calculated,Reconfirmed} data.btc_grade_status      btc地址的评级状态
 * @apiSampleRequest http://120.232.251.101:8066/airdrop/status
 */
@@ -136,6 +137,37 @@ async fn change_invite_code(
     gen_extra_respond(
         get_lang(&req),
         handlers::change_invite_code::req(req, request_data.into_inner()).await,
+    )
+}
+
+
+/**
+ * @api {post} /airdrop/resetStatus 重置空投状态
+ * @apiVersion 0.0.1
+ * @apiName ResetStatus
+ * @apiGroup Airdrop
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+             "servantPubkey": "123",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
+* @apiSuccess {String}    msg              错误信息
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/airdrop/resetStatus
+*/
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
+#[post("/airdrop/resetStatus")]
+async fn reset_status(
+    req: HttpRequest
+) -> impl Responder {
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::reset_status::req(req).await
     )
 }
 
@@ -268,6 +300,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(claim_cly)
         .service(claim_dw20)
         .service(get_grade)
+        .service(reset_status)
         .service(new_btc_deposit);
 }
 

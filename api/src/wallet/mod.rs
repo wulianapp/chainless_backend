@@ -2490,7 +2490,7 @@ mod tests {
     #[test]
     fn local_paralle_wallet_all_braced_wallet_ok_with_new_key() {
         rayon::ThreadPoolBuilder::new().num_threads(20).build().unwrap().install(|| {
-            let mut data: Vec<i32> = (0..100).collect();
+            let mut data: Vec<i32> = (0..1000).collect();
             data.par_iter_mut().for_each(|_num| {
                 tokio::runtime::Runtime::new().unwrap().block_on(async {
                     wallet_all_braced_wallet_ok_with_new_key().await

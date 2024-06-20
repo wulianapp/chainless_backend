@@ -180,6 +180,8 @@ create table airdrop
     btc_level smallint,
     -- 地址评级状态
     btc_grade_status text not null,
+    -- 大号btc地址
+    ref_btc_address text,
     updated_at  timestamp with time zone default current_timestamp,
     created_at  timestamp with time zone default current_timestamp
 );
