@@ -147,6 +147,7 @@ impl PsqlOp for AirdropEntity {
             btc_address,\
             btc_level,\
             btc_grade_status,\
+            ref_btc_address,\
          cast(updated_at as text), \
          cast(created_at as text) \
          from airdrop where {}",
