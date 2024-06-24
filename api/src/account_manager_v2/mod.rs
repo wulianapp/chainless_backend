@@ -110,7 +110,7 @@ async fn contact_is_used(
 
 /**
 * @api {get} /accountManager_v2/checkCaptcha 验证验证码
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName CheckCaptcha
 * @apiGroup AccountManager
 * @apiBody {String} contact   邮箱或者手机号
@@ -178,7 +178,7 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 
 /**
 * @api {post} /accountManager_v2/registerByEmail 通过邮箱注册账户
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName registerByEmail
 * @apiGroup AccountManager
 * @apiBody {String} deviceId     设备ID
@@ -212,7 +212,7 @@ async fn register_by_email(
 
 /**
 * @api {post} /accountManager_v2/registerByPhone 通过手机注册账户
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName registerByPhone
 * @apiGroup AccountManager
 * @apiBody {String} deviceId  设备ID
@@ -335,7 +335,7 @@ async fn login_by_captcha(
 
 /**
 * @api {post} /accountManager_v2/resetPassword  重置登录密码
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName ResetPassword
 * @apiGroup AccountManager
 * @apiBody {String} deviceId     设备ID
@@ -366,7 +366,7 @@ async fn reset_password(
 
 /**
 * @api {post} /accountManager_v2/replenishContact  补充联系方式
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName ReplenishContact
 * @apiGroup AccountManager
 * @apiBody {String} contact      手机或邮箱 +86 18888888888 or email test000001@gmail.com

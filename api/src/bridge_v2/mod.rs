@@ -44,7 +44,7 @@ use crate::utils::respond::get_trace_id;
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/bridge/preWithdraw")]
+#[post("/bridge_v2/preWithdraw")]
 async fn pre_withdraw(
     req: HttpRequest,
     request_data: web::Json<PreWithdrawRequest>,
@@ -67,16 +67,16 @@ async fn pre_withdraw(
  * @apiBody {String} eth_addr   以太坊地址
  * @apiBody {String} user_eth_sig   以太坊私钥签名结果
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/bridge/commitWithdraw -H "Content-Type: application/json" -d
+ *   curl -X POST http://120.232.251.101:8066/bridge_v2/commitWithdraw -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
  * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         状态码.
  * @apiSuccess {String=RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {String} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8066/bridge/bindEthAddr
+ * @apiSampleRequest http://120.232.251.101:8066/bridge_v2/bindEthAddr
  */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/bridge/bindEthAddr")]
+#[post("/bridge_v2/bindEthAddr")]
 async fn bind_eth_addr(
     req: HttpRequest,
     request_data: web::Json<BindEthAddrRequest>,
@@ -95,16 +95,16 @@ async fn bind_eth_addr(
  * @apiGroup Bridge
  * @apiBody {String} ethAddr 以太坊地址
  * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/bridge/getCaptchaWithoutToken -H "Content-Type: application/json" -d
+ *   curl -X POST http://120.232.251.101:8066/bridge_v2/getCaptchaWithoutToken -H "Content-Type: application/json" -d
  *  '{"deviceId": "abc","contact": "test000001@gmail.com","kind":"register"}'
  * @apiSuccess {String=0,1,2,2002,2003,2004,2005} status_code         状态码.
  * @apiSuccess {String=RequestParamInvalid,CaptchaNotFound,CaptchaExpired,CaptchaIncorrect,PhoneOrEmailIncorrect} msg
  * @apiSuccess {String} data                nothing.
- * @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
+ * @apiSampleRequest http://120.232.251.101:8066/bridge_v2/AccountManager
  */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/bridge/genBindEthAddrSig")]
+#[post("/bridge_v2/genBindEthAddrSig")]
 async fn gen_bind_eth_addr_sig(
     req: HttpRequest,
     request_data: web::Json<GenBindEthAddrSigRequest>,
@@ -118,7 +118,7 @@ async fn gen_bind_eth_addr_sig(
 
 /**
 * @api {post} /bridge_v2/genDepositSig  生成跨链充值
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName GenDepositSig
 * @apiGroup Bridge
 * @apiBody {String="BTC","ETH","USDT","USDC","DW20"} coin 币种类型
@@ -133,11 +133,11 @@ async fn gen_bind_eth_addr_sig(
 * @apiSuccess {Number} data.deadline                过期时间戳.
 * @apiSuccess {Number} data.cid                签名随机值cid
 
-* @apiSampleRequest http://120.232.251.101:8066/bridge/AccountManager
+* @apiSampleRequest http://120.232.251.101:8066/bridge_v2/AccountManager
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/bridge/genDepositSig")]
+#[post("/bridge_v2/genDepositSig")]
 async fn gen_deposit_sig(
     req: HttpRequest,
     request_data: web::Json<GenDepositSigRequest>,
@@ -155,7 +155,7 @@ async fn gen_deposit_sig(
  * @apiName GetBindedEthAddr
  * @apiGroup Bridge
  * @apiExample {curl} Example usage:
- * curl -X GET "http://120.232.251.101:8066/bridge/getBindedEthAddr"
+ * curl -X GET "http://120.232.251.101:8066/bridge_v2/getBindedEthAddr"
  * @apiSuccess {String=0,1,} status_code         状态码.
  * @apiSuccess {String} msg 状态信息
  * @apiSuccess {String=null} data                当前绑定的eth地址，
@@ -163,7 +163,7 @@ async fn gen_deposit_sig(
  */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[get("/bridge/getBindedEthAddr")]
+#[get("/bridge_v2/getBindedEthAddr")]
 async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
     gen_extra_respond(
         get_lang(&req),
@@ -173,7 +173,7 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 
 /**
 * @api {get} /bridge_v2/listWithdrawOrder 查询跨链提现订单列表
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName ListWithdrawOrder
 * @apiGroup Bridge
 * @apiQuery {Number}                 perPage           每页的数量
@@ -204,7 +204,7 @@ async fn get_binded_eth_addr(req: HttpRequest) -> impl Responder {
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[get("/bridge/listWithdrawOrder")]
+#[get("/bridge_v2/listWithdrawOrder")]
 async fn list_withdraw_order(
     req: HttpRequest,
     request_data: web::Query<ListWithdrawOrderRequest>,
@@ -218,7 +218,7 @@ async fn list_withdraw_order(
 
 /**
 * @api {get} /bridge_v2/listDepositOrder 查询跨链充值订单列表
-* @apiVersion 0.0.1
+* @apiVersion 0.0.2
 * @apiName ListDepositOrder
 * @apiGroup Bridge
 * @apiQuery {Number}                 perPage           每页的数量
@@ -248,7 +248,7 @@ async fn list_withdraw_order(
 * @apiSampleRequest http://120.232.251.101:8066/wallet/listWithdrawOrder
 */
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[get("/bridge/listDepositOrder")]
+#[get("/bridge_v2/listDepositOrder")]
 async fn list_deposit_order(
     req: HttpRequest,
     request_data: web::Query<ListDepositOrderRequest>,
@@ -270,60 +270,4 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(pre_withdraw);
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::utils::api_test::*;
-    use crate::utils::respond::BackendRespond;
-    use crate::*;
 
-    use actix_web::body::MessageBody;
-
-    use actix_web::http::header;
-    use blockchain::ContractClient;
-    use serde_json::json;
-
-    // use log::{info, LevelFilter,debug,error};
-
-    use crate::account_manager::handlers::user_info::UserInfoResponse;
-
-    #[actix_web::test]
-    async fn test_bind_eth_addr() {
-        let app = init().await;
-        let service = actix_web::test::init_service(app).await;
-        let (mut sender_master, _sender_servant, mut sender_newcommer, _receiver) =
-            gen_some_accounts_with_new_key();
-
-        test_register!(service, sender_master);
-        test_login!(service, sender_newcommer);
-        test_create_main_account!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let user_info = test_user_info!(service, sender_master).unwrap();
-        let mut bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()
-            .await
-            .unwrap();
-        let sig = bridge_cli
-            .sign_bind_info(
-                &user_info.main_account,
-                "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
-            )
-            .await
-            .unwrap();
-        println!("sign_bind sig {} ", sig);
-
-        let bind_res = bridge_cli
-            .bind_eth_addr(
-                &user_info.main_account,
-                "cb5afaa026d3de65de0ddcfb1a464be8960e334a",
-                &sig,
-            )
-            .await
-            .unwrap();
-        println!("bind_res {} ", bind_res);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        let current_bind_eth_addr = bridge_cli
-            .get_binded_eth_addr(&user_info.main_account)
-            .await
-            .unwrap();
-        println!("bind_res {:?} ", current_bind_eth_addr);
-    }
-}
