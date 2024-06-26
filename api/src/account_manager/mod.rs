@@ -187,6 +187,11 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 * @apiBody {String} captcha      验证码
 * @apiBody {String} password     登录密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
+* @apiBody {String} masterPubkey                 主钱包master公钥
+* @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
+* @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
+* @apiBody {String} anwserIndexes               安全问答的序列号
+* @apiBody {String} setUserInfoActionJson         更新用户信息合约的action
 * @apiExample {curl} Example usage:
     curl -X POST http://120.232.251.101:8066/accountManager/registerByEmail -H "Content-Type: application/json" -d
   '{"deviceId": "123","email": "test000001@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
@@ -221,6 +226,11 @@ async fn register_by_email(
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
+* @apiBody {String} masterPubkey                 主钱包master公钥
+* @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
+* @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
+* @apiBody {String} anwserIndexes               安全问答的序列号
+* @apiBody {String} setUserInfoActionJson         更新用户信息合约的action
 * @apiExample {curl} Example usage:
 *    curl -X POST http://120.232.251.101:8066/accountManager/registerByPhone -H "Content-Type: application/json" -d
   '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",

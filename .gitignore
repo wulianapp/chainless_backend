@@ -6,3 +6,4 @@ target
 .DS_Store
 *.toml
 *_bak*
+*tmp*
