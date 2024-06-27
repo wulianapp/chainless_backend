@@ -296,24 +296,29 @@ pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(method:&str,api
 #[macro_export]
 macro_rules! test_actix_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
+        let mut curl_cmd = "curl -X ".to_string();
         let mut parameters = if $method == "post" {
+            curl_cmd = format!("{} POST http://127.0.0.1:8066{} -H \"Content-Type: application/json\" ",curl_cmd,$api);
             actix_web::test::TestRequest::post()
                 .uri($api)
                 .insert_header(header::ContentType::json())
                 .insert_header(("ChainLessLanguage", "ZH_TW"))
         } else {
+            curl_cmd = format!("{} GET http://127.0.0.1:8066{}",curl_cmd,$api);
             actix_web::test::TestRequest::get().uri($api)
         };
 
-        if let Some(data) = $payload {
-            parameters = parameters.set_payload(data);
-        };
-
         if let Some(data) = $token {
+            curl_cmd = format!("{} -H 'Authorization:Bearer {}' ",curl_cmd,data);
             parameters =
                 parameters.insert_header((header::AUTHORIZATION, format!("bearer {}", data)));
         };
 
+        if let Some(data) = $payload {
+            curl_cmd = format!("{} -d '{}' ",curl_cmd,data);
+            parameters = parameters.set_payload(data);
+        };
+        println!("{}",curl_cmd);
         let req = parameters.to_request();
         let body = actix_web::test::call_and_read_body(&$service, req)
             .await
@@ -378,6 +383,25 @@ macro_rules! test_get_captcha_with_token {
                 $service,
                 "post",
                 "/accountManager/getCaptchaWithToken",
+                Some(payload.to_string()),
+                Some($app.user.token.clone().unwrap())
+            );
+            assert_eq!(res.status_code,0);
+    }};
+}
+
+#[macro_export]
+macro_rules! test_check_captcha {
+    ( $service:expr,$app:expr,$kind:expr,$captcha:expr) => {{
+            let payload = json!({
+                "contact":$app.user.contact,
+                "captcha": $captcha,
+                "usage": $kind
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "get",
+                "/accountManager/checkCaptcha",
                 Some(payload.to_string()),
                 Some($app.user.token.clone().unwrap())
             );

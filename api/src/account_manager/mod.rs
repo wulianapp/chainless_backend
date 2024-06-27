@@ -176,7 +176,7 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 /**
 * @api {post} /accountManager/register 注册账户
 * @apiVersion 0.0.1
-* @apiName registerByPhone
+* @apiName register
 * @apiGroup AccountManager
 * @apiBody {String} deviceId  设备ID
 * @apiBody {String} deviceBrand  手机型号 Huawei-P20
@@ -184,20 +184,31 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
-* @apiBody {String} pendingAccountId              候选钱包id
+* @apiBody {String} candidateAccountId              候选钱包id
 * @apiBody {String} masterPubkey                 主钱包master公钥
 * @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
 * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
 * @apiBody {String} anwserIndexes               安全问答的序列号
 * @apiBody {String} setUserInfoActionJson         更新用户信息合约的action
 * @apiExample {curl} Example usage:
-*    curl -X POST http://120.232.251.101:8066/accountManager/registerByPhone -H "Content-Type: application/json" -d
-  '{"deviceId": "123","phoneNumber": "+86 13682000011","captcha":"000000","password":"123456789","encryptedPrikey": "123",
-   "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee33","predecessorInviteCode":"1"}'
+    curl -X  POST http://127.0.0.1:8066/accountManager/register -H "Content-Type: application/json" -d '{
+        "anwserIndexes": "1,2,3",
+        "candidateAccountId": "3ngkwckrcd",
+        "captcha": "000000",
+        "contact": "test925472@gmail.com",
+        "deviceBrand": "Apple_Master",
+        "deviceId": "1",
+        "masterPrikeyEncryptedByAnswer": "3EZGKD6G6woHtskUPFNd5dnBQSUJmZ6c9sB7ozDWkvMQowBF8RKHxghtwFXfqPQd4PeLjtGL5895ZZvhBQJrGFuo",
+        "masterPrikeyEncryptedByPassword": "3EZGKD6G6woHtskUPFNd5dnBQSUJmZ6c9sB7ozDWkvMQowBF8RKHxghtwFXfqPQd4PeLjtGL5895ZZvhBQJrGFuo",
+        "masterPubkey": "GVhryzkbgQnx3bnNrMamb1NBxC9H6xL7hz3NGkWckrCD",
+        "password": "123456789",
+        "predecessorInviteCode": "chainless.hk",
+        "setUserInfoActionJson": "{}"
+    }'
 * @apiSuccess {String=0,1,2002,2003,2004,2006,2013,2016} status_code         状态码.
 * @apiSuccess {String} msg          状态详情
 * @apiSuccess {String} data         token值.
-* @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
+* @apiSampleRequest http://120.232.251.101:8066/accountManager/register
 */
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/register")]
@@ -282,10 +293,9 @@ async fn get_user_device_role(
  * @apiBody {String} contact    例如 phone +86 18888888888 or email test000001@gmail.com
  * @apiBody {String} captcha   验证码 000000
  * @apiExample {curl} Example usage:
- *    curl -X POST http://120.232.251.101:8066/accountManager/login -H "Content-Type: application/json" -d
- *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
-* @apiSuccess {String=0,1,2002,2003,2004,2008} status_code         状态码.
-* @apiSuccess {String} msg  状态详情
+ *  curl -X  POST http://127.0.0.1:8066/accountManager/login -H "Content-Type: application/json"  -d '{"contact":"test480003@gmail.com","deviceBrand":"Apple_Master","deviceId":"1","password":"123456789"}'
+ * @apiSuccess {String=0,1,2002,2003,2004,2008} status_code         状态码.
+ * @apiSuccess {String} msg  状态详情
  * @apiSuccess {String} data                token值.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/login
  */
@@ -404,30 +414,14 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
 
-    use crate::{test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
+    use crate::{test_check_captcha, test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
     use crate::utils::api_test::{gen_some_accounts_with_new_key,init};
     use actix_web::body::MessageBody;
     use actix_web::http::header;
     use actix_web::{test};
     use tests::handlers::user_info::UserInfoResponse;
     use serde_json::json;
-
     use crate::utils::respond::BackendRespond;
-
-
-    #[actix_web::test]
-    async fn test_hello() {
-        let app = init().await;
-        let service = actix_web::test::init_service(app).await;
-        let req = actix_web::test::TestRequest::get().uri("/hello/test").to_request();
-        let body = test::call_service(&service, req)
-            .await
-            .into_body()
-            .try_into_bytes()
-            .unwrap();
-        let body_str = String::from_utf8(body.to_vec()).unwrap();
-        println!("{}", body_str);
-    }
 
     #[actix_web::test]
     async fn test_all_braced_account_manager_ok() {
@@ -436,6 +430,8 @@ mod tests {
 
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) = gen_some_accounts_with_new_key();
  
+        //test_check_captcha!(service,sender_master,"Register","123456");
+
         test_register!(service,sender_master);
 
         test_login!(service,sender_master);
