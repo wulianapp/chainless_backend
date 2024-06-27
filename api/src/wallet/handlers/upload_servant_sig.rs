@@ -91,40 +91,9 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     if tx.transaction.signatures.len() as u8 >= need_sig_num {
         //区分receiver是否是子账户
         //给子账户转是relayer进行签名，不需要生成tx_raw
-        if tx.transaction.tx_type == TxType::MainToSub
-            || tx.transaction.tx_type == TxType::MainToBridge
-        {
+        if tx.transaction.tx_type == TxType::Forced {
             CoinTxEntity::update_single(
                 CoinTxUpdater::Stage(CoinSendStage::ReceiverApproved),
-                CoinTxFilter::ByOrderId(&order_id),
-            )
-            .await?;
-        //给其他主账户转是用户自己签名，需要生成tx_raw
-        } else if tx.transaction.tx_type == TxType::Forced {
-            //todo: 83~102 line is redundant，txid生成在gen_send_money的时候进行了
-            let cli = ContractClient::<MultiSig>::new_update_cli().await?;
-            let servant_sigs = tx
-                .transaction
-                .signatures
-                .iter()
-                .map(|data| PubkeySignInfo {
-                    pubkey: data[..64].to_string(),
-                    signature: data[64..].to_string(),
-                })
-                .collect();
-            let (tx_id, chain_tx_raw) = cli
-                .gen_send_money_raw(
-                    servant_sigs,
-                    &tx.transaction.sender,
-                    &tx.transaction.receiver,
-                    tx.transaction.coin_type,
-                    tx.transaction.amount,
-                    tx.transaction.expire_at,
-                )
-                .await?;
-
-            CoinTxEntity::update_single(
-                CoinTxUpdater::ChainTxInfo(&tx_id, &chain_tx_raw, CoinSendStage::ReceiverApproved),
                 CoinTxFilter::ByOrderId(&order_id),
             )
             .await?;

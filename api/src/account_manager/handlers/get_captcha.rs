@@ -10,7 +10,7 @@ use models::PsqlOp;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
 
-use crate::utils::captcha::{email, Captcha, ContactType, Usage};
+use crate::utils::captcha::{email, Captcha, ContactType, Distinctor, Usage};
 use crate::utils::captcha::{sms, Usage::*};
 use crate::utils::{captcha, get_user_context, judge_role_by_user_id, token_auth};
 
@@ -40,7 +40,7 @@ fn get(
     user_id: Option<u32>,
 ) -> BackendRes<String> {
     
-    let contract_type: ContactType = contact.parse()?;
+    let contract_type = contact.contact_type()?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
         Some(id) => id.to_string(),
@@ -114,17 +114,15 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             let user_id = user_info.id;
 
             //安全问答之前都允许，安全问答之后只有主设备允许
-            if user_info.main_account.is_some() {
-                let find_device_res = DeviceInfoEntity::find_single(
-                    DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-                )
-                .await?
-                .into_inner();
-                let role =
-                    judge_role_by_user_id(find_device_res.hold_pubkey.as_deref(), &user_id).await?;
-                if role != KeyRole::Master {
-                    Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
-                }
+            let find_device_res = DeviceInfoEntity::find_single(
+                DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
+            )
+            .await?
+            .into_inner();
+            let role =
+                judge_role_by_user_id(find_device_res.hold_pubkey.as_deref(), &user_id).await?;
+            if role != KeyRole::Master {
+                Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
             }
 
             get(device_id, contact, kind, Some(user_info.id))
@@ -146,7 +144,7 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                 }
             }
         },
-        SetSecurity | UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster
+        UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster
         | ReplenishContact => Err(BackendError::RequestParamInvalid("".to_string()))?,
     }
 }
@@ -167,12 +165,10 @@ pub async fn with_token_req(
         ResetLoginPassword | Register | Login => {
             Err(BackendError::RequestParamInvalid("".to_string()))?
         }
-        SetSecurity | UpdateSecurity | ReplenishContact => {
+        UpdateSecurity | ReplenishContact => {
             //要么为进行安全问答，否则就只能主设备
-            if context.user_info.main_account.is_some() {
-                if role != KeyRole::Master {
-                    Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
-                }
+            if role != KeyRole::Master {
+                Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
             }
         }
         NewcomerSwitchMaster => {

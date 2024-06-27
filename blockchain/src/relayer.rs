@@ -34,7 +34,7 @@ lazy_static! {
         let RelayerPool { seed, account_id, derive_size }
             = common::env::CONF.relayer_pool.clone();
         let mut pool = vec![];
-        for derive_index in 1..=derive_size {
+        for derive_index in 0..derive_size {
             let signer = chainless_sub_signer(&account_id,&seed,derive_index).unwrap();
             pool.push(Mutex::new(Relayer{
                 derive_index,
@@ -113,12 +113,9 @@ mod tests {
     use common::log::init_logger;
     use near_crypto::Signer;
     use near_primitives::{
-        account::{AccessKey, AccessKeyPermission},
-        action::{Action, AddKeyAction},
-        types::BlockReference,
+        account::{AccessKey, AccessKeyPermission}, action::{Action, AddKeyAction}, transaction::SignedTransaction, types::BlockReference
     };
     use near_crypto::{PublicKey, SecretKey};
-    use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
     use near_jsonrpc_client::methods;
     use near_primitives::transaction::Transaction;
     use near_primitives::types::AccountId;
@@ -151,18 +148,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_tool_add_many_pubkey() {
-        //let account_id = AccountId::from_str("test").unwrap();
-        //let pri_key: SecretKey = "ed25519:3rSERwSqqyRNwSMaP61Kr3P96dQQGk4QwznTDNTxDMUqwTwkbBnjbwAjF39f98JSQzGXnzRWDUKb4HcpzDWyzWDc".parse().unwrap();
-        //let used_pubkey = PublicKey::from_str("ed25519:CuAL8qaTLg3nMQ3Jz3B2yq6SYCSygGoR2q5nEACHxVyY").unwrap();
-        let account_id = AccountId::from_str("local").unwrap();
-        let pri_key: SecretKey = "ed25519:3cBasJZvQutzkCV5qv4rF7aikPH3EWMTQM6mGbJnXJ6i9zAcdsaun82WQgzQbxxKmEVTBvS2NJDBeKk23FFb43kd".parse().unwrap();
-        let used_pubkey =
-            PublicKey::from_str("ed25519:9ruaNCMS1BvXfWT6MySeveTXrn2fLekbVCaWwETL18ZP").unwrap();
-
+        let account_id = AccountId::from_str("user").unwrap();
+        let pri_key: SecretKey = "ed25519:3MCQKU8rsSCyegYCu7Ek14pc6NjMkgp6KHphf2nfAgknThknusRGSqMLYQFonasixjvvWmoNJnaFuK1fWF5cBpDN".parse().unwrap();
+        let used_pubkey = PublicKey::from_str("ed25519:7cdJyWNhtzkWbeMwrGDK6D8tQ3u9SEuRytjvf75PnWAc").unwrap();
         let seed = "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849";
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id.clone(), pri_key);
         let mut actions = vec![];
-        for index in 10001u32..=100000u32 {
+        for index in 0..100 {
             let key = chainless_sub_signer(account_id.as_ref(), seed, index).unwrap();
             println!("key {}", key.public_key);
             let add_action = Action::AddKey(Box::new(AddKeyAction {

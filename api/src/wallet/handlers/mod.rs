@@ -31,40 +31,21 @@ use common::error_code::BackendError::*;
 pub use common::prelude::*;
 use common::utils::math::*;
 
-pub mod add_servant;
-pub mod add_subaccount;
 pub mod balance_list;
 pub mod cancel_send_money;
-pub mod commit_newcomer_replace_master;
-pub mod commit_servant_switch_master;
-pub mod create_main_account;
 pub mod device_list;
-pub mod estimate_transfer_fee;
 pub mod faucet_claim;
-pub mod gen_newcomer_switch_master;
-pub mod gen_send_money;
-pub mod gen_servant_switch_master;
-pub mod get_fees_priority;
 pub mod get_need_sig_num;
 pub mod get_secret;
-pub mod get_strategy;
 pub mod get_tx;
-pub mod newcommer_switch_servant;
 pub mod pre_send_money;
-pub mod pre_send_money_to_sub;
 pub mod react_pre_send_money;
 pub mod reconfirm_send_money;
-pub mod remove_servant;
 pub mod remove_subaccount;
 pub mod search_message;
 pub mod servant_saved_secret;
-pub mod set_fees_priority;
-pub mod single_balance;
-pub mod sub_send_to_main;
 pub mod tx_list;
 pub mod update_security;
-pub mod update_strategy;
-pub mod update_subaccount_hold_limit;
 pub mod upload_servant_sig;
 
 //短地址允许碰撞的次数
@@ -170,13 +151,10 @@ pub async fn get_session_state(
             }
         })?;
 
-    let main_account = user.user_info.main_account.as_ref();
-    if user.user_info.main_account.is_none() {
-        Err(WalletError::NotSetSecurity)?
-    }
+    let main_account = &user.user_info.main_account;
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
     let current_strategy = multi_sig_cli
-        .get_strategy(main_account.unwrap())
+        .get_strategy(main_account)
         .await?
         .ok_or(BackendError::InternalError(
             "main_account not found".to_string(),

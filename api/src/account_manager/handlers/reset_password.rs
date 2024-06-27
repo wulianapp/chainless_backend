@@ -44,27 +44,16 @@ pub async fn req(
             .map_err(|_e| PhoneOrEmailNotRegister)?
             .into_inner();
 
-    if let Some(account) = user_info.main_account {
-        let devices =
-            DeviceInfoEntity::find(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
-                .await?;
-        //针对用新设备修改
-        let role = if devices.is_empty() {
-            KeyRole::Undefined
-        } else {
-            //设置安全问答之前或者之后的主设备 才有权限改登录密码
-            let cli = ContractClient::<MultiSig>::new_query_cli().await?;
-            let strategy = cli.get_strategy(&account).await?;
-            judge_role_by_strategy(
-                strategy.as_ref(),
-                devices[0].device_info.hold_pubkey.as_deref(),
-            )?
-        };
+    let devices =
+        DeviceInfoEntity::find(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
+            .await?;
 
-        if role != KeyRole::Master {
-            Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
-        }
+    //todo: 通过前端签名消息来处理，签名reset_password
+    let role = KeyRole::Master;
+    if role != KeyRole::Master {
+        Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
     }
+    
 
     //check captcha
     Captcha::check_and_delete(

@@ -103,8 +103,10 @@ pub(crate) async fn req(
                 memo,
                 expire_at,
                 stage,
-            ))
-        };
+        ))
+    };
+
+    //todo: 做已拉黑不能提现的限制
 
     let need_sig_num = get_servant_need(&strategy.multi_sig_ranks, &coin_type, amount).await;
 
@@ -117,7 +119,6 @@ pub(crate) async fn req(
         let order_id = coin_info.transaction.order_id.clone();
         let coin_tx_raw = coin_info.transaction.coin_tx_raw.clone();
 
-        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id);
         coin_info.transaction.tx_type = TxType::MainToBridge;
         coin_info.transaction.receiver = eth_addr;

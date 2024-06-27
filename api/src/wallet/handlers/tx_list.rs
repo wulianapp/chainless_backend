@@ -42,7 +42,6 @@ pub struct CoinTxViewResponse {
     pub memo: Option<String>,
     pub stage: CoinSendStage,
     pub coin_tx_raw: String,
-    pub chain_tx_raw: Option<String>,
     pub signatures: Vec<ServentSigDetail>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
@@ -118,7 +117,7 @@ pub async fn req(
                     CoinTxEntity::find(CoinTxFilter::ByTxRolePage(
                         tx_role,
                         &main_account,
-                        Some(&counterparty_main_account.user_info.main_account.unwrap()),
+                        Some(&counterparty_main_account.user_info.main_account),
                         per_page,
                         page,
                     ))
@@ -171,7 +170,6 @@ pub async fn req(
             memo: tx.transaction.memo,
             stage,
             coin_tx_raw: tx.transaction.coin_tx_raw,
-            chain_tx_raw: tx.transaction.chain_tx_raw,
             signatures: sigs,
             tx_type: tx.transaction.tx_type,
             chain_status: tx.transaction.chain_status,

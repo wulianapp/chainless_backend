@@ -10,8 +10,6 @@ pub struct UserInfo {
     //if is frozened,cannt operation anymore
     pub is_frozen: bool,
     pub kyc_is_verified: bool,
-    //last three time subaccounts creation
-    pub create_subacc_time: Vec<u64>,
-    pub main_account: Option<String>,
+    pub main_account: String,
     pub token_version: u32,
 }

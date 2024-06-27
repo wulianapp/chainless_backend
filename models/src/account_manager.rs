@@ -41,14 +41,12 @@ pub enum UserUpdater<'a> {
     //pwd,token version
     LoginPwdHash(&'a str, u32),
     AccountIds(Vec<String>),
-    //     * anwser_indexes,secruity_is_seted,main_account
     SecruityInfo(&'a str, &'a str),
     AnwserIndexes(&'a str),
     OpStatus(&'a str),
     Email(&'a str),
     PhoneNumber(&'a str),
-    TokenVersion(u32),
-    SubCreateRecords(Vec<u64>),
+    TokenVersion(u32)
 }
 
 impl fmt::Display for UserUpdater<'_> {
@@ -60,14 +58,6 @@ impl fmt::Display for UserUpdater<'_> {
             UserUpdater::AccountIds(ids) => {
                 let new_servant_str: PsqlType = ids.to_owned().into();
                 format!("account_ids={} ", new_servant_str.to_psql_str())
-            }
-            UserUpdater::SubCreateRecords(times) => {
-                let times: PsqlType = times
-                .iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<String>>()
-                .into();
-                format!("create_subacc_time={} ", times.to_psql_str())
             }
             UserUpdater::SecruityInfo(anwser_indexes, main_account) => format!(
                 "anwser_indexes='{}',main_account='{}'",
@@ -101,17 +91,16 @@ impl fmt::Display for UserFilter<'_> {
 }
 
 impl UserInfoEntity {
-    pub fn new_with_specified(user_id: u32, login_pwd_hash: &str) -> Self {
+    pub fn new_with_specified(user_id: u32, login_pwd_hash: &str,anwser_indexes:&str,main_account_id:&str) -> Self {
         let user = UserInfo {
             id: user_id,
             phone_number: None,
             email: None,
             login_pwd_hash: login_pwd_hash.to_owned(),
-            anwser_indexes: "".to_string(),
+            anwser_indexes: anwser_indexes.to_owned(),
             is_frozen: false,
             kyc_is_verified: false,
-            create_subacc_time: vec![],
-            main_account: None,
+            main_account: main_account_id.to_owned(),
             token_version: 1,
         };
         UserInfoEntity {
@@ -135,7 +124,6 @@ impl PsqlOp for UserInfoEntity {
             anwser_indexes,\
             is_frozen,\
             kyc_is_verified,\
-            create_subacc_time,\
             main_account,\
             token_version,\
             cast(updated_at as text),\
@@ -157,16 +145,11 @@ impl PsqlOp for UserInfoEntity {
                     anwser_indexes: row.get(4),
                     is_frozen: row.get::<usize, bool>(5),
                     kyc_is_verified: row.get(6),
-                    create_subacc_time: row
-                        .get::<usize, Vec<String>>(7)
-                        .into_iter()
-                        .map(|t| t.parse::<u64>().unwrap())
-                        .collect::<Vec<u64>>(),
-                    main_account: row.get(8),
-                    token_version: row.get::<usize, i64>(9) as u32,
+                    main_account: row.get(7),
+                    token_version: row.get::<usize, i64>(8) as u32,
                 },
-                updated_at: row.get(10),
-                created_at: row.get(11),
+                updated_at: row.get(9),
+                created_at: row.get(10),
             };
             Ok(view)
         };
@@ -197,14 +180,11 @@ impl PsqlOp for UserInfoEntity {
             anwser_indexes,
             is_frozen,
             kyc_is_verified,
-            create_subacc_time,
             main_account,
             token_version,
         } = self.into_inner();
 
         //assembly string array to sql string
-        let create_subacc_time: PsqlType = create_subacc_time.into();
-        let main_account: PsqlType = main_account.into();
         let phone_number: PsqlType = phone_number.into();
         let email: PsqlType = email.into();
 
@@ -217,10 +197,9 @@ impl PsqlOp for UserInfoEntity {
                 anwser_indexes,\
                 is_frozen,\
                 kyc_is_verified,\
-                create_subacc_time,\
                 main_account,\
                 token_version\
-            ) values ({},{},{},'{}','{}',{},{},{},{},{})",
+            ) values ({},{},{},'{}','{}',{},{},'{}',{})",
             id,
             phone_number.to_psql_str(),
             email.to_psql_str(),
@@ -228,8 +207,7 @@ impl PsqlOp for UserInfoEntity {
             anwser_indexes,
             is_frozen,
             kyc_is_verified,
-            create_subacc_time.to_psql_str(),
-            main_account.to_psql_str(),
+            main_account,
             token_version
         );
         debug!("row sql {} rows", sql);
@@ -253,7 +231,7 @@ mod tests {
         init_logger();
         table_clear("users").await.unwrap();
 
-        let user = UserInfoEntity::new_with_specified(123245, "0123456789");
+        let user = UserInfoEntity::new_with_specified(123245, "0123456789","anwser_indexes","main_account_id");
         user.insert().await.unwrap();
         let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245))
             .await

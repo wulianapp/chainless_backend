@@ -32,7 +32,6 @@ pub struct CoinTransactionResponse {
     pub memo: Option<String>,
     pub stage: CoinSendStage,
     pub coin_tx_raw: String,
-    pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
@@ -47,9 +46,7 @@ pub struct SearchMessageResponse {
 pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let user = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
-    if user.user_info.main_account.is_none() {
-        return Ok(None);
-    }
+
     let mut messages = SearchMessageResponse::default();
     //if newcomer device not save,notify it to do
     let device_info =
@@ -65,7 +62,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
     }
 
     let coin_txs = CoinTxEntity::find(CoinTxFilter::ByAccountPending(
-        user.user_info.main_account.as_ref().unwrap(),
+        &user.user_info.main_account
     ))
     .await?;
     let mut tx_msg = coin_txs
@@ -82,7 +79,6 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
             memo: tx.transaction.memo,
             stage: tx.transaction.stage,
             coin_tx_raw: tx.transaction.coin_tx_raw,
-            chain_tx_raw: tx.transaction.chain_tx_raw,
             signatures: tx.transaction.signatures,
             tx_type: tx.transaction.tx_type,
             chain_status: tx.transaction.chain_status,
@@ -91,7 +87,7 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
 
     messages.coin_tx.append(&mut tx_msg);
 
-    if have_no_uncompleted_tx(&user.user_info.main_account.unwrap())
+    if have_no_uncompleted_tx(&user.user_info.main_account)
         .await
         .is_err()
     {

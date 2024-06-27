@@ -101,13 +101,13 @@ impl fmt::Display for DeviceInfoFilter<'_> {
 }
 
 impl DeviceInfoEntity {
-    pub fn new_with_specified(id: &str, brand: &str, user_id: u32) -> Self {
+    pub fn new_with_specified(id: &str, brand: &str, user_id: u32, hold_pubkey: Option<String>) -> Self {
         DeviceInfoEntity {
             device_info: DeviceInfo {
                 id: id.to_owned(),
                 user_id,
                 state: common::data_structures::DeviceState::Active,
-                hold_pubkey: None,
+                hold_pubkey,
                 brand: brand.to_owned(),
                 holder_confirm_saved: false,
             },
@@ -219,7 +219,7 @@ mod tests {
 
         table_clear("device_info").await.unwrap();
         let task = async {
-            let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1);
+            let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1,None);
             device.insert().await.unwrap();
             let mut device_by_find =
                 DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1))

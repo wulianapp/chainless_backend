@@ -10,32 +10,16 @@ create table if not exists users
     -- 安全问答序列号
     anwser_indexes text not null,
     -- 是否冻结，暂时没有对应的详细需求
-    is_frozen bool,
+    is_frozen bool not null,
     -- kyc的预留字段，不确定是否需要
-    kyc_is_verified bool,
-    -- 最近三次创建子账户的时间戳，对应每天只能创建三个子账户的需求
-    create_subacc_time bigint[],
+    kyc_is_verified bool not null,
     -- 无链钱包id
-    main_account text unique,
+    main_account text unique not null,
     -- 令牌版本
     token_version bigint not null,
     updated_at  timestamp with time zone default current_timestamp,
-    created_at  timestamp with time zone default current_timestamp,
+    created_at  timestamp with time zone default current_timestamp
 );
-
-
--- index: ix_users_email
-create index if not exists ix_users_email
-    on users using btree
-    (email collate pg_catalog."default" asc nulls last)
-    tablespace pg_default;
--- index: ix_users_phone
-create index if not exists ix_users_phone
-    on users using btree
-    (phone_number collate pg_catalog."default" asc nulls last)
-    tablespace pg_default;
---ALTER TABLE users ALTER COLUMN invite_code SET DEFAULT currval('users_id_seq');
-
 
 create table coin_transaction(
      -- 订单id
@@ -43,23 +27,21 @@ create table coin_transaction(
      -- 链上tx_id
      tx_id text unique,
      --  发送方
-     sender text,
+     sender text not null,
      -- 接收方
-     receiver text,
+     receiver text not null,
      -- 币种类型
-     coin_type text,
+     mt text not null,
      -- 交易数量(u256)
-     amount text,
-     -- 过期时间
-     expire_at text,
+     amount text not null,
+     -- 过期时间,但是只在中继卡，合约不卡
+     expire_at text not null,
      -- 备注
      memo  text,
      -- 交易进度
-     stage  text,
+     stage  text not null,
      -- 转账的信息
-     coin_tx_raw  text,
-     -- 链交易组装原始数据
-     chain_tx_raw  text,
+     coin_tx_raw  text not null,
      -- 从设备签名信息
      signatures text[],
      -- 交易类型，Forced,ToSub,FromSub
@@ -167,7 +149,7 @@ create table airdrop
     -- 用户id
     user_id bigserial primary key,
     -- 用户钱包id
-    account_id text unique,
+    account_id text unique not null,
     -- 用户邀请码
     invite_code text not null unique,
     -- 上级用户id

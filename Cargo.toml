@@ -44,10 +44,11 @@ tokio = { version = "1.28.2", features = ["full"] }
 
 ## near
 near-chain-configs = "0.20.0"
-near-crypto = "0.20.0"
-near-jsonrpc-client = "0.8.0"
-near-jsonrpc-primitives = "0.20.0"
-near-primitives = "0.20.0"
+
+near-crypto = { git = "https://github.com/wulianapp/blockchain.git", branch = "master", subdir = "core/crypto" }
+near-jsonrpc-client = { package = "chainless-jsonrpc-client",git = "https://github.com/wulianapp/chainless-jsonrpc-client-rs.git" }
+near-jsonrpc-primitives = { git = "https://github.com/wulianapp/blockchain.git", branch = "master", subdir = "chain/jsonrpc-primitives" }
+near-primitives = { git = "https://github.com/wulianapp/blockchain.git", branch = "master", subdir = "core/primitives" }
 
 ## eth
 ethers = "2.0.11"

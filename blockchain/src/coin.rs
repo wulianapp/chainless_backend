@@ -35,40 +35,6 @@ struct NRC20TransferArgs {
     memo: Option<String>,
 }
 
-fn decode_action(acts: &Vec<Action>) -> Result<NRC20TransferArgs, String> {
-    if acts.len() != 1 {
-        Err("Only support one action")?;
-    }
-    if let FunctionCall(act) = &acts[0] {
-        let FunctionCallAction {
-            method_name,
-            deposit,
-            args: _,
-            gas,
-        } = act.deref();
-        //todo: gas limit
-        if method_name == "ft_transfer" && deposit.eq(&0u128) && gas <= &u64::MAX {
-            if let Ok(args) = serde_json::from_slice::<NRC20TransferArgs>(&act.args) {
-                Ok(args)
-            } else {
-                Err("func args decode failed")?
-            }
-        } else {
-            Err("func call params is not eligible")?
-        }
-    } else {
-        Err("Only support function call")?
-    }
-}
-
-pub fn decode_coin_transfer(tx_raw: &str) -> Result<CoinTransaction, Box<dyn std::error::Error>> {
-    let tx_hex = hex::decode(tx_raw)?;
-    let transaction = Transaction::try_from_slice(&tx_hex)?;
-    let (_hash, _) = transaction.get_hash_and_size();
-    let _act = decode_action(&transaction.actions)?;
-    Err("".to_string())?
-}
-
 async fn get_balance(account: &AccountId) -> Result<u128> {
     let request = methods::query::RpcQueryRequest {
         block_reference: BlockReference::Finality(Finality::Final),
@@ -152,7 +118,7 @@ mod tests {
             .to_string()
             .into_bytes(),
             gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
-            deposit: 0,
+            deposit: None,
         }))];
         let mut transaction = gen_transaction(from, &coin_type.to_string()).await.unwrap();
         transaction.actions = transfer_actions;
@@ -160,20 +126,6 @@ mod tests {
 
         let raw_bytes = borsh::to_vec(&transaction.clone()).unwrap();
         hex::encode(raw_bytes)
-    }
-
-    #[tokio::test]
-    async fn test_call_coin_transfer() {
-        let account_id = "1.node0".parse().unwrap();
-        let pri_key = "ed25519:5VCjsh57P1hsSQzDoJyRKKMSLpMZjrgfVJvZWyjs6TgcdtbDnFgswGMtQ8MCcfnDQEkCUNUn7qEJ43TtC2Am5Xur".parse().unwrap();
-        let signer = near_crypto::InMemorySigner::from_secret_key(account_id, pri_key);
-
-        let raw_tx =
-            gen_send_money_chain_tx_raw(&signer, "2.node0".to_string(), CoinType::CLY, 123, None)
-                .await;
-        println!("raw_tx {}", raw_tx);
-        let decode_res = decode_coin_transfer(&raw_tx).unwrap();
-        println!("decode_res {:?}", decode_res);
     }
 
     #[tokio::test]

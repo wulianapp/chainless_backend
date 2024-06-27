@@ -28,8 +28,7 @@ pub async fn get_main_account(user_id: &u32) -> Result<String,BackendError>{
         )
         .await?
         .into_inner()
-        .main_account
-        .ok_or(WalletError::NotSetSecurity)?;
+        .main_account;
     Ok(account)
 }
 
@@ -79,11 +78,8 @@ pub async fn judge_role_by_user_id(device_key: Option<&str>, id: &u32) -> Result
         })?
         .into_inner();
 
-    if let Some(ref account) = user_info.main_account {
-        judge_role_by_account(device_key, account).await
-    } else {
-        Ok(KeyRole::Undefined)
-    }
+    judge_role_by_account(device_key, &user_info.main_account).await
+
 }
 
 //all state info
@@ -99,8 +95,8 @@ impl UserContext {
 
     pub fn account_strategy(&self) -> Result<(String, StrategyData), WalletError> {
         //main_acocunt和strategy是同时有或者同时无
-        let strategy = self.strategy.clone().ok_or(WalletError::NotSetSecurity)?;
-        Ok((self.user_info.clone().main_account.unwrap(), strategy))
+        let strategy = self.strategy.clone().unwrap();
+        Ok((self.user_info.clone().main_account, strategy))
     }
 }
 
@@ -123,13 +119,9 @@ pub async fn get_user_context(user_id: &u32, device_id: &str) -> Result<UserCont
         .await?
         .into_inner();
 
-    let strategy = match user_info.main_account {
-        Some(ref account) => {
-            let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-            multi_sig_cli.get_strategy(account).await?
-        }
-        None => None,
-    };
+
+    let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
+    let strategy =  multi_sig_cli.get_strategy(&user_info.main_account).await?;
 
     Ok(UserContext {
         user_info,

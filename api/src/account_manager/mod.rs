@@ -10,8 +10,7 @@ use handlers::get_captcha::GetCaptchaWithoutTokenRequest;
 use handlers::get_user_device_role::GetUserDeviceRoleRequest;
 use handlers::login::LoginByCaptchaRequest;
 use handlers::login::LoginRequest;
-use handlers::register::RegisterByEmailRequest;
-use handlers::register::RegisterByPhoneRequest;
+use handlers::register::RegisterRequest;
 use handlers::replenish_contact::ReplenishContactRequest;
 use handlers::reset_password::ResetPasswordRequest;
 
@@ -91,7 +90,6 @@ async fn get_captcha_with_token(
  * @apiSuccess {String} msg 状态信息
  * @apiSuccess {Object} data                            联系方式的状态.
  * @apiSuccess {bool} data.contact_is_register            是否已经注册.
- * @apiSuccess {bool} data.secruity_is_seted              是否进行安全问答.
  * @apiSampleRequest http://120.232.251.101:8066/accountManager/contactIsUsed
  */
 
@@ -161,7 +159,6 @@ async fn check_captcha(
  * @apiSuccess {Number} data.laste_predecessor_replace_time     上次更换邀请者的时间
  * @apiSuccess {String} data.invite_code              用户自己的邀请码
  * @apiSuccess {bool} data.kyc_is_verified          是否kyc
- * @apiSuccess {bool} data.secruity_is_seted        是否进行安全设置
  * @apiSuccess {String} data.main_account             主钱包id
  * @apiSuccess {String=Master,Servant,Undefined} data.role                   当前的角色
  * @apiSuccess {String} [data.name]                       kyc实名名字
@@ -177,55 +174,17 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 }
 
 /**
-* @api {post} /accountManager/registerByEmail 通过邮箱注册账户
-* @apiVersion 0.0.1
-* @apiName registerByEmail
-* @apiGroup AccountManager
-* @apiBody {String} deviceId     设备ID
-* @apiBody {String} deviceBrand  手机型号 Huawei-P20
-* @apiBody {String} email        邮箱 test000001@gmail.com
-* @apiBody {String} captcha      验证码
-* @apiBody {String} password     登录密码
-* @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
-* @apiBody {String} masterPubkey                 主钱包master公钥
-* @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
-* @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
-* @apiBody {String} anwserIndexes               安全问答的序列号
-* @apiBody {String} setUserInfoActionJson         更新用户信息合约的action
-* @apiExample {curl} Example usage:
-    curl -X POST http://120.232.251.101:8066/accountManager/registerByEmail -H "Content-Type: application/json" -d
-  '{"deviceId": "123","email": "test000001@gmail.com","captcha":"000000","password":"123456789","encryptedPrikey": "123",
-   "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e"}'
-* @apiSuccess {String=0,1,2002,2003,2004,2006,2013,2016} status_code         状态码.
-* @apiSuccess {String} msg                 状态详情
-* @apiSuccess {String} data                token值.
-* @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
-*/
-
-#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/accountManager/registerByEmail")]
-async fn register_by_email(
-    req: HttpRequest,
-    request_data: web::Json<RegisterByEmailRequest>,
-) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::register::by_email::req(request_data.into_inner()).await,
-    )
-}
-
-/**
-* @api {post} /accountManager/registerByPhone 通过手机注册账户
+* @api {post} /accountManager/register 注册账户
 * @apiVersion 0.0.1
 * @apiName registerByPhone
 * @apiGroup AccountManager
 * @apiBody {String} deviceId  设备ID
 * @apiBody {String} deviceBrand  手机型号 Huawei-P20
-* @apiBody {String} phoneNumber     手机号 +86 18888888888
+* @apiBody {String} contact     手机号 +86 18888888888 或者 邮箱 test000001@gmail.com
 * @apiBody {String} captcha   验证码
 * @apiBody {String} password       密码
 * @apiBody {String} [predecessorInviteCode]   推荐人的邀请码
+* @apiBody {String} pendingAccountId              候选钱包id
 * @apiBody {String} masterPubkey                 主钱包master公钥
 * @apiBody {String} masterPrikeyEncryptedByPassword   密码加密的master私钥
 * @apiBody {String} masterPrikeyEncryptedByAnswer   问答加密的master私钥
@@ -241,15 +200,15 @@ async fn register_by_email(
 * @apiSampleRequest http://120.232.251.101:8066/accountManager/registerByEmail
 */
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/accountManager/registerByPhone")]
-async fn register_by_phone(
+#[post("/accountManager/register")]
+async fn register(
     req: HttpRequest,
-    request_data: web::Json<RegisterByPhoneRequest>,
+    request_data: web::Json<RegisterRequest>,
 ) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
-        handlers::register::by_phone::req(request_data.into_inner()).await,
+        handlers::register::req(request_data.into_inner()).await,
     )
 }
 
@@ -428,8 +387,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg
         //.service(get_captcha)
         .service(contact_is_used)
-        .service(register_by_email)
-        .service(register_by_phone)
+        .service(register)
         .service(login_by_password)
         .service(login_by_captcha)
         .service(user_info)
@@ -451,7 +409,6 @@ mod tests {
     use actix_web::body::MessageBody;
     use actix_web::http::header;
     use actix_web::{test};
-    use tests::handlers::contact_is_used::ContactIsUsedResponse;
     use tests::handlers::user_info::UserInfoResponse;
     use serde_json::json;
 
@@ -489,7 +446,6 @@ mod tests {
 
         sender_master.user.password = "new_pwd".to_string();
         test_reset_password!(service,sender_master);
-
 
         test_login!(service,sender_master);
 

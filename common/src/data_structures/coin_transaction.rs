@@ -17,10 +17,6 @@ pub enum TxType {
     Normal,
     /// 强制交易
     Forced,
-    /// 储蓄账户给合约账户转账
-    MainToSub,
-    /// 合约账户给储蓄账户转账
-    SubToMain,
     /// 跨链提现（储蓄账户给跨链桥转账）
     MainToBridge,
 }
@@ -64,16 +60,8 @@ pub struct CoinTransaction {
     pub memo: Option<String>,
     pub stage: CoinSendStage,
     pub coin_tx_raw: String,
-    pub chain_tx_raw: Option<String>,
     pub signatures: Vec<String>,
     pub tx_type: TxType,
     pub chain_status: TxStatusOnChain,
     pub receiver_contact: Option<String>,
-}
-
-//sub to main
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct SubToMainTx {
-    pub coin_id: String,
-    pub amount: u128,
 }

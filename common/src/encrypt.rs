@@ -58,6 +58,11 @@ pub fn ed25519_key_gen() -> (String, String) {
     (prikey, pubkey)
 }
 
+pub fn chainless_key_gen() -> (String, String) {
+   let (prikey_hex,pubkey_hex) = ed25519_key_gen();
+   (hex_to_bs58(&prikey_hex).unwrap(),hex_to_bs58(&pubkey_hex).unwrap())
+}
+
 pub fn ed25519_verify_raw(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {
     let public_key_bytes: Vec<u8> = hex::decode(pubkey_hex)?;
     let public_key = ed25519_dalek::PublicKey::from_bytes(&public_key_bytes)?;

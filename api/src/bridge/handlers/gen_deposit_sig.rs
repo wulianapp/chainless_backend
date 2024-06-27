@@ -49,6 +49,8 @@ pub async fn req(
         Err(BridgeError::CoinNotSupport(coin.to_string()))?
     }
 
+    //todo: 已拉黑不能充值
+
     let bridge_cli = ContractClient::<Bridge>::new_query_cli().await?;
 
     let (sig, deadline, cid) = bridge_cli

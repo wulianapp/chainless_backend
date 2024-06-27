@@ -114,7 +114,8 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         let _ = retry_storage.remove(&user_info.id);
     }
 
-    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
+    //如果存在就不更新，不存在一定是新设备
+    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id,None);
     device
         .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;
@@ -149,10 +150,16 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
                 }
             })?
             .into_inner();
-
     Captcha::check_and_delete(&user_info.id.to_string(), &captcha, Usage::Login)?;
 
-    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id);
+
+    //如果存在就不更新，不存在一定是新设备
+    let device = DeviceInfoEntity::new_with_specified(
+            &device_id, 
+            &device_brand,
+             user_info.id,
+             None
+    );
     device
         .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;

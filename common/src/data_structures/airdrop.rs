@@ -15,7 +15,7 @@ pub enum BtcGradeStatus {
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct Airdrop {
     pub user_id: u32,
-    pub account_id: Option<String>,
+    pub account_id: String,
     pub invite_code: String,
     pub predecessor_user_id: u32,
     pub predecessor_account_id: String,

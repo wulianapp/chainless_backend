@@ -2,17 +2,17 @@ use common::data_structures::TxStatusOnChain;
 use common::utils::math::hex_to_bs58;
 use near_crypto::{InMemorySigner, KeyType, PublicKey, Signature};
 use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitResponse;
-use near_jsonrpc_client::methods::EXPERIMENTAL_check_tx::SignedTransaction;
+use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::RpcTransactionStatusRequest;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus};
+use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus, TxExecutionStatus};
 use std::str::FromStr;
 
 use near_primitives::borsh::BorshDeserialize;
-use near_primitives::transaction::Transaction;
+use near_primitives::transaction::{SignedTransaction, Transaction};
 use near_primitives::types::{AccountId, BlockReference};
 
-use near_jsonrpc_primitives::types::transactions::TransactionInfo;
+use near_jsonrpc_primitives::types::transactions::{TransactionInfo};
 
 use hex;
 //use log::debug;
@@ -142,38 +142,38 @@ pub async fn get_access_key_list(account_str: &str) -> Result<AccessKeyList> {
 
 pub async fn tx_status(tx_id: &str) -> Result<TxStatusOnChain> {
     let tx_id = hex_to_bs58(tx_id)?;
-    let tx_status_request = methods::tx::RpcTransactionStatusRequest {
+    let tx_status_request = RpcTransactionStatusRequest {
         transaction_info: TransactionInfo::TransactionId {
             tx_hash: tx_id
                 .parse()
                 .map_err(|_e| anyhow!("tx_id to tx_hash".to_string()))?,
             sender_account_id: "node0".parse()?,
         },
+        //todo: 这个status的变化
+        wait_until: near_primitives::views::TxExecutionStatus::ExecutedOptimistic,
     };
 
     let tx_status = crate::rpc_call(tx_status_request).await?;
 
-    let status = if let FinalExecutionStatus::SuccessValue(_value) = tx_status.status {
+    let status = if let TxExecutionStatus::Final = tx_status.final_execution_status {
         let mut status = TxStatusOnChain::Successful;
-        for outcome in tx_status.receipts_outcome {
-            match outcome.outcome.status {
-                ExecutionStatusView::Unknown => {
-                    unreachable!("");
-                    //status = TxStatusOnChain::Failed;
-                    //break;
-                }
-                ExecutionStatusView::Failure(_) => {
-                    status = TxStatusOnChain::Failed;
-                    break;
-                }
-                ExecutionStatusView::SuccessValue(_) => {}
-                ExecutionStatusView::SuccessReceiptId(_) => {}
-            }
-        }
+        //todo: 遍历所有的output
+        // for outcome in tx_status.final_execution_outcome.unwrap_or_default() {
+        //     match outcome. {
+        //         ExecutionStatusView::Unknown => {
+        //             unreachable!("");
+        //             //status = TxStatusOnChain::Failed;
+        //             //break;
+        //         }
+        //         ExecutionStatusView::Failure(_) => {
+        //             status = TxStatusOnChain::Failed;
+        //             break;
+        //         }
+        //         ExecutionStatusView::SuccessValue(_) => {}
+        //         ExecutionStatusView::SuccessReceiptId(_) => {}
+        //     }
+        // }
         status
-    } else if let FinalExecutionStatus::Failure(error) = tx_status.status {
-        warn!("tx_id({}) is failed: {}", tx_id, error.to_string());
-        TxStatusOnChain::Failed
     } else {
         TxStatusOnChain::Pending
     };

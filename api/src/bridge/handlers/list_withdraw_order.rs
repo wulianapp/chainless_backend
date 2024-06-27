@@ -72,8 +72,7 @@ pub(crate) async fn req(
     )
     .await?
     .into_inner()
-    .main_account
-    .ok_or(WalletError::NotSetSecurity)?;
+    .main_account;
 
     let ListWithdrawOrderRequest {
         page,

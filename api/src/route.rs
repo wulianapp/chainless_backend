@@ -10,15 +10,11 @@ extern crate common;
 extern crate lazy_static;
 
 pub mod account_manager;
-pub mod account_manager_v2;
 pub mod airdrop;
-pub mod airdrop_v2;
 pub mod bridge;
-pub mod bridge_v2;
 pub mod general;
 pub mod utils;
 pub mod wallet;
-pub mod wallet_v2;
 
 use actix_http::{header, Payload};
 
@@ -159,14 +155,9 @@ async fn main() -> std::io::Result<()> {
                     .max_age(3600),
             )
             .configure(account_manager::configure_routes)
-            .configure(account_manager_v2::configure_routes)
             .configure(wallet::configure_routes)
-            .configure(wallet_v2::configure_routes)
             .configure(bridge::configure_routes)
-            .configure(bridge_v2::configure_routes)
             .configure(airdrop::configure_routes)
-            .configure(airdrop_v2::configure_routes)
-
     })
     .bind(service)?
     .run()

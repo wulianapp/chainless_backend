@@ -3,7 +3,7 @@ use actix_web::dev::{ServiceFactory, ServiceRequest, ServiceResponse};
 use actix_web::App;
 use actix_web::Error;
 use blockchain::multi_sig::MultiSig;
-use common::encrypt::ed25519_key_gen;
+use common::encrypt::{chainless_key_gen, ed25519_key_gen};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::env;
@@ -175,19 +175,21 @@ pub fn gen_some_accounts_with_new_key() -> (
     TestWulianApp2,
     TestWulianApp2,
 ) {
-    let sender_master_secret = ed25519_key_gen();
-    let sender_sub_secret = ed25519_key_gen();
-    let sender_servant_secret = ed25519_key_gen();
-    let sender_newcommer_secret = ed25519_key_gen();
-    let receiver_master_secret = ed25519_key_gen();
-    let receiver_sub_secret = ed25519_key_gen();
+    let sender_master_secret = chainless_key_gen();
+    let sender_sub_secret = chainless_key_gen();
+    let sender_servant_secret = chainless_key_gen();
+    let sender_newcommer_secret = chainless_key_gen();
+    let receiver_master_secret = chainless_key_gen();
+    let receiver_sub_secret = chainless_key_gen();
 
     let mut sender_master = simulate_sender_master();
     let random_suffix = random_num() % 900000 + 100000;
     let sender_account = format!("test{}@gmail.com", random_suffix);
     sender_master.user.contact = sender_account.clone();
+    
+    let sender_main_account = &sender_master_secret.1[sender_master_secret.1.len().saturating_sub(10)..];
     sender_master.wallet = TestWallet {
-        main_account: sender_master_secret.1.clone(),
+        main_account: sender_main_account.to_lowercase(),
         pubkey: Some(sender_master_secret.1.clone()),
         prikey: Some(sender_master_secret.0.clone()),
         subaccount: vec![sender_sub_secret.1.clone()],
@@ -197,8 +199,9 @@ pub fn gen_some_accounts_with_new_key() -> (
     let mut receiver = simulate_receiver();
     let random_suffix = random_num() % 900000 + 100000;
     receiver.user.contact = format!("test{}@gmail.com", random_suffix);
+    let receiver_main_account = &receiver_master_secret.1[receiver_master_secret.1.len().saturating_sub(10)..];
     receiver.wallet = TestWallet {
-        main_account: receiver_master_secret.1.clone(),
+        main_account: receiver_main_account.to_lowercase(),
         pubkey: Some(receiver_master_secret.1),
         prikey: Some(receiver_master_secret.0),
         subaccount: vec![receiver_sub_secret.1],
@@ -208,7 +211,7 @@ pub fn gen_some_accounts_with_new_key() -> (
     let mut sender_servant = simulate_sender_servant();
     sender_servant.user.contact = sender_account.clone();
     sender_servant.wallet = TestWallet {
-        main_account: sender_master_secret.1.clone(),
+        main_account: sender_main_account.to_lowercase(),
         pubkey: Some(sender_servant_secret.1.clone()),
         prikey: Some(sender_servant_secret.0.clone()),
         subaccount: vec![sender_sub_secret.1.clone()],
@@ -326,7 +329,8 @@ macro_rules! test_actix_call {
 macro_rules! test_service_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
         if common::env::CONF.service_mode == common::prelude::ServiceMode::Test {
-            crate::utils::api_test::local_reqwest_call($method,$api,$payload,$token).await
+            //crate::utils::api_test::local_reqwest_call($method,$api,$payload,$token).await
+            crate::test_actix_call!($service,$method,$api,$payload,$token)
         }else{
             crate::test_actix_call!($service,$method,$api,$payload,$token)
         }
@@ -339,17 +343,23 @@ macro_rules! test_register {
             let payload = json!({
                 "deviceId":  $app.device.id,
                 "deviceBrand": $app.device.brand,
-                "email": $app.user.contact,
-                //"captcha": $app.user.captcha,
+                "contact": $app.user.contact,
                 "captcha": "000000",
                 "password": $app.user.password,
-                "predecessorInviteCode":"chainless.hk"
+                "predecessorInviteCode":"chainless.hk",
+                "candidateAccountId":  $app.wallet.main_account,
+                "masterPubkey": $app.wallet.pubkey,
+                "masterPrikeyEncryptedByPassword": $app.wallet.prikey,
+                "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
+                "anwserIndexes": "1,2,3",
+                "setUserInfoActionJson": "{}"
+
             });
 
             let res: BackendRespond<String> = test_service_call!(
                 $service,
                 "post",
-                "/accountManager/registerByEmail",
+                "/accountManager/register",
                 Some(payload.to_string()),
                 None::<String>
             );
@@ -382,7 +392,7 @@ macro_rules! test_contact_is_used {
             "/accountManager/contactIsUsed?contact={}",
             $app.user.contact
         );
-        let res: BackendRespond<ContactIsUsedResponse> =
+        let res: BackendRespond<bool> =
             test_service_call!($service, "get", &url, None::<String>, None::<String>);
         assert_eq!(res.status_code, 0);
         res.data
@@ -472,22 +482,6 @@ macro_rules! test_search_message {
     ($service:expr, $app:expr) => {{
         let url = format!("/wallet/searchMessage");
         let res: BackendRespond<SearchMessageResponse> = test_service_call!(
-            $service,
-            "get",
-            &url,
-            None::<String>,
-            Some($app.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-        res.data
-    }};
-}
-
-#[macro_export]
-macro_rules! test_get_strategy {
-    ($service:expr, $app:expr) => {{
-        let url = format!("/wallet/getStrategy");
-        let res: BackendRespond<StrategyDataResponse> = test_service_call!(
             $service,
             "get",
             &url,
@@ -868,46 +862,6 @@ macro_rules! test_newcommer_switch_servant {
 }
 
 #[macro_export]
-macro_rules! test_gen_newcommer_switch_master {
-
-    ($service:expr, $sender_newcommer:expr) => {{
-        let payload = json!({
-            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.clone().unwrap(),
-            "captcha":"000000"
-        });
-        let url = format!("/wallet/genNewcomerSwitchMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyResponse> = test_service_call!(
-            $service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some($sender_newcommer.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-        res.data
-    }};
-}
-
-#[macro_export]
-macro_rules! test_gen_servant_switch_master {
-    ($service:expr,$sender_servant:expr) => {{
-        let payload = json!({
-            "captcha": "000000",
-        });
-        let url = format!("/wallet/genServantSwitchMaster");
-        let res: BackendRespond<super::handlers::gen_newcomer_switch_master::GenReplaceKeyResponse> = test_service_call!(
-            $service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some($sender_servant.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-        res.data
-    }};
-}
-
-#[macro_export]
 macro_rules! test_sub_send_to_master {
     ($service:expr,$sender_master:expr,$subaccount_id:expr,$signature:expr,$coin:expr,$amount:expr) => {{
         let payload = json!({
@@ -1045,25 +999,6 @@ macro_rules! test_get_secret {
     ($service:expr, $app:expr,$type:expr) => {{
         let url = format!("/wallet/getSecret?type={}", $type);
         let res: BackendRespond<Vec<SecretStore>> = test_service_call!(
-            $service,
-            "get",
-            &url,
-            None::<String>,
-            Some($app.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-        res.data
-    }};
-}
-
-#[macro_export]
-macro_rules! test_estimate_transfer_fee {
-    ($service:expr, $app:expr,$coin:expr,$amount:expr) => {{
-        let url = format!(
-            "/wallet/estimateTransferFee?coin={}&amount={}",
-            $coin, $amount
-        );
-        let res: BackendRespond<EstimateTransferFeeResponse> = test_service_call!(
             $service,
             "get",
             &url,

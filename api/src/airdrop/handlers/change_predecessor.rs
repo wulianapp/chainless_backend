@@ -46,14 +46,14 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
         ..
     } = predecessor_airdrop.airdrop;
 
-    if predecessor_account_id.as_ref().unwrap().eq(&main_account) {
+    if predecessor_account_id.eq(&main_account) {
         Err(AirdropError::ForbidSetSelfAsPredecessor)?;
     }
 
     AirdropEntity::update_single(
         AirdropUpdater::Predecessor(
             &predecessor_user_id,
-            predecessor_account_id.as_ref().unwrap(),
+            &predecessor_account_id
         ),
         AirdropFilter::ByUserId(&user_id),
     )
@@ -63,7 +63,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     let mut cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let user_info = cli.get_user(&main_account).await?;
     if user_info.is_some() {
-        cli.change_predecessor(&main_account, predecessor_account_id.as_ref().unwrap())
+        cli.change_predecessor(&main_account, &predecessor_account_id)
             .await?;
     }
     Ok(None)

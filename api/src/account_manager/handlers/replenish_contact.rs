@@ -5,7 +5,7 @@ use common::data_structures::KeyRole;
 use common::error_code::AccountManagerError::{self};
 
 //use log::{debug, info};
-use crate::utils::captcha::{Captcha, ContactType, Usage};
+use crate::utils::captcha::{Captcha, ContactType, Distinctor, Usage};
 use crate::utils::{get_user_context, token_auth};
 
 use common::error_code::BackendRes;
@@ -26,10 +26,9 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
 
     let res = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?;
     //安全问答之前或者主设备
-    if res.user_info.main_account.is_some() {
-        let role = get_user_context(&user_id, &device_id).await?.role()?;
-        crate::wallet::handlers::check_role(role, KeyRole::Master)?;
-    };
+    let role = get_user_context(&user_id, &device_id).await?.role()?;
+    crate::wallet::handlers::check_role(role, KeyRole::Master)?;
+    
 
     let ReplenishContactRequest {
         contact: replenish_contact,
@@ -37,7 +36,7 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
     } = request_data;
     Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::ReplenishContact)?;
 
-    let replenish_contact_type: ContactType = replenish_contact.parse()?;
+    let replenish_contact_type = replenish_contact.contact_type()?;
 
     let UserInfo {
         email,

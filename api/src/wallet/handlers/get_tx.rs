@@ -50,7 +50,6 @@ pub struct GetTxResponse {
     pub memo: Option<String>,
     pub stage: CoinSendStage,
     pub coin_tx_raw: String,
-    pub chain_tx_raw: Option<String>,
     pub need_sig_num: u8,
     pub signed_device: Vec<ServentSigDetail>,
     pub unsigned_device: Vec<ServentSigDetail>,
@@ -158,11 +157,7 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
     )
     .await;
 
-    let fees_detail = if tx.transaction.tx_type == TxType::MainToSub
-        || tx.transaction.tx_type == TxType::SubToMain
-    {
-        vec![]
-    } else if tx.transaction.chain_status == TxStatusOnChain::Successful {
+    let fees_detail = if tx.transaction.chain_status == TxStatusOnChain::Successful {
         let tx_id = tx.transaction.tx_id.as_ref().ok_or("")?;
         get_actual_fee(&tx.transaction.sender, tx_id)
             .await?
@@ -213,7 +208,6 @@ pub async fn req(req: HttpRequest, request_data: GetTxRequest) -> BackendRes<Get
         memo: tx.transaction.memo,
         stage,
         coin_tx_raw: tx.transaction.coin_tx_raw,
-        chain_tx_raw: tx.transaction.chain_tx_raw,
         need_sig_num,
         signed_device,
         unsigned_device,

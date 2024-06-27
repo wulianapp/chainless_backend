@@ -58,7 +58,6 @@ pub fn generate_random_hex_string(size: usize) -> String {
     // 计算需要生成的随机字节数
     let byte_size = (size + 1) / 2;
 
-    // 生成随机字节数组
     let mut rng = rand::thread_rng();
     let mut bytes = vec![0u8; byte_size];
     rng.fill(&mut bytes[..]);

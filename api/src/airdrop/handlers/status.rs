@@ -16,7 +16,7 @@ use common::error_code::BackendRes;
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct AirdropStatusResponse {
     pub user_id: String,
-    pub account_id: Option<String>,
+    pub account_id: String,
     pub invite_code: String,
     pub predecessor_user_id: String,
     pub predecessor_account_id: String,

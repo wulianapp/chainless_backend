@@ -107,9 +107,9 @@ pub async fn init_system_config() -> Result<(), String> {
         anwser_indexes,
         is_frozen,
         kyc_is_verified,
-        create_subacc_time,
-        main_account
-    ) values (66,NULL,'1@gmail.com','a6666666','answer123',false,true,ARRAY[]::int[],'66.local');";
+        main_account,
+        token_version
+    ) values (66,NULL,'1@gmail.com','a6666666','answer123',false,true,'66.local',1);";
     let insert_root_airdrop = "insert into airdrop (
         user_id,
         account_id,
@@ -117,8 +117,9 @@ pub async fn init_system_config() -> Result<(), String> {
         predecessor_user_id,
         predecessor_account_id,
         btc_address,
-        btc_level
-        ) values (66,'66.local','chainless.hk','0','0.local','btc_address_abc',0);";
+        btc_level,
+        btc_grade_status
+        ) values (66,'66.local','chainless.hk','0','0.local','btc_address_abc',0,'Reconfirmed');";
     let conn = crate::PG_POOL.get().await.map_err(|e| e.to_string())?;
 
     conn.execute(insert_root_user, &[])

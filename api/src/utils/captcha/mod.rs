@@ -28,12 +28,14 @@ pub enum ContactType {
     Email,
 }
 
-impl FromStr for ContactType {
-    type Err = BackendError;
+pub trait Distinctor {
+    fn contact_type(&self) -> Result<ContactType,BackendError>;
+}
 
-    //目前联系方式的合法性由前端保证，后端只做简单甄别
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.contains('@') {
+impl<T:AsRef<str>> Distinctor for T {
+    fn contact_type(&self) -> Result<ContactType,BackendError> {
+        let s = self.as_ref();
+        if  s.contains('@') {
             Ok(ContactType::Email)
         } else if s.contains('+') {
             Ok(ContactType::PhoneNumber)
@@ -48,7 +50,7 @@ pub enum Usage {
     Register,
     Login,
     ResetLoginPassword,
-    SetSecurity,
+    //SetSecurity,
     UpdateSecurity,
     ReplenishContact,
     //验证码有效期内只能发起一次转账

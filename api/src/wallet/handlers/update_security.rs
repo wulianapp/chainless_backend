@@ -48,7 +48,7 @@ pub(crate) async fn req(
         secrets,
         captcha,
     } = request_data;
-    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::SetSecurity)?;
+    Captcha::check_and_delete(&user_id.to_string(), &captcha, Usage::UpdateSecurity)?;
 
     UserInfoEntity::update_single(
         UserUpdater::AnwserIndexes(&anwser_indexes),

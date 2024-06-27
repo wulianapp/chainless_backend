@@ -48,7 +48,6 @@ impl CoinTxEntity {
             amount,
             stage,
             coin_tx_raw,
-            chain_tx_raw: None,
             signatures: vec![],
             memo,
             expire_at,
@@ -125,8 +124,6 @@ pub enum CoinTxUpdater<'a> {
     Stage(CoinSendStage),
     StageChainStatus(CoinSendStage, TxStatusOnChain),
     TxidStageChainStatus(&'a str, CoinSendStage, TxStatusOnChain),
-    ChainTxInfo(&'a str, &'a str, CoinSendStage),
-    TxidTxRaw(&'a str, &'a str),
     Signature(Vec<String>),
 }
 
@@ -141,15 +138,6 @@ impl fmt::Display for CoinTxUpdater<'_> {
                 "(tx_id,stage,chain_status)=('{}','{}','{}')",
                 txid, stage, status
             ),
-            CoinTxUpdater::ChainTxInfo(tx_id, chain_tx_raw, stage) => {
-                format!(
-                    "(tx_id,chain_tx_raw,stage)=('{}','{}','{}')",
-                    tx_id, chain_tx_raw, stage
-                )
-            }
-            CoinTxUpdater::TxidTxRaw(tx_id, chain_tx_raw) => {
-                format!("(tx_id,chain_tx_raw)=('{}','{}')", tx_id, chain_tx_raw,)
-            }
             CoinTxUpdater::Signature(sigs) => {
                 format!("signatures={}", vec_str2array_text(sigs.to_owned()))
             }
@@ -174,7 +162,6 @@ impl PsqlOp for CoinTxEntity {
          memo,
          stage,\
          coin_tx_raw,\
-         chain_tx_raw,\
          signatures,\
          tx_type,\
          chain_status,\
@@ -200,14 +187,13 @@ impl PsqlOp for CoinTxEntity {
                     memo: row.get(7),
                     stage: row.get::<usize, &str>(8).parse()?,
                     coin_tx_raw: row.get(9),
-                    chain_tx_raw: row.get(10),
-                    signatures: row.get::<usize, Vec<String>>(11),
-                    tx_type: row.get::<usize, &str>(12).parse()?,
-                    chain_status: row.get::<usize, &str>(13).parse()?,
-                    receiver_contact: row.get::<usize, Option<String>>(14),
+                    signatures: row.get::<usize, Vec<String>>(10),
+                    tx_type: row.get::<usize, &str>(11).parse()?,
+                    chain_status: row.get::<usize, &str>(12).parse()?,
+                    receiver_contact: row.get::<usize, Option<String>>(13),
                 },
-                updated_at: row.get(15),
-                created_at: row.get(16),
+                updated_at: row.get(14),
+                created_at: row.get(15),
             })
         };
         execute_res.iter().map(gen_view).collect()
@@ -240,14 +226,12 @@ impl PsqlOp for CoinTxEntity {
             memo,
             stage,
             coin_tx_raw,
-            chain_tx_raw,
             signatures,
             tx_type,
             chain_status,
             receiver_contact,
         } = self.into_inner();
         let tx_id: PsqlType = tx_id.into();
-        let chain_raw_data: PsqlType = chain_tx_raw.into();
         let memo: PsqlType = memo.into();
         let receiver_contact: PsqlType = receiver_contact.into();
 
@@ -263,12 +247,11 @@ impl PsqlOp for CoinTxEntity {
          memo,\
          stage,\
         coin_tx_raw,\
-         chain_tx_raw,\
          signatures,\
          tx_type,\
          chain_status,\
          receiver_contact
-         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},{},'{}','{}',{});",
+         ) values ('{}',{},'{}','{}','{}','{}','{}',{},'{}','{}',{},'{}','{}',{});",
             order_id,
             tx_id.to_psql_str(),
             coin_type,
@@ -279,7 +262,6 @@ impl PsqlOp for CoinTxEntity {
             memo.to_psql_str(),
             stage,
             coin_tx_raw,
-            chain_raw_data.to_psql_str(),
             vec_str2array_text(signatures),
             tx_type,
             chain_status,

@@ -12,7 +12,7 @@ use common::utils::time::now_millis;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::utils::captcha::ContactType;
+use crate::utils::captcha::Distinctor;
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{
     to_param_invalid_error, AccountManagerError, BackendError, BackendRes,
@@ -61,7 +61,7 @@ pub(crate) async fn req(
 
     super::check_role(role, KeyRole::Master)?;
 
-    let (to_account_id, to_contact) = if to.parse::<ContactType>().is_ok() {
+    let (to_account_id, to_contact) = if to.contact_type().is_ok() {
         let receiver = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&to))
             .await
             .map_err(|err| {
@@ -72,11 +72,7 @@ pub(crate) async fn req(
                 }
             })?
             .into_inner();
-
-        if receiver.main_account.is_none() {
-            Err(WalletError::ReceiverNotSetSecurity)?;
-        }
-        (receiver.main_account.unwrap(), Some(to))
+        (receiver.main_account, Some(to))
     } else {
         let _receiver = UserInfoEntity::find_single(UserFilter::ByMainAccount(&to))
             .await
@@ -155,7 +151,6 @@ pub(crate) async fn req(
                 expire_at,
             )
             .await?;
-        coin_info.transaction.chain_tx_raw = Some(chain_tx_raw);
         coin_info.transaction.tx_id = Some(tx_id.clone());
         coin_info.transaction.tx_type = TxType::Forced;
         if to_contact.is_some() {

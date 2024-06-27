@@ -135,8 +135,6 @@ pub enum AccountManagerError {
     UserIdNotExist,
     #[error("CaptchaUsageNotAllowed")]
     CaptchaUsageNotAllowed,
-    #[error("PredecessorNotSetSecurity")]
-    PredecessorNotSetSecurity,
     #[error("ContactAlreadyReplenished")]
     ContactAlreadyReplenished,
     #[error("KYCNotRegister")]
@@ -158,7 +156,6 @@ impl ErrorCode for AccountManagerError {
             Self::InviteCodeNotExist => 2013,
             Self::UserIdNotExist => 2014,         //todo:interal
             Self::CaptchaUsageNotAllowed => 2015, //todo:params
-            Self::PredecessorNotSetSecurity => 2016,
             Self::ContactAlreadyReplenished => 2017,
             Self::KYCNotRegister => 2018,
         }
@@ -187,8 +184,6 @@ pub enum WalletError {
     ExceedSubAccountHoldLimit,
     #[error("transfer amount big than available balance")]
     InsufficientAvailableBalance,
-    #[error("NotSetSecurity")]
-    NotSetSecurity,
     #[error("TxAlreadyConfirmed")]
     TxAlreadyConfirmed,
     #[error("Current status is {0},but only {1} is allowed")]
@@ -199,8 +194,6 @@ pub enum WalletError {
     SubAccountNotExist(String),
     #[error("MustHaveSubaccount")]
     MustHaveSubaccount,
-    #[error("ReceiverNotSetSecurity")]
-    ReceiverNotSetSecurity,
     #[error("Receiver cann't be subaccount")]
     ReceiverIsSubaccount,
     #[error("Receiver must be subaccount")]
@@ -237,13 +230,11 @@ impl ErrorCode for WalletError {
             Self::UneligiableRole(_, _) => 3008,
             Self::ExceedSubAccountHoldLimit => 3009,
             Self::InsufficientAvailableBalance => 3010,
-            Self::NotSetSecurity => 3011,
             Self::TxAlreadyConfirmed => 3012,
             Self::TxStageIllegal(_, _) => 3013,
             Self::BalanceMustBeZero => 3014,
             Self::SubAccountNotExist(_) => 3015,
             Self::MustHaveSubaccount => 3016,
-            Self::ReceiverNotSetSecurity => 3017,
             Self::ReceiverIsSubaccount => 3018,
             Self::ReceiverIsNotSubaccount => 3019,
             Self::MainAccountAlreadyExist(_) => 3020,

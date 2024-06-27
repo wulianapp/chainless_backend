@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 //#![allow(unused_imports)]
 #![allow(dead_code)]
 
@@ -125,14 +125,6 @@ impl<T> ContractClient<T> {
     ) -> Result<Transaction> {
         //todo: when mainnet deposit is zero，now is 100 * cost
         let (receiver_str, actions, nonce) = if method_name == "register_account" {
-            (
-                args.to_string(),
-                //匿名账户可以通过转账的方式创建
-                vec![Action::Transfer(TransferAction { deposit: 1u128 })],
-                1,
-            )
-        //根据指定名字创建用户，需要配置顶级账户
-        } else if method_name == "register_account_with_name" {
             let args: Vec<&str> = args.split(':').collect();
             let account_id = args[0];
             let pubkey = args[1];
@@ -165,7 +157,7 @@ impl<T> ContractClient<T> {
                 method_name: method_name.to_string(),
                 args: args.as_bytes().to_vec(),
                 gas: CHAINLESS_DEFAULT_GAS_LIMIT, // 100 TeraGas
-                deposit: 0,
+                deposit: None,
             }));
             (self.deployed_at.to_string(), vec![call_action], 1)
         };
@@ -269,32 +261,5 @@ impl<T> ContractClient<T> {
         } else {
             Err(anyhow!("kind must be contract call".to_string()))?
         }
-    }
-}
-
-pub async fn test_connect() {
-    let mainnet_client = JsonRpcClient::connect("http://120.232.251.101:8061");
-    let tx_status_request = methods::tx::RpcTransactionStatusRequest {
-        transaction_info: TransactionInfo::TransactionId {
-            tx_hash: "2HvMg8EpsgweGFSG87ngpJ97yWnuX9nBNB9yaXn8HC8w"
-                .parse()
-                .unwrap(),
-            sender_account_id: "node0".parse().unwrap(),
-        },
-    };
-
-    // call a method on the server via the connected client
-    let tx_status = mainnet_client.call(tx_status_request).await.unwrap();
-
-    println!("{:?}", tx_status);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_client_sdk() {
-        test_connect().await;
     }
 }

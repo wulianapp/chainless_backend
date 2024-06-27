@@ -112,13 +112,14 @@ impl fmt::Display for AirdropFilter<'_> {
 impl AirdropEntity {
     pub fn new_with_specified(
         user_id: u32,
+        account_id: &str,
         predecessor_user_id: u32,
         predecessor_account_id: &str,
     ) -> Self {
         AirdropEntity {
             airdrop: Airdrop {
                 user_id,
-                account_id: None,
+                account_id: account_id.to_string(),
                 invite_code: user_id.to_string(),
                 predecessor_user_id,
                 predecessor_account_id: predecessor_account_id.to_string(),
@@ -159,7 +160,7 @@ impl PsqlOp for AirdropEntity {
             Ok(AirdropEntity {
                 airdrop: Airdrop {
                     user_id: row.get::<usize, i64>(0) as u32,
-                    account_id: row.get::<usize, Option<String>>(1),
+                    account_id: row.get::<usize, String>(1),
                     invite_code: row.get(2),
                     predecessor_user_id: row.get::<usize, i64>(3) as u32,
                     predecessor_account_id: row.get::<usize, String>(4),
@@ -202,7 +203,6 @@ impl PsqlOp for AirdropEntity {
             btc_grade_status,
             ref_btc_address
         } = self.into_inner();
-        let account_id: PsqlType = account_id.into();
         let btc_address: PsqlType = btc_address.into();
         let btc_level: PsqlType = btc_level.into();
         let ref_btc_address: PsqlType = ref_btc_address.into();
@@ -219,9 +219,9 @@ impl PsqlOp for AirdropEntity {
                 btc_level,\
                 btc_grade_status,\
                 ref_btc_address
-         ) values ('{}',{},'{}',{},'{}',{},{},'{}',{});",
+         ) values ('{}','{}','{}',{},'{}',{},{},'{}',{});",
             user_id,
-            account_id.to_psql_str(),
+            account_id,
             invite_code,
             predecessor_user_id,
             predecessor_account_id,
@@ -255,7 +255,7 @@ mod tests {
         init_logger();
         table_clear("airdrop").await.unwrap();
         let task = async {
-            let airdrop = AirdropEntity::new_with_specified(1, 2, "3.local");
+            let airdrop = AirdropEntity::new_with_specified(1,"test.user", 2, "3.local");
             airdrop.insert().await.unwrap();
             let airdrop_by_find = AirdropEntity::find_single(AirdropFilter::ByInviteCode("1"))
                 .await
