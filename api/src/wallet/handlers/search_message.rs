@@ -61,10 +61,8 @@ pub(crate) async fn req(req: HttpRequest) -> BackendRes<SearchMessageResponse> {
         messages.newcomer_became_sevant.push(secret.secret_store); //(AccountMessage::NewcomerBecameSevant())
     }
 
-    let coin_txs = CoinTxEntity::find(CoinTxFilter::ByAccountPending(
-        &user.user_info.main_account
-    ))
-    .await?;
+    let coin_txs =
+        CoinTxEntity::find(CoinTxFilter::ByAccountPending(&user.user_info.main_account)).await?;
     let mut tx_msg = coin_txs
         .into_iter()
         .filter(|x| now_millis() <= x.transaction.expire_at)

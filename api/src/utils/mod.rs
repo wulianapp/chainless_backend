@@ -20,12 +20,8 @@ pub mod respond;
 pub mod token_auth;
 pub mod wallet_grades;
 
-
-pub async fn get_main_account(user_id: &u32) -> Result<String,BackendError>{
-    
-    let account = UserInfoEntity::find_single(
-        UserFilter::ById(user_id)
-        )
+pub async fn get_main_account(user_id: &u32) -> Result<String, BackendError> {
+    let account = UserInfoEntity::find_single(UserFilter::ById(user_id))
         .await?
         .into_inner()
         .main_account;
@@ -45,10 +41,13 @@ pub fn judge_role_by_strategy(
         (Some(_), None) => KeyRole::Undefined,
         (Some(strategy), Some(hold_key)) => {
             //主设备
-            println!("master_pubkey: {},hold_key {}",strategy.master_pubkey,hold_key);
+            println!(
+                "master_pubkey: {},hold_key {}",
+                strategy.master_pubkey, hold_key
+            );
             if strategy.master_pubkey.eq(hold_key) {
                 KeyRole::Master
-            //从设备    
+            //从设备
             } else if strategy.servant_pubkeys.contains(&hold_key.to_string()) {
                 panic!("todo");
                 KeyRole::Servant
@@ -82,7 +81,6 @@ pub async fn judge_role_by_user_id(device_key: Option<&str>, id: &u32) -> Result
         .into_inner();
 
     judge_role_by_account(device_key, &user_info.main_account).await
-
 }
 
 //all state info
@@ -122,9 +120,8 @@ pub async fn get_user_context(user_id: &u32, device_id: &str) -> Result<UserCont
         .await?
         .into_inner();
 
-
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let strategy =  multi_sig_cli.get_strategy(&user_info.main_account).await?;
+    let strategy = multi_sig_cli.get_strategy(&user_info.main_account).await?;
 
     Ok(UserContext {
         user_info,

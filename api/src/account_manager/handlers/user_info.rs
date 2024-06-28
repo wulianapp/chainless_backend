@@ -40,15 +40,16 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
     //let role = user_context.role()?;
     let role = KeyRole::Master;
     //let user_info = user_context.user_info;
-    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id)).await?.into_inner();
-
+    let user_info = UserInfoEntity::find_single(UserFilter::ById(&user_id))
+        .await?
+        .into_inner();
 
     let airdrop_info = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id))
         .await?
         .into_inner();
 
     //仅实名领取之后才能显示邀请链接
-    
+
     /***
     let cli = ContractClient::<Airdrop>::new_query_cli().await?;
     let user_airdrop_on_chain = cli.get_user(&user_info.main_account).await?;
@@ -61,7 +62,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         }
     };
     ***/
-    
+
     let invite_code = None;
 
     let invite_url = if let Some(ref code) = invite_code {

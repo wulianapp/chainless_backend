@@ -9,9 +9,9 @@ use common::utils::time::now_millis;
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
+use models::coin_transfer::CoinTxEntity;
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
-use models::coin_transfer::CoinTxEntity;
 
 use serde::{Deserialize, Serialize};
 
@@ -44,9 +44,7 @@ pub async fn req(req: HttpRequest, request_data: UploadTxSignatureRequest) -> Ba
     }
 
     //todo: two update action is unnecessary
-    let mut tx =
-        CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
-            .await?;
+    let mut tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id)).await?;
 
     let data = tx.transaction.coin_tx_raw;
 

@@ -67,12 +67,10 @@ pub(crate) async fn req(
     request_data: ListWithdrawOrderRequest,
 ) -> BackendRes<Vec<ListWithdrawOrderResponse>> {
     let (user_id, _, _, _) = token_auth::validate_credentials(&req).await?;
-    let main_account = UserInfoEntity::find_single(
-        UserFilter::ById(&user_id)
-    )
-    .await?
-    .into_inner()
-    .main_account;
+    let main_account = UserInfoEntity::find_single(UserFilter::ById(&user_id))
+        .await?
+        .into_inner()
+        .main_account;
 
     let ListWithdrawOrderRequest {
         page,

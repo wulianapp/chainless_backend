@@ -4,10 +4,12 @@ pub mod handlers;
 
 use actix_web::{get, post, web, HttpRequest, Responder};
 
+use crate::utils::respond::gen_extra_respond;
 use handlers::balance_list::BalanceListRequest;
 use handlers::cancel_send_money::CancelSendMoneyRequest;
 use handlers::faucet_claim::FaucetClaimRequest;
 use handlers::get_need_sig_num::GetNeedSigNumRequest;
+use handlers::get_secret::GetSecretRequest;
 use handlers::get_tx::GetTxRequest;
 use handlers::pre_send_money::PreSendMoneyRequest;
 use handlers::react_pre_send_money::ReactPreSendMoneyRequest;
@@ -15,8 +17,6 @@ use handlers::reconfirm_send_money::ReconfirmSendMoneyRequest;
 use handlers::tx_list::TxListRequest;
 use handlers::update_security::UpdateSecurityRequest;
 use handlers::upload_servant_sig::UploadTxSignatureRequest;
-use handlers::get_secret::GetSecretRequest;
-use crate::utils::respond::gen_extra_respond;
 //use crate::transaction::{get_all_message, get_user_message, insert_new_message, MessageType, update_message_status};
 
 use tracing::debug;
@@ -632,19 +632,19 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
+    use super::handlers::balance_list::BalanceListResponse;
+    use super::handlers::get_tx::GetTxResponse;
     use super::*;
-    use core::panic;
+    use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
     use actix_web::body::MessageBody;
     use actix_web::http::header;
     use blockchain::ContractClient;
     use common::data_structures::device_info::DeviceInfo;
     use common::env::ServiceMode;
     use common::utils::time::now_millis;
+    use core::panic;
     use serde::{Deserialize, Serialize};
     use serde_json::json;
-    use super::handlers::balance_list::BalanceListResponse;
-    use super::handlers::get_tx::GetTxResponse;
-    use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
 
     use common::data_structures::coin_transaction::{CoinSendStage, TxType};
     use common::data_structures::secret_store::SecretStore;
@@ -672,7 +672,6 @@ mod tests {
         let (mut sender_master, _, _, _) = gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let priority1 = test_get_fees_priority!(service, sender_master).unwrap();
         println!("priority1___{:?}", priority1);
@@ -701,8 +700,6 @@ mod tests {
         test_register!(service, sender_master);
         test_register!(service, receiver);
         test_login!(service, sender_servant);
-        test_create_main_account!(service, sender_master);
-        test_create_main_account!(service, receiver);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
@@ -765,9 +762,7 @@ mod tests {
             .unwrap();
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
         test_register!(service, receiver);
-        test_create_main_account!(service, receiver);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -802,7 +797,6 @@ mod tests {
         test_register!(service, sender_master);
         test_login!(service, sender_servant);
         test_login!(service, sender_newcommer);
-        test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
@@ -828,7 +822,6 @@ mod tests {
             gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
         //test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1002,7 +995,6 @@ mod tests {
             .unwrap();
 
         test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_login!(service, sender_servant);
         test_add_servant!(service, sender_master, sender_servant);
@@ -1031,7 +1023,6 @@ mod tests {
             gen_some_accounts_with_new_key();
 
         test_register!(service, sender_master);
-        test_create_main_account!(service, sender_master);
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
@@ -1057,8 +1048,6 @@ mod tests {
 
         let balances1 = test_get_balance_list!(service, sender_master, "Main").unwrap();
         println!("list {:?}", balances1);
-
-        test_create_main_account!(service, sender_master);
 
         //claim
         test_faucet_claim!(service, sender_master);
@@ -1086,15 +1075,19 @@ mod tests {
 
     #[test]
     fn local_paralle_wallet_all_braced_wallet_ok_with_new_key() {
-        rayon::ThreadPoolBuilder::new().num_threads(20).build().unwrap().install(|| {
-            let mut data: Vec<i32> = (0..10000).collect();
-            data.par_iter_mut().for_each(|_num| {
-                tokio::runtime::Runtime::new().unwrap().block_on(async {
-                    wallet_all_braced_wallet_ok_with_new_key().await
-                })
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(20)
+            .build()
+            .unwrap()
+            .install(|| {
+                let mut data: Vec<i32> = (0..10000).collect();
+                data.par_iter_mut().for_each(|_num| {
+                    tokio::runtime::Runtime::new()
+                        .unwrap()
+                        .block_on(async { wallet_all_braced_wallet_ok_with_new_key().await })
+                });
             });
-        });
-    }   
+    }
 
     #[actix_web::test]
     async fn test_wallet_all_braced_wallet_ok_with_new_key() {
@@ -1106,7 +1099,7 @@ mod tests {
         let (sender_master, sender_servant, _sender_newcommer, receiver) =
             gen_some_accounts_with_new_key();
 
-        /***  
+        /***
         let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
             .await
             .unwrap();
@@ -1119,8 +1112,6 @@ mod tests {
         **/
     }
 
-   
-
     async fn test_wallet_all_braced_wallet_ok_force(
         mut sender_master: TestWulianApp2,
         mut receiver: TestWulianApp2,
@@ -1132,11 +1123,6 @@ mod tests {
         test_register!(service, sender_master);
         test_register!(service, receiver);
         test_login!(service, sender_servant);
-        test_create_main_account!(service, receiver);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
-        test_create_main_account!(service, sender_master);
-
         //给链上确认一些时间
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         test_add_servant!(service, sender_master, sender_servant);
@@ -1150,7 +1136,7 @@ mod tests {
 
         //step2.4: get device list
         let device_lists: Vec<DeviceInfo> = test_get_device_list!(service, sender_servant).unwrap();
-        println!("{:?}",device_lists);
+        println!("{:?}", device_lists);
         //step3: master: pre_send_money
         //test_get_captcha_with_token!(service,sender_master,"PreSendMoney");
         let res = test_pre_send_money!(

@@ -34,7 +34,6 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
         predecessor_invite_code,
     } = request_data;
 
-
     let predecessor_airdrop =
         AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
             .await
@@ -51,10 +50,7 @@ pub async fn req(req: HttpRequest, request_data: ChangePredecessorRequest) -> Ba
     }
 
     AirdropEntity::update_single(
-        AirdropUpdater::Predecessor(
-            &predecessor_user_id,
-            &predecessor_account_id
-        ),
+        AirdropUpdater::Predecessor(&predecessor_user_id, &predecessor_account_id),
         AirdropFilter::ByUserId(&user_id),
     )
     .await?;

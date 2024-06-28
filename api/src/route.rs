@@ -4,7 +4,6 @@
 #![allow(non_snake_case)]
 
 /// wulian app backend service
-
 extern crate common;
 #[macro_use]
 extern crate lazy_static;
@@ -26,7 +25,11 @@ use env_logger::Env;
 use models::general::{clean_conn, gen_db_cli};
 use tracing::{debug, info};
 
-use std::{cell::RefCell, future::{ready, Ready}, sync::Arc};
+use std::{
+    cell::RefCell,
+    future::{ready, Ready},
+    sync::Arc,
+};
 
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
@@ -102,34 +105,42 @@ where
         Box::pin(async move {
             let log_id = generate_trace_id();
 
-            let (db_cli, conn_ptr) = gen_db_cli(&method).await.map_err(ErrorInternalServerError)?;
-            debug!("log_id:{} : create local cli",log_id);
+            let (db_cli, conn_ptr) = gen_db_cli(&method)
+                .await
+                .map_err(ErrorInternalServerError)?;
+            debug!("log_id:{} : create local cli", log_id);
             //todo: 最好LOCAL_CLI的初始化放在modles模块
-            models::LOCAL_CLI.scope(RefCell::new(Some(Arc::new(db_cli))), async move {
-                let res = fut.await;
-                //default internal error
-                let default_code = header::HeaderValue::from_str("1").unwrap();
-                let err_code = res.as_ref().map(|res|{
-                    let value = res.headers().get(
-                        header::HeaderName::from_static("chainless_status_code")
-                    ).unwrap_or(&default_code);
-                    value.to_str().unwrap().parse::<u16>().unwrap()
-                });
+            models::LOCAL_CLI
+                .scope(RefCell::new(Some(Arc::new(db_cli))), async move {
+                    let res = fut.await;
+                    //default internal error
+                    let default_code = header::HeaderValue::from_str("1").unwrap();
+                    let err_code = res.as_ref().map(|res| {
+                        let value = res
+                            .headers()
+                            .get(header::HeaderName::from_static("chainless_status_code"))
+                            .unwrap_or(&default_code);
+                        value.to_str().unwrap().parse::<u16>().unwrap()
+                    });
 
-                //只有post正确完成之后才commit，否则都回滚
-                match (res.as_ref(),method.as_str(),err_code) {
-                    (Ok(_),"POST",Ok(0)) => {
-                        models::general::commit().await.map_err(ErrorInternalServerError)?;
-                    },
-                    _ => {
-                        models::general::rollback().await.map_err(ErrorInternalServerError)?;
-                    }
-                };
-                clean_conn(conn_ptr);
-                debug!("log_id:{} : clean local cli",log_id);
-                res
-            }).await
-            
+                    //只有post正确完成之后才commit，否则都回滚
+                    match (res.as_ref(), method.as_str(), err_code) {
+                        (Ok(_), "POST", Ok(0)) => {
+                            models::general::commit()
+                                .await
+                                .map_err(ErrorInternalServerError)?;
+                        }
+                        _ => {
+                            models::general::rollback()
+                                .await
+                                .map_err(ErrorInternalServerError)?;
+                        }
+                    };
+                    clean_conn(conn_ptr);
+                    debug!("log_id:{} : clean local cli", log_id);
+                    res
+                })
+                .await
         })
     }
 }

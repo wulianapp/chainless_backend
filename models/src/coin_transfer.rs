@@ -320,7 +320,7 @@ mod tests {
                 .unwrap();
             println!("after update {:?}", res);
         };
-        let (conn_ptr,_res) = run_api_call("", task).await.unwrap();
+        let (conn_ptr, _res) = run_api_call("", task).await.unwrap();
         general::commit().await.unwrap();
         general::clean_conn(conn_ptr);
     }

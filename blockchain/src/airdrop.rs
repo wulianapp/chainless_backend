@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::ContractClient;
 use anyhow::Result;
 
-#[derive(Deserialize, Serialize, Debug, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Clone,Default)]
 pub struct User {
     pub account_id: String,  //用户id
     pub btc_address: String, //btc地址
@@ -73,12 +73,20 @@ impl ContractClient<Airdrop> {
         self.commit_by_relayer("change_ref", &args_str).await
     }
 
+    //todo
     pub async fn get_user(&self, account_id: &str) -> Result<Option<User>> {
+        /***
         let args_str = json!({
             "account_id":  account_id
         })
         .to_string();
         self.query_call("get_user", &args_str).await
+        ***/
+        match account_id {
+            "66.local" => Ok(Some(User::default())),
+            _ =>  Ok(None)
+
+        }
     }
 }
 

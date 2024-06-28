@@ -27,9 +27,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     //todo: 链上必须没有
     let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
-    let predecessor_airdrop_on_chain = cli
-        .get_user(&main_account)
-        .await?;
+    let predecessor_airdrop_on_chain = cli.get_user(&main_account).await?;
     if predecessor_airdrop_on_chain.is_some() {
         Err(AirdropError::AlreadyClaimedDw20)?;
     }
@@ -40,6 +38,6 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         AirdropFilter::ByAccountId(&main_account),
     )
     .await?;
-    
+
     Ok(None)
 }

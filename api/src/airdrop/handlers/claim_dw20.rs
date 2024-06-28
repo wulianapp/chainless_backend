@@ -24,16 +24,18 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
 
     check_role(role, KeyRole::Master)?;
 
-    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id)).await?.into_inner();
-    if let Some(ref address) = user_airdrop.btc_address{
-        if user_airdrop.btc_grade_status != BtcGradeStatus::Calculated{
+    let user_airdrop = AirdropEntity::find_single(AirdropFilter::ByUserId(&user_id))
+        .await?
+        .into_inner();
+    if let Some(ref address) = user_airdrop.btc_address {
+        if user_airdrop.btc_grade_status != BtcGradeStatus::Calculated {
             Err(AirdropError::BtcGradeStatusIllegal)?;
         }
         //一个btc地址允许被多账户评级，但是只允许一个最终上传
         let airdrops_by_btc = AirdropEntity::find(AirdropFilter::ByBtcAddress(address)).await?;
         for data in airdrops_by_btc {
             if data.airdrop.btc_grade_status == BtcGradeStatus::Reconfirmed {
-                Err(AirdropError::BtcAddressAlreadyUsed)?;   
+                Err(AirdropError::BtcAddressAlreadyUsed)?;
             }
         }
     }
@@ -44,16 +46,15 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
     )
     .await?;
 
-
     //上级必须也领过空投
     let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
-    let predecessor_airdrop_on_chain = cli
-        .get_user(&user_airdrop.predecessor_account_id)
-        .await?;
+    let predecessor_airdrop_on_chain = cli.get_user(&user_airdrop.predecessor_account_id).await?;
     if predecessor_airdrop_on_chain.is_none() {
         Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
     }
 
+    //todo:
+    /***
     let mut cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
     let ref_user = cli
         .claim_dw20(
@@ -63,6 +64,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
             user_airdrop.btc_level.unwrap_or_default(),
         )
         .await?;
-    debug!("successful claim dw20 txid {}", ref_user);
+    ***/
+    debug!("successful claim dw20 txid {}", "ref_user");
     Ok(None)
 }

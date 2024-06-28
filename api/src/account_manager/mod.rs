@@ -212,10 +212,7 @@ async fn user_info(req: HttpRequest) -> impl Responder {
 */
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/accountManager/register")]
-async fn register(
-    req: HttpRequest,
-    request_data: web::Json<RegisterRequest>,
-) -> impl Responder {
+async fn register(req: HttpRequest, request_data: web::Json<RegisterRequest>) -> impl Responder {
     debug!("{}", serde_json::to_string(&request_data.0).unwrap());
     gen_extra_respond(
         get_lang(&req),
@@ -415,47 +412,48 @@ mod tests {
     use super::*;
 
     //use crate::{test_check_captcha, test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
-    use crate::*;
+    use crate::account_manager::handlers::contact_is_used::ContactIsUsedResponse;
     use crate::utils::api_test::*;
+    use crate::utils::respond::BackendRespond;
+    use crate::*;
     use actix_web::body::MessageBody;
     use actix_web::http::header;
-    use actix_web::{test};
+    use actix_web::test;
     use common::utils::time::now_millis;
-    use tests::handlers::user_info::UserInfoResponse;
     use serde_json::json;
-    use crate::utils::respond::BackendRespond;
-    use crate::account_manager::handlers::contact_is_used::ContactIsUsedResponse;
+    use tests::handlers::user_info::UserInfoResponse;
 
     #[actix_web::test]
     async fn test_all_braced_account_manager_ok() {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
 
-        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) = gen_some_accounts_with_new_key();
- 
-        test_check_captcha!(service,sender_master,"Register","123456");
+        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
+            gen_some_accounts_with_new_key();
 
-        test_register!(service,sender_master);
+        test_check_captcha!(service, sender_master, "Register", "123456");
 
-        test_login!(service,sender_master);
+        test_register!(service, sender_master);
+
+        test_login!(service, sender_master);
 
         //check contact if is used
-        let res = test_contact_is_used!(service,sender_master);
-        println!("used_res {:?}",res);
+        let res = test_contact_is_used!(service, sender_master);
+        println!("used_res {:?}", res);
 
         sender_master.user.password = "new_pwd".to_string();
-        test_reset_password!(service,sender_master);
+        test_reset_password!(service, sender_master);
 
-        test_login!(service,sender_master);
+        test_login!(service, sender_master);
 
-        let sender_phone = format!("+86 {}",now_millis() / 100);
-        
-        test_replenish_contact!(service,sender_master,sender_phone);
+        let sender_phone = format!("+86 {}", now_millis() / 100);
 
-        let new_token = test_gen_token!(service,sender_master);
+        test_replenish_contact!(service, sender_master, sender_phone);
+
+        let new_token = test_gen_token!(service, sender_master);
         sender_master.user.token = new_token;
 
-        let info = test_user_info!(service,sender_master);
+        let info = test_user_info!(service, sender_master);
         println!("{:?}", info);
     }
 }

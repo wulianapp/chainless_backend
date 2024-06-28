@@ -85,17 +85,16 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
         password,
     } = request_data;
 
-    let user_info =
-        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-            .await
-            .map_err(|e| {
-                if e.to_string().contains("DBError::DataNotFound") {
-                    AccountManagerError::PhoneOrEmailNotRegister.into()
-                } else {
-                    BackendError::InternalError(e.to_string())
-                }
-            })?
-            .into_inner();
+    let user_info = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("DBError::DataNotFound") {
+                AccountManagerError::PhoneOrEmailNotRegister.into()
+            } else {
+                BackendError::InternalError(e.to_string())
+            }
+        })?
+        .into_inner();
 
     let (is_lock, remain_chance, unlock_time) =
         is_locked(user_info.id).map_err(|e| BackendError::InternalError(e.to_string()))?;
@@ -115,7 +114,8 @@ pub async fn req_by_password(request_data: LoginRequest) -> BackendRes<String> {
     }
 
     //如果存在就不更新，不存在一定是新设备
-    let device = DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id,None);
+    let device =
+        DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id, None);
     device
         .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;
@@ -139,27 +139,21 @@ pub async fn req_by_captcha(request_data: LoginByCaptchaRequest) -> BackendRes<S
         captcha,
     } = request_data;
 
-    let user_info =
-        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-            .await
-            .map_err(|e| {
-                if e.to_string().contains("DBError::DataNotFound") {
-                    AccountManagerError::PhoneOrEmailNotRegister.into()
-                } else {
-                    BackendError::InternalError(e.to_string())
-                }
-            })?
-            .into_inner();
+    let user_info = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        .await
+        .map_err(|e| {
+            if e.to_string().contains("DBError::DataNotFound") {
+                AccountManagerError::PhoneOrEmailNotRegister.into()
+            } else {
+                BackendError::InternalError(e.to_string())
+            }
+        })?
+        .into_inner();
     Captcha::check_and_delete(&user_info.id.to_string(), &captcha, Usage::Login)?;
 
-
     //如果存在就不更新，不存在一定是新设备
-    let device = DeviceInfoEntity::new_with_specified(
-            &device_id, 
-            &device_brand,
-             user_info.id,
-             None
-    );
+    let device =
+        DeviceInfoEntity::new_with_specified(&device_id, &device_brand, user_info.id, None);
     device
         .safe_insert(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
         .await?;

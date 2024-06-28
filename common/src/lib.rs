@@ -8,10 +8,10 @@ pub mod data_structures;
 pub mod encrypt;
 pub mod env;
 pub mod error_code;
+pub mod hash;
 pub mod log;
 pub mod prelude;
 pub mod utils;
-pub mod hash;
 
 #[macro_use]
 extern crate lazy_static;

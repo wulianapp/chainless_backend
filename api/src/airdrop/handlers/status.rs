@@ -23,8 +23,7 @@ pub struct AirdropStatusResponse {
     pub btc_address: Option<String>,
     pub btc_level: Option<u8>,
     pub btc_grade_status: BtcGradeStatus,
-    pub ref_btc_address: Option<String>
-    //pub du20_claimed: Option<String>,
+    pub ref_btc_address: Option<String>, //pub du20_claimed: Option<String>,
 }
 
 pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
@@ -49,7 +48,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         btc_address,
         btc_level,
         btc_grade_status,
-        ref_btc_address
+        ref_btc_address,
     } = user_airdrop.airdrop.clone();
     Ok(Some(AirdropStatusResponse {
         user_id: user_id.to_string(),
@@ -60,6 +59,6 @@ pub async fn req(req: HttpRequest) -> BackendRes<AirdropStatusResponse> {
         btc_address,
         btc_level,
         btc_grade_status,
-        ref_btc_address
+        ref_btc_address,
     }))
 }

@@ -27,7 +27,7 @@ pub async fn gen_db_cli(method: &str) -> Result<(PgLocalCli, *mut LocalConn)> {
     Ok((db_cli, conn_ptr))
 }
 
-/*** 
+/***
 pub async fn clean_db_cli(conn_ptr: *mut LocalConn) -> Result<()> {
     let db_cli = LOCAL_CLI.with(|db_cli| -> Result<PgLocalCli> {
         let mut db_cli = db_cli.borrow_mut();
@@ -44,7 +44,6 @@ pub async fn clean_db_cli(conn_ptr: *mut LocalConn) -> Result<()> {
 }
 ***/
 
-
 pub fn clean_conn(conn_ptr: *mut LocalConn) {
     unsafe {
         let _ = Box::from_raw(conn_ptr);
@@ -52,7 +51,7 @@ pub fn clean_conn(conn_ptr: *mut LocalConn) {
     debug!("pool_status {:?}", PG_POOL.status());
 }
 
-pub fn into_local_cli() -> Result<PgLocalCli>{
+pub fn into_local_cli() -> Result<PgLocalCli> {
     LOCAL_CLI.with(|db_cli| -> Result<PgLocalCli> {
         let mut db_cli = db_cli.borrow_mut();
         let db_cli = db_cli.take().ok_or(anyhow!(""))?;
@@ -73,17 +72,18 @@ pub async fn rollback() -> Result<()> {
     Ok(())
 }
 
-pub async fn run_api_call<Fut, R>(method: &str, task: Fut) -> Result<(*mut LocalConn,R)>
+pub async fn run_api_call<Fut, R>(method: &str, task: Fut) -> Result<(*mut LocalConn, R)>
 where
     Fut: Future<Output = R> + 'static,
 {
     let (db_cli, conn_ptr) = gen_db_cli(method).await?;
     let res = crate::LOCAL_CLI
-        .scope(RefCell::new(Some(Arc::new(db_cli))), async move {
-            task.await
-        })
+        .scope(
+            RefCell::new(Some(Arc::new(db_cli))),
+            async move { task.await },
+        )
         .await;
-    Ok((conn_ptr,res))
+    Ok((conn_ptr, res))
 }
 
 pub async fn table_clear(table_name: &str) -> Result<(), String> {

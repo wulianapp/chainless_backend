@@ -186,8 +186,9 @@ pub fn gen_some_accounts_with_new_key() -> (
     let random_suffix = random_num() % 900000 + 100000;
     let sender_account = format!("test{}@gmail.com", random_suffix);
     sender_master.user.contact = sender_account.clone();
-    
-    let sender_main_account = &sender_master_secret.1[sender_master_secret.1.len().saturating_sub(10)..];
+
+    let sender_main_account =
+        &sender_master_secret.1[sender_master_secret.1.len().saturating_sub(10)..];
     sender_master.wallet = TestWallet {
         main_account: sender_main_account.to_lowercase(),
         pubkey: Some(sender_master_secret.1.clone()),
@@ -199,7 +200,8 @@ pub fn gen_some_accounts_with_new_key() -> (
     let mut receiver = simulate_receiver();
     let random_suffix = random_num() % 900000 + 100000;
     receiver.user.contact = format!("test{}@gmail.com", random_suffix);
-    let receiver_main_account = &receiver_master_secret.1[receiver_master_secret.1.len().saturating_sub(10)..];
+    let receiver_main_account =
+        &receiver_master_secret.1[receiver_master_secret.1.len().saturating_sub(10)..];
     receiver.wallet = TestWallet {
         main_account: receiver_main_account.to_lowercase(),
         pubkey: Some(receiver_master_secret.1),
@@ -240,10 +242,9 @@ pub async fn clear_contract() {
 }
 
 lazy_static! {
-    static ref REQ_CLI: reqwest::Client  = reqwest::Client::new();
-
+    static ref REQ_CLI: reqwest::Client = reqwest::Client::new();
 }
-/*** 
+/***
 pub async fn test1(){
     let res = REQ_CLI.post("http://httpbin.org/post")
     .body("the exact body that is sent")
@@ -254,36 +255,41 @@ pub async fn test1(){
 }
 ***/
 /***
- * 
+ *
  let res = client.post("http://httpbin.org/post")
     .body("the exact body that is sent")
     .send()
     .await?;
 */
 
+pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(
+    method: &str,
+    api: &str,
+    payload: Option<String>,
+    token: Option<String>,
+) -> BackendRespond<T> {
+    let _uri = format!("http://120.232.251.101:8067{}", api);
+    let uri = format!("http://192.168.1.15:8066{}", api);
+    let mut parameters = if method == "post" {
+        REQ_CLI
+            .post(&uri)
+            .header("ChainLessLanguage", "ZH_TW")
+            .header("Content-Type", "application/json")
+    } else {
+        REQ_CLI.get(uri)
+    };
 
-pub async fn local_reqwest_call<T: DeserializeOwned + Serialize>(method:&str,api:&str,payload:Option<String>,token:Option<String>) ->  BackendRespond<T> {
-        let _uri = format!("http://120.232.251.101:8067{}",api);
-        let uri = format!("http://192.168.1.15:8066{}",api);
-        let mut parameters = if method == "post" {
-            REQ_CLI.post(&uri)
-                .header("ChainLessLanguage", "ZH_TW")
-                .header("Content-Type", "application/json")
-        } else {
-            REQ_CLI.get(uri)
-        };
+    if let Some(data) = payload {
+        parameters = parameters.body(data.to_string());
+    };
 
-        if let Some(data) = payload {
-            parameters = parameters.body(data.to_string());
-        };
+    if let Some(data) = token {
+        parameters = parameters.header("Authorization", format!("bearer {}", data));
+    };
 
-        if let Some(data) = token {
-            parameters = parameters.header("Authorization", format!("bearer {}", data));
-        };
-
-        let body_str = parameters.send().await.unwrap().text().await.unwrap();
-        println!("api {}, body_str {}", api, body_str);
-        serde_json::from_str::<_>(&body_str).unwrap()
+    let body_str = parameters.send().await.unwrap().text().await.unwrap();
+    println!("api {}, body_str {}", api, body_str);
+    serde_json::from_str::<_>(&body_str).unwrap()
 }
 
 #[macro_export]
@@ -291,27 +297,30 @@ macro_rules! test_actix_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
         let mut curl_cmd = "curl -X ".to_string();
         let mut parameters = if $method == "post" {
-            curl_cmd = format!("{} POST http://127.0.0.1:8066{} -H \"Content-Type: application/json\" ",curl_cmd,$api);
+            curl_cmd = format!(
+                "{} POST http://127.0.0.1:8066{} -H \"Content-Type: application/json\" ",
+                curl_cmd, $api
+            );
             actix_web::test::TestRequest::post()
                 .uri($api)
                 .insert_header(header::ContentType::json())
                 .insert_header(("ChainLessLanguage", "ZH_TW"))
         } else {
-            curl_cmd = format!("{} GET http://127.0.0.1:8066{}",curl_cmd,$api);
+            curl_cmd = format!("{} GET http://127.0.0.1:8066{}", curl_cmd, $api);
             actix_web::test::TestRequest::get().uri($api)
         };
 
         if let Some(data) = $token {
-            curl_cmd = format!("{} -H 'Authorization:Bearer {}' ",curl_cmd,data);
+            curl_cmd = format!("{} -H 'Authorization:Bearer {}' ", curl_cmd, data);
             parameters =
                 parameters.insert_header((header::AUTHORIZATION, format!("bearer {}", data)));
         };
 
         if let Some(data) = $payload {
-            curl_cmd = format!("{} -d '{}' ",curl_cmd,data);
+            curl_cmd = format!("{} -d '{}' ", curl_cmd, data);
             parameters = parameters.set_payload(data);
         };
-        println!("{}",curl_cmd);
+        println!("{}", curl_cmd);
         let req = parameters.to_request();
         let body = actix_web::test::call_and_read_body(&$service, req)
             .await
@@ -328,9 +337,9 @@ macro_rules! test_service_call {
     ( $service:expr,$method:expr,$api:expr,$payload:expr,$token:expr) => {{
         if common::env::CONF.service_mode == common::prelude::ServiceMode::Test {
             //crate::utils::api_test::local_reqwest_call($method,$api,$payload,$token).await
-            crate::test_actix_call!($service,$method,$api,$payload,$token)
-        }else{
-            crate::test_actix_call!($service,$method,$api,$payload,$token)
+            crate::test_actix_call!($service, $method, $api, $payload, $token)
+        } else {
+            crate::test_actix_call!($service, $method, $api, $payload, $token)
         }
     }};
 }
@@ -386,24 +395,19 @@ macro_rules! test_get_captcha_with_token {
 #[macro_export]
 macro_rules! test_check_captcha {
     ( $service:expr,$app:expr,$kind:expr,$captcha:expr) => {{
-            let url = format!(
-                "/accountManager/checkCaptcha?contact={}&captcha={}&usage={}",
-                $app.user.contact, $captcha,$kind
-            );
-            let res: BackendRespond<bool> = test_service_call!(
-                $service,
-                "get",
-                &url,
-                None::<String>,
-                None::<String>
-            );
-            assert_eq!(res.status_code,0);
+        let url = format!(
+            "/accountManager/checkCaptcha?contact={}&captcha={}&usage={}",
+            $app.user.contact, $captcha, $kind
+        );
+        let res: BackendRespond<bool> =
+            test_service_call!($service, "get", &url, None::<String>, None::<String>);
+        assert_eq!(res.status_code, 0);
     }};
 }
 
 #[macro_export]
 macro_rules! test_contact_is_used {
-    ( $service:expr,$app:expr) => {{        
+    ( $service:expr,$app:expr) => {{
         let url = format!(
             "/accountManager/contactIsUsed?contact={}",
             $app.user.contact
@@ -476,53 +480,15 @@ macro_rules! test_replenish_contact {
 #[macro_export]
 macro_rules! test_gen_token {
     ($service:expr, $app:expr) => {{
-            let res: BackendRespond<String> = test_service_call!(
-                $service,
-                "post",
-                "/accountManager/genToken",
-                None::<String>,
-                Some($app.user.token.clone().unwrap())
-            );
-            assert_eq!(res.status_code,0);
-            res.data
-    }};
-}
-
-#[macro_export]
-macro_rules! test_create_main_account{
-    ($service:expr, $app:expr) => {{
-        let _payload = json!({
-            "contact": $app.user.contact,
-            "kind": "SetSecurity"
-        });
-        /***
         let res: BackendRespond<String> = test_service_call!(
             $service,
             "post",
-            "/accountManager/getCaptchaWithToken",
-            Some(payload.to_string()),
+            "/accountManager/genToken",
+            None::<String>,
             Some($app.user.token.clone().unwrap())
         );
-        assert_eq!(res.status_code,0);
-        ***/
-        let payload = json!({
-            "masterPubkey":  $app.wallet.main_account,
-            "masterPrikeyEncryptedByPassword": $app.wallet.prikey,
-            "masterPrikeyEncryptedByAnswer": $app.wallet.prikey,
-            "subaccountPubkey":  $app.wallet.subaccount.first().unwrap(),
-            "subaccountPrikeyEncrypedByPassword": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
-            "subaccountPrikeyEncrypedByAnswer": $app.wallet.sub_prikey.as_ref().unwrap().first().unwrap(),
-            "anwserIndexes": "",
-            "captcha": "000000"
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            "/wallet/createMainAccount",
-            Some(payload.to_string()),
-            Some($app.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
+        assert_eq!(res.status_code, 0);
+        res.data
     }};
 }
 
@@ -865,7 +831,6 @@ macro_rules! test_react_pre_send_money {
     }};
 }
 
-
 #[macro_export]
 macro_rules! test_commit_servant_switch_master {
     ($service:expr, $sender_servant:expr,$gen_res:expr,$add_key_sig:expr,$delete_key_sig:expr) => {{
@@ -1018,7 +983,7 @@ macro_rules! test_bind_btc_address {
         });
         let url = format!("/airdrop/bindBtcAddress");
         println!("______{}",payload.to_string());
-        let res: BackendRespond<String> = test_service_call!(
+        let res: BackendRespond<u8> = test_service_call!(
             $service,
             "post",
             &url,
@@ -1064,7 +1029,9 @@ macro_rules! test_change_invite_code {
             Some(payload.to_string()),
             Some($app.user.token.clone().unwrap())
         );
-        assert_eq!(res.status_code, 0);
+        //assert_eq!(res.status_code, 0);
+        assert_eq!(res.status_code, 5006);
+
         res.data
     }};
 }

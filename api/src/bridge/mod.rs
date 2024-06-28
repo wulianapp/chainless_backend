@@ -295,7 +295,6 @@ mod tests {
 
         test_register!(service, sender_master);
         test_login!(service, sender_newcommer);
-        test_create_main_account!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let user_info = test_user_info!(service, sender_master).unwrap();
         let mut bridge_cli = ContractClient::<blockchain::bridge_on_near::Bridge>::new_update_cli()

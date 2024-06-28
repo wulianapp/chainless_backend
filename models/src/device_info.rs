@@ -101,7 +101,12 @@ impl fmt::Display for DeviceInfoFilter<'_> {
 }
 
 impl DeviceInfoEntity {
-    pub fn new_with_specified(id: &str, brand: &str, user_id: u32, hold_pubkey: Option<String>) -> Self {
+    pub fn new_with_specified(
+        id: &str,
+        brand: &str,
+        user_id: u32,
+        hold_pubkey: Option<String>,
+    ) -> Self {
         DeviceInfoEntity {
             device_info: DeviceInfo {
                 id: id.to_owned(),
@@ -219,7 +224,7 @@ mod tests {
 
         table_clear("device_info").await.unwrap();
         let task = async {
-            let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1,None);
+            let device = DeviceInfoEntity::new_with_specified("123", "Huawei", 1, None);
             device.insert().await.unwrap();
             let mut device_by_find =
                 DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser("123", &1))
@@ -236,7 +241,7 @@ mod tests {
             .await
             .unwrap();
         };
-        let (conn_ptr,_res) = run_api_call("", task).await.unwrap();
+        let (conn_ptr, _res) = run_api_call("", task).await.unwrap();
         general::commit().await.unwrap();
         general::clean_conn(conn_ptr);
     }

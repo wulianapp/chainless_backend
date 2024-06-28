@@ -303,7 +303,7 @@ impl ErrorCode for AirdropError {
             Self::HaveNotClaimAirdrop => 5006,
             Self::PredecessorHaveNotClaimAirdrop => 5007,
             Self::BtcAddressAlreadyBinded => 5008,
-            Self::BtcGradeStatusIllegal => 5009
+            Self::BtcGradeStatusIllegal => 5009,
         }
     }
 }

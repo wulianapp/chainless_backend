@@ -11,7 +11,7 @@ use tracing::info;
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
-use models::coin_transfer::{CoinTxEntity,CoinTxFilter, CoinTxUpdater};
+use models::coin_transfer::{CoinTxEntity, CoinTxFilter, CoinTxUpdater};
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -23,7 +23,6 @@ pub struct ReconfirmSendMoneyRequest {
 
 //todo: 前端通过本地发送交易之后是否还需要通知后台？
 pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> BackendRes<String> {
-    
     // let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     // let ReconfirmSendMoneyRequest {
     //     order_id,
@@ -131,6 +130,6 @@ pub async fn req(req: HttpRequest, request_data: ReconfirmSendMoneyRequest) -> B
     //     )
     //     .await?;
     // }
-    
+
     Ok(None)
 }

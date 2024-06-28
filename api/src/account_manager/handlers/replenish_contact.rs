@@ -28,7 +28,6 @@ pub async fn req(req: HttpRequest, request_data: ReplenishContactRequest) -> Bac
     //安全问答之前或者主设备
     let role = get_user_context(&user_id, &device_id).await?.role()?;
     crate::wallet::handlers::check_role(role, KeyRole::Master)?;
-    
 
     let ReplenishContactRequest {
         contact: replenish_contact,

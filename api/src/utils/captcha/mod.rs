@@ -4,17 +4,17 @@ pub mod sms;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use common::error_code::{BackendError};
+use common::constants::*;
+use common::env::ServiceMode;
+use common::error_code::AccountManagerError::*;
+use common::error_code::BackendError;
+use common::error_code::BackendError::InternalError;
 use common::utils::math::random_num;
+use common::utils::time::now_millis;
 use lazy_static::lazy_static;
+use regex::Regex;
 use std::sync::Mutex;
 use tracing::debug;
-use common::env::ServiceMode;
-use regex::Regex;
-use common::error_code::AccountManagerError::*;
-use common::error_code::BackendError::InternalError;
-use common::constants::*;
-use common::utils::time::now_millis;
 
 use strum_macros::{Display, EnumString};
 
@@ -29,13 +29,13 @@ pub enum ContactType {
 }
 
 pub trait Distinctor {
-    fn contact_type(&self) -> Result<ContactType,BackendError>;
+    fn contact_type(&self) -> Result<ContactType, BackendError>;
 }
 
-impl<T:AsRef<str>> Distinctor for T {
-    fn contact_type(&self) -> Result<ContactType,BackendError> {
+impl<T: AsRef<str>> Distinctor for T {
+    fn contact_type(&self) -> Result<ContactType, BackendError> {
         let s = self.as_ref();
-        if  s.contains('@') {
+        if s.contains('@') {
             Ok(ContactType::Email)
         } else if s.contains('+') {
             Ok(ContactType::PhoneNumber)
@@ -182,14 +182,12 @@ impl Captcha {
         Ok(())
     }
 
-    pub fn clean_up_expired() -> Result<(),BackendError>{
+    pub fn clean_up_expired() -> Result<(), BackendError> {
         let code_storage = &mut CODE_STORAGE
             .lock()
             .map_err(|e| InternalError(e.to_string()))?;
-        
-        code_storage.retain(|_k,v| {
-            !v.is_expired()
-        });
+
+        code_storage.retain(|_k, v| !v.is_expired());
         Ok(())
     }
     //todo: restrict map size

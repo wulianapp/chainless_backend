@@ -24,11 +24,9 @@ pub struct ValidUtxo {
 
 pub type NewBtcDepositRequest = Vec<ValidUtxo>;
 
-
-
 pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> BackendRes<String> {
     //todo: 目前该接口不做限制，后续看怎么收拢权限
-    let utxo_array  = request_data;
+    let utxo_array = request_data;
 
     for utxo in utxo_array {
         let ValidUtxo {
@@ -51,7 +49,7 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
         {
             let grade = query_wallet_grade(&sender).await?;
             AirdropEntity::update_single(
-                AirdropUpdater::LevelStatus(grade,BtcGradeStatus::Calculated),
+                AirdropUpdater::LevelStatus(grade, BtcGradeStatus::Calculated),
                 AirdropFilter::ByBtcAddress(&receiver),
             )
             .await?;
@@ -62,7 +60,7 @@ pub async fn req(_req: HttpRequest, request_data: NewBtcDepositRequest) -> Backe
         } else {
             warn!("deposit from {} is invaild", sender);
         }
-    } 
+    }
 
     Ok(None)
 }

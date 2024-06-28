@@ -5,13 +5,13 @@ use common::data_structures::CoinType;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
-use serde::Deserialize;
-use serde::Serialize;
 use crate::utils::get_user_context;
 use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 use common::error_code::BackendRes;
 use common::error_code::WalletError;
+use serde::Deserialize;
+use serde::Serialize;
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct GenDepositResponse {

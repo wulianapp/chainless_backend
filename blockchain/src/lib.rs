@@ -206,7 +206,11 @@ impl<T> ContractClient<T> {
             .await?;
         //todo: relayer用到的不止这一个地方
         let this_nonce = self.relayer.as_ref().unwrap().nonce.ok_or(anyhow!(""))? + 1;
-        info!("index_relayer_{}_this_nonce {}", self.relayer.as_ref().unwrap().derive_index,this_nonce);
+        info!(
+            "index_relayer_{}_this_nonce {}",
+            self.relayer.as_ref().unwrap().derive_index,
+            this_nonce
+        );
         self.relayer.as_mut().unwrap().nonce = Some(this_nonce);
         transaction.nonce = this_nonce;
         //relayer_sign

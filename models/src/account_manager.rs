@@ -46,7 +46,7 @@ pub enum UserUpdater<'a> {
     OpStatus(&'a str),
     Email(&'a str),
     PhoneNumber(&'a str),
-    TokenVersion(u32)
+    TokenVersion(u32),
 }
 
 impl fmt::Display for UserUpdater<'_> {
@@ -91,7 +91,12 @@ impl fmt::Display for UserFilter<'_> {
 }
 
 impl UserInfoEntity {
-    pub fn new_with_specified(user_id: u32, login_pwd_hash: &str,anwser_indexes:&str,main_account_id:&str) -> Self {
+    pub fn new_with_specified(
+        user_id: u32,
+        login_pwd_hash: &str,
+        anwser_indexes: &str,
+        main_account_id: &str,
+    ) -> Self {
         let user = UserInfo {
             id: user_id,
             phone_number: None,
@@ -231,7 +236,12 @@ mod tests {
         init_logger();
         table_clear("users").await.unwrap();
 
-        let user = UserInfoEntity::new_with_specified(123245, "0123456789","anwser_indexes","main_account_id");
+        let user = UserInfoEntity::new_with_specified(
+            123245,
+            "0123456789",
+            "anwser_indexes",
+            "main_account_id",
+        );
         user.insert().await.unwrap();
         let user_by_find = UserInfoEntity::find_single(UserFilter::ById(&123245))
             .await

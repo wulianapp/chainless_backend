@@ -39,7 +39,6 @@ fn get(
     kind: Usage,
     user_id: Option<u32>,
 ) -> BackendRes<String> {
-    
     let contract_type = contact.contact_type()?;
     //兼容已登陆和未登陆
     let storage_key = match user_id {
@@ -49,7 +48,7 @@ fn get(
 
     if let Some(data) = captcha::get_captcha(&storage_key, &kind)? {
         let past_time = now_millis() - data.created_at;
-        
+
         if past_time <= CAPTCHA_REQUEST_INTERVAL {
             let remain_time = CAPTCHA_REQUEST_INTERVAL - past_time;
             let remain_secs = (remain_time / 1000) as u8;
@@ -114,11 +113,10 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
             let user_id = user_info.id;
 
             //安全问答之前都允许，安全问答之后只有主设备允许
-            let find_device_res = DeviceInfoEntity::find_single(
-                DeviceInfoFilter::ByDeviceUser(&device_id, &user_id),
-            )
-            .await?
-            .into_inner();
+            let find_device_res =
+                DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(&device_id, &user_id))
+                    .await?
+                    .into_inner();
             let role =
                 judge_role_by_user_id(find_device_res.hold_pubkey.as_deref(), &user_id).await?;
             if role != KeyRole::Master {
@@ -144,8 +142,9 @@ pub async fn without_token_req(request_data: GetCaptchaWithoutTokenRequest) -> B
                 }
             }
         },
-        UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster
-        | ReplenishContact => Err(BackendError::RequestParamInvalid("".to_string()))?,
+        UpdateSecurity | ServantSwitchMaster | NewcomerSwitchMaster | ReplenishContact => {
+            Err(BackendError::RequestParamInvalid("".to_string()))?
+        }
     }
 }
 

@@ -5,14 +5,16 @@ use near_jsonrpc_client::methods::broadcast_tx_commit::RpcBroadcastTxCommitRespo
 use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::RpcTransactionStatusRequest;
 use near_jsonrpc_client::{methods, MethodCallResult};
 use near_jsonrpc_primitives::types::query::QueryResponseKind;
-use near_primitives::views::{AccessKeyList, ExecutionStatusView, FinalExecutionStatus, TxExecutionStatus};
+use near_primitives::views::{
+    AccessKeyList, ExecutionStatusView, FinalExecutionStatus, TxExecutionStatus,
+};
 use std::str::FromStr;
 
 use near_primitives::borsh::BorshDeserialize;
 use near_primitives::transaction::{SignedTransaction, Transaction};
 use near_primitives::types::{AccountId, BlockReference};
 
-use near_jsonrpc_primitives::types::transactions::{TransactionInfo};
+use near_jsonrpc_primitives::types::transactions::TransactionInfo;
 
 use hex;
 //use log::debug;

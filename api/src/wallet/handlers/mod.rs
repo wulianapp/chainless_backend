@@ -47,7 +47,6 @@ pub mod tx_list;
 pub mod update_security;
 pub mod upload_servant_sig;
 
-
 //短地址允许碰撞的次数
 pub const FIND_VALID_ACCOUNT_RETRY_TIMES: u8 = 10;
 
@@ -153,12 +152,13 @@ pub async fn get_session_state(
 
     let main_account = &user.user_info.main_account;
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let current_strategy = multi_sig_cli
-        .get_strategy(main_account)
-        .await?
-        .ok_or(BackendError::InternalError(
-            "main_account not found".to_string(),
-        ))?;
+    let current_strategy =
+        multi_sig_cli
+            .get_strategy(main_account)
+            .await?
+            .ok_or(BackendError::InternalError(
+                "main_account not found".to_string(),
+            ))?;
 
     //注册过的一定有设备信息
     let device = DeviceInfoEntity::find_single(DeviceInfoFilter::ByDeviceUser(device_id, &user_id))

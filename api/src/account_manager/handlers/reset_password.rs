@@ -38,22 +38,19 @@ pub async fn req(
         device_id,
     } = request_data.clone();
 
-    let user_info =
-        UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-            .await
-            .map_err(|_e| PhoneOrEmailNotRegister)?
-            .into_inner();
+    let user_info = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+        .await
+        .map_err(|_e| PhoneOrEmailNotRegister)?
+        .into_inner();
 
     let devices =
-        DeviceInfoEntity::find(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id))
-            .await?;
+        DeviceInfoEntity::find(DeviceInfoFilter::ByDeviceUser(&device_id, &user_info.id)).await?;
 
     //todo: 通过前端签名消息来处理，签名reset_password
     let role = KeyRole::Master;
     if role != KeyRole::Master {
         Err(WalletError::UneligiableRole(role, KeyRole::Master))?;
     }
-    
 
     //check captcha
     Captcha::check_and_delete(

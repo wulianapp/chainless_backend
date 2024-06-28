@@ -63,9 +63,9 @@ pub async fn wait_for_idle_relayer() -> Result<MutexGuard<'static, Relayer>> {
     loop {
         match find_idle_relayer() {
             Some(mut x) => {
-                let current_nonce = if let Some(num) = x.nonce{
+                let current_nonce = if let Some(num) = x.nonce {
                     num
-                }else{
+                } else {
                     let access_key_query_response = crate::rpc_call(RpcQueryRequest {
                         block_reference: BlockReference::latest(),
                         request: near_primitives::views::QueryRequest::ViewAccessKey {
@@ -76,10 +76,12 @@ pub async fn wait_for_idle_relayer() -> Result<MutexGuard<'static, Relayer>> {
                     .await?;
 
                     let current_nonce = match access_key_query_response.kind {
-                        near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+                        near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(
+                            access_key,
+                        ) => access_key.nonce,
                         _ => Err(anyhow::anyhow!("failed to extract current nonce"))?,
                     };
-                    current_nonce            
+                    current_nonce
                 };
                 x.nonce = Some(current_nonce + 1);
                 debug!("find idle index_relayer_{}", x.derive_index);
@@ -112,13 +114,16 @@ mod tests {
     use crate::relayer::wait_for_idle_relayer;
     use common::log::init_logger;
     use near_crypto::Signer;
-    use near_primitives::{
-        account::{AccessKey, AccessKeyPermission}, action::{Action, AddKeyAction}, transaction::SignedTransaction, types::BlockReference
-    };
     use near_crypto::{PublicKey, SecretKey};
     use near_jsonrpc_client::methods;
     use near_primitives::transaction::Transaction;
     use near_primitives::types::AccountId;
+    use near_primitives::{
+        account::{AccessKey, AccessKeyPermission},
+        action::{Action, AddKeyAction},
+        transaction::SignedTransaction,
+        types::BlockReference,
+    };
     use tracing::error;
 
     #[tokio::test]
@@ -150,7 +155,8 @@ mod tests {
     async fn test_tool_add_many_pubkey() {
         let account_id = AccountId::from_str("user").unwrap();
         let pri_key: SecretKey = "ed25519:3MCQKU8rsSCyegYCu7Ek14pc6NjMkgp6KHphf2nfAgknThknusRGSqMLYQFonasixjvvWmoNJnaFuK1fWF5cBpDN".parse().unwrap();
-        let used_pubkey = PublicKey::from_str("ed25519:7cdJyWNhtzkWbeMwrGDK6D8tQ3u9SEuRytjvf75PnWAc").unwrap();
+        let used_pubkey =
+            PublicKey::from_str("ed25519:7cdJyWNhtzkWbeMwrGDK6D8tQ3u9SEuRytjvf75PnWAc").unwrap();
         let seed = "e48815443073117d29a8fab50c9f3feb80439c196d4d9314400e8e715e231849";
         let signer = near_crypto::InMemorySigner::from_secret_key(account_id.clone(), pri_key);
         let mut actions = vec![];
@@ -177,7 +183,9 @@ mod tests {
         .await
         .unwrap();
         let current_nonce = match access_key_query_response.kind {
-            near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(access_key) => access_key.nonce,
+            near_jsonrpc_primitives::types::query::QueryResponseKind::AccessKey(access_key) => {
+                access_key.nonce
+            }
             _ => panic!(),
         };
         let tx = Transaction {

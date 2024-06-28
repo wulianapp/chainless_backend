@@ -7,10 +7,10 @@ use common::utils::time::now_millis;
 
 use crate::utils::{get_user_context, token_auth};
 use common::error_code::{BackendError, BackendRes, WalletError};
+use models::coin_transfer::CoinTxEntity;
 use models::coin_transfer::{CoinTxFilter, CoinTxUpdater};
 use models::PsqlOp;
 use serde::{Deserialize, Serialize};
-use models::coin_transfer::CoinTxEntity;
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -35,9 +35,7 @@ pub(crate) async fn req(
         is_agreed,
     } = request_data;
 
-    let coin_tx =
-        CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id))
-            .await?;
+    let coin_tx = CoinTxEntity::find_single(CoinTxFilter::ByOrderId(&order_id)).await?;
     if now_millis() > coin_tx.transaction.expire_at {
         Err(WalletError::TxExpired)?;
     }
@@ -48,9 +46,9 @@ pub(crate) async fn req(
         ))?;
     }
 
-    let stage =  if is_agreed {
+    let stage = if is_agreed {
         CoinSendStage::ReceiverApproved
-    }else{
+    } else {
         CoinSendStage::ReceiverRejected
     };
     CoinTxEntity::update_single(

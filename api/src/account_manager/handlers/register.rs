@@ -1,10 +1,11 @@
 use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
-use common::data_structures::airdrop::{self, Airdrop};
-use common::error_code::{AccountManagerError::*, BackendError, WalletError};
-use common::hash::{Hash};
+use blockchain::airdrop::Airdrop as ChainAirdrop;
+use common::error_code::{AccountManagerError::*, AirdropError, BackendError, WalletError};
+use common::hash::Hash;
 use common::utils::math::{bs58_to_hex, random_num};
+use common::data_structures::airdrop::Airdrop;
 use models::airdrop::{AirdropEntity, AirdropFilter};
 use models::device_info::DeviceInfoEntity;
 use models::secret_store::SecretStoreEntity;
@@ -12,7 +13,7 @@ use models::secret_store::SecretStoreEntity;
 use crate::utils::captcha::{Captcha, ContactType, Distinctor, Usage};
 
 use common::error_code::BackendRes;
-use models::account_manager::{UserFilter};
+use models::account_manager::UserFilter;
 
 use models::{account_manager::UserInfoEntity, PsqlOp};
 use serde::{Deserialize, Serialize};
@@ -76,19 +77,22 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
         Err(BackendError::RequestParamInvalid("".to_string()))?
     }
 
-    let candidate_account_id = format!("{}.{}",candidate_account_id,"user");
+    let candidate_account_id = format!("{}.{}", candidate_account_id, "user");
 
     //check userinfo
-    let user_info =
-        UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
+    let user_info = UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
     if !user_info.is_empty() {
         Err(PhoneOrEmailAlreadyRegister)?;
     }
 
     let multi_sig_cli = ContractClient::<MultiSig>::new_query_cli().await?;
-    let key = multi_sig_cli.get_master_pubkey_list(&candidate_account_id).await?;
+    let key = multi_sig_cli
+        .get_master_pubkey_list(&candidate_account_id)
+        .await?;
     if !key.is_empty() {
-        Err(WalletError::MainAccountAlreadyExist(candidate_account_id.clone()))?
+        Err(WalletError::MainAccountAlreadyExist(
+            candidate_account_id.clone(),
+        ))?
     }
 
     Captcha::check_and_delete(&contact, &captcha, Usage::Register)?;
@@ -99,7 +103,7 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
         this_user_id,
         &password.hash(),
         &anwser_indexes,
-        &candidate_account_id
+        &candidate_account_id,
     );
     match contact.contact_type()? {
         ContactType::PhoneNumber => {
@@ -112,23 +116,32 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
     let token_version = view.user_info.token_version;
     view.insert().await?;
 
-
-
     //邀请码必须存在，存在即已进行安全问答
     let predecessor_airdrop =
         AirdropEntity::find_single(AirdropFilter::ByInviteCode(&predecessor_invite_code))
             .await
             .map_err(|_e| InviteCodeNotExist)?;
-    let Airdrop{
-            user_id: predecessor_user_id,
-            account_id: predecessor_account_id,
-            ..
-        } = predecessor_airdrop.into_inner();
+    
+    let Airdrop {
+        user_id: predecessor_user_id,
+        account_id: predecessor_account_id,
+        ..
+    } = predecessor_airdrop.into_inner();
+
+
+    let cli = ContractClient::<ChainAirdrop>::new_query_cli().await?;
+    let predecessor_airdrop_on_chain = cli
+        .get_user(&predecessor_account_id)
+        .await?;
+    if predecessor_airdrop_on_chain.is_none() {
+        Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
+    }
+
     let user_airdrop = AirdropEntity::new_with_specified(
-        this_user_id, 
+        this_user_id,
         &candidate_account_id,
-        predecessor_user_id, 
-        &predecessor_account_id
+        predecessor_user_id,
+        &predecessor_account_id,
     );
     user_airdrop.insert().await?;
 
@@ -141,21 +154,23 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
     master_secret.insert().await?;
 
     let device = DeviceInfoEntity::new_with_specified(
-        &device_id, 
-        &device_brand, 
+        &device_id,
+        &device_brand,
         this_user_id,
-        Some(master_pubkey.clone())
+        Some(master_pubkey.clone()),
     );
     device.insert().await?;
 
-    debug!("{},{}",file!(),line!());
-    let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;            
+    debug!("{},{}", file!(), line!());
+    let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
     //let pubkey_hex =   bs58_to_hex(&master_pubkey).unwrap();
-    let register_tx_id = multi_cli.register_account(
-                    &candidate_account_id,
-        &master_pubkey,
-    ).await?;
-    debug!("candidate_account_id:{} register tx_id {} ", candidate_account_id,register_tx_id);
+    let register_tx_id = multi_cli
+        .register_account(&candidate_account_id, &master_pubkey)
+        .await?;
+    debug!(
+        "candidate_account_id:{} register tx_id {} ",
+        candidate_account_id, register_tx_id
+    );
     //todo: Sleep 5s for call user_info_contract
 
     let token = crate::utils::token_auth::create_jwt(

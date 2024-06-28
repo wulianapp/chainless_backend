@@ -29,9 +29,7 @@ pub async fn req(req: HttpRequest, request_data: ChangeInviteCodeRequest) -> Bac
     check_role(role, KeyRole::Master)?;
 
     let cli = ContractClient::<Airdrop>::new_query_cli().await?;
-    let user_airdrop_on_chain = cli
-        .get_user(&context.user_info.main_account)
-        .await?;
+    let user_airdrop_on_chain = cli.get_user(&context.user_info.main_account).await?;
 
     if user_airdrop_on_chain.is_none() {
         Err(AirdropError::HaveNotClaimAirdrop)?;

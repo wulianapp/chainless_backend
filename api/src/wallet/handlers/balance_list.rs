@@ -68,7 +68,6 @@ pub async fn req(
                 .iter()
                 .map(|x| x.0.to_string())
                 .collect::<Vec<String>>()
-            
         }
         AccountType::All => {
             let mut all = vec![user_info.main_account.clone()];
@@ -106,15 +105,9 @@ pub async fn req(
                 let hold_limit = if index == 0 {
                     None
                 } else {
-                    let strategy = multi_cli
-                        .get_strategy(&main_account)
-                        .await?
-                        .ok_or("")?;
+                    let strategy = multi_cli.get_strategy(&main_account).await?.ok_or("")?;
                     let sub_confs = strategy.sub_confs;
-                    let hold_limit = sub_confs
-                        .get(account)
-                        .ok_or("")?
-                        .hold_value_limit;
+                    let hold_limit = sub_confs.get(account).ok_or("")?.hold_value_limit;
                     Some(raw2display(hold_limit))
                 };
 

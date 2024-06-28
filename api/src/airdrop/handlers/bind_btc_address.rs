@@ -50,21 +50,17 @@ pub async fn req(req: HttpRequest, request_data: BindBtcAddressRequest) -> Backe
     }
     ***/
 
-
     //tmp: 等提前查等级的流程加上，再打开
     //防止一个金牌地址对多个账户小号打款评级
-    match AirdropEntity::find_single(AirdropFilter::ByBtcAddress(&btc_address)).await {
-        Ok(data) => {
-            if data.into_inner().btc_grade_status == BtcGradeStatus::Reconfirmed{
-                Err(AirdropError::BtcAddressAlreadyUsed)?;
-            }
-        },
-        Err(e) if e.to_string().contains("DataNotFound") => {
-            //do nothing
-        },
-        Err(e) => Err(e)?,
+    if !AirdropEntity::find(AirdropFilter::ByBtcAddressStatus(
+        &btc_address,
+        BtcGradeStatus::Reconfirmed,
+    ))
+    .await?
+    .is_empty()
+    {
+        Err(AirdropError::BtcAddressAlreadyUsed)?;
     }
-    
 
     //todo: get kyc info
     let cli = ContractClient::<Airdrop>::new_update_cli().await.unwrap();

@@ -1,6 +1,9 @@
 use actix_http::header;
 use actix_web::{HttpRequest, HttpResponse, Responder};
-use common::{error_code::{BackendError, ErrorCode, LangType}, log::generate_trace_id};
+use common::{
+    error_code::{BackendError, ErrorCode, LangType},
+    log::generate_trace_id,
+};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tracing::{debug, error, warn};
@@ -41,11 +44,11 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
     lang: LangType,
     inner_res: BackendRes<D, E>,
 ) -> impl Responder {
-    let (mut res,err_code) = match inner_res {
+    let (mut res, err_code) = match inner_res {
         Ok(data) => {
             let res = generate_ok_respond(data);
-            (res,0)
-        },
+            (res, 0)
+        }
         Err(error) => {
             let err_code = error.code();
             let res = if err_code == BackendError::Authorization("".to_string()).code() {
@@ -54,7 +57,7 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
             } else {
                 generate_error_respond(error, lang)
             };
-            (res,err_code)
+            (res, err_code)
         }
     };
     //目前是给中间件做错误码传递用
@@ -62,7 +65,6 @@ pub fn gen_extra_respond<D: Serialize, E: ErrorCode + Display>(
     let header_value = header::HeaderValue::from_str(&err_code.to_string()).unwrap();
     res.headers_mut().append(header_name, header_value);
     res
-
 }
 
 pub fn get_lang(req: &HttpRequest) -> LangType {
@@ -77,8 +79,11 @@ pub fn get_lang(req: &HttpRequest) -> LangType {
 pub fn get_trace_id(req: &HttpRequest) -> String {
     //没有该请求头就用uuid
     req.headers()
-    .get("Request-Id")
-    .map(|k| k.to_str().unwrap_or(generate_trace_id().as_str()).to_string())
-    .unwrap_or(generate_trace_id())
+        .get("Request-Id")
+        .map(|k| {
+            k.to_str()
+                .unwrap_or(generate_trace_id().as_str())
+                .to_string()
+        })
+        .unwrap_or(generate_trace_id())
 }
-

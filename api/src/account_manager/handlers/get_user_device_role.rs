@@ -4,9 +4,9 @@ use common::error_code::{AccountManagerError, BackendError, BackendRes};
 use models::account_manager::UserFilter;
 use models::device_info::{DeviceInfoEntity, DeviceInfoFilter};
 
+use crate::utils::get_user_context;
 use models::{account_manager::UserInfoEntity, PsqlOp};
 use serde::{Deserialize, Serialize};
-use crate::utils::get_user_context;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -18,8 +18,7 @@ pub struct GetUserDeviceRoleRequest {
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
-
-    /*** 
+    /***
     let user = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
         .await
         .map_err(|e| {

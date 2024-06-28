@@ -27,17 +27,16 @@ pub async fn req(request_data: CheckCaptchaRequest) -> BackendRes<bool> {
     let check_res = match kind {
         Usage::Register => Captcha::check(&contact, &captcha, kind),
         _ => {
-            let user =
-                UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
-                    .await
-                    .map_err(|e| {
-                        if e.to_string().contains("DBError::DataNotFound") {
-                            AccountManagerError::PhoneOrEmailNotRegister.into()
-                        } else {
-                            BackendError::InternalError(e.to_string())
-                        }
-                    })?
-                    .into_inner();
+            let user = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
+                .await
+                .map_err(|e| {
+                    if e.to_string().contains("DBError::DataNotFound") {
+                        AccountManagerError::PhoneOrEmailNotRegister.into()
+                    } else {
+                        BackendError::InternalError(e.to_string())
+                    }
+                })?
+                .into_inner();
             Captcha::check(&user.id.to_string(), &captcha, kind)
         }
     };
