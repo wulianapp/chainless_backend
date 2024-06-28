@@ -13,7 +13,7 @@ use near_jsonrpc_primitives::types::query::QueryResponseKind;
 use near_primitives::transaction::Action::FunctionCall;
 use near_primitives::views::QueryRequest;
 
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -61,12 +61,12 @@ async fn get_balance(account: &AccountId) -> Result<u128> {
 }
 
 impl ContractClient<Coin> {
-    pub async fn new_update_cli(coin: CoinType) -> Result<Self> {
+    pub async fn new_update_cli(coin: MT) -> Result<Self> {
         let contract = coin.to_string();
         Self::gen_cli(&contract).await
     }
 
-    pub async fn new_query_cli(coin: CoinType) -> Result<Self> {
+    pub async fn new_query_cli(coin: MT) -> Result<Self> {
         let contract = coin.to_string();
         Self::gen_cli_without_relayer(&contract).await
     }
@@ -91,7 +91,7 @@ impl ContractClient<Coin> {
 #[cfg(test)]
 mod tests {
     use crate::general::gen_transaction;
-    use common::data_structures::CoinType;
+    use common::data_structures::MT;
     use common::prelude::*;
     use near_crypto::InMemorySigner;
     use near_primitives::borsh::{self};
@@ -104,7 +104,7 @@ mod tests {
     async fn gen_send_money_chain_tx_raw(
         from: &InMemorySigner,
         to: String,
-        coin_type: CoinType,
+        coin_type: MT,
         amount: u128,
         memo: Option<&str>,
     ) -> String {
@@ -131,7 +131,7 @@ mod tests {
     #[tokio::test]
     async fn test_call_coin_transfer_commit() {
         common::log::init_logger();
-        let mut coin_cli = ContractClient::<Coin>::new_update_cli(CoinType::DW20)
+        let mut coin_cli = ContractClient::<Coin>::new_update_cli(MT::DW20)
             .await
             .unwrap();
         let receiver = "535ff2aeeb5ea8bcb1acfe896d08ae6d0e67ea81b513f97030230f87541d85fb";

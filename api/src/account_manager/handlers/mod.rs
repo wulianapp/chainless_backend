@@ -2,7 +2,6 @@ pub mod check_captcha;
 pub mod contact_is_used;
 pub mod gen_token;
 pub mod get_captcha;
-pub mod get_user_device_role;
 pub mod login;
 pub mod register;
 pub mod replenish_contact;

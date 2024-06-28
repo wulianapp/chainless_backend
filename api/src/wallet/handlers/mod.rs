@@ -3,7 +3,6 @@ use std::num::ParseIntError;
 use anyhow::Result;
 use blockchain::{
     coin::Coin,
-    fees_call::FeesCall,
     multi_sig::{MultiSig, MultiSigRank, StrategyData},
     ContractClient,
 };
@@ -31,11 +30,8 @@ use common::error_code::BackendError::*;
 pub use common::prelude::*;
 use common::utils::math::*;
 
-pub mod balance_list;
 pub mod cancel_send_money;
 pub mod device_list;
-pub mod faucet_claim;
-pub mod get_need_sig_num;
 pub mod get_secret;
 pub mod get_tx;
 pub mod pre_send_money;
@@ -87,13 +83,13 @@ pub async fn have_no_uncompleted_tx(account: &str) -> Result<(), BackendError> {
     Ok(())
 }
 
-pub async fn get_freezn_amount(account: &str, coin: &CoinType) -> u128 {
+pub async fn get_freezn_amount(account: &str, coin: &MT) -> u128 {
     let mut tx = get_uncompleted_tx(account).await.unwrap();
     tx.retain(|x| x.transaction.coin_type == *coin);
     tx.iter().map(|x| x.transaction.amount).sum()
 }
 
-pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendRes<u128> {
+pub async fn get_available_amount(account_id: &str, coin: &MT) -> BackendRes<u128> {
     let coin_cli = ContractClient::<Coin>::new_query_cli(coin.clone())
         .await
         .map_err(|err| ChainError(err.to_string()))?;
@@ -117,13 +113,12 @@ pub async fn get_available_amount(account_id: &str, coin: &CoinType) -> BackendR
 //calculate total value for dollar
 //目前的场景转账超过300兆才会溢出
 //由于取整造成的精度丢失可以忽略
-pub async fn get_value(coin: &CoinType, amount: u128) -> u128 {
-    let fees_cli = ContractClient::<FeesCall>::new_query_cli().await.unwrap();
-    let (base_amount, quote_amount) = fees_cli.get_coin_price(coin).await.unwrap();
-    amount * quote_amount / base_amount
+pub async fn get_value(coin: &MT, amount: u128) -> u128 {
+   //todo: get mt price
+   1
 }
 
-pub async fn get_servant_need(strategy: &Vec<MultiSigRank>, coin: &CoinType, amount: u128) -> u8 {
+pub async fn get_servant_need(strategy: &Vec<MultiSigRank>, coin: &MT, amount: u128) -> u8 {
     //todo: get price by oracle
     //let coin_price = get_coin_price(coin_account_id);
     let transfer_value = get_value(coin, amount).await;
@@ -168,129 +163,6 @@ pub async fn get_session_state(
 }
 
 pub fn check_role(current: KeyRole, require: KeyRole) -> Result<(), WalletError> {
-    if current != require {
-        Err(WalletError::UneligiableRole(current, require))?;
-    }
-    Ok(())
-}
-
-pub async fn get_fees_priority(main_account: &str) -> BackendRes<Vec<CoinType>> {
-    let fees_call_cli = blockchain::ContractClient::<FeesCall>::new_query_cli().await?;
-    let fees_priority = fees_call_cli.get_fees_priority(main_account).await?;
-    Ok(Some(fees_priority))
-}
-
-//fixme: 查一次最多rpc调用 1 + 5 * 2
-//检查所有的手续费币是否全部小于1u
-pub async fn check_have_base_fee(main_account: &str) -> Result<(), BackendError> {
-    let fee_coins = get_fees_priority(main_account)
-        .await?
-        .ok_or(InternalError("not set fees priority".to_string()))?;
-
-    for fee_coin in fee_coins {
-        let coin_cli: ContractClient<Coin> =
-            ContractClient::<Coin>::new_query_cli(fee_coin.clone()).await?;
-        let balance = coin_cli.get_balance(main_account).await?;
-        if balance.is_none() {
-            continue;
-        }
-        let mut balance = balance
-            .unwrap()
-            .parse()
-            .map_err(|e: ParseIntError| e.to_string())?;
-        let freezn_amount = get_freezn_amount(main_account, &fee_coin).await;
-        balance -= freezn_amount;
-
-        let value = get_value(&fee_coin, balance).await;
-        if value > MIN_BASE_FEE {
-            return Ok(());
-        }
-    }
-    Err(WalletError::InsufficientAvailableBalance.into())
-}
-
-pub async fn estimate_transfer_fee(
-    main_account: &str,
-    coin: &CoinType,
-    amount: u128,
-) -> Result<(CoinType, u128, bool), BackendError> {
-    let fee_coins = get_fees_priority(main_account)
-        .await?
-        .ok_or(BackendError::InternalError(
-            "not set fees priority".to_string(),
-        ))?;
-    let transfer_value = get_value(coin, amount).await;
-
-    let fee_value = if transfer_value < 20_000u128 * BASE_DECIMAL {
-        transfer_value * 9 / 10000 + MIN_BASE_FEE
-    } else {
-        20u128 * BASE_DECIMAL
-    };
-    info!(
-        "coin: {} ,transfer_value: {},fee_value: {}",
-        coin,
-        raw2display(transfer_value),
-        raw2display(fee_value)
-    );
-
-    //todo:
-    let mut estimate_res = Default::default();
-    for (index, fee_coin) in fee_coins.into_iter().enumerate() {
-        let coin_cli: ContractClient<Coin> =
-            ContractClient::<Coin>::new_query_cli(fee_coin.clone()).await?;
-
-        let mut balance = match coin_cli.get_balance(main_account).await? {
-            Some(balance) => parse_str(balance)?,
-            None => continue,
-        };
-
-        if &fee_coin == coin {
-            if amount >= balance {
-                Err(WalletError::InsufficientAvailableBalance)?;
-            } else {
-                balance -= amount
-            }
-        }
-
-        let balance_value = get_value(&fee_coin, balance).await;
-        info!(
-            "coin: {} ,fee_value: {},balance_value: {}",
-            fee_coin,
-            raw2display(fee_value),
-            raw2display(balance_value)
-        );
-
-        if balance_value > fee_value {
-            //fixme: repeat code
-            let fees_cli = ContractClient::<FeesCall>::new_query_cli().await?;
-            let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
-            let fee_coin_amount = fee_value * base_amount / quote_amount;
-            estimate_res = (fee_coin, fee_coin_amount, true);
-
-            break;
-        }
-
-        if index == 0 {
-            //fixme: repeat code
-            let fees_cli = ContractClient::<FeesCall>::new_query_cli().await?;
-            let (base_amount, quote_amount) = fees_cli.get_coin_price(&fee_coin).await?;
-            let fee_coin_amount = fee_value * base_amount / quote_amount;
-            estimate_res = (fee_coin, fee_coin_amount, false);
-        }
-    }
-    Ok(estimate_res)
-}
-
-// 1/1000
-pub async fn check_protocal_fee(current: KeyRole, require: KeyRole) -> Result<()> {
-    if current != require {
-        Err(WalletError::UneligiableRole(current, require))?;
-    }
-    Ok(())
-}
-
-//base_fee + protocal_fee
-pub fn check_fee(current: KeyRole, require: KeyRole) -> Result<()> {
     if current != require {
         Err(WalletError::UneligiableRole(current, require))?;
     }

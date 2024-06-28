@@ -24,7 +24,7 @@ use models::PsqlOp;
 pub struct CoinTransactionResponse {
     pub order_id: String,
     pub tx_id: Option<String>,
-    pub coin_type: CoinType,
+    pub coin_type: MT,
     pub from: String, //uid
     pub to: String,   //uid
     pub amount: String,

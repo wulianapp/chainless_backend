@@ -23,13 +23,13 @@ impl ContractClient<Airdrop> {
     //todo: config
     pub async fn new_update_cli() -> Result<Self> {
         //let contract = &common::env::CONF.fees_call_contract;
-        let contract = "airdrop0003.chainless";
+        let contract = "airdrop0001.chainless";
         Self::gen_cli(contract).await
     }
 
     pub async fn new_query_cli() -> Result<Self> {
         //let contract = &common::env::CONF.multi_sig_contract;
-        let contract = "airdrop0003.chainless";
+        let contract = "airdrop0001.chainless";
         Self::gen_cli_without_relayer(contract).await
     }
 

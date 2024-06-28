@@ -998,10 +998,14 @@ macro_rules! test_bind_btc_address {
 #[macro_export]
 macro_rules! test_new_btc_deposit {
     ($service:expr, $app:expr) => {{
-        let payload = json!({
+        let payload = json!([{
             "sender": "bc1q2uk2gwmhpx3c3ez54cvveettz0uyk7rwj8avmy",
-            "receiver": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuady5"
-        });
+            "recipient": "bc1q4uf0umw040zsgmhv8rdqluqax4uzn85evuady5",
+            "value": 12345678,
+            "blockheight": 10000,
+            "blocktime": 1719565491,
+            "txid": "abctxid"
+        }]);
         let url = format!("/airdrop/newBtcDeposit");
         let res: BackendRespond<String> = test_service_call!(
             $service,

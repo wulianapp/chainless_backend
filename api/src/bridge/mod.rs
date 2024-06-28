@@ -275,19 +275,14 @@ mod tests {
     use crate::utils::api_test::*;
     use crate::utils::respond::BackendRespond;
     use crate::*;
-
     use actix_web::body::MessageBody;
-
     use actix_web::http::header;
     use blockchain::ContractClient;
     use serde_json::json;
-
-    // use log::{info, LevelFilter,debug,error};
-
     use crate::account_manager::handlers::user_info::UserInfoResponse;
 
     #[actix_web::test]
-    async fn test_bind_eth_addr() {
+    async fn test_bridge_braced_ok() {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, mut sender_newcommer, _receiver) =

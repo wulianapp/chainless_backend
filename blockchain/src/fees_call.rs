@@ -4,7 +4,7 @@ use near_primitives::types::AccountId;
 
 use std::str::FromStr;
 
-use common::data_structures::CoinType;
+use common::data_structures::MTSymbol;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -31,7 +31,7 @@ impl ContractClient<FeesCall> {
     pub async fn set_fees_priority(
         &mut self,
         account_id: &str,
-        tokens: Vec<CoinType>,
+        tokens: Vec<MTSymbol>,
     ) -> Result<String> {
         //todo: verify user's ecdsa signature
         let account_id = AccountId::from_str(account_id)?;
@@ -45,7 +45,7 @@ impl ContractClient<FeesCall> {
             .await
     }
 
-    pub async fn get_fees_priority(&self, account_id: &str) -> Result<Vec<CoinType>> {
+    pub async fn get_fees_priority(&self, account_id: &str) -> Result<Vec<MTSymbol>> {
         let user_account_id = AccountId::from_str(account_id)?;
         let args_str = json!({
             "id": user_account_id,
@@ -56,13 +56,13 @@ impl ContractClient<FeesCall> {
         let tokens = tokens
             .unwrap()
             .iter()
-            .map(|x| x.parse::<CoinType>().map_err(|e| anyhow::anyhow!(e)))
-            .collect::<Result<Vec<CoinType>>>()?;
+            .map(|x| x.parse::<MTSymbol>().map_err(|e| anyhow::anyhow!(e)))
+            .collect::<Result<Vec<MTSymbol>>>()?;
         Ok(tokens)
     }
 
     //后台不做乘法计算，允许这里精度丢失
-    pub async fn get_coin_price(&self, coin: &CoinType) -> Result<(u128, u128)> {
+    pub async fn get_coin_price(&self, coin: &MTSymbol) -> Result<(u128, u128)> {
         let args_str = json!({
             "id":  coin.to_account_id(),
         })
@@ -74,14 +74,14 @@ impl ContractClient<FeesCall> {
         Ok((base_amount, quote_amount))
     }
 
-    pub async fn get_coin_price_custom(&self, coin: &CoinType) -> Result<f32> {
+    pub async fn get_coin_price_custom(&self, coin: &MTSymbol) -> Result<f32> {
         let (base_amount, quote_amount) = self.get_coin_price(coin).await?;
         let price = quote_amount as f32 / base_amount as f32;
         Ok(price)
     }
 
     //base_fee
-    pub async fn get_tx_base_fee(&self, tx_id: &str) -> Result<(CoinType, u128)> {
+    pub async fn get_tx_base_fee(&self, tx_id: &str) -> Result<(MTSymbol, u128)> {
         //let value = (user_id, fees_id, fees_amount, tx_hash, memo);
         //AccountId, AccountId, u128, Option<String>, String
 
@@ -99,7 +99,7 @@ impl ContractClient<FeesCall> {
             .query_call("get_tx_with_hash", &args_str)
             .await?
             .unwrap();
-        let coin: CoinType = fees_id.parse()?;
+        let coin: MTSymbol = fees_id.parse()?;
         Ok((coin, fees_amount))
     }
 
@@ -134,11 +134,11 @@ mod tests {
         println!("prioritys_1 {:?} ", prioritys);
 
         let default_prioritys = vec![
-            CoinType::USDC,
-            CoinType::BTC,
-            CoinType::ETH,
-            CoinType::USDT,
-            CoinType::DW20,
+            MTSymbol::USDC,
+            MTSymbol::BTC,
+            MTSymbol::ETH,
+            MTSymbol::USDT,
+            MTSymbol::DW20,
         ];
 
         let json_string = serde_json::to_string(&prioritys).unwrap();
@@ -159,12 +159,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_coin_price() {
-        let coins: Vec<CoinType> = vec![
-            CoinType::USDC,
-            CoinType::BTC,
-            CoinType::ETH,
-            CoinType::USDT,
-            CoinType::DW20,
+        let coins: Vec<MTSymbol> = vec![
+            MTSymbol::USDC,
+            MTSymbol::BTC,
+            MTSymbol::ETH,
+            MTSymbol::USDT,
+            MTSymbol::DW20,
         ];
         let fees_cli = ContractClient::<FeesCall>::new_update_cli().await.unwrap();
         for coin in coins {

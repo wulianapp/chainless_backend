@@ -28,8 +28,8 @@ use anyhow::Result;
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PreSendMoneyRequest {
-    to: String,
-    coin: String,
+    receiver: String,
+    mt: String,
     amount: String,
     expire_at: u64,
     memo: Option<String>,
@@ -42,8 +42,8 @@ pub(crate) async fn req(
 ) -> BackendRes<(String, Option<String>)> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
     let PreSendMoneyRequest {
-        to,
-        coin,
+        receiver: to,
+        mt: coin,
         amount,
         expire_at: _,
         memo,

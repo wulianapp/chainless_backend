@@ -13,7 +13,7 @@ use tokio_postgres::Row;
 use crate::{vec_str2array_text, PgLocalCli, PsqlOp, PsqlType};
 use anyhow::{Ok, Result};
 use common::data_structures::coin_transaction::{CoinSendStage, CoinTransaction, TxRole, TxType};
-use common::data_structures::{CoinType, TxStatusOnChain};
+use common::data_structures::{MT, TxStatusOnChain};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CoinTxEntity {
@@ -30,7 +30,7 @@ impl CoinTxEntity {
 
 impl CoinTxEntity {
     pub fn new_with_specified(
-        coin_type: CoinType,
+        coin_type: MT,
         sender: String,
         receiver: String,
         amount: u128,
@@ -179,7 +179,7 @@ impl PsqlOp for CoinTxEntity {
                 transaction: CoinTransaction {
                     order_id: row.get(0),
                     tx_id: row.get(1),
-                    coin_type: CoinType::from_str(row.get::<usize, &str>(2))?,
+                    coin_type: MT::from_str(row.get::<usize, &str>(2))?,
                     sender: row.get(3),
                     receiver: row.get(4),
                     amount: u128::from_str(row.get::<usize, &str>(5))?,
@@ -290,7 +290,7 @@ mod tests {
         table_clear("coin_transaction").await.unwrap();
         let task = async {
             let coin_tx = CoinTxEntity::new_with_specified(
-                CoinType::BTC,
+                MT::BTC,
                 "1.test".to_string(),
                 "2.test".to_string(),
                 1,

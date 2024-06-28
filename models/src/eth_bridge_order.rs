@@ -3,7 +3,7 @@ extern crate rustc_serialize;
 use async_trait::async_trait;
 use common::data_structures::{
     bridge::{EthBridgeOrder, EthOrderStatus, OrderType as BridgeOrderType},
-    CoinType,
+    MT,
 };
 use serde::{Deserialize, Serialize};
 
@@ -79,7 +79,7 @@ impl EthBridgeOrderEntity {
         chainless_acc: &str,
         eth_addr: &str,
         order_type: BridgeOrderType,
-        coin: CoinType,
+        coin: MT,
         amount: u128,
         status: EthOrderStatus,
         height: u64,
@@ -212,7 +212,7 @@ mod tests {
                 "test.node0",
                 "0x123",
                 BridgeOrderType::Withdraw,
-                CoinType::DW20,
+                MT::DW20,
                 10000u128,
                 EthOrderStatus::Pending,
                 0u64,

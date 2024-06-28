@@ -3,7 +3,7 @@ use actix_web::HttpRequest;
 
 use common::data_structures::coin_transaction::CoinSendStage;
 use common::data_structures::TxStatusOnChain;
-use common::data_structures::{coin_transaction::TxType, CoinType};
+use common::data_structures::{coin_transaction::TxType, MT};
 use common::error_code::to_param_invalid_error;
 
 use common::error_code::BackendError;
@@ -34,7 +34,7 @@ pub struct TxListRequest {
 pub struct CoinTxViewResponse {
     pub order_id: String,
     pub tx_id: Option<String>,
-    pub coin_type: CoinType,
+    pub coin_type: MT,
     pub from: String, //uid
     pub to: String,   //uid
     pub amount: String,

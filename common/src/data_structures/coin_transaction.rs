@@ -1,4 +1,4 @@
-use super::{CoinType, TxStatusOnChain};
+use super::{MT, TxStatusOnChain};
 
 use serde_derive::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -52,7 +52,7 @@ pub enum CoinSendStage {
 pub struct CoinTransaction {
     pub order_id: String,
     pub tx_id: Option<String>,
-    pub coin_type: CoinType,
+    pub coin_type: MT,
     pub sender: String,   //uid
     pub receiver: String, //uid
     pub amount: u128,

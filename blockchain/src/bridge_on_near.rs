@@ -9,7 +9,7 @@ use tracing::warn;
 
 use hex;
 
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -277,13 +277,13 @@ impl ContractClient<Bridge> {
     //服务器签名-》eth用户直接锁仓 ---》桥服务端-监控后台mint
     pub async fn sign_deposit_info(
         &self,
-        coin: CoinType,
+        coin: MT,
         amount: u128,
         account_id: &str,
     ) -> Result<(String, u64, u64)> {
         let deadline = (now_millis() + BRIDGE_DEPOSIT_EXPIRE_TIME) / 1000;
         let cid = now_millis();
-        let amount = if coin == CoinType::ETH {
+        let amount = if coin == MT::ETH {
             U256::zero()
         } else {
             U256::from(amount)
@@ -350,7 +350,7 @@ mod tests {
         );
 
         let sig = bridge_cli
-            .sign_deposit_info(CoinType::USDT, 100, "node0")
+            .sign_deposit_info(MT::USDT, 100, "node0")
             .await;
         println!("sign_deposit  {:?} ", sig.unwrap());
     }
@@ -383,7 +383,7 @@ mod tests {
         println!("bind_res {} ", bind_res);
 
         let (sig, deadline, cid) = bridge_cli
-            .sign_deposit_info(CoinType::USDT, 111, "test")
+            .sign_deposit_info(MT::USDT, 111, "test")
             .await
             .unwrap();
         println!("sign_deposit  {} ", sig);
@@ -403,7 +403,7 @@ mod tests {
             .unwrap();
         println!("{:?}", deposit_res);
 
-        let coin_cli = ContractClient::<crate::coin::Coin>::new_update_cli(CoinType::USDT)
+        let coin_cli = ContractClient::<crate::coin::Coin>::new_update_cli(MT::USDT)
             .await
             .unwrap();
         loop {
@@ -444,10 +444,10 @@ mod tests {
 
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::DW20) {
+            if coin.eq(&MT::DW20) {
                 continue;
             }
-            let deposit_amount = if coin.eq(&CoinType::ETH) {
+            let deposit_amount = if coin.eq(&MT::ETH) {
                 BASE_DECIMAL
             } else {
                 deposit_amount
@@ -475,7 +475,7 @@ mod tests {
             );
 
             let cli = EthContractClient::<crate::bridge_on_eth::Bridge>::new().unwrap();
-            let deposit_res = if coin.eq(&CoinType::ETH) {
+            let deposit_res = if coin.eq(&MT::ETH) {
                 cli.deposit_eth(replayer_acccount_id, deposit_amount, &sig, deadline, cid)
                     .await
                     .unwrap()

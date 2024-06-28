@@ -1,26 +1,20 @@
 //! account manager http service
 pub mod handlers;
-
 use actix_web::{get, post, web, HttpRequest, Responder};
-
 use handlers::check_captcha::CheckCaptchaRequest;
 use handlers::contact_is_used::ContactIsUsedRequest;
 use handlers::get_captcha::GetCaptchaWithTokenRequest;
 use handlers::get_captcha::GetCaptchaWithoutTokenRequest;
-use handlers::get_user_device_role::GetUserDeviceRoleRequest;
 use handlers::login::LoginByCaptchaRequest;
 use handlers::login::LoginRequest;
 use handlers::register::RegisterRequest;
 use handlers::replenish_contact::ReplenishContactRequest;
 use handlers::reset_password::ResetPasswordRequest;
-
-use tracing::debug;
-
-//use captcha::{ContactType, VerificationCode};
-
 use crate::utils::respond::gen_extra_respond;
 use crate::utils::respond::get_lang;
 use crate::utils::respond::get_trace_id;
+use tracing::debug;
+
 /**
  * @api {post} /accountManager/getCaptchaWithoutToken 未登陆时申请验证码,
  * @apiVersion 0.0.1
@@ -252,35 +246,6 @@ async fn login_by_password(
 }
 
 /**
- * @api {get} /accountManager/getUserDeviceRole 获取当前用户当前设备的角色信息
- * @apiVersion 0.0.1
- * @apiName GetUserDeviceRole
- * @apiGroup AccountManager
- * @apiQuery {String}        deviceId   设备id
- * @apiQuery {String}        contact    当前用户联系方式
- * @apiExample {curl} Example usage:
- *    curl -X POST http://120.232.251.101:8066/accountManager/getUserDeviceRole -H "Content-Type: application/json" -d
- *  '{"deviceId": "1234","contact": "test000001@gmail.com","password":"123456789"}'
-* @apiSuccess {String=0,1,2008} status_code         状态码.
-* @apiSuccess {String} msg  状态详情
- * @apiSuccess {String=Master,Servant,Undefined} data               角色信息.
- * @apiSampleRequest http://120.232.251.101:8066/accountManager/getUserDeviceRole
- */
-
-#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[get("/accountManager/getUserDeviceRole")]
-async fn get_user_device_role(
-    req: HttpRequest,
-    request_data: web::Query<GetUserDeviceRoleRequest>,
-) -> impl Responder {
-    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::get_user_device_role::req(request_data.into_inner()).await,
-    )
-}
-
-/**
  * @api {post} /accountManager/loginByCaptcha   通过验证码登录
  * @apiVersion 0.0.1
  * @apiName LoginByCaptcha
@@ -401,7 +366,6 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .service(get_captcha_with_token)
         .service(get_captcha_without_token)
         .service(check_captcha)
-        .service(get_user_device_role)
         .service(gen_token)
         .service(replenish_contact)
         .service(reset_password);
@@ -424,7 +388,7 @@ mod tests {
     use tests::handlers::user_info::UserInfoResponse;
 
     #[actix_web::test]
-    async fn test_all_braced_account_manager_ok() {
+    async fn test_account_manager_braced_ok() {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
 

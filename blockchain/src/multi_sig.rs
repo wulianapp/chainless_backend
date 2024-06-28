@@ -14,12 +14,11 @@ use std::str::FromStr;
 
 use near_primitives::types::AccountId;
 
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::coin::Coin;
-use crate::fees_call::FeesCall;
 use crate::general::get_access_key_list;
 use crate::general::pubkey_from_hex_str;
 
@@ -161,20 +160,20 @@ impl ContractClient<MultiSig> {
     pub async fn gen_send_money_raw(
         &self,
         servant_device_sigs: Vec<PubkeySignInfo>,
-        from: &str,
-        to: &str,
-        coin: CoinType,
+        sender: &str,
+        receiver: &str,
+        mt: MT,
         transfer_amount: u128,
         expire_at: u64,
     ) -> Result<(String, String)> {
-        let caller_id = AccountId::from_str(from)?;
-        let caller_pubkey_str = self.get_master_pubkey(from).await?;
+        let caller_id = AccountId::from_str(sender)?;
+        let caller_pubkey_str = self.get_master_pubkey(sender).await?;
         let caller_pubkey = pubkey_from_hex_str(&caller_pubkey_str)?;
 
         let coin_tx = CoinTx {
-            from: AccountId::from_str(from)?,
-            to: AccountId::from_str(to)?,
-            coin_id: coin.to_account_id(),
+            sender: AccountId::from_str(sender)?,
+            receiver: AccountId::from_str(receiver)?,
+            mt,
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -195,14 +194,14 @@ impl ContractClient<MultiSig> {
         &self,
         sender_id: &str,
         receiver_id: &str,
-        coin: CoinType,
+        mt: MT,
         transfer_amount: u128,
         expire_at: u64,
     ) -> Result<String> {
         let coin_tx_info = CoinTx {
-            from: AccountId::from_str(sender_id)?,
-            to: AccountId::from_str(receiver_id)?,
-            coin_id: coin.to_account_id(),
+            sender: AccountId::from_str(sender_id)?,
+            receiver: AccountId::from_str(receiver_id)?,
+            mt,
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -218,16 +217,16 @@ impl ContractClient<MultiSig> {
         &mut self,
         master_sig: PubkeySignInfo,
         servant_sigs: Vec<PubkeySignInfo>,
-        from: &str,
-        to: &str,
-        coin: CoinType,
+        sender: &str,
+        receiver: &str,
+        mt: MT,
         transfer_amount: u128,
         expire_at: u64,
     ) -> Result<String> {
         let coin_tx = CoinTx {
-            from: AccountId::from_str(from)?,
-            to: AccountId::from_str(to)?,
-            coin_id: coin.to_account_id(),
+            sender: AccountId::from_str(sender)?,
+            receiver: AccountId::from_str(receiver)?,
+            mt,
             amount: transfer_amount,
             expire_at,
             memo: None,
@@ -260,9 +259,9 @@ impl AccountSignInfo {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CoinTx {
-    from: AccountId,
-    to: AccountId,
-    coin_id: AccountId,
+    sender: AccountId,
+    receiver: AccountId,
+    mt: MT,
     amount: u128,
     expire_at: u64,
     memo: Option<String>,

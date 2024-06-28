@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 
 use ::common::data_structures::bridge::OrderType;
-use ::common::data_structures::CoinType;
+use ::common::data_structures::MT;
 
 use common::env::CONF as ENV_CONF;
 use ethers::prelude::*;
@@ -35,7 +35,7 @@ pub struct OrderEventInfo {
     pub order_type: OrderType, //Withdraw,Deposit
     pub chainless_acc: String,
     pub eth_addr: String,
-    pub coin: CoinType,
+    pub coin: MT,
     pub amount: u128,
     //create order time for withdraw
     //deadline for deposit
@@ -141,7 +141,7 @@ impl EthContractClient<Bridge> {
             "cid {}\n,chainless_id {}\n,symbol {}\n,amount {}\n,signature {}\n,deadline {}\n",
             cid,
             chainless_id,
-            CoinType::ETH,
+            MT::ETH,
             amount,
             hex::encode(signature.clone()),
             deadline
@@ -150,7 +150,7 @@ impl EthContractClient<Bridge> {
             .deposit(
                 cid,
                 chainless_id.to_owned(),
-                CoinType::ETH.to_string(),
+                MT::ETH.to_string(),
                 U256::zero(),
                 signature.into(),
                 deadline,

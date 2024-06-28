@@ -12,7 +12,7 @@ use models::PsqlOp;
 use crate::utils::{get_main_account, token_auth};
 use anyhow::Result;
 
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,7 @@ pub struct ListDepositOrderResponse {
     pub order_id: String,
     pub chain_id: u128,        //外链id
     pub account_id: String,    //无链id
-    pub symbol: CoinType,      //代币符号
+    pub symbol: MT,      //代币符号
     pub amount: String,        //
     pub address: String,       //外链地址
     pub status: DepositStatus, //订单充值状态

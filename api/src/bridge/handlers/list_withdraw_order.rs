@@ -15,7 +15,7 @@ use crate::utils::token_auth;
 use crate::wallet::handlers::*;
 use anyhow::Result;
 
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 
 use common::{error_code::BackendRes, utils::math::coin_amount::raw2display};
 
@@ -28,7 +28,7 @@ pub struct ListWithdrawOrderResponse {
     pub order_id: String,
     pub chain_id: u128,     //外链id
     pub account_id: String, //无链id
-    pub symbol: CoinType,   //代币符号
+    pub symbol: MT,   //代币符号
     pub amount: String,
     pub address: String,         //外链地址
     pub signatures: Vec<String>, //签名详情

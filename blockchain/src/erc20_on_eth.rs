@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use ::common::data_structures::CoinType;
+use ::common::data_structures::MT;
 
 use ethers::prelude::*;
 use ethers::types::Address;
@@ -23,7 +23,7 @@ abigen!(
 );
 
 impl EthContractClient<Erc20> {
-    pub fn new(coin: &CoinType) -> Result<EthContractClient<Erc20>> {
+    pub fn new(coin: &MT) -> Result<EthContractClient<Erc20>> {
         let coin_erc20_ca = coin
             .erc20_ca()
             .ok_or(anyhow!("coin {} not support", coin))?;
@@ -79,7 +79,7 @@ impl EthContractClient<Erc20> {
 mod tests {
 
     use ::common::{
-        data_structures::{get_support_coin_list, CoinType},
+        data_structures::{get_support_coin_list, MT},
         utils::math::coin_amount::raw2display,
     };
 
@@ -87,7 +87,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_erc20_op() {
-        let cli = EthContractClient::<Erc20>::new(&CoinType::USDT).unwrap();
+        let cli = EthContractClient::<Erc20>::new(&MT::USDT).unwrap();
         let address = "0xcb5afaa026d3de65de0ddcfb1a464be8960e334a";
         let relayer_addr = "cb5afaa026d3de65de0ddcfb1a464be8960e334a";
 
@@ -107,7 +107,7 @@ mod tests {
 
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::DW20) {
+            if coin.eq(&MT::ETH) || coin.eq(&MT::DW20) {
                 continue;
             }
             let cli = EthContractClient::<Erc20>::new(&coin).unwrap();
@@ -130,7 +130,7 @@ mod tests {
         let address = "0x2f3fb26c1aea9df4ebb3a43b4ff063e74566dcaf";
         let coins = get_support_coin_list();
         for coin in coins {
-            if coin.eq(&CoinType::ETH) || coin.eq(&CoinType::DW20) {
+            if coin.eq(&MT::ETH) || coin.eq(&MT::DW20) {
                 continue;
             }
             let cli = EthContractClient::<Erc20>::new(&coin).unwrap();

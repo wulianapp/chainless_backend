@@ -6,7 +6,7 @@ use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
 use blockchain::ContractClient;
 use common::data_structures::coin_transaction::{CoinSendStage, TxType};
-use common::data_structures::{CoinType, KeyRole};
+use common::data_structures::{MT, KeyRole};
 use common::utils::math::coin_amount::display2raw;
 use common::utils::time::now_millis;
 
@@ -66,7 +66,7 @@ pub(crate) async fn req(
     }
 
     let coin_type =
-        CoinType::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
+        MT::from_str(&coin).map_err(|e| BackendError::RequestParamInvalid(e.to_string()))?;
     let from = main_account.clone();
 
     let available_balance = get_available_amount(&from, &coin_type).await?;

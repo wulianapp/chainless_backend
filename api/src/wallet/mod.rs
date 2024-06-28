@@ -5,10 +5,7 @@ pub mod handlers;
 use actix_web::{get, post, web, HttpRequest, Responder};
 
 use crate::utils::respond::gen_extra_respond;
-use handlers::balance_list::BalanceListRequest;
 use handlers::cancel_send_money::CancelSendMoneyRequest;
-use handlers::faucet_claim::FaucetClaimRequest;
-use handlers::get_need_sig_num::GetNeedSigNumRequest;
 use handlers::get_secret::GetSecretRequest;
 use handlers::get_tx::GetTxRequest;
 use handlers::pre_send_money::PreSendMoneyRequest;
@@ -166,7 +163,7 @@ async fn get_secret(
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/preSendMoney")]
+#[post("/wallet/preSendMT")]
 async fn pre_send_money(
     req: HttpRequest,
     request_data: web::Json<PreSendMoneyRequest>,
@@ -205,7 +202,7 @@ async fn pre_send_money(
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/reactPreSendMoney")]
+#[post("/wallet/reactPreSendMT")]
 async fn react_pre_send_money(
     req: HttpRequest,
     request_data: web::Json<ReactPreSendMoneyRequest>,
@@ -247,7 +244,7 @@ async fn react_pre_send_money(
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/reconfirmSendMoney")]
+#[post("/wallet/reconfirmSendMT")]
 async fn reconfirm_send_money(
     req: HttpRequest,
     request_data: web::Json<ReconfirmSendMoneyRequest>,
@@ -288,7 +285,7 @@ async fn reconfirm_send_money(
 */
 
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/cancelSendMoney")]
+#[post("/wallet/cancelSendMT")]
 async fn cancel_send_money(
     req: HttpRequest,
     request_data: web::Json<CancelSendMoneyRequest>,
@@ -409,38 +406,6 @@ async fn update_security(
     gen_extra_respond(
         get_lang(&req),
         handlers::update_security::req(req, request_data.into_inner()).await,
-    )
-}
-
-/**
- * @api {post} /wallet/faucetClaim 领取测试币
- * @apiVersion 0.0.1
- * @apiName faucetClaim
- * @apibody {String} accountId
- * @apiGroup Wallet
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/putPendingPubkey
-   -d '  {
-             "encryptedPrikey": "a06d01c1c74f33b4558454dbb863e90995543521fd7fc525432fc58b705f8cef19ae808dec479e1516ffce8ab2a0af4cec430d56f86f70e48f1002b912709f89",
-            }'
-   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
-    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
-    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1} status_code         状态码.
-* @apiSuccess {String} msg 状态信息
-* @apiSuccess {String} data                null
-* @apiSampleRequest http://120.232.251.101:8066/wallet/faucetClaim
-*/
-
-#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/faucetClaim")]
-async fn faucet_claim(
-    req: HttpRequest,
-    request_data: web::Json<FaucetClaimRequest>,
-) -> impl Responder {
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::faucet_claim::req(req, request_data.into_inner()).await,
     )
 }
 
@@ -573,6 +538,62 @@ async fn tx_list(req: HttpRequest, request_data: web::Query<TxListRequest>) -> i
 * @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
 */
 
+
+
+/**
+ * @api {get} /wallet/getTx 单个账单详情
+ * @apiVersion 0.0.2
+ * @apiName GetTx
+ * @apiGroup Wallet
+ * @apiQuery {String}                 orderId            交易订单号
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/getTx?index=1
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,2,3021} status_code         状态码.
+* @apiSuccess {String} msg 状态信息
+* @apiSuccess {object} data               交易详情.
+* @apiSuccess {String} data.order_id          交易id号.
+* @apiSuccess {object} data.transaction        交易详情.
+* @apiSuccess {String} [data.tx_id]        链上交易id.
+* @apiSuccess {String=BTC,ETH,USDT,USDC,CLY,DW20} data.coin_type      币种名字
+* @apiSuccess {String} data.from                发起方
+* @apiSuccess {String} data.to                接收方的联系方式或钱包id
+* @apiSuccess {String} data.to_account_id                接收方的钱包id
+* @apiSuccess {String} data.amount               交易量
+* @apiSuccess {String} data.expire_at             交易截止时间戳
+* @apiSuccess {String} [data.memo]                交易备注
+* @apiSuccess {String=
+    Created(转账订单创建),
+    SenderSigCompleted（发起方从设备收集到足够签名）,
+    ReceiverApproved（接受者接受转账）,
+    ReceiverRejected（接受者拒绝收款）,
+    SenderCanceled（发送者取消发送）,
+    SenderReconfirmed（发送者确认发送）
+} data.stage
+    交易进度分别对应{转账订单创建、从设备签名准备完毕、接收者同意收款、接收者拒绝收款、发送方取消转账、发送方二次确认交易}
+* @apiSuccess {String}  data.coin_tx_raw       币种转账的业务原始数据hex
+* @apiSuccess {String}  data.need_sig_num         本次转账预估需要的签名数量
+* @apiSuccess {object[]} data.signed_device       从设备签名详情
+* @apiSuccess {String} data.signed_device.pubkey         签名公钥
+* @apiSuccess {String} data.signed_device.device_id      签名设备id
+* @apiSuccess {String} data.signed_device.device_brand   签名设备品牌
+* @apiSuccess {object[]} data.unsigned_device       还没签名从设备
+* @apiSuccess {String} data.unsigned_device.pubkey         签名公钥
+* @apiSuccess {String} data.unsigned_device.device_id      签名设备id
+* @apiSuccess {String} data.unsigned_device.device_brand   签名设备品牌
+* @apiSuccess {String=Normal,Forced} data.coin_tx.transaction.tx_type         从设备对业务数据的签名
+* @apiSuccess {String=NotLaunch(未上链),
+    Pending(待确认),
+    Failed(失败),
+    Successful(成功)}  data.chain_status       交易的链上状态
+* @apiSuccess {String} data.updated_at         交易更新时间戳
+* @apiSuccess {String} data.created_at         交易创建时间戳
+* @apiSampleRequest http://120.232.251.101:8066/wallet/getTx
+*/
+
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[get("/wallet/getTx")]
 async fn get_tx(req: HttpRequest, request_data: web::Query<GetTxRequest>) -> impl Responder {
@@ -632,7 +653,6 @@ mod tests {
     use crate::utils::respond::BackendRespond;
     use crate::*;
 
-    use super::handlers::balance_list::BalanceListResponse;
     use super::handlers::get_tx::GetTxResponse;
     use super::*;
     use crate::bridge::handlers::list_withdraw_order::ListWithdrawOrderResponse;
@@ -659,7 +679,7 @@ mod tests {
     use blockchain::coin::Coin;
     use blockchain::erc20_on_eth::Erc20;
     use blockchain::eth_cli::EthContractClient;
-    use common::data_structures::CoinType;
+    use common::data_structures::MT;
     use common::utils::math::*;
     use rayon::prelude::*;
 
@@ -688,7 +708,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _, mut receiver) =
             gen_some_accounts_with_new_key();
-        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(MT::USDT)
             .await
             .unwrap();
         coin_cli
@@ -752,7 +772,7 @@ mod tests {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _, _, mut receiver) = gen_some_accounts_with_new_key();
-        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(MT::USDT)
             .await
             .unwrap();
         //let receive = a336dc50a8cef019d92c3c80c92a2a9d3842c95576d544286d166f1501a2351b
@@ -829,7 +849,7 @@ mod tests {
 
         let user_info = test_user_info!(service, sender_master).unwrap();
         println!("{:#?}", user_info);
-        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(MT::ETH)
             .await
             .unwrap();
         coin_cli
@@ -883,7 +903,7 @@ mod tests {
             .unwrap()
             .unwrap();
         println!("current_bind_res {} ", current_binded_eth_addr);
-        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::ETH)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(MT::ETH)
             .await
             .unwrap();
         let eth_bridge_cli =
@@ -986,7 +1006,7 @@ mod tests {
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, mut sender_servant, _sender_newcommer, _receiver) =
             gen_some_accounts_with_new_key();
-        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(CoinType::USDT)
+        let mut coin_cli = ContractClient::<blockchain::coin::Coin>::new_update_cli(MT::USDT)
             .await
             .unwrap();
         coin_cli

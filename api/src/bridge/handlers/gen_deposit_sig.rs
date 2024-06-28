@@ -1,7 +1,7 @@
 use actix_web::HttpRequest;
 use blockchain::bridge_on_near::Bridge;
 use blockchain::ContractClient;
-use common::data_structures::CoinType;
+use common::data_structures::MT;
 use common::data_structures::KeyRole;
 use common::utils::math::coin_amount::display2raw;
 
@@ -42,10 +42,10 @@ pub async fn req(
     let GenDepositSigRequest { coin, amount } = request_data;
     let amount = display2raw(&amount).map_err(|_e| WalletError::UnSupportedPrecision)?;
 
-    let coin: CoinType = coin
+    let coin: MT = coin
         .parse()
         .map_err(|_e| BridgeError::CoinNotSupport("".to_string()))?;
-    if coin == CoinType::DW20 {
+    if coin == MT::DW20 {
         Err(BridgeError::CoinNotSupport(coin.to_string()))?
     }
 

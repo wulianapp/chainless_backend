@@ -11,8 +11,7 @@ pub mod multi_sig;
 
 pub mod bridge_on_eth;
 pub mod eth_cli;
-pub mod fees_call;
-mod relayer;
+pub mod relayer;
 
 use general::pubkey_from_hex_str;
 use lazy_static::lazy_static;

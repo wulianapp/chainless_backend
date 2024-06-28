@@ -52,81 +52,77 @@ pub enum OpStatus {
     Idle,
 }
 
-pub fn get_support_coin_list() -> Vec<CoinType> {
+pub fn get_support_coin_list() -> Vec<MT> {
     vec![
-        CoinType::BTC,
-        CoinType::ETH,
-        CoinType::USDT,
-        CoinType::USDC,
-        CoinType::CLY,
-        CoinType::DW20,
+        MT::BTC,
+        MT::ETH,
+        MT::USDT,
+        MT::USDC,
+        MT::CLY,
+        MT::DW20,
     ]
 }
 
-pub fn get_support_coin_list_without_cly() -> Vec<CoinType> {
+pub fn get_support_coin_list_without_cly() -> Vec<MT> {
     vec![
-        CoinType::BTC,
-        CoinType::ETH,
-        CoinType::USDT,
+        MT::BTC,
+        MT::ETH,
+        MT::USDT,
         //CoinType::USDC,
-        CoinType::DW20,
+        MT::DW20,
     ]
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, EnumString, Display, PartialEq, Default)]
-pub enum CoinType {
+pub enum MT {
     #[default]
-    #[strum(ascii_case_insensitive, to_string = "btc")]
+    #[strum(ascii_case_insensitive, to_string = "BTC")]
     BTC,
-    #[strum(ascii_case_insensitive, to_string = "eth")]
+    #[strum(ascii_case_insensitive, to_string = "ETH")]
     ETH,
-    #[strum(ascii_case_insensitive, to_string = "usdt")]
+    #[strum(ascii_case_insensitive, to_string = "USDT")]
     USDT,
-    #[strum(ascii_case_insensitive, to_string = "usdc")]
+    #[strum(ascii_case_insensitive, to_string = "USDC")]
     USDC,
-    #[strum(ascii_case_insensitive, to_string = "cly")]
+    #[strum(ascii_case_insensitive, to_string = "CLY")]
     CLY,
-    #[strum(ascii_case_insensitive, to_string = "dw20")]
+    #[strum(ascii_case_insensitive, to_string = "DW20")]
     DW20,
 }
 
-impl CoinType {
-    pub fn to_account_id(&self) -> AccountId {
-        AccountId::from_str(&self.to_string()).unwrap()
-    }
-
+impl MT {
     pub fn erc20_ca(&self) -> Option<String> {
         match self {
-            CoinType::BTC => Some(global_conf.eth_wbtc_contract.clone()),
-            CoinType::ETH => None,
-            CoinType::USDT => Some(global_conf.eth_usdt_contract.clone()),
-            CoinType::USDC => Some(global_conf.eth_usdc_contract.clone()),
-            CoinType::CLY => Some(global_conf.eth_cly_contract.clone()),
-            CoinType::DW20 => None,
+            MT::BTC => Some(global_conf.eth_wbtc_contract.clone()),
+            MT::ETH => None,
+            MT::USDT => Some(global_conf.eth_usdt_contract.clone()),
+            MT::USDC => Some(global_conf.eth_usdc_contract.clone()),
+            MT::CLY => Some(global_conf.eth_cly_contract.clone()),
+            MT::DW20 => None,
         }
     }
 
     //todo: config by env
     pub fn erc20_decimal(&self) -> Option<u8> {
         match self {
-            CoinType::BTC => Some(18),
+            MT::BTC => Some(18),
             //is token_decimal rather than coin_decimal
-            CoinType::ETH => Some(18),
-            CoinType::USDT => Some(18),
-            CoinType::USDC => Some(18),
-            CoinType::CLY => Some(18),
-            CoinType::DW20 => None,
+            MT::ETH => Some(18),
+            MT::USDT => Some(18),
+            MT::USDC => Some(18),
+            MT::CLY => Some(18),
+            MT::DW20 => None,
         }
     }
 
-    pub fn nep21_decimal(&self) -> u8 {
+    pub fn mt_decimal(&self) -> u8 {
         match self {
-            CoinType::BTC => 18,
-            CoinType::ETH => 18,
-            CoinType::USDT => 18,
-            CoinType::USDC => 18,
-            CoinType::CLY => 18,
-            CoinType::DW20 => 18,
+            MT::BTC => 21,
+            MT::ETH => 21,
+            MT::USDT => 21,
+            MT::USDC => 21,
+            MT::CLY => 21,
+            MT::DW20 => 21,
         }
     }
 }

@@ -319,7 +319,7 @@ mod tests {
     use super::handlers::status::AirdropStatusResponse;
 
     #[actix_web::test]
-    async fn test_airdrop_braced() {
+    async fn test_airdrop_braced_ok() {
         let app = init().await;
         let service = actix_web::test::init_service(app).await;
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
@@ -328,10 +328,10 @@ mod tests {
         let (btc_prikey, btc_pubkey) = new_secret_key().unwrap();
         let btc_addr = calculate_p2tr_address(&btc_pubkey).unwrap();
         println!("btc_address_{}", btc_addr);
-        let btc_addr = "bcrt1ptnmsjes32gz4nelu6m9ghm8lg2qp536w9cs7knn9the7g7rz6gpqm6pjus";
+        let btc_addr = "bcrt1ptnmsjes32gz4nelu6m9ghm8lg2qp536w9cs7knn9the7g7rz6gpqm6pjut";
         test_register!(service, sender_master);
         //tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
+        test_new_btc_deposit!(service, sender_master);
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info1 {:#?}", status_info);
 
@@ -348,6 +348,7 @@ mod tests {
         //todo
         //test_claim_cly!(service, sender_master);
         //test_change_predecessor!(service, sender_master);
+
 
         let status_info = test_airdrop_status!(service, sender_master).unwrap();
         println!("status_info3 {:#?}", status_info);

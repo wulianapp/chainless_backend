@@ -74,7 +74,7 @@ pub struct EthBridgeOrder {
     pub order_type: OrderType, //Withdraw,Deposit
     pub chainless_acc: String, //无链id
     pub eth_addr: String,      //外链地址
-    pub coin: CoinType,        //代币符号
+    pub coin: MT,        //代币符号
     pub amount: u128,          //转账数量
     //pub status: String,            //订单状态
     pub status: EthOrderStatus, //WithdrawStatus,DepositStatus
