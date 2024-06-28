@@ -11,8 +11,18 @@ pub struct ContactIsUsedRequest {
     contact: String,
 }
 
-pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<bool> {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ContactIsUsedResponse {
+    contact_is_register: bool,
+    secruity_is_seted:bool
+}
+
+
+pub async fn req(request_data: ContactIsUsedRequest) -> BackendRes<ContactIsUsedResponse> {
     let ContactIsUsedRequest { contact } = request_data;
-    let find_res = UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
-    Ok(Some(!find_res.is_empty()))
+    let find_res: Vec<UserInfoEntity> = UserInfoEntity::find(UserFilter::ByPhoneOrEmail(&contact)).await?;
+    Ok(Some(ContactIsUsedResponse{
+        contact_is_register: !find_res.is_empty(),
+        secruity_is_seted: true,
+    }))
 }

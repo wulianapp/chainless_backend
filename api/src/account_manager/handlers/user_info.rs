@@ -48,6 +48,7 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
         .into_inner();
 
     //仅实名领取之后才能显示邀请链接
+    
     /***
     let cli = ContractClient::<Airdrop>::new_query_cli().await?;
     let user_airdrop_on_chain = cli.get_user(&user_info.main_account).await?;
@@ -59,7 +60,8 @@ pub async fn req(req: HttpRequest) -> BackendRes<UserInfoResponse> {
             None
         }
     };
-    **/
+    ***/
+    
     let invite_code = None;
 
     let invite_url = if let Some(ref code) = invite_code {

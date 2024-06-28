@@ -60,7 +60,9 @@ pub fn ed25519_key_gen() -> (String, String) {
 
 pub fn chainless_key_gen() -> (String, String) {
    let (prikey_hex,pubkey_hex) = ed25519_key_gen();
-   (hex_to_bs58(&prikey_hex).unwrap(),hex_to_bs58(&pubkey_hex).unwrap())
+   let chainless_prikey = format!("ed25519:{}",hex_to_bs58(&prikey_hex).unwrap());
+   let chainless_pubkey = format!("ed25519:{}",hex_to_bs58(&pubkey_hex).unwrap());
+    (chainless_prikey,chainless_pubkey)
 }
 
 pub fn ed25519_verify_raw(data: &str, pubkey_hex: &str, sig: &str) -> Result<bool> {

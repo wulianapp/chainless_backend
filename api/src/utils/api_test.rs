@@ -239,13 +239,6 @@ pub async fn clear_contract() {
     cli.clear_all().await.unwrap();
 }
 
-pub async fn get_tx_status_on_chain(txs_index: Vec<u64>) -> Vec<(u64, bool)> {
-    let cli = blockchain::ContractClient::<MultiSig>::new_query_cli()
-        .await
-        .unwrap();
-    cli.get_tx_state(txs_index).await.unwrap().unwrap()
-}
-
 lazy_static! {
     static ref REQ_CLI: reqwest::Client  = reqwest::Client::new();
 
@@ -393,17 +386,16 @@ macro_rules! test_get_captcha_with_token {
 #[macro_export]
 macro_rules! test_check_captcha {
     ( $service:expr,$app:expr,$kind:expr,$captcha:expr) => {{
-            let payload = json!({
-                "contact":$app.user.contact,
-                "captcha": $captcha,
-                "usage": $kind
-            });
-            let res: BackendRespond<String> = test_service_call!(
+            let url = format!(
+                "/accountManager/checkCaptcha?contact={}&captcha={}&usage={}",
+                $app.user.contact, $captcha,$kind
+            );
+            let res: BackendRespond<bool> = test_service_call!(
                 $service,
                 "get",
-                "/accountManager/checkCaptcha",
-                Some(payload.to_string()),
-                Some($app.user.token.clone().unwrap())
+                &url,
+                None::<String>,
+                None::<String>
             );
             assert_eq!(res.status_code,0);
     }};
@@ -411,12 +403,12 @@ macro_rules! test_check_captcha {
 
 #[macro_export]
 macro_rules! test_contact_is_used {
-    ( $service:expr,$app:expr) => {{
+    ( $service:expr,$app:expr) => {{        
         let url = format!(
             "/accountManager/contactIsUsed?contact={}",
             $app.user.contact
         );
-        let res: BackendRespond<bool> =
+        let res: BackendRespond<ContactIsUsedResponse> =
             test_service_call!($service, "get", &url, None::<String>, None::<String>);
         assert_eq!(res.status_code, 0);
         res.data
@@ -460,6 +452,39 @@ macro_rules! test_reset_password {
                 None::<String>
             );
             assert_eq!(res.status_code,0);
+    }};
+}
+
+#[macro_export]
+macro_rules! test_replenish_contact {
+    ($service:expr, $app:expr,$another_contact:expr) => {{
+            let payload = json!({
+                "captcha": "000000",
+                "contact": $another_contact,
+            });
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/replenishContact",
+                Some(payload.to_string()),
+                Some($app.user.token.clone().unwrap())
+            );
+            assert_eq!(res.status_code,0);
+    }};
+}
+
+#[macro_export]
+macro_rules! test_gen_token {
+    ($service:expr, $app:expr) => {{
+            let res: BackendRespond<String> = test_service_call!(
+                $service,
+                "post",
+                "/accountManager/genToken",
+                None::<String>,
+                Some($app.user.token.clone().unwrap())
+            );
+            assert_eq!(res.status_code,0);
+            res.data
     }};
 }
 
@@ -612,115 +637,8 @@ macro_rules! test_servant_saved_secret {
 }
 
 #[macro_export]
-macro_rules! test_add_subaccount {
-    ($service:expr, $master:expr,$new_sub_pubkey:expr) => {{
-        let payload = json!({
-            "subaccountPubkey":  $new_sub_pubkey,
-            "subaccountPrikeyEncrypedByPassword": "by_password_ead4cf1",
-            "subaccountPrikeyEncrypedByAnswer": "byanswer_ead4cf1e",
-            "holdValueLimit": "10000",
-        });
-        let url = format!("/wallet/addSubaccount");
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some($master.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-    }};
-}
-
-#[macro_export]
-macro_rules! test_remove_subaccount {
-    ($service:expr, $master:expr,$sub_account_id:expr) => {{
-        let payload = json!({
-            "accountId":  $sub_account_id,
-        });
-        let url = format!("/wallet/removeSubaccount");
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some($master.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-    }};
-}
-
-#[macro_export]
-macro_rules! test_remove_servant {
-    ($service:expr, $master:expr, $servant:expr) => {{
-        let payload = json!({
-            "servantPubkey":  $sender.wallet.pubkey.as_ref().unwrap(),
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            "/wallet/removeServant",
-            Some(payload.to_string()),
-            Some($master.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-    }};
-}
-
-//sender main_account update strategy
-#[macro_export]
-macro_rules! test_update_strategy {
-    ($service:expr, $master:expr) => {{
-        let payload = json!({
-            "deviceId": "1",
-            "strategy": [{"min": "1", "maxEq": "10", "sigNum": 0},{"min": "10", "maxEq": "10000000000", "sigNum": 1}]
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            "/wallet/updateStrategy",
-            Some(payload.to_string()),
-            Some($master.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-    }};
-}
-
-#[macro_export]
-macro_rules! test_set_fees_priority{
-    ($service:expr, $master:expr) => {{
-        let payload = json!({
-            "feesPriority": ["USDC","eth","UsDt","Dw20","BTC"]
-        });
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            "/wallet/setFeesPriority",
-            Some(payload.to_string()),
-            Some($master.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-    }};
-}
-
-#[macro_export]
 macro_rules! test_update_security {
     ($service:expr, $app:expr, $secrets:expr) => {{
-        let _payload = json!({
-            "contact": $app.user.contact,
-            "kind": "UpdateSecurity"
-        });
-        /***
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            "/accountManager/getCaptchaWithToken",
-            Some(payload.to_string()),
-            Some($app.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-        ***/
-
         let payload = json!({
             "secrets": $secrets,
             "anwserIndexes": "1,2,3",
@@ -947,32 +865,6 @@ macro_rules! test_react_pre_send_money {
     }};
 }
 
-#[macro_export]
-macro_rules! test_commit_newcommer_switch_master {
-    ($service:expr, $sender_newcommer:expr,$gen_res:expr,$add_key_sig:expr,$delete_key_sig:expr) => {{
-        let payload = json!({
-            "newcomerPubkey":  $sender_newcommer.wallet.pubkey.unwrap(),
-            "addKeyRaw":  $gen_res.as_ref().unwrap().add_key_raw,
-            "deleteKeyRaw":  $gen_res.as_ref().unwrap().delete_key_raw,
-            "addKeySig":  $add_key_sig,
-            "deleteKeySig": $delete_key_sig,
-            "newcomerPrikeyEncryptedByPassword":  "".to_string(),
-            "newcomerPrikeyEncryptedByAnswer":  "".to_string()
-        });
-
-        println!("{:?}", payload.to_string());
-        let url = format!("/wallet/commitNewcomerSwitchMaster");
-        let res: BackendRespond<String> = test_service_call!(
-            $service,
-            "post",
-            &url,
-            Some(payload.to_string()),
-            Some($sender_newcommer.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code,0);
-        res.data
-    }};
-}
 
 #[macro_export]
 macro_rules! test_commit_servant_switch_master {

@@ -39,20 +39,23 @@ pub fn judge_role_by_strategy(
 ) -> Result<KeyRole> {
     let role = match (strategy, device_key) {
         //未注册
-        (None, None) => KeyRole::Undefined,
-        (None, Some(_)) => Err(anyhow!("unreachable"))?,
+        (None, None) => unreachable!(),
+        (None, Some(_)) => unreachable!(),
         //已注册但是没有key的新设备
         (Some(_), None) => KeyRole::Undefined,
         (Some(strategy), Some(hold_key)) => {
             //主设备
+            println!("master_pubkey: {},hold_key {}",strategy.master_pubkey,hold_key);
             if strategy.master_pubkey.eq(hold_key) {
                 KeyRole::Master
             //从设备    
             } else if strategy.servant_pubkeys.contains(&hold_key.to_string()) {
+                panic!("todo");
                 KeyRole::Servant
             } else {
                 //如果从设备被删之后，就变成了新设备，但此时设备表仍留存之前该从设备的信息
                 //Err(anyhow!("unknown key {}",hold_key))?
+                panic!("todo");
                 KeyRole::Undefined
             }
         }

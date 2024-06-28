@@ -12,7 +12,6 @@ use handlers::get_tx::GetTxRequest;
 use handlers::pre_send_money::PreSendMoneyRequest;
 use handlers::react_pre_send_money::ReactPreSendMoneyRequest;
 use handlers::reconfirm_send_money::ReconfirmSendMoneyRequest;
-use handlers::remove_subaccount::RemoveSubaccountRequest;
 use handlers::tx_list::TxListRequest;
 use handlers::update_security::UpdateSecurityRequest;
 use handlers::upload_servant_sig::UploadTxSignatureRequest;
@@ -372,44 +371,6 @@ async fn servant_saved_secret(req: HttpRequest) -> impl Responder {
 }
 
 /**
- * @api {post} /wallet/removeSubaccount 删除子钱包
- * @apiVersion 0.0.1
- * @apiName RemoveSubaccount
- * @apiGroup Wallet
- * @apiBody {String} accountId                   待删除的钱包id
- * @apiHeader {String} Authorization  user's access token
- * @apiExample {curl} Example usage:
- *   curl -X POST http://120.232.251.101:8066/wallet/addSubaccount
-   -d ' {
-             "deviceId": "1",
-             "pubkey": "7d2e7d073257358277821954b0b0d173077f6504e50a8fefe3ac02e2bff9ee3e",
-           }'
-   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
-    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
-    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
-* @apiSuccess {String=0,1,3007} status_code         状态码.
-* @apiSuccess {String=HaveUncompleteTx} msg
-* @apiSuccess {String} data                null
-* @apiSampleRequest http://120.232.251.101:8066/wallet/removeSubaccount
-*/
-
-#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
-#[post("/wallet/removeSubaccount")]
-async fn remove_subaccount(
-    req: HttpRequest,
-    request_data: web::Json<RemoveSubaccountRequest>,
-) -> impl Responder {
-    debug!(
-        "req_params:: {}",
-        serde_json::to_string(&request_data.0).unwrap()
-    );
-    gen_extra_respond(
-        get_lang(&req),
-        handlers::remove_subaccount::req(req, request_data.0).await,
-    )
-}
-
-/**
  * @api {post} /wallet/updateSecurity 更新安全密码
  * @apiVersion 0.0.1
  * @apiName UpdateSecurity
@@ -715,7 +676,6 @@ mod tests {
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let priority1 = test_get_fees_priority!(service, sender_master).unwrap();
         println!("priority1___{:?}", priority1);
-        test_set_fees_priority!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
         let priority2 = test_get_fees_priority!(service, sender_master).unwrap();
         println!("priority2___{:?}", priority2);
@@ -1060,23 +1020,6 @@ mod tests {
                 encryptedPrikeyByAnswer: "updated_encrypted".to_string(),
             })
             .collect();
-        //claim
-        test_update_security!(service, sender_master, secrets);
-    }
-
-    #[actix_web::test]
-    async fn test_wallet_get_all2() {
-        println!("start test_wallet_get_all");
-        let app = init().await;
-        let service = actix_web::test::init_service(app).await;
-        let (sender_master, _sender_servant, _sender_newcommer, _receiver) =
-            gen_some_accounts_with_new_key();
-        let start = now_millis();
-        for _ in 0..10 {
-            let _test1 = test_contact_is_used!(service, sender_master);
-            //let user = PgLocalCli2::execute("select * from users").await.unwrap();
-        }
-        println!("--___ {}", now_millis() - start);
     }
 
     #[actix_web::test]
@@ -1199,12 +1142,6 @@ mod tests {
         test_add_servant!(service, sender_master, sender_servant);
 
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
-        //给链上确认一些时间
-        //step2.1:
-        test_update_strategy!(service, sender_master);
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-
         //step2.3: get message of becoming servant,and save encrypted prikey
         let res = test_search_message!(service, sender_servant).unwrap();
         let tx = res.newcomer_became_sevant.first().unwrap();
@@ -1282,9 +1219,6 @@ mod tests {
             )
             .unwrap();
             test_reconfirm_send_money!(service, sender_master, tx.order_id, signature);
-
-            let txs_success = get_tx_status_on_chain(vec![1u64, 2u64]).await;
-            println!("txs_success {:?}", txs_success);
         }
     }
 }

@@ -24,7 +24,7 @@ use common::prelude::*;
 use near_crypto::{InMemorySigner, PublicKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
-    borsh::{self},
+    borsh::{self, BorshDeserialize},
     transaction::{
         Action, AddKeyAction, CreateAccountAction, DeleteKeyAction, FunctionCallAction,
         SignedTransaction, Transaction, TransferAction,
@@ -35,7 +35,7 @@ use near_primitives::{
 use relayer::{wait_for_idle_relayer, Relayer};
 use serde::de::DeserializeOwned;
 
-use std::marker::PhantomData;
+use std::{marker::PhantomData, str::FromStr};
 use tokio::sync::MutexGuard;
 use tracing::{debug, info};
 
@@ -125,12 +125,12 @@ impl<T> ContractClient<T> {
     ) -> Result<Transaction> {
         //todo: when mainnet deposit is zero，now is 100 * cost
         let (receiver_str, actions, nonce) = if method_name == "register_account" {
-            let args: Vec<&str> = args.split(':').collect();
-            let account_id = args[0];
-            let pubkey = args[1];
+            let args: Vec<&str> = args.split('@').collect();
+            let pubkey = args[0];
+            let account_id = args[1];
 
             let add_action = Action::AddKey(Box::new(AddKeyAction {
-                public_key: pubkey_from_hex_str(pubkey)?,
+                public_key: PublicKey::from_str(pubkey)?,
                 access_key: AccessKey {
                     nonce: 0u64,
                     permission: AccessKeyPermission::FullAccess,
@@ -256,7 +256,6 @@ impl<T> ContractClient<T> {
         if let QueryResponseKind::CallResult(result) = rep.kind {
             let amount_str: String = String::from_utf8(result.result)?;
             debug!("query_res1 {}", amount_str);
-            println!("query_res1 {}", amount_str);
             Ok(serde_json::from_str::<Option<R>>(&amount_str)?)
         } else {
             Err(anyhow!("kind must be contract call".to_string()))?

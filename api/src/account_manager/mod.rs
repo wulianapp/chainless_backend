@@ -414,14 +414,17 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
 mod tests {
     use super::*;
 
-    use crate::{test_check_captcha, test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
-    use crate::utils::api_test::{gen_some_accounts_with_new_key,init};
+    //use crate::{test_check_captcha, test_contact_is_used, test_login, test_register, test_reset_password, test_service_call, test_user_info};
+    use crate::*;
+    use crate::utils::api_test::*;
     use actix_web::body::MessageBody;
     use actix_web::http::header;
     use actix_web::{test};
+    use common::utils::time::now_millis;
     use tests::handlers::user_info::UserInfoResponse;
     use serde_json::json;
     use crate::utils::respond::BackendRespond;
+    use crate::account_manager::handlers::contact_is_used::ContactIsUsedResponse;
 
     #[actix_web::test]
     async fn test_all_braced_account_manager_ok() {
@@ -430,7 +433,7 @@ mod tests {
 
         let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) = gen_some_accounts_with_new_key();
  
-        //test_check_captcha!(service,sender_master,"Register","123456");
+        test_check_captcha!(service,sender_master,"Register","123456");
 
         test_register!(service,sender_master);
 
@@ -444,6 +447,13 @@ mod tests {
         test_reset_password!(service,sender_master);
 
         test_login!(service,sender_master);
+
+        let sender_phone = format!("+86 {}",now_millis() / 100);
+        
+        test_replenish_contact!(service,sender_master,sender_phone);
+
+        let new_token = test_gen_token!(service,sender_master);
+        sender_master.user.token = new_token;
 
         let info = test_user_info!(service,sender_master);
         println!("{:?}", info);

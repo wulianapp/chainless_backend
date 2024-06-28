@@ -41,12 +41,12 @@ pub mod get_tx;
 pub mod pre_send_money;
 pub mod react_pre_send_money;
 pub mod reconfirm_send_money;
-pub mod remove_subaccount;
 pub mod search_message;
 pub mod servant_saved_secret;
 pub mod tx_list;
 pub mod update_security;
 pub mod upload_servant_sig;
+
 
 //短地址允许碰撞的次数
 pub const FIND_VALID_ACCOUNT_RETRY_TIMES: u8 = 10;

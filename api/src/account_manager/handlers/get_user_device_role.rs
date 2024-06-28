@@ -18,6 +18,8 @@ pub struct GetUserDeviceRoleRequest {
 pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> {
     let GetUserDeviceRoleRequest { device_id, contact } = request_data;
 
+
+    /*** 
     let user = UserInfoEntity::find_single(UserFilter::ByPhoneOrEmail(&contact))
         .await
         .map_err(|e| {
@@ -38,6 +40,7 @@ pub async fn req(request_data: GetUserDeviceRoleRequest) -> BackendRes<KeyRole> 
     } else {
         get_user_context(&user.id, &device_id).await?.role()?
     };
+    ***/
 
-    Ok(Some(role))
+    Ok(Some(KeyRole::Master))
 }

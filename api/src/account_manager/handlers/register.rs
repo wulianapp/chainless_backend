@@ -150,10 +150,10 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
 
     debug!("{},{}",file!(),line!());
     let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;            
-    let pubkey_hex =   bs58_to_hex(&master_pubkey).unwrap();
+    //let pubkey_hex =   bs58_to_hex(&master_pubkey).unwrap();
     let register_tx_id = multi_cli.register_account(
                     &candidate_account_id,
-        &pubkey_hex,
+        &master_pubkey,
     ).await?;
     debug!("candidate_account_id:{} register tx_id {} ", candidate_account_id,register_tx_id);
     //todo: Sleep 5s for call user_info_contract

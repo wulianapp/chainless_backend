@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Ok, Result};
 use common::data_structures::{get_support_coin_list, PubkeySignInfo};
 
 use common::utils::time::now_millis;
@@ -35,7 +35,7 @@ pub struct MultiSigRank {
     pub sig_num: u8,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug,Default)]
 pub struct SubAccConf {
     pub pubkey: String,
     pub hold_value_limit: u128,
@@ -51,7 +51,7 @@ impl Default for MultiSigRank {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug,Default)]
 pub struct StrategyData {
     pub master_pubkey: String,
     pub multi_sig_ranks: Vec<MultiSigRank>,
@@ -70,31 +70,15 @@ impl ContractClient<MultiSig> {
         Self::gen_cli_without_relayer(contract).await
     }
 
-    pub async fn get_total_value(&self, account_str: &str) -> Result<u128> {
-        let coins = get_support_coin_list();
-        let mut total_value = 0;
-        let fees_cli = ContractClient::<FeesCall>::new_update_cli().await?;
-        for coin in coins {
-            let coin_cli = ContractClient::<Coin>::new_update_cli(coin.clone()).await?;
-            let balance = coin_cli.get_balance(account_str).await?;
-            let balance: u128 = balance.unwrap_or("0".to_string()).parse()?;
-            //get price from contract
-            let (base, quote) = fees_cli.get_coin_price(&coin).await?;
-            total_value += balance * quote / base;
-        }
-        Ok(total_value)
-    }
-
     //fixeme:
     //用户永远只持有最后一个master的私钥
     //增加key的时候，新key永远不会放在末尾
     pub async fn get_master_pubkey(&self, account_str: &str) -> Result<String> {
-        let list = get_access_key_list(account_str).await?.keys;
+        let list = self.get_master_pubkey_list(account_str).await?;
         if list.len() != 1 {
             Err(anyhow!("account have multi key {:?}", list))?;
         }
-        let key = list[0].public_key.key_data();
-        Ok(hex::encode(key))
+        Ok(list[0].clone())
     }
 
     //key列表是定序的,但是不以时间顺序
@@ -102,7 +86,7 @@ impl ContractClient<MultiSig> {
         let list = get_access_key_list(account_str).await?.keys;
         let list = list
             .iter()
-            .map(|key| hex::encode(key.public_key.key_data()))
+            .map(|key| key.public_key.to_string())
             .collect();
         Ok(list)
     }
@@ -117,89 +101,49 @@ impl ContractClient<MultiSig> {
         Ok(list[0].clone())
     }
 
-    //add_master
+        //add_master
     //这里先查询如果已经存在就不加了
     pub async fn add_key(&self, main_account: &str, new_key: &str) -> Result<(String, String)> {
-        let master_pubkey = self.get_master_pubkey(main_account).await?;
-        let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
-        let main_account = AccountId::from_str(main_account)?;
-        self.gen_raw_with_caller(&main_account, &master_pubkey, "add_key", new_key)
-            .await
-    }
-
-    //fixme：删除的这个理论上应该用新增加的key来签名，保证确实增加进去了，但是这样需要等待增加key执行完才行
-    //为了减少前端的工作量，这里删除也用原有主私钥，也就是自己删自己
-    //后期可以在链底层增加一个直接替换的接口
-    pub async fn delete_key(
-        &self,
-        main_account: &str,
-        delete_key: &str,
-    ) -> Result<(String, String)> {
-        let master_pubkey = self.get_master_pubkey(main_account).await?;
-        let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
-        let main_account = AccountId::from_str(main_account)?;
-        self.gen_raw_with_caller(&main_account, &master_pubkey, "delete_key", delete_key)
-            .await
-    }
-
-    pub async fn get_strategy(&self, account_id: &str) -> Result<Option<StrategyData>> {
-        let user_account_id = AccountId::from_str(account_id)?;
-        let args_str = json!({"user_account_id": user_account_id}).to_string();
-        self.query_call("get_strategy", &args_str).await
-    }
-
-    pub async fn get_tx_state(&self, txs_index: Vec<u64>) -> Result<Option<Vec<(u64, bool)>>> {
-        let args_str = json!({"txs_index": txs_index}).to_string();
-        self.query_call("get_txs_state", &args_str).await
-    }
-
-    pub async fn remove_tx_index(&mut self, tx_index: u64) -> Result<String> {
-        let args_str = json!({"index": tx_index}).to_string();
-        self.commit_by_relayer("remove_tx_index", &args_str).await
-    }
-
-    pub async fn add_subaccount(
-        &mut self,
-        main_acc: &str,
-        subacc: BTreeMap<&str, SubAccConf>,
-    ) -> Result<String> {
-        let main_acc = AccountId::from_str(main_acc)?;
-        assert_eq!(subacc.len(), 1);
-        for (account_id, conf) in subacc.clone().into_iter() {
-            let _register_tx_id = self
-                .register_account(account_id, &conf.pubkey)
-                .await?;
+            let master_pubkey = self.get_master_pubkey(main_account).await?;
+            let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
+            let main_account = AccountId::from_str(main_account)?;
+            self.gen_raw_with_caller(&main_account, &master_pubkey, "add_key", new_key)
+                .await
         }
 
-        //let subacc = AccountId::from_str(subacc).unwrap();
-        let sub_confs = subacc
-            .into_iter()
-            .map(|(acc_str, conf)| {
-                //todo:
-                (AccountId::from_str(acc_str).unwrap(), conf)
-            })
-            .collect::<BTreeMap<AccountId, SubAccConf>>();
-        debug!("pre_add sub_confs {:?}", sub_confs);
+        //后期可以在链底层增加一个直接替换的接口
+    pub async fn delete_key(
+            &self,
+            main_account: &str,
+            delete_key: &str,
+        ) -> Result<(String, String)> {
+            let master_pubkey = self.get_master_pubkey(main_account).await?;
+            let master_pubkey = pubkey_from_hex_str(&master_pubkey)?;
+            let main_account = AccountId::from_str(main_account)?;
+            self.gen_raw_with_caller(&main_account, &master_pubkey, "delete_key", delete_key)
+                .await
+        }
+    
 
-        let args_str = json!({
-            "main_account_id": main_acc,
-            "new_sub": sub_confs
-        })
-        .to_string();
-        self.commit_by_relayer("add_subaccounts", &args_str).await
+    pub async fn get_thresholds_and_min_slave_sigs(&self, account_id: &str) -> Result<Option<(Vec<u8>,Vec<u128>)>> {
+        let user_account_id = AccountId::from_str(account_id)?;
+        let args_str = json!({"owner": user_account_id}).to_string();
+        self.query_call("get_thresholds_and_min_slave_sigs", &args_str).await
+    }       
+
+    pub async fn get_slaves(&self, account_id: &str) -> Result<Option<(Vec<PublicKey>)>> {
+        let user_account_id = AccountId::from_str(account_id)?;
+        let args_str = json!({"owner": user_account_id}).to_string();
+        self.query_call("get_slaves", &args_str).await
     }
 
-    pub async fn remove_subaccount(&mut self, main_acc: &str, subacc: &str) -> Result<String> {
-        let main_acc = AccountId::from_str(main_acc)?;
-        let subacc = AccountId::from_str(subacc)?;
-
-        let args_str = json!({
-            "main_account_id": main_acc,
-            "accounts": vec![subacc]
-        })
-        .to_string();
-        self.commit_by_relayer("remove_subaccounts", &args_str)
-            .await
+    //todo:
+    pub async fn get_strategy(&self, account_id: &str) -> Result<Option<StrategyData>> {
+       //let thresholds = self.get_thresholds_and_min_slave_sigs(account_id).await?;
+       //let slaves = self.get_slaves(account_id).await?;
+       let mut strategy = StrategyData::default();
+       strategy.master_pubkey = self.get_master_pubkey(&account_id).await?;
+       Ok(Some(strategy)) 
     }
 
     pub async fn remove_account_strategy(&mut self, acc: String) -> Result<String> {
@@ -210,7 +154,7 @@ impl ContractClient<MultiSig> {
     }
 
     pub async fn register_account(&mut self, account_id: &str, pubkey: &str) -> Result<String> {
-        let arg_str = format!("{}:{}", account_id, pubkey);
+        let arg_str = format!("{}@{}", pubkey,account_id);
         self.commit_by_relayer("register_account", &arg_str)
             .await
     }
@@ -392,12 +336,48 @@ pub fn sign_data_by_near_wallet(prikey_bytes: [u8; 64], data: &[u8]) -> Result<S
 #[cfg(test)]
 mod tests {
 
+    use near_primitives::action::{Action, FunctionCallAction};
     use tracing::{error, info};
 
     use super::*;
 
     use crate::ContractClient;
     use common::log::init_logger;
+
+    /***
+    pub async fn set_thresholds_and_min_slave_sigs(
+        prikey: &str,
+        account_id:&str,
+        contract:&str
+    ){
+        let secret_key: SecretKey = prikey.parse().unwrap();
+        let signer_account_id = AccountId::from_str(account_id).unwrap();
+        let signer = near_crypto::InMemorySigner::from_secret_key(
+            signer_account_id.to_owned(), 
+            secret_key
+        );
+
+        let set_strategy_actions = vec![Action::FunctionCall(Box::new(FunctionCallAction {
+            method_name: "set_thresholds_and_min_slave_sigs".to_string(),
+            args: json!({
+            "thresholds": Vec::<String>::new(),
+            "min_slave_sigs": Vec::<String>::new(),
+            })
+            .to_string()
+            .into_bytes(),
+            gas: 300000000000000, // 100 TeraGas
+            deposit: None,        //Some(Deposit{ deposit: 0, symbol: None, fee: None }),
+        }))];
+        
+    }
+    **/
+    #[tokio::test]
+    async fn test_set_thresholds_and_min_slave_sigs() {
+        let prikey = "ed25519:YDqZJcyWYeWN3pw6JBLwZtpkjASs5Q9rYUj3tKQyU719SErbrE75rZiXiWL75MhkF67T9wQZDBQHtCZioTZg1Vz";
+        let account_id = "eddy.chainless";
+        let contract = "multisig_send_mt.chainless";
+    }
+
 
     fn servant_keys() -> Vec<String> {
         vec![
