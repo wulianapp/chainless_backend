@@ -1046,35 +1046,11 @@ mod tests {
         test_faucet_claim!(service, sender_master);
         tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
 
-        let balances = test_get_balance_list!(service, sender_master, "Main").unwrap();
-        println!("list {:?}", balances);
-
         let secrets = test_get_secret!(service, sender_master, "All").unwrap();
         println!("secrets {:?}", secrets);
 
         let txs = test_tx_list!(service, sender_master, "Sender", None::<String>, 100, 1).unwrap();
         println!("txs__ {:?}", txs);
-    }
-
-    #[actix_web::test]
-    async fn test_wallet_faucet_ok() {
-        println!("start test_wallet_faucet_ok");
-        let app = init().await;
-        let service = actix_web::test::init_service(app).await;
-        let (mut sender_master, _sender_servant, _sender_newcommer, _receiver) =
-            gen_some_accounts_with_new_key();
-
-        test_register!(service, sender_master);
-
-        let balances1 = test_get_balance_list!(service, sender_master, "Main").unwrap();
-        println!("list {:?}", balances1);
-
-        //claim
-        test_faucet_claim!(service, sender_master);
-
-        //balance
-        let balances2 = test_get_balance_list!(service, sender_master, "Main").unwrap();
-        println!("list {:?}", balances2);
     }
 
     /***

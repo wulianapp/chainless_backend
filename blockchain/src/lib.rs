@@ -8,10 +8,11 @@ pub mod coin;
 pub mod erc20_on_eth;
 pub mod general;
 pub mod multi_sig;
-
 pub mod bridge_on_eth;
 pub mod eth_cli;
 pub mod relayer;
+pub mod register_relayer;
+pub mod meta;
 
 use general::pubkey_from_hex_str;
 use lazy_static::lazy_static;
@@ -20,7 +21,7 @@ use near_jsonrpc_primitives::types::{query::QueryResponseKind, transactions::Tra
 //use near_jsonrpc_client::methods::EXPERIMENTAL_tx_status::TransactionInfo;
 use anyhow::{anyhow, Result};
 use common::prelude::*;
-use near_crypto::{InMemorySigner, PublicKey, Signer};
+use near_crypto::{InMemorySigner, PublicKey, SecretKey, Signer};
 use near_primitives::{
     account::{AccessKey, AccessKeyPermission},
     borsh::{self, BorshDeserialize},
@@ -43,14 +44,18 @@ use crate::general::gen_transaction_with_caller_with_nonce;
 lazy_static! {
     //static ref CHAIN_CLIENT: JsonRpcClient = JsonRpcClient::connect("http://123.56.252.201:8061");
     static ref CHAIN_CLIENT: JsonRpcClient = {
-        println!("+++__{}",common::env::CONF.chain_rpc);
         JsonRpcClient::connect(&common::env::CONF.chain_rpc)
     };
 
+    static ref ADMIN: InMemorySigner = {
+        let default_account = AccountId::from_str("node0").unwrap();
+        let secret_key = SecretKey::from_str("ed25519:3MCQKU8rsSCyegYCu7Ek14pc6NjMkgp6KHphf2nfAgknThknusRGSqMLYQFonasixjvvWmoNJnaFuK1fWF5cBpDN").unwrap();
+        near_crypto::InMemorySigner::from_secret_key(default_account, secret_key)
+    };
+}
 
-
-    //static ref CODE_STORAGE: Mutex<HashMap<(String, Usage), Captcha>> = Mutex::new(HashMap::new());
-
+pub fn admin_sign(data:&[u8]) -> String{
+    ADMIN.sign(data).to_string()
 }
 
 //todo: deal with error detail

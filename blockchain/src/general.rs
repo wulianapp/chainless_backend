@@ -246,21 +246,18 @@ pub async fn broadcast_tx_commit(
     crate::rpc_call(request).await.map_err(|e| e.into())
 }
 
-pub async fn call<M>(request: M) -> MethodCallResult<M::Response, M::Error>
-where
-    M: methods::RpcMethod,
-{
-    crate::CHAIN_CLIENT.call(request).await
-}
-/***
-pub async fn broadcast_tx_async(){
-    let request = methods::broadcast_tx_async::RpcBroadcastTxAsyncRequest {
-        signed_transaction: transaction.sign(&signer),
-    };
-    let tx_hash = crate::rpc_call(request).await;
+pub struct ChainStatus{
+    pub latest_block_height: u64,
+    pub latest_block_hash: String,
 }
 
- */
+pub async fn get_chain_state() -> Result<ChainStatus> {
+    let status_response = crate::rpc_call(methods::status::RpcStatusRequest).await?;
+    Ok(ChainStatus{
+        latest_block_height: status_response.sync_info.latest_block_height,
+        latest_block_hash: status_response.sync_info.latest_block_hash.to_string()
+    })
+}
 
 #[cfg(test)]
 mod tests {
@@ -291,14 +288,5 @@ mod tests {
         .await
         .unwrap();
         println!("res {:?}", res);
-    }
-
-    #[tokio::test]
-    async fn test_get_access_key_list() {
-        loop {
-            let res = get_access_key_list("node0").await;
-            println!("res {:?}", res);
-            tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
-        }
     }
 }

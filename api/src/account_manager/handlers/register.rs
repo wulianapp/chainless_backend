@@ -1,6 +1,7 @@
 use blockchain::bridge_on_near::Bridge;
 use blockchain::multi_sig::MultiSig;
-use blockchain::ContractClient;
+use blockchain::register_relayer::wait_for_idle_register_relayer;
+use blockchain::{admin_sign, ContractClient};
 use blockchain::airdrop::Airdrop as ChainAirdrop;
 use common::error_code::{AccountManagerError::*, AirdropError, BackendError, WalletError};
 use common::hash::Hash;
@@ -36,6 +37,16 @@ pub struct RegisterRequest {
     set_user_info_action_json: String,
 }
 
+#[derive(Deserialize, Serialize, Clone)]
+struct CreateMasterAccountParams {
+    account_id: String,
+    public_key: String,
+    k1: String,
+    k2: String,
+    d1: String,
+    max_block_height: String,
+}
+
 //生成十位随机数作为user_id
 const MAX_RETRY_TIMES: u8 = 10;
 async fn gen_user_id() -> Result<u32, BackendError> {
@@ -54,7 +65,18 @@ async fn gen_user_id() -> Result<u32, BackendError> {
     Err(BackendError::InternalError("".to_string()))
 }
 
-pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
+pub fn gen_sign_msg(
+    account_id: &str,
+    phone_hash: &str,
+    email_hash: &str,
+    device_hash: &str,
+    max_block_height: u64
+) -> String{
+    format!("{}-k1,k2,d1-{},{},{}-{}",
+        account_id,phone_hash,email_hash,device_hash,max_block_height)
+}
+
+pub async fn req(request_data: RegisterRequest) -> BackendRes<(String,String)> {
     let RegisterRequest {
         device_id,
         device_brand,
@@ -105,14 +127,16 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
         &anwser_indexes,
         &candidate_account_id,
     );
-    match contact.contact_type()? {
+    let (phone_hash,email_hash) = match contact.contact_type()? {
         ContactType::PhoneNumber => {
             view.user_info.phone_number = Some(contact.clone());
+            (contact.hash(),"".to_string())
         }
         ContactType::Email => {
             view.user_info.email = Some(contact.clone());
+            ("".to_string(),contact.hash())
         }
-    }
+    };
     let token_version = view.user_info.token_version;
     view.insert().await?;
 
@@ -161,18 +185,18 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
     );
     device.insert().await?;
 
-    debug!("{},{}", file!(), line!());
-    let mut multi_cli = ContractClient::<MultiSig>::new_update_cli().await?;
-    //let pubkey_hex =   bs58_to_hex(&master_pubkey).unwrap();
-    let register_tx_id = multi_cli
-        .register_account(&candidate_account_id, &master_pubkey)
-        .await?;
-    debug!(
-        "candidate_account_id:{} register tx_id {} ",
-        candidate_account_id, register_tx_id
+    let allocated_relayer = wait_for_idle_register_relayer().await?;
+    let msg = gen_sign_msg(
+        &candidate_account_id, 
+        &phone_hash, 
+        &email_hash, 
+    device_id.hash().as_str(), 
+    allocated_relayer.busy_height.unwrap()
     );
-    //todo: Sleep 5s for call user_info_contract
-
+    debug!("msg {}",msg);
+    
+    let sig =  admin_sign(msg.as_bytes());
+    
     let token = crate::utils::token_auth::create_jwt(
         this_user_id,
         token_version,
@@ -180,12 +204,6 @@ pub async fn req(request_data: RegisterRequest) -> BackendRes<String> {
         &device_brand,
     )?;
 
-    //注册的时候就设置允许跨链白名单
-    /***
-    let mut bridge_cli = ContractClient::<Bridge>::new_update_cli().await?;
-    let set_res = bridge_cli.set_user_batch(&pending_account_id).await?;
-    debug!("set_user_batch txid {} ,{}", set_res, pending_account_id);
-    **/
     info!("user {} register successfully", contact);
-    Ok(Some(token))
+    Ok(Some((token,sig)))
 }

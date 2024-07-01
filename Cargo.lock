@@ -789,6 +789,7 @@ dependencies = [
  "near-jsonrpc-primitives",
  "near-primitives 1.39.2",
  "rand 0.7.3",
+ "reqwest 0.11.27",
  "serde",
  "serde_json",
  "tokio 1.37.0",

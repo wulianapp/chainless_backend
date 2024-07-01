@@ -892,22 +892,6 @@ macro_rules! test_get_secret {
 }
 
 #[macro_export]
-macro_rules! test_get_balance_list {
-    ($service:expr, $app:expr,$kind:expr) => {{
-        let url = format!("/wallet/balanceList?kind={}", $kind);
-        let res: BackendRespond<BalanceListResponse> = test_service_call!(
-            $service,
-            "get",
-            &url,
-            None::<String>,
-            Some($app.user.token.clone().unwrap())
-        );
-        assert_eq!(res.status_code, 0);
-        res.data
-    }};
-}
-
-#[macro_export]
 macro_rules! test_get_tx {
     ($service:expr, $app:expr,$order_id:expr) => {{
         let url = format!("/wallet/getTx?orderId={}", $order_id);
