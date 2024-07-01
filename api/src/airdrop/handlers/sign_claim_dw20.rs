@@ -1,11 +1,12 @@
 use actix_web::HttpRequest;
-use airdrop::BtcGradeStatus;
-use blockchain::airdrop::Airdrop as ChainAirdrop;
-use common::data_structures::KeyRole;
+use airdrop::{Airdrop, BtcGradeStatus};
+use blockchain::{admin_sign, airdrop::Airdrop as ChainAirdrop};
+use common::{data_structures::KeyRole, utils::time::now_millis};
 use models::{
     airdrop::{AirdropEntity, AirdropFilter, AirdropUpdater},
     PsqlOp,
 };
+use serde::{Deserialize, Serialize};
 use tracing::debug;
 
 use crate::utils::{get_user_context, token_auth};
@@ -13,9 +14,33 @@ use crate::wallet::handlers::*;
 use blockchain::ContractClient;
 use common::error_code::BackendRes;
 
-pub async fn req(req: HttpRequest) -> BackendRes<String> {
-    //todo: sync tx records after claim
+#[derive(Deserialize, Serialize, Clone)]
+struct ClaimDw20Param {
+    account_id: String,
+    btc_address: Option<String>,
+    btc_level: u8,
+    ref_account_id: String,
+    deadline: u128,
+}
 
+pub fn gen_sign_msg(
+    account_id: String,
+    btc_address:  Option<String>,
+    btc_level: u8,
+    ref_account_id: String,
+    deadline: u128,
+) -> String {
+    let param = ClaimDw20Param {
+        account_id,
+        btc_address,
+        btc_level,
+        ref_account_id,
+        deadline,
+    };
+    serde_json::to_string(&param).unwrap()
+}
+
+pub async fn req(req: HttpRequest) -> BackendRes<String> {
     let (user_id, _, device_id, _) = token_auth::validate_credentials(&req).await?;
 
     let context = get_user_context(&user_id, &device_id).await?;
@@ -53,18 +78,16 @@ pub async fn req(req: HttpRequest) -> BackendRes<String> {
         Err(AirdropError::PredecessorHaveNotClaimAirdrop)?;
     }
 
-    //todo:
-    /***
-    let mut cli = ContractClient::<ChainAirdrop>::new_update_cli().await?;
-    let ref_user = cli
-        .claim_dw20(
-            &main_account,
-            &user_airdrop.predecessor_account_id,
-            user_airdrop.btc_address.as_deref(),
-            user_airdrop.btc_level.unwrap_or_default(),
-        )
-        .await?;
-    ***/
+    let Airdrop {predecessor_account_id,btc_address,btc_level,..} = user_airdrop;
+    let deadline = now_millis() as u128 / 1000 + 60;
+    let msg = gen_sign_msg(
+        main_account,
+         btc_address, 
+         btc_level.unwrap_or_default(),
+         predecessor_account_id,
+         deadline
+    );
+    let sig = admin_sign(msg.as_bytes());
     debug!("successful claim dw20 txid {}", "ref_user");
-    Ok(None)
+    Ok(Some(sig))
 }
