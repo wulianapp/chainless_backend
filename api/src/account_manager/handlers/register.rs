@@ -37,6 +37,16 @@ pub struct RegisterRequest {
     set_user_info_action_json: String,
 }
 
+#[derive(Deserialize, Serialize, Clone)]
+struct CreateMasterAccountParams {
+    account_id: String,
+    public_key: String,
+    k1: String,
+    k2: String,
+    d1: String,
+    max_block_height: String,
+}
+
 //生成十位随机数作为user_id
 const MAX_RETRY_TIMES: u8 = 10;
 async fn gen_user_id() -> Result<u32, BackendError> {

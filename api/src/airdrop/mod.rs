@@ -8,6 +8,8 @@ use tracing::debug;
 //use captcha::{ContactType, VerificationCode};
 
 use crate::airdrop::handlers::bind_btc_address::BindBtcAddressRequest;
+use crate::airdrop::handlers::change_invite_code::ChangeInviteCodeRequest;
+use crate::airdrop::handlers::change_predecessor::ChangePredecessorRequest;
 use crate::airdrop::handlers::new_btc_deposit::NewBtcDepositRequest;
 use crate::utils::respond::gen_extra_respond;
 use crate::utils::respond::get_lang;
@@ -108,6 +110,39 @@ async fn bind_btc_address(
 }
 
 /**
+ * @api {post} /airdrop/changeInviteCode 修改邀请码
+ * @apiVersion 0.0.1
+ * @apiName ChangeInviteCode
+ * @apiGroup Airdrop
+ * @apiBody {String} code   新的邀请码
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+             "servantPubkey": "123",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
+* @apiSuccess {String}    msg              错误信息
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/airdrop/changeInviteCode
+*/
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
+#[post("/airdrop/changeInviteCode")]
+async fn change_invite_code(
+    req: HttpRequest,
+    request_data: web::Json<ChangeInviteCodeRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::change_invite_code::req(req, request_data.into_inner()).await,
+    )
+}
+
+/**
  * @api {post} /airdrop/resetStatus 重置空投状态
  * @apiVersion 0.0.1
  * @apiName ResetStatus
@@ -133,6 +168,64 @@ async fn reset_status(req: HttpRequest) -> impl Responder {
 }
 
 /**
+ * @api {post} /airdrop/changePredecessor 修改上级
+ * @apiVersion 0.0.1
+ * @apiName ChangePredecessor
+ * @apiGroup Airdrop
+ * @apiBody {String} predecessorInviteCode   上级钱包的邀请码
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+             "servantPubkey": "123",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
+* @apiSuccess {String}    msg              错误信息
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/airdrop/changePredecessor
+*/
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
+#[post("/airdrop/changePredecessor")]
+async fn change_predecessor(
+    req: HttpRequest,
+    request_data: web::Json<ChangePredecessorRequest>,
+) -> impl Responder {
+    debug!("{}", serde_json::to_string(&request_data.0).unwrap());
+    gen_extra_respond(
+        get_lang(&req),
+        handlers::change_predecessor::req(req, request_data.into_inner()).await,
+    )
+}
+
+/**
+ * @api {post} /airdrop/claimCly 登记cly空投
+ * @apiVersion 0.0.1
+ * @apiName ClaimCly
+ * @apiGroup Airdrop
+ * @apiHeader {String} Authorization  user's access token
+ * @apiExample {curl} Example usage:
+ *   curl -X POST http://120.232.251.101:8066/wallet/preSendMoney
+   -d ' {
+             "servantPubkey": "123",
+           }'
+   -H "Content-Type: application/json" -H 'Authorization:Bearer eyJ0eXAiOiJKV1QiLCJhbGci
+    OiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJkZXZpY2VfaWQiOiIyIiwiaWF0IjoxNzA2ODQ1ODgwODI3LCJleHA
+    iOjE3MDgxNDE4ODA4Mjd9.YsI4I9xKj_y-91Cbg6KtrszmRxSAZJIWM7fPK7fFlq8'
+* @apiSuccess {String=0,1,3007,3008,3011} status_code         状态码.
+* @apiSuccess {String}    msg              错误信息
+* @apiSuccess {String} data                null
+* @apiSampleRequest http://120.232.251.101:8066/airdrop/claimCly
+*/
+#[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
+#[post("/airdrop/claimCly")]
+async fn claim_cly(req: HttpRequest) -> impl Responder {
+    gen_extra_respond(get_lang(&req), handlers::claim_cly::req(req).await)
+}
+
+/**
  * @api {post} /airdrop/claimDw20 登记Dw20空投
  * @apiVersion 0.0.1
  * @apiName ClaimDw20
@@ -154,7 +247,7 @@ async fn reset_status(req: HttpRequest) -> impl Responder {
 #[tracing::instrument(skip_all,fields(trace_id = get_trace_id(&req)))]
 #[post("/airdrop/claimDw20")]
 async fn claim_dw20(req: HttpRequest) -> impl Responder {
-    gen_extra_respond(get_lang(&req), handlers::sign_claim_dw20::req(req).await)
+    gen_extra_respond(get_lang(&req), handlers::claim_dw20::req(req).await)
 }
 
 /**
@@ -198,6 +291,9 @@ async fn new_btc_deposit(
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(status)
         .service(bind_btc_address)
+        .service(change_invite_code)
+        .service(change_predecessor)
+        .service(claim_cly)
         .service(claim_dw20)
         .service(get_grade)
         .service(reset_status)

@@ -1,5 +1,8 @@
 pub mod bind_btc_address;
-pub mod sign_claim_dw20;
+pub mod change_invite_code;
+pub mod change_predecessor;
+pub mod claim_cly;
+pub mod claim_dw20;
 pub mod get_grade;
 pub mod new_btc_deposit;
 pub mod reset_status;
